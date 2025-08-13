@@ -1,0 +1,64 @@
+\documentclass{report}
+\usepackage{graphicx}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{float}  % Enables [H]
+\usepackage{amsmath}
+\usepackage{amssymb} % For advanced mathematical symbols
+\usepackage{fancyhdr}
+\usepackage{graphicx}
+\usepackage{bm}
+\usepackage{newpxtext,newpxmath} 
+\usepackage[a4paper,margin=2.5cm]{geometry}
+\usepackage{microtype}
+\usepackage{titlesec}
+\usepackage{xcolor}
+\usepackage{physics}
+\usepackage{biblatex}
+\definecolor{myaccent}{HTML}{a13333}
+
+\titleformat{\chapter}
+  [display]  % display = title is on its own line
+  {\normalfont\huge\bfseries\color{myaccent}}  % Style
+  {\chaptername\ \thechapter}  % "Chapter 1"
+  {20pt}  % Space between number and title
+  {}  % Code before the title (none)
+
+
+\titleformat{\subsection}
+  {\normalfont\large\bfseries\color{black}}{\thesubsection}{1em}{}
+\titleformat{\section}
+  {\normalfont\Large\bfseries}  % Style of the title
+  {\thesection}{1em}            % Number formatting
+  {\vspace{0.0em}}              % Space before title
+  [\vspace{0.03em}{\color{myaccent}\rule{0.62\textwidth}{0.5pt}}]
+    % Small rule below the title
+
+\pagestyle{fancy}
+\addbibresource{references.bib}
+\title{Foundations of Machine Learning Systems}
+\author{Aleksander Sekkelsten}
+
+\date{\today}
+
+\begin{document}
+
+\maketitle
+\tableofcontents
+\part{Theory}
+\input{theory}
+\part{Methods}
+\input{method}
+
+\part{Results}
+\input{results}
+
+\part{Discussion}
+\input{discussion}
+
+\part{Conclusion}
+\input{conclusion}
+
+\printbibliography
+
+\end{document}

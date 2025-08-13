@@ -1,0 +1,651 @@
+\graphicspath{{../results/figures/theory/}}
+\chapter{Quantum Theory}
+\label{sec:theory}
+
+\section{Mathematical Foundations}
+\subsection{Linear Algebra and Dirac Notation}
+Quantum mechanics is formulated in complex vector spaces. A vector \(\ket{a}\) in an \(n\)-dimensional Hilbert space \(\mathcal{H}\) can be decomposed into a complete orthonormal basis \(\{\ket{i}\}\):  
+\[
+\ket{a} = \sum_i \ket{i}\braket{i|a} = \sum_i a_i \ket{i},
+\]
+where \(a_i = \braket{i|a}\) are complex coefficients. The completeness relation,  
+\[
+I = \sum_i \ket{i}\bra{i},
+\]
+ensures the basis spans \(\mathcal{H}\). Vectors in Dirac notation have dual "bra" counterparts \(\bra{a} = \ket{a}^\dagger\), enabling inner products \(\braket{a|b}\) and outer products \(\ket{a}\bra{b}\).
+
+\subsection{Operators and Matrix Representations}
+Linear operators \(\hat{\mathcal{O}}\) map vectors to vectors: \(\hat{\mathcal{O}}\ket{a} = \ket{b}\). Their adjoints \(\hat{\mathcal{O}}^\dagger\) satisfy \(\bra{a}\hat{\mathcal{O}}^\dagger = \bra{b}\). Hermitian operators (\(\hat{\mathcal{O}}^\dagger = \hat{\mathcal{O}}\)) represent observables, while unitary operators (\(\hat{\mathcal{O}}^\dagger = \hat{\mathcal{O}}^{-1}\)) preserve inner products. In a basis \(\{\ket{i}\}\), operators are represented by matrices:  
+\[
+O_{ij} = \bra{i}\hat{\mathcal{O}}\ket{j}.
+\]
+Non-commutativity of operators is quantified by the commutator:  
+\[
+[\hat{A}, \hat{B}] = \hat{A}\hat{B} - \hat{B}\hat{A}.
+\]
+
+\subsection{Hilbert Spaces and Function Representations}
+Quantum states reside in infinite-dimensional Hilbert spaces, where vectors generalize to square-integrable functions. The inner product becomes:  
+\[
+\braket{\psi_i|\psi_j} = \int \psi_i^*(x)\psi_j(x) dx = \delta_{ij}.
+\]
+A function \(a(x)\) expands in a basis \(\{\psi_i(x)\}\):  
+\[
+a(x) = \sum_i \psi_i(x) a_i, \quad a_i = \int \psi_i^*(x)a(x) dx.
+\]
+The Dirac delta \(\delta(x-y)\) replaces the Kronecker delta in continuous spaces.
+
+\section{Postulates of Quantum Mechanics}
+\subsection{States and Observables}
+A quantum state is a ray in Hilbert space, represented by a normalized ket \(\ket{\Psi}\). Observables are Hermitian operators with real eigenvalues. The time-independent Schrödinger equation,  
+\[
+\hat{H}\ket{\Psi} = E\ket{\Psi},
+\]
+determines stationary states, where \(\hat{H}\) is the Hamiltonian. Expectation values are computed via:  
+\[
+\braket{\hat{\mathcal{O}}} = \bra{\Psi}\hat{\mathcal{O}}\ket{\Psi}.
+\]
+
+\subsection{Composite Systems and Entanglement}
+For \(N\) particles, the total Hilbert space is the tensor product of individual spaces:  
+\[
+\mathcal{H} = \bigotimes_{i=1}^N \mathcal{H}_i.
+\]
+Entangled states cannot be written as a single tensor product, e.g., \(\ket{\Psi} \neq \ket{\psi_1} \otimes \ket{\psi_2}\). Fermionic systems require antisymmetric wavefunctions under particle exchange:  
+\[
+\Psi(\mathbf{x}_1, \dots, \mathbf{x}_N) = \frac{1}{\sqrt{N!}} \det[\phi_i(\mathbf{x}_j)],
+\]
+where \(\mathbf{x}_i = (\bm{r}_i, \sigma_i)\) includes spatial (\(\bm{r}_i\)) and spin (\(\sigma_i\)) coordinates.
+
+\section{Many-Body Systems and Second Quantization}
+\subsection{Challenges of First Quantization}
+Solving the Schrödinger equation for interacting particles becomes intractable due to the factorial growth of Slater determinants. For \(N\) particles in \(M\) orbitals, the Hilbert space dimension scales as \(\binom{M}{N}\).
+
+\subsection{Fock Space and Occupation Representation}
+Second quantization simplifies this by using Fock space \(\mathcal{F} = \bigoplus_{n=0}^\infty \mathcal{H}^{\otimes n}\), where states are labeled by occupation numbers:  
+\[
+\ket{n_1, n_2, \dots} \quad (n_i = 0 \text{ or } 1 \text{ for fermions}).
+\]
+Creation (\(a_i^\dagger\)) and annihilation (\(a_i\)) operators enforce (anti)commutation relations:  
+\[
+\{a_i, a_j^\dagger\} = \delta_{ij}, \quad \{a_i, a_j\} = 0 \quad \text{(fermions)}.
+\]
+The Hamiltonian in second quantization is:  
+\[
+\hat{H} = \sum_{ij} t_{ij} a_i^\dagger a_j + \frac{1}{4} \sum_{ijkl} V_{ijkl} a_i^\dagger a_j^\dagger a_k a_l,
+\]
+where \(t_{ij}\) and \(V_{ijkl}\) encode kinetic and interaction terms.
+
+\section{Model Systems}
+\subsection{One-Dimensional Spinless Fermions}
+For \(N\) fermions in a harmonic trap with Gaussian interactions:  
+\[
+\hat{H} = \sum_{i=1}^N \left(-\frac{1}{2} \nabla_i^2 + \frac{1}{2} x_i^2 \right) + \frac{V_0}{\sigma_0 \sqrt{2\pi}} \sum_{i<j} e^{-(x_i - x_j)^2/(2\sigma_0^2)}.
+\]
+\begin{itemize}
+    \item \textbf{Non-interacting limit:} The ground state is a Slater determinant of Hermite polynomials:  
+    \[
+    \phi_n(x) = \frac{H_n(x)e^{-x^2/2}}{\sqrt{2^n n! \sqrt{\pi}}}.
+    \]
+    Energy: \(E_{\text{gs}} = \frac{N^2}{2}\) (in \(\hbar\omega\) units).
+    \item \textbf{Interacting case:} Attractive (\(V_0 < 0\)) or repulsive (\(V_0 > 0\)) interactions modify spatial correlations and energy spectra (see Fig.~\ref{fig:interactions}).
+\end{itemize}
+
+\subsection{Two-Dimensional Quantum Dots}
+For fermions in a 2D harmonic trap with Coulomb repulsion:  
+\[
+\hat{H} = \sum_{i=1}^N \left(-\frac{1}{2} \nabla_i^2 + \frac{1}{2} \omega^2 r_i^2 \right) + \sum_{i<j} \frac{1}{|\bm{r}_i - \bm{r}_j|}.
+\]
+\begin{itemize}
+    \item \textbf{Closed-shell configurations:} Magic numbers \(N = 2\binom{n+2}{2}\) arise from filling degenerate orbitals with spin-up/down pairs.
+    \item \textbf{Trap frequency \(\omega\):} Lower \(\omega\) increases spatial spread and enhances correlation effects (Fig.~\ref{fig:omega_dependence}).
+\end{itemize}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\section{Hartree Fock}
+Hartree-Fock (HF) theory is a fundamental \emph{ab initio} method in quantum many-body physics. It approximates the true many-body wavefunction by a single Slater determinant, ensuring the correct antisymmetry under particle exchange. By applying the variational principle to minimize the energy, HF produces a self-consistent mean-field solution that serves as the basis for more sophisticated post-HF methods such as Configuration Interaction and Coupled Cluster theory.
+
+\subsection{Second Quantization Primer}
+In second quantization, the many-body state is described using creation and annihilation operators. Let $\{\ket{\alpha}\}$ be an orthonormal single-particle basis. The fermionic operators $a_\alpha^\dagger$ and $a_\alpha$ satisfy
+\[
+\{a_\alpha, a_\beta^\dagger\} = \delta_{\alpha\beta}, \quad \{a_\alpha, a_\beta\} = \{a_\alpha^\dagger, a_\beta^\dagger\} = 0.
+\]
+These operators act on the vacuum state $\ket{0}$, allowing one to build Slater determinants that automatically obey the Pauli exclusion principle.
+
+\subsection{Many-Fermion Hamiltonian}
+In the second-quantized formalism, the Hamiltonian for interacting fermions is expressed as
+\[
+\hat{H} = \sum_{\alpha\beta} \langle \alpha | \hat{h}_0 | \beta \rangle\, a_\alpha^\dagger a_\beta + \frac{1}{4} \sum_{\alpha\beta\gamma\delta} \langle \alpha \beta | \hat{v} | \gamma \delta \rangle_{\!AS}\, a_\alpha^\dagger a_\beta^\dagger a_\delta a_\gamma,
+\]
+where $\hat{h}_0$ includes kinetic and external potential energy, and $\langle \alpha \beta | \hat{v} | \gamma \delta \rangle_{\!AS}$ represents the antisymmetrized two-body matrix elements.
+
+\subsection{Variational Principle and HF Energy Functional}
+In HF theory, one minimizes the energy functional
+\[
+E[\Phi] = \langle \Phi | \hat{H} | \Phi \rangle,
+\]
+where $\ket{\Phi}$ is a single Slater determinant:
+\[
+\ket{\Phi} = \prod_{i=1}^N a_i^\dagger \ket{0}.
+\]
+For an $N$-particle system, the energy can be written as
+\[
+E[\Phi] = \sum_{i=1}^N \langle i | \hat{h}_0 | i \rangle + \frac{1}{2}\sum_{i,j=1}^N \langle ij | \hat{v} | ij \rangle_{\!AS}.
+\]
+
+\subsection{Derivation of the Fock Matrix}
+To optimize the single-particle orbitals, one performs a unitary transformation among the basis states:
+\[
+a_p^\dagger = \sum_\lambda C_{p\lambda}\, c_\lambda^\dagger,
+\]
+with the coefficients $C_{p\lambda}$ forming a unitary matrix. This leads to the definition of the \emph{Fock operator}:
+\[
+\hat{h}^{HF}_{\alpha\beta} = \langle \alpha | \hat{h}_0 | \beta \rangle + \sum_{\gamma\delta} \rho_{\gamma\delta}\, \langle \alpha \gamma | \hat{v} | \beta \delta \rangle_{\!AS},
+\]
+where the one-particle density matrix is
+\[
+\rho_{\gamma\delta} = \sum_{i=1}^N C_{\gamma i}\, C_{\delta i}^*.
+\]
+The HF equations are then obtained by solving the eigenvalue problem:
+\[
+\sum_\beta \hat{h}^{HF}_{\alpha\beta} C_{p\beta} = \epsilon_p^{HF} C_{p\alpha}.
+\]
+
+\subsection{Self-Consistent Field Procedure}
+Since the Fock operator depends on the density matrix (which in turn depends on the orbital coefficients), the HF equations must be solved iteratively:
+\begin{enumerate}
+    \item \textbf{Initialization:} Start with an initial guess for the density matrix $\rho^{(0)}$.
+    \item \textbf{Construct the Fock Matrix:} Use $\rho^{(n)}$ to build $\hat{h}^{HF}$.
+    \item \textbf{Diagonalize:} Solve $\hat{h}^{HF} C = \epsilon^{HF} C$ to obtain new orbital coefficients.
+    \item \textbf{Update:} Form a new density matrix $\rho^{(n+1)}$ from the occupied orbitals.
+    \item \textbf{Convergence Check:} Compare the HF energy or density matrix between iterations and repeat until convergence.
+\end{enumerate}
+
+
+\section{Full Configuration Interaction Theory}
+
+Full Configuration Interaction (FCI) theory provides the exact solution to the many-body Schrödinger equation within a finite single-particle basis by incorporating all possible excitations of $N$ fermions among $M$ orbitals. This method captures every correlation effect, making it the benchmark against which approximate methods are measured. However, the combinatorial growth of the determinant space limits FCI to small systems or necessitates the use of symmetry reductions.
+
+\subsection{Slater Determinants in Second Quantization}
+A single Slater determinant for $N$ fermions is written as
+\[
+\ket{\Phi_0} = \prod_{i=1}^N a_i^\dagger \ket{0}.
+\]
+The antisymmetry is guaranteed by the fermionic anticommutation relations:
+\[
+\{a_p^\dagger, a_q^\dagger\} = 0, \quad \{a_p, a_q\} = 0, \quad \{a_p^\dagger, a_q\} = \delta_{pq}.
+\]
+
+\subsection{Exact Wavefunction Expansion}
+Unlike HF, FCI expands the ground state in a complete basis of Slater determinants:
+\[
+\ket{\Psi_0} = \sum_{PH} C_H^P \ket{\Phi_H^P} = \Bigl(1 + \hat{C}\Bigr) \ket{\Phi_0},
+\]
+where $\ket{\Phi_H^P}$ represents determinants with particle-hole excitations relative to the reference $\ket{\Phi_0}$, and $\hat{C}$ is the correlation operator:
+\[
+\hat{C} = \sum_{ai} C_i^a\, a_a^\dagger a_i + \sum_{abij} C_{ij}^{ab}\, a_a^\dagger a_b^\dagger a_j a_i + \dots.
+\]
+
+\subsection{Variational Principle and the FCI Matrix}
+Applying the variational principle,
+\[
+\langle \delta\Psi_0 | (\hat{H} - E) | \Psi_0 \rangle = 0,
+\]
+leads to the eigenvalue problem
+\[
+\sum_{P'H'} \langle \Phi_H^P | \hat{H} | \Phi_{H'}^{P'} \rangle C_{H'}^{P'} = E\, C_H^P.
+\]
+The Hamiltonian matrix is block-structured according to excitation levels (e.g., $0p0h$, $1p1h$, $2p2h$, \dots). Table~\ref{tab:fci_matrix} summarizes the schematic structure.
+
+\begin{table}[h]
+\centering
+\begin{tabular}{c|cccc}
+ & $0p0h$ & $1p1h$ & $2p2h$ & $\dots$ \\
+\hline
+$0p0h$ & $\langle 0|\hat{H}|0 \rangle$ & $\langle 0|\hat{H}|1p1h \rangle$ & $\langle 0|\hat{H}|2p2h \rangle$ & $\cdots$ \\
+$1p1h$ & $\langle 1p1h|\hat{H}|0 \rangle$ & $\langle 1p1h|\hat{H}|1p1h \rangle$ & $\langle 1p1h|\hat{H}|2p2h \rangle$ & $\cdots$ \\
+$2p2h$ & $\langle 2p2h|\hat{H}|0 \rangle$ & $\langle 2p2h|\hat{H}|1p1h \rangle$ & $\langle 2p2h|\hat{H}|2p2h \rangle$ & $\cdots$ \\
+$\vdots$ & $\vdots$ & $\vdots$ & $\vdots$ & $\ddots$ \\
+\end{tabular}
+\caption{Schematic structure of the FCI Hamiltonian matrix in the determinant basis.}
+\label{tab:fci_matrix}
+\end{table}
+
+\subsection{Exponential Growth and Computational Limits}
+The dimension of the determinant space is given by
+\[
+\text{Dim} = \binom{M}{N},
+\]
+which increases combinatorially with system size. For example, for ${}^{16}\mathrm{O}$ with $N=8$ valence nucleons in a basis of $M=40$ states, $\binom{40}{8} \approx 10^9$. This rapid growth limits the direct application of FCI to small systems or requires symmetry constraints to reduce the effective space.
+
+\subsection{Correlation Energy}
+The correlation energy, defined as
+\[
+\Delta E = E_{\mathrm{FCI}} - E_{\mathrm{HF}},
+\]
+quantifies the many-body effects missing in the HF approximation. Although small compared to the total energy, $\Delta E$ is essential for accurate predictions and is expressed in terms of the excitation amplitudes (e.g., $C_{ij}^{ab}$).
+
+\subsection{Practical Considerations and Approximations}
+Due to the exponential scaling, approximate methods are often employed:
+\begin{itemize}
+    \item \textbf{Truncated CI:} Restrict excitations to singles and doubles (CISD), etc.
+    \item \textbf{Coupled Cluster (CC):} Use an exponential ansatz $\exp(\hat{T})$ to incorporate higher excitations efficiently.
+    \item \textbf{Monte Carlo Methods:} Techniques like FCI Quantum Monte Carlo (FCIQMC) sample the determinant space stochastically.
+\end{itemize}
+
+\subsection{Conclusion}
+FCI provides an exact solution (within a finite basis) to the many-body Schrödinger equation by accounting for all possible correlations. Although computationally demanding, it serves as a critical benchmark for approximate methods, underpinning modern approaches in quantum chemistry and many-body physics.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Variational Methods}
+
+Quantum Monte Carlo (QMC) methods offer powerful tools for solving the many-body Schrödinger equation through stochastic sampling. These methods yield accurate ground-state properties by estimating expectation values of observables with controlled approximations. Among the various QMC techniques, Variational Monte Carlo (VMC) and Diffusion Monte Carlo (DMC) are particularly notable; VMC optimizes a trial wavefunction based on the variational principle, while DMC projects out the ground state through imaginary-time evolution.
+
+\subsection{Variational Monte Carlo (VMC)}
+\subsubsection{The Variational Principle}
+The variational principle guarantees that for any normalized trial wavefunction $\Psi_T(\mathbf{R}; \boldsymbol{\alpha})$, the expectation value
+\[
+E[\Psi_T] = \frac{\langle \Psi_T | \hat{H} | \Psi_T \rangle}{\langle \Psi_T | \Psi_T \rangle}
+\]
+provides an upper bound to the true ground-state energy $E_0$. Here, $\mathbf{R} = (\mathbf{r}_1,\dots,\mathbf{r}_N)$ and $\boldsymbol{\alpha}$ represents the set of variational parameters. Optimizing $\boldsymbol{\alpha}$ minimizes $E[\Psi_T]$.
+
+\subsubsection{Trial Wave Function and Importance Sampling}
+A successful trial wavefunction for fermions combines a Slater determinant with a Jastrow factor:
+\[
+\Psi_T(\mathbf{R}) = \mathcal{D}^\uparrow(\mathbf{R})\, \mathcal{D}^\downarrow(\mathbf{R}) \prod_{i<j} \exp\!\bigl[f(r_{ij})\bigr],
+\]
+where $\mathcal{D}^\sigma$ ensures antisymmetry and $f(r_{ij})$ captures dynamical correlations. In VMC, the probability density is defined as
+\[
+P(\mathbf{R}) = \frac{|\Psi_T(\mathbf{R})|^2}{\int |\Psi_T(\mathbf{R})|^2\, d\mathbf{R}},
+\]
+and configurations are sampled using the Metropolis-Hastings algorithm with acceptance probability
+\[
+A(\mathbf{R} \to \mathbf{R}') = \min\!\left(1, \frac{|\Psi_T(\mathbf{R}')|^2}{|\Psi_T(\mathbf{R})|^2}\, \frac{T(\mathbf{R} \to \mathbf{R}')}{T(\mathbf{R}' \to \mathbf{R})}\right).
+\]
+A \emph{quantum force},
+\[
+\mathbf{F}(\mathbf{R}) = 2\, \nabla \ln \Psi_T(\mathbf{R}),
+\]
+further guides the sampling toward regions of high probability.
+
+\subsubsection{Local Energy and Parameter Optimization}
+The local energy is defined as
+\[
+E_L(\mathbf{R}) = \frac{\hat{H}\Psi_T(\mathbf{R})}{\Psi_T(\mathbf{R})}.
+\]
+If $\Psi_T$ were exact, $E_L(\mathbf{R})$ would be constant. In practice, the variational energy is approximated by averaging $E_L$ over many configurations:
+\[
+E[\Psi_T] \approx \frac{1}{N_{\text{MC}}} \sum_{i=1}^{N_{\text{MC}}} E_L(\mathbf{R}_i).
+\]
+Variational parameters are then optimized (using gradient descent or stochastic reconfiguration) to reduce both the energy and its variance.
+
+\subsection{Diffusion Monte Carlo (DMC)}
+\subsubsection{Imaginary-Time Evolution and Projection}
+DMC refines the trial wavefunction by projecting out the ground state through imaginary-time evolution. The Schrödinger equation becomes
+\[
+-\frac{\partial \Psi(\mathbf{R}, \tau)}{\partial \tau} = \Bigl(\hat{H} - E_T\Bigr)\Psi(\mathbf{R}, \tau),
+\]
+where $\tau = it$ and $E_T$ is a trial energy. As $\tau \to \infty$, $\Psi(\mathbf{R}, \tau)$ converges to the ground-state wavefunction provided the initial state has nonzero overlap with it.
+
+\subsubsection{Stochastic Implementation}
+DMC simulates the imaginary-time evolution using a combination of diffusion, drift, and branching:
+\begin{enumerate}
+    \item \textbf{Diffusion and Drift:} Particles execute random walks, with drift guided by the quantum force $\mathbf{F}(\mathbf{R})$, steering them toward regions where $\Psi_T$ is large.
+    \item \textbf{Branching/Death:} Walkers are assigned a weight,
+    \[
+    w(\mathbf{R}, \Delta\tau) = \exp\!\Bigl[-\Bigl(E_L(\mathbf{R}) - E_T\Bigr)\Delta\tau\Bigr],
+    \]
+    which determines whether they are replicated or removed, ensuring that the walker distribution evolves toward the ground-state probability density.
+\end{enumerate}
+
+\subsection{Applications and Numerical Considerations}
+\subsubsection{Model Systems}
+QMC methods have been successfully applied to various quantum systems:
+\begin{itemize}
+    \item \textbf{Hydrogen Atom:} A simple trial wavefunction $\Psi_T(r)=e^{-\alpha r}$ yields the exact ground state for $\alpha=1$, illustrating zero variance.
+    \item \textbf{Harmonic Traps:} In systems confined by harmonic potentials, Jastrow factors like $\exp[-ar_{ij}/(1+\beta r_{ij})]$ model inter-particle repulsion while Slater determinants maintain the proper fermionic symmetry.
+\end{itemize}
+
+\subsubsection{Computational Efficiency}
+Key factors in achieving efficient QMC simulations include:
+\begin{itemize}
+    \item \textbf{Efficient Determinant Updates:} Algorithms for rapid updates of Slater determinants and their inverses can reduce computational cost from $\mathcal{O}(N^3)$.
+    \item \textbf{Optimized Gradient and Laplacian Calculations:} Recursive methods and efficient numerical routines for evaluating $\nabla\Psi_T/\Psi_T$ and $\nabla^2\Psi_T/\Psi_T$ are essential.
+\end{itemize}
+
+\subsection{Conclusion}
+Variational and Diffusion Monte Carlo methods together provide a robust framework for studying quantum systems. VMC offers a flexible approach for optimizing trial wavefunctions, while DMC projects out the exact ground state through imaginary-time evolution. These methods, working in concert, enable accurate and efficient investigations of systems from simple atoms to strongly correlated materials. Ongoing improvements in trial wavefunction design and stochastic algorithms continue to extend the reach of QMC in modern computational physics.
+
+\chapter{Machine Learning}
+\label{sec:theory}
+
+\section{Elementary Theory}
+\label{sec:ml_concepts}
+
+In this chapter, we systematically synthesize the core concepts in three interconnected pillars of machine learning: statistical learning theory, optimization methods, and neural network architectures. This chapter progresses from fundamental principles to advanced techniques, maintaining mathematical rigor while enhancing pedagogical clarity through explicit connections between theoretical concepts and their practical implementations.
+
+\subsection{Statistical Learning and Regression Analysis}
+\label{subsec:stat_learning}
+
+Statistical learning theory establishes the formal framework for constructing predictive models through data-driven inference. Consider a supervised learning scenario with a dataset containing $N$ independent observations:
+
+\[
+\mathcal{D} = \{(x_i, y_i)\}_{i=1}^{N},
+\]
+
+where feature vectors $x_i \in \mathbb{R}^{d}$ are associated with targets $y_i \in \mathbb{R}$ (or $\mathbb{R}^k$ for multi-output problems). The data-generating process is modeled as:
+
+\begin{equation}
+y_i = f_\theta(x_i) + \epsilon_i, \quad \epsilon_i \sim \mathcal{N}(0, \sigma^2), \quad i=1,\ldots,N,
+\label{eq:regression_model}
+\end{equation}
+
+where $f_\theta:\mathbb{R}^{d}\to\mathbb{R}$ represents a parameterized hypothesis function and $\epsilon_i$ captures irreducible measurement noise. The fundamental objective is to estimate parameters $\theta$ that minimize the expected prediction risk:
+
+\begin{equation}
+\mathcal{R}(\theta) = \mathbb{E}_{(x,y)\sim P_{\text{data}}} \left[\mathcal{L}\left(y, f_\theta(x)\right)\right],
+\label{eq:true_risk}
+\end{equation}
+
+where $P_{\text{data}}$ is the unknown data distribution. In practice, we employ empirical risk minimization (ERM) using the available samples:
+
+\begin{equation}
+\hat{\mathcal{R}}(\theta) = \frac{1}{N}\sum_{i=1}^{N} \mathcal{L}\left(y_i, f_\theta(x_i)\right),
+\label{eq:empirical_risk}
+\end{equation}
+
+where $\mathcal{L}:\mathbb{R}\times\mathbb{R}\to\mathbb{R}_{\ge 0}$ is typically chosen as the Mean Squared Error (MSE) for regression tasks:
+
+\[
+\mathcal{L}_{\text{MSE}}(y, \hat{y}) = \frac{1}{2}(y - \hat{y})^2.
+\]
+
+The optimization landscape defined by $\hat{\mathcal{R}}(\theta)$ forms the basis for model training through gradient-based methods, which we subsequently analyze.
+
+\subsection{Gradient-Based Optimization Methods}
+\label{subsec:optimization}
+
+The minimization of empirical risk requires efficient navigation of high-dimensional parameter spaces. We analyze three fundamental optimization paradigms with increasing complexity.
+
+\section{Optimization Schemes in Machine Learning}
+
+Optimization is central to training machine learning models, where the goal is to minimize a loss function \( \mathcal{L}(\theta) \) with respect to the model parameters \(\theta\). Different optimization algorithms offer various trade-offs between computational efficiency, convergence speed, and robustness to the loss landscape’s geometry. In this section, we discuss several key methods: basic Gradient Descent (GD), Stochastic Gradient Descent (SGD), and enhancements such as momentum, RMSProp, and ADAM. We also briefly mention the intuition behind second-order methods like Newton's method, even though we do not use Hessians directly in our work.
+
+\subsection{Gradient Descent (GD)}
+The simplest optimization method is full-batch Gradient Descent, where the parameters are updated in the direction of the negative gradient:
+\begin{equation}
+\theta_{t+1} = \theta_t - \eta \nabla_\theta \mathcal{L}(\theta_t),
+\label{eq:gd_update}
+\end{equation}
+where \(\eta > 0\) is the learning rate. GD uses the entire dataset to compute the gradient, ensuring a stable but computationally expensive update, especially for large datasets.
+
+\subsection{Stochastic Gradient Descent (SGD)}
+SGD mitigates the computational cost of GD by approximating the full gradient using a mini-batch of data. This introduces stochasticity, which can help escape shallow local minima:
+\begin{equation}
+\theta_{t+1} = \theta_t - \eta \frac{1}{|B_t|} \sum_{i \in B_t} \nabla_\theta \mathcal{L}_i(\theta_t),
+\label{eq:sgd_update}
+\end{equation}
+where \(B_t\) is a randomly sampled mini-batch at iteration \(t\). Although SGD’s updates are noisier, they allow for faster iterations and can improve generalization by avoiding overfitting to the training data.
+
+\subsection{Momentum-Based Methods}
+Momentum methods improve upon SGD by accumulating a velocity vector \(v_t\) that smooths out the updates and accelerates convergence, especially in regions with oscillatory gradients:
+\begin{align}
+v_t &= \gamma v_{t-1} + \eta \nabla_\theta \mathcal{L}(\theta_t), \\
+\theta_{t+1} &= \theta_t - v_t,
+\label{eq:momentum_update}
+\end{align}
+where \(\gamma \in [0,1)\) is the momentum coefficient. This approach helps in dampening oscillations and can navigate ravines more effectively.
+
+\subsection{Adaptive Learning Rate Methods: RMSProp and ADAM}
+While momentum methods focus on accumulating gradient information, adaptive learning rate methods adjust the update step for each parameter individually.
+
+\subsubsection{RMSProp}
+RMSProp scales the learning rate by a running average of squared gradients, thereby normalizing the updates:
+\begin{align}
+s_t &= \beta s_{t-1} + (1-\beta) \left(\nabla_\theta \mathcal{L}(\theta_t)\right)^2, \\
+\theta_{t+1} &= \theta_t - \frac{\eta}{\sqrt{s_t} + \epsilon} \nabla_\theta \mathcal{L}(\theta_t),
+\label{eq:rmsprop_update}
+\end{align}
+where \(\beta\) is the decay rate and \(\epsilon\) is a small constant to prevent division by zero. This adaptive scaling is particularly effective when different parameters have gradients of varying magnitudes.
+
+\subsubsection{ADAM Optimizer}
+ADAM combines momentum and RMSProp by maintaining both first and second moment estimates of the gradients:
+\begin{align}
+m_t &= \beta_1 m_{t-1} + (1-\beta_1) \nabla_\theta \mathcal{L}(\theta_t), \\
+v_t &= \beta_2 v_{t-1} + (1-\beta_2) \left(\nabla_\theta \mathcal{L}(\theta_t)\right)^2, \\
+\hat{m}_t &= \frac{m_t}{1-\beta_1^t}, \quad \hat{v}_t = \frac{v_t}{1-\beta_2^t}, \\
+\theta_{t+1} &= \theta_t - \frac{\eta \, \hat{m}_t}{\sqrt{\hat{v}_t} + \epsilon},
+\label{eq:adam_update}
+\end{align}
+where \(\beta_1\) and \(\beta_2\) control the exponential decay rates for the moment estimates. ADAM's parameter-wise adaptation makes it highly effective for optimizing complex, high-dimensional models with sparse or noisy gradients.
+
+\subsection{Parallels to Second-Order Methods}
+Second-order methods, such as Newton's method, incorporate curvature information by using the Hessian matrix. Although computing the Hessian is impractical in high dimensions, the intuition behind Newton’s method is valuable:
+\begin{equation}
+\theta_{t+1} = \theta_t - \bigl(\nabla^2_\theta \mathcal{L}(\theta_t)\bigr)^{-1} \nabla_\theta \mathcal{L}(\theta_t).
+\label{eq:newton_update}
+\end{equation}
+This update rescales the gradient by the curvature of the loss landscape, potentially leading to faster convergence when the curvature varies significantly across dimensions. Adaptive methods like RMSProp and ADAM can be seen as approximating this behavior by normalizing the gradients using running estimates of gradient magnitudes, thus offering some benefits of second-order methods without the computational overhead.
+
+\subsection{Summary}
+In summary, the progression from GD to SGD, momentum methods, RMSProp, and ADAM reflects a continuous effort to balance computational efficiency with robust convergence in complex, high-dimensional optimization problems. While second-order methods provide a theoretical ideal by incorporating curvature information, first-order methods enhanced with momentum and adaptive learning rates have become the practical standard in modern machine learning.
+
+
+
+\section{Feed-Forward Neural Network Architectures}
+\label{sec:ffnn}
+
+Feed-Forward Neural Networks (FFNNs) implement hierarchical feature transformations through layered composition of nonlinear functions. For an $L$-layer network, the $l$-th layer's computation is:
+
+\begin{equation}
+h^{(l)} = \sigma\left(W^{(l)} h^{(l-1)} + b^{(l)}\right), \quad l = 1, \dots, L,
+\label{eq:ffnn_layer}
+\end{equation}
+
+where $h^{(0)} = x$ is the input, $W^{(l)} \in \mathbb{R}^{d_l \times d_{l-1}}$ are weight matrices, $b^{(l)} \in \mathbb{R}^{d_l}$ are bias vectors, and $\sigma$ denotes element-wise activation functions. The final output is:
+
+\[
+f_\theta(x) = W^{(L)} h^{(L-1)} + b^{(L)},
+\]
+
+with $\theta = \{W^{(l)}, b^{(l)}\}_{l=1}^L$. The choice of activation functions critically determines the network's expressive power.
+
+\subsection{Activation Function Analysis}
+
+In neural networks, the activation function is essential to introduce non-linearity into the model. Without any activation function, each layer would perform a linear transformation, and the composition of multiple linear layers would still be linear. This collapse to a purely linear model severely limits the network’s capacity to capture complex, non-linear relationships in the data.
+
+Moreover, while ReLU (Rectified Linear Unit) is popular in many architectures, it is not suitable for our purposes. In our framework, where we differentiate the network's output, ReLU's derivative is zero for negative inputs, which can lead to vanishing gradients and inactive neurons. Therefore, we use alternative activation functions that maintain non-linearity and allow for effective gradient propagation.
+
+Below, we briefly analyze the activation functions employed in our work:
+
+\textbf{Sigmoid:}
+\[
+\sigma(x) = \frac{1}{1+e^{-x}}, \quad x \in \mathbb{R}
+\]
+Maps inputs to \((0,1)\). Although it provides smooth gating, it suffers from vanishing gradients for large \(|x|\).
+
+\textbf{Hyperbolic Tangent (tanh):}
+\[
+\tanh(x) = \frac{e^x - e^{-x}}{e^x + e^{-x}}, \quad x \in \mathbb{R}
+\]
+Maps inputs to \((-1,1)\) and is centered at zero, which can improve gradient flow compared to the sigmoid.
+
+\textbf{Swish:}
+\[
+\text{Swish}(x) = x \cdot \sigma(x) = \frac{x}{1+e^{-x}}
+\]
+A smooth, non-monotonic activation that often outperforms conventional functions by allowing better gradient propagation and learning dynamics.
+
+\textbf{Mish:}
+\[
+\text{Mish}(x) = x \cdot \tanh\left(\ln(1+e^x)\right)
+\]
+A self-regularizing activation function that enhances information flow through non-monotonicity, often resulting in improved performance and robustness in deep networks.
+
+\textbf{Gaussian Error Linear Unit (GELU):}
+\[
+\text{GELU}(x) \approx x \cdot \frac{1}{2}\left[1 + \tanh\left(\sqrt{\frac{2}{\pi}}(x + 0.044715x^3)\right)\right]
+\]
+A smoother alternative that incorporates a probabilistic view of neuron activation. GELU can yield benefits in deeper models where smooth gradient behavior is critical.
+
+These activation functions ensure that our network maintains non-linear transformations, enabling it to model complex phenomena while also supporting effective differentiation and gradient-based optimization.
+
+
+\section{Restricted Boltzmann Machines}
+
+Restricted Boltzmann Machines (RBMs) are generative stochastic neural networks that offer a powerful framework for modeling complex probability distributions. An RBM is composed of two layers: a visible layer $\mathbf{v} \in \mathbb{R}^{N}$, which represents the observed data or degrees of freedom, and a hidden layer $\mathbf{h} \in \{0,1\}^{M}$, which captures higher-order correlations among the visible units. The term ``restricted'' indicates that there are no intra-layer connections within the visible or hidden units, a feature that simplifies both inference and training.
+
+\subsection{RBM Energy Function and Probability Distribution}
+
+The joint configuration of the visible and hidden units is characterized by an energy function:
+\begin{equation}
+    E(\mathbf{v}, \mathbf{h}) = -\mathbf{a}^T \mathbf{v} - \mathbf{b}^T \mathbf{h} - \mathbf{v}^T W \mathbf{h},
+\end{equation}
+where:
+\begin{itemize}
+    \item $\mathbf{a} \in \mathbb{R}^{N}$ and $\mathbf{b} \in \mathbb{R}^{M}$ are bias vectors for the visible and hidden layers, respectively,
+    \item $W \in \mathbb{R}^{N \times M}$ is the weight matrix that connects visible and hidden units.
+\end{itemize}
+
+The probability of a given configuration $(\mathbf{v}, \mathbf{h})$ is defined by the Boltzmann distribution:
+\begin{equation}
+    p(\mathbf{v}, \mathbf{h}) = \frac{1}{Z} \exp\bigl(-E(\mathbf{v}, \mathbf{h})\bigr),
+\end{equation}
+with the partition function
+\begin{equation}
+    Z = \sum_{\mathbf{v}, \mathbf{h}} \exp\bigl(-E(\mathbf{v}, \mathbf{h})\bigr)
+\end{equation}
+ensuring normalization. Marginalizing over the hidden variables, the distribution over the visible units becomes:
+\begin{equation}
+    p(\mathbf{v}) = \frac{1}{Z} \sum_{\mathbf{h}} \exp\bigl(-E(\mathbf{v}, \mathbf{h})\bigr).
+\end{equation}
+
+A key property of RBMs is the conditional independence of the hidden units given the visible layer, which leads to:
+\begin{equation}
+    p(h_j = 1 | \mathbf{v}) = \sigma\Bigl(b_j + \sum_{i} W_{ij} v_i\Bigr),
+\end{equation}
+where $\sigma(x) = 1/(1+\exp(-x))$ is the logistic sigmoid function.
+
+\subsection{RBMs as Variational Wavefunction Ans\"atze}
+
+In the context of quantum many-body systems, RBMs can be utilized as variational ans\"atze for wavefunctions. Here, the wavefunction is represented as:
+\begin{equation}
+    \Psi(\mathbf{x}) = \exp\Biggl( \mathbf{a}\cdot\mathbf{x} + \sum_{j=1}^{M} \log\Bigl[1+\exp\Bigl(b_j + \sum_{i=1}^{N} W_{ij} x_i\Bigr)\Bigr] \Biggr),
+\end{equation}
+where $\mathbf{x}$ represents the configuration (e.g., positions of particles) and $\{ \mathbf{a}, \mathbf{b}, W \}$ are variational parameters. This ansatz is particularly attractive because the hidden layer introduces non-linear correlations that can capture complex entanglement and interactions in the system.
+
+Training the RBM wavefunction involves variational Monte Carlo (VMC) methods, where the variational parameters are optimized to minimize the expectation value of the Hamiltonian:
+\begin{equation}
+    E = \frac{\langle \Psi | \hat{H} | \Psi \rangle}{\langle \Psi | \Psi \rangle}.
+\end{equation}
+During the VMC procedure, configurations are sampled according to $|\Psi(\mathbf{x})|^2$, and the parameters are updated via gradient-based optimization methods.
+
+\subsection{Advantages and Challenges}
+
+The RBM ansatz is highly flexible and can approximate a wide range of quantum states. However, a standard RBM is symmetric under particle exchange and does not inherently incorporate fermionic antisymmetry, which is essential for systems of electrons. 
+
+
+
+
+\section{Normalizing Flow}
+Sampling from complex probability distributions is a core challenge in fields such as statistics, machine learning, and computational sciences. Typically, computers generate pseudo-random numbers uniformly over the interval \([0,1]\) using deterministic algorithms. These uniform samples are then transformed into samples from well-known distributions—like the standard normal distribution—using methods such as the Box-Muller transform or the Ziggurat algorithm. The standard normal distribution, with its mathematical convenience, serves as a natural \emph{base distribution}.
+
+Normalizing flows build upon this idea by defining a sequence of invertible, differentiable transformations that map samples from a simple base distribution (e.g., \(\mathcal{N}(0,I)\)) to those from a complex target distribution. Essentially, the procedure is analogous to the transformation used to generate normal variates, but it is extended to tackle far more intricate distributions that may exhibit multimodality and high-dimensional correlations.
+
+\subsection{Theoretical Foundations of Normalizing Flows}
+At the heart of normalizing flows is an invertible mapping \(T\) that transforms a random variable \(x\) from a base distribution \(p_X(x)\) into a new variable \(y = T(x)\) that follows a target distribution \(p_Y(y)\). This relationship is formalized by the change-of-variables formula:
+\[
+p_Y(y) = p_X(x) \left| \det \left( \frac{\partial T^{-1}(y)}{\partial y} \right) \right|.
+\]
+Instead of modeling \(p_Y(y)\) directly, the flow model parameterizes \(T\) as a composition of simpler invertible functions, ensuring that both \(T\) and its Jacobian determinant are tractable.
+
+In our framework, we employ a variant known as \emph{conditional flow matching}. Here, the transformation from the base to the target distribution is conceptualized via a displacement field. Given a base sample \(x\) and a corresponding target sample \(y\), the ideal displacement is defined as:
+\[
+v_{\text{true}} = y - x.
+\]
+We consider a continuous interpolation between \(x\) and \(y\) using an artificial time parameter \(t \in [0,1]\):
+\[
+\psi_t = (1-t)x + t\, y.
+\]
+The objective is to learn a function \(v(\psi_t, t)\) that approximates this displacement field. Integrating the displacement field over \(t\) effectively reconstructs the overall transformation \(T\) that maps the simple base distribution to the complex target distribution.
+
+This theoretical perspective encapsulates the philosophy of normalizing flows: leveraging simple base distributions and learnable, invertible mappings to model complex, high-dimensional densities. By focusing on the displacement field through conditional flow matching, we provide a clear and generalizable framework that extends the basic idea of transforming uniform or normal samples to a wide array of challenging distributions.
+
+\section{Conclusion}
+Normalizing flows offer a powerful and general approach to modeling complex probability distributions by transforming samples from simple base distributions through invertible mappings. The conditional flow matching method highlights this concept by framing the transformation as a continuous displacement field, thereby generalizing the fundamental process of random number generation and transformation. This theoretical foundation is crucial for addressing high-dimensional and intricate sampling problems across many scientific and engineering domains.
+\section{Physics Informed Neural Network}
+
+\subsection{Overview}
+
+In our approach, the variational wavefunction is written in a form inspired by the Slater–Jastrow ansatz:
+\begin{equation}
+  \Psi(\mathbf{x}) = \mathrm{SD}(\mathbf{x}) \, \exp\Big[ f(\mathbf{x}) \Big],
+\end{equation}
+where \(\mathrm{SD}(\mathbf{x})\) is the Slater determinant ensuring the required antisymmetry, and the correlation factor
+\[
+  \exp\Big[ f(\mathbf{x}) \Big]
+\]
+is built from a neural network architecture designed to capture both one-body and two-body correlation effects.
+
+\subsection{Architecture Details}
+
+Our architecture decomposes the function \(f(\mathbf{x})\) into two main contributions:
+\begin{equation}
+  f(\mathbf{x}) = \sum_{i=1}^{N} \phi(x_i) + \sum_{i<j} \psi(x_i, x_j),
+\end{equation}
+where \(x_i\) denotes the coordinates of electron \(i\) (with \(x_i \in \mathbb{R}^d\) and typically \(d=2\) in our examples).
+
+\paragraph{One-Body Network \(\phi\):}  
+The function \(\phi(x_i)\) is evaluated independently for each electron. This network is designed to capture single-particle effects (such as orbital relaxation) and scales linearly with the number of electrons \(O(N)\). Thanks to the universal approximation property of neural networks, \(\phi\) can, in principle, approximate any continuous function of a single electron coordinate.
+
+\paragraph{Two-Body Network \(\psi\):}  
+The function \(\psi(x_i, x_j)\) handles the explicit electron-electron interactions. It is designed to take as input either the pairwise coordinates (or a derived measure such as the relative distance) and outputs a scalar that reflects the interaction correction. Because there are \(O(N^2)\) unique pairs, this two-body network is crucial to capture correlations beyond the mean-field approximation. Importantly, \(\psi\) is constructed to be \emph{symmetric}, i.e., 
+\[
+\psi(x_i, x_j) = \psi(x_j, x_i),
+\]
+which ensures that the overall Jastrow factor, \(\exp\left[\sum_{i} \phi(x_i) + \sum_{i<j} \psi(x_i,x_j)\right]\), remains symmetric as required. (The overall antisymmetry of \(\Psi(\mathbf{x})\) is provided solely by the Slater determinant.)
+
+\paragraph{Exponential Form:}  
+We incorporate the outputs of the one-body and two-body networks inside an exponential. This multiplication rule is common in variational Monte Carlo (VMC) approaches because:
+\begin{itemize}
+  \item It guarantees positivity for the correlation factor.
+  \item Small additive corrections in \(f(\mathbf{x})\) translate to multiplicative modifications of the wavefunction amplitude, which is key to adjusting the nodal surface in a controlled manner.
+\end{itemize}
+In fact, the variational principle ensures that if the ansatz has sufficient expressive power, the optimized wavefunction will yield an energy that is an upper bound to the exact ground state energy. The combination of \(\phi\) and \(\psi\) networks in the exponent, by virtue of the universal approximation theorem, can in principle approximate any symmetric correlation function and therefore capture the full configuration interaction (FCI) limit.
+
+\subsection{Advantages Over a Brute-Force \(N\)-Particle Input}
+
+A direct, brute-force neural network that takes the full \(N\)-particle coordinate \(\mathbf{x} \in \mathbb{R}^{Nd}\) as input and outputs a scalar correction factor suffers from several drawbacks:
+\begin{enumerate}
+  \item \textbf{Scalability}: The combinatorial complexity of the full \(N\)-particle space makes it extremely challenging to model correlations when \(N\) increases. In contrast, our architecture scales as \(O(N) + O(N^2)\), a substantial improvement over factorial or exponential scaling.
+  \item \textbf{Physical Interpretability}: By explicitly separating one-body and two-body contributions, the model more naturally mirrors the underlying physical processes (mean-field behavior plus electron-electron interactions), thus offering better insight and more robust training.
+  \item \textbf{Symmetry Enforcement}: In a full \(N\)-particle network, one must explicitly enforce permutation invariance among electrons. In our architecture, this invariance is naturally built into the summation over individual and pairwise contributions.
+\end{enumerate}
+
+\subsection{In Principle Achievement of FCI Quality}
+
+\paragraph{Expressivity:}  
+Both the one-body network \(\phi\) and the two-body network \(\psi\) are universal approximators. Provided they have sufficient capacity (depth and width), they can approximate the optimal correlation functions that would reproduce the FCI wavefunction when combined with the Slater determinant. Therefore, even though we only include one-body and two-body terms, this ansatz is capable of capturing the majority of electron correlations in many systems.
+
+\paragraph{Combined Network:}  
+In our implementation, the final output \(f(\mathbf{x})\) is obtained by an additive combination of the \(\phi\) and \(\psi\) outputs, which is then exponentiated. This unification is critical:
+\begin{itemize}
+  \item It allows the network to use the multiplicative nature of the exponential to fine-tune the weight of correlations.
+  \item It ensures that contributions from both one-body and two-body networks are coherently combined.
+  \item Being in the exponent, small changes in \(f(\mathbf{x})\) can lead to exponential corrections in the wavefunction, thus providing a sensitive control mechanism to lower the variational energy.
+\end{itemize}
+
+\subsection{Summary}
+
+In summary, our architecture adopts a Slater–Jastrow ansatz with two separate neural networks, one for one-body (individual electron) contributions and one for two-body (electron-electron) interactions. These contributions are summed and placed in an exponential to form the correlation factor multiplying a Slater determinant. This design offers:
+
+\begin{itemize}
+  \item Efficient scaling compared to brute-force \(N\)-particle input by focusing on one-body and two-body components.
+  \item The potential to achieve FCI-quality results by virtue of the universal approximation capabilities of neural networks.
+  \item Inherent symmetry due to the explicit symmetrization of the two-body term and the additive combination, ensuring that the total wavefunction respects particle indistinguishability.
+  \item Physical interpretability by mirroring the separation between mean-field behavior and electron-electron correlation.
+\end{itemize}
+
+This modular and physically motivated architecture not only enhances computational efficiency but also provides a systematic pathway to improve accuracy by gradually increasing the network capacity or incorporating additional many-body contributions if necessary.

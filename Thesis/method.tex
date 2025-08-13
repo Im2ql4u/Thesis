@@ -1,0 +1,168 @@
+\graphicspath{{../results/figures/methods/}}
+\chapter{Machine Learning}
+\label{sec:theory}
+\section{Activation Functions for PINNs}
+
+Physics-Informed Neural Networks (PINNs) integrate physical laws—often in the form of partial differential equations—directly into the training process. Consequently, PINNs require not only the first derivative of the network output with respect to the input but also higher-order derivatives, particularly the second derivative. These derivatives are crucial for accurately representing the underlying physics. As a result, the choice of activation function is of paramount importance.
+
+\subsection{ReLU and Its Limitations.}
+The Rectified Linear Unit (ReLU) is defined as
+\[
+\text{ReLU}(x) = \max(0, x).
+\]
+Although ReLU is popular in many deep learning applications due to its simplicity and ability to mitigate first-order vanishing gradients, its piecewise linear nature leads to two significant drawbacks for PINNs:
+\begin{enumerate}
+    \item \textbf{Lack of Non-linearity in Second Derivatives:} Since ReLU is linear for \(x>0\) (and constant for \(x<0\)), its derivative is either 0 or 1, and the second derivative is zero almost everywhere (with a singularity at \(x=0\)). This absence of curvature information makes it impossible for the network to capture the nuanced variations required when enforcing differential equations.
+    \item \textbf{Poor Differentiability:} The discontinuity at \(x=0\) further complicates the computation of derivatives, leading to instability when higher-order derivatives are required.
+\end{enumerate}
+
+\subsection{The Role of Second Derivatives in PINNs.}
+In PINNs, the training objective includes terms that enforce the residuals of the governing differential equations. This enforcement requires the computation of second (and sometimes higher) order derivatives of the network output with respect to the input. If the activation function does not provide a smooth and well-behaved second derivative, the training may suffer from inaccurate physics constraints, poor convergence, and numerical instabilities.
+
+\subsection{Sigmoid and Tanh: Strengths and Shortcomings.}
+The \emph{sigmoid} activation,
+\[
+\sigma(x) = \frac{1}{1+e^{-x}},
+\]
+and the \emph{hyperbolic tangent} (tanh),
+\[
+\tanh(x) = \frac{e^x - e^{-x}}{e^x + e^{-x}},
+\]
+are both smooth functions. Their non-linear nature in the first derivative is beneficial for introducing non-linearity into the network. However, they exhibit two key issues in the context of PINNs:
+\begin{itemize}
+    \item \textbf{Vanishing Gradients (Sigmoid):} For large \(|x|\), the sigmoid saturates to 0 or 1, and its first derivative approaches zero. Consequently, the second derivative also diminishes rapidly, making it difficult to propagate higher-order information.
+    \item \textbf{Gradient Polarization (Tanh):} Although tanh is zero-centered and generally provides better gradient flow than sigmoid, its derivative can become highly polarized. In saturation regions, the gradients (and their derivatives) are either too steep or too flat, leading to imbalanced updates and potential numerical issues when enforcing second-order physics constraints.
+\end{itemize}
+\begin{figure}[H]
+    \centering
+    \begin{subfigure}[t]{0.49\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{Activation-Functions/sigmoid_plot.pdf}
+        \label{fig:Sigmoid}
+        \caption{Sigmoid activation, and it's first + second derivative}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}[t]{0.49\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{Activation-Functions/tanh_plot.pdf}
+        \label{fig:Tanh}
+        \caption{Tanh activation, and it's first + second derivative}
+    \end{subfigure}
+\end{figure}
+\subsection{Advantages of Mish, Swish, and GELU.}
+Recent activation functions such as \emph{Mish}, \emph{Swish}, and \emph{GELU} have been developed to address the shortcomings of traditional activations, particularly in settings where second-order derivatives are essential.
+
+\textbf{Swish} is defined as:
+\[
+\text{Swish}(x) = x \cdot \sigma(x) = \frac{x}{1+e^{-x}}.
+\]
+Swish is smooth and non-monotonic, which allows it to maintain a well-behaved first derivative across a broad range of values. Importantly, its second derivative exhibits a bell-shaped (normal distribution–like) profile that avoids the pitfalls of vanishing or excessively polarized gradients.
+
+\textbf{Mish} is given by:
+\[
+\text{Mish}(x) = x \cdot \tanh\left(\ln(1+e^x)\right).
+\]
+Mish not only preserves the smooth non-linearity of tanh but also yields a second derivative that is more uniformly distributed. This “normal-like” behavior in the curvature ensures that the second derivative carries robust information for enforcing differential equations, leading to improved training stability and convergence.
+
+\textbf{GELU} (Gaussian Error Linear Unit) is approximated as:
+\[
+\text{GELU}(x) \approx x \cdot \frac{1}{2}\left[1 + \tanh\left(\sqrt{\frac{2}{\pi}}(x + 0.044715x^3)\right)\right].
+\]
+GELU blends the benefits of a smooth activation with a probabilistic interpretation that mirrors the properties of the Gaussian distribution. Its second derivative, akin to a bell curve, ensures that both small and moderate inputs contribute meaningfully to the network's higher-order gradient information.
+\begin{figure}[H]
+    \centering
+    \begin{subfigure}[t]{0.49\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{Activation-Functions/gelu_plot.pdf}
+        \label{fig:GELU}
+        \caption{GELU activation, and it's first + second derivative}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}[t]{0.49\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{Activation-Functions/mish_plot.pdf}
+        \label{fig:Mish}
+        \caption{Mish activation, and it's first + second derivative}
+    \end{subfigure}
+\end{figure}
+\subsection{Summary.}
+The primary advantage of Mish, Swish, and GELU lies in their ability to capture the benefits of sigmoid and tanh for the first derivative—namely, smooth and non-linear behavior—while also providing a well-behaved, normal distribution–like second derivative. This characteristic is crucial for PINNs, where the accurate computation of second-order derivatives is essential to enforce the underlying physical laws. In contrast, ReLU’s lack of higher-order curvature, along with the vanishing or polarized gradients observed in sigmoid and tanh, make them less suitable for our framework.
+
+In conclusion, by adopting Mish, Swish, or GELU, we ensure that the activation functions in our PINNs not only facilitate effective first-order gradient propagation but also robustly support the computation of higher-order derivatives, ultimately leading to better performance in modeling complex physical systems.
+
+
+\section{Normalizing Flow}
+In training physics-informed neural networks (PINNs) to solve complex problems such as the many-body Schrödinger equation, the quality and distribution of training samples are critical. Conventional sampling techniques—such as narrow normal, broad normal, and uniform sampling—each have significant drawbacks. For example:
+\begin{itemize}
+    \item \textbf{Narrow Normal Sampling:} Concentrates samples near the center of the domain, leading to insufficient coverage at the boundaries where the solution may still be significant.
+    \item \textbf{Broad Normal Sampling:} Oversamples regions with little physical relevance, thus wasting computational resources.
+    \item \textbf{Uniform Sampling:} Provides inflexible coverage, often missing regions of high interest such as nodes or sharp gradients.
+\end{itemize}
+To overcome these issues, we adopt a normalizing flow framework. This method transforms a simple base distribution (typically a standard normal distribution) into a distribution that better aligns with the target function (e.g., the wavefunction). By learning an invertible mapping, normalizing flows adaptively concentrate samples where they are most needed, improving both efficiency and training accuracy.
+
+\begin{figure}[H]
+    \centering
+    \begin{subfigure}[t]{0.49\textwidth}
+        \centering
+        \includegraphics[width=0.9\textwidth]{Normalizing-Flow/Narrow_Norm.pdf}
+        \caption{Narrow Normal Distribution Oversampling the Central Region, and Broad Normal Distribution oversampling near the edges}
+        \label{fig:Normal_sampling}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}[t]{0.49\textwidth}
+        \centering
+        \includegraphics[width=0.9\textwidth]{Normalizing-Flow/Flow2.pdf}
+        \caption{Sampling with Normalizing Flow, reproducing the Slater Determinant}
+        \label{fig:Flow_sampling}
+    \end{subfigure}
+\end{figure}
+\section{Normalizing Flow Sampling}
+Normalizing flows work by constructing an invertible transformation \( T \) that maps a sample \( x \) drawn from a simple base distribution \( p_X(x) \) (e.g., \( x \sim \mathcal{N}(0, I) \)) to a sample \( y = T(x) \) that follows the target distribution \( p_Y(y) \). The change-of-variables formula governs this mapping:
+\[
+p_Y(y) = p_X(x) \left| \det \left( \frac{\partial T^{-1}(y)}{\partial y} \right) \right|.
+\]
+In our approach, we use a variant known as \emph{conditional flow matching}. Rather than learning the transformation \( T \) directly, we conceptualize the mapping in terms of a displacement field. Given a base sample \( x \) and an associated target sample \( y \), the ideal displacement is defined as:
+\[
+v_{\text{true}} = y - x.
+\]
+We then introduce a continuous interpolation parameter \( t \in [0,1] \) and define:
+\[
+\psi_t = (1-t)x + t\, y,
+\]
+which smoothly bridges the base and target distributions. Our goal is to learn a function \( v(\psi_t, t) \) that predicts the required displacement, thereby reconstructing the overall mapping \( T \).
+
+\section{Training Procedure}
+The normalizing flow model is trained to capture the transformation dynamics from the simple base distribution to the complex target distribution. The training process comprises the following steps:
+
+\begin{enumerate}
+    \item \textbf{Sample Generation:} 
+    \begin{itemize}
+        \item Generate a batch of base samples \( x \) from a standard normal distribution \( \mathcal{N}(0, I) \).
+        \item Obtain target samples \( y \) using a reliable method (e.g., via a Metropolis--Hastings algorithm or from experimental data) that reflects the desired distribution.
+    \end{itemize}
+    
+    \item \textbf{Interpolation:} 
+    For each pair \( (x, y) \), select a random interpolation parameter \( t \in [0,1] \) and compute the interpolated state:
+    \[
+    \psi_t = (1-t)x + t\, y.
+    \]
+    
+    \item \textbf{Displacement Prediction and Loss Calculation:}
+    A neural network—typically a multilayer perceptron (MLP)—is employed to predict the displacement \( v_{\text{predicted}}(\psi_t, t) \). The network is trained by minimizing the mean squared error (MSE) between the predicted and true displacements:
+    \[
+    \mathcal{L} = \mathbb{E}_{x,y,t} \left[ \| v_{\text{predicted}}(\psi_t, t) - (y - x) \|^2 \right].
+    \]
+    
+    \item \textbf{Optimization:} 
+    We use an optimizer such as Adam to update the network parameters based on the computed loss. Training is performed over multiple epochs until convergence is observed. Once trained, the model is capable of rapidly generating uncorrelated samples that align with the target distribution.
+\end{enumerate}
+
+\section{Advantages and Implementation Details}
+The use of normalizing flows offers several advantages over traditional sampling methods:
+\begin{itemize}
+    \item \textbf{Adaptive Sampling:} The learned transformation focuses sampling in regions of high importance, avoiding both undersampling and oversampling.
+    \item \textbf{Efficiency:} Unlike methods requiring a burn-in period (as in Markov Chain Monte Carlo), the normalizing flow generates independent samples quickly once training is complete.
+    \item \textbf{Automation:} The framework removes the need for manual hyperparameter tuning of the sampling distribution, making it robust to changes in system parameters.
+\end{itemize}
+
+In our implementation, we integrate the normalizing flow sampling within the overall training pipeline of the PINN. Hyperparameters such as learning rate, batch size, and network architecture (e.g., number of hidden layers and neurons) are chosen based on preliminary experiments to ensure efficient convergence. Sample quality is monitored via validation metrics that compare the generated distribution against the target distribution.

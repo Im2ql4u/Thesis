@@ -1,39 +1,39 @@
 import numpy as np
 import torch
-from Slater_Determinant import laplacian_2d
+from utils import inject_params
+from .Slater_Determinant import laplacian_2d
 
 
-def compute_coulomb_interaction(x, V, eps=1e-18):
+@inject_params
+def compute_coulomb_interaction(x, eps: float = 1e-18, *, params=None):
     """
     Computes the Coulomb interaction potential for a system of particles.
 
     Parameters:
     - x: Tensor of shape (batch_size, n_particles, d), where d is the spatial dimension.
-    - V: Scaling factor for the interaction strength.
-
-    Returns:
-    - V_int: Coulomb interaction energy as a tensor of shape (batch_size, 1).
+    - V: Taken from params["V"] (interaction strength).
     """
+    V = params["V"]
     batch_size, n_particles, d = x.shape
-    V_int = torch.zeros(batch_size, device=x.device)
+    V_int = torch.zeros(batch_size, device=x.device, dtype=x.dtype)
     for i in range(n_particles):
         for j in range(i + 1, n_particles):
-            r = x[:, i, :] - x[:, j, :]  # Pairwise distance vectors
-            r_norm = torch.norm(r, dim=1) + eps  # Compute Euclidean norm (distance)
-            V_int += V / r_norm  # Coulomb interaction 1/r
-
+            r = x[:, i, :] - x[:, j, :]  # (batch, d)
+            r_norm = torch.norm(r, dim=1) + eps  # (batch,)
+            V_int += V / r_norm
     return V_int.view(-1, 1)
 
 
-def gaussian_interaction_2d(x, V: float, eps: float = 1e-12):
+@inject_params
+def gaussian_interaction_2d(x, eps: float = 1e-12, *, params=None):
     """
-    Coulomb interaction energy for a batch of electronic configurations.
+    Coulomb interaction energy for a batch of electronic configurations (vectorized).
 
     Parameters
     ----------
     x : Tensor, shape (batch, n_particles, d)
         Particle coordinates.
-    V : float
+    V : float (taken from params["V"])
         Prefactor in atomic units (e.g. e² / (4πϵ₀)).
     eps : float
         Softening term to avoid division by zero.
@@ -43,22 +43,20 @@ def gaussian_interaction_2d(x, V: float, eps: float = 1e-12):
     Tensor, shape (batch, 1)
         Total Coulomb energy per configuration.
     """
+    V = params["V"]
     batch, n_particles, _ = x.shape
-    # Build pair-index tensors once (reuse globally if you like)
     idx_i, idx_j = torch.triu_indices(
         n_particles, n_particles, offset=1, device=x.device
     )
     rij = torch.norm(x[:, idx_i] - x[:, idx_j], dim=-1).clamp_min_(
         eps
     )  # (batch, n_pairs)
-    V_int = (V / rij).sum(dim=1, keepdim=True)  # (batch,1)
+    V_int = (V / rij).sum(dim=1, keepdim=True)  # (batch, 1)
     return V_int
 
 
-# ---------------------------------------------------------------------
-# 2-D Coulomb potential matrix on a grid  ( NumPy, no explicit double loop )
-# ---------------------------------------------------------------------
-def gaussian_interaction_potential_2d(xgrid, ygrid, V, eps=1e-12):
+@inject_params
+def gaussian_interaction_potential_2d(xgrid, ygrid, eps: float = 1e-12, *, params=None):
     """
     Build V_ij = V / |r_i − r_j| on a 2-D tensor-product grid.
 
@@ -67,6 +65,7 @@ def gaussian_interaction_potential_2d(xgrid, ygrid, V, eps=1e-12):
     Vmat : ndarray, shape (n_points, n_points)
         Symmetric interaction matrix with zero self-interaction on the diagonal.
     """
+    V = params["V"]
     X, Y = np.meshgrid(xgrid, ygrid, indexing="ij")  # each (nx, ny)
     coords = np.stack([X.ravel(), Y.ravel()], axis=1)  # (n_points, 2)
     diff = coords[:, None, :] - coords[None, :, :]  # (n_points, n_points, 2)
@@ -108,7 +107,8 @@ def compute_two_body_integrals_2d(basis, V_interaction, xgrid, ygrid):
     return two_body
 
 
-def one_electron_integral_2d(basis, xgrid, ygrid, omega):
+@inject_params
+def one_electron_integral_2d(basis, xgrid, ygrid, *, params=None):
     """
     Compute the one-electron integrals:
 
@@ -117,18 +117,19 @@ def one_electron_integral_2d(basis, xgrid, ygrid, omega):
     Parameters:
       basis : array of shape (n_points, n_basis) with basis functions
       xgrid, ygrid : 1D spatial grids
-      omega : harmonic oscillator frequency, which modifies the potential term
+      ω : taken from params["omega"]
 
     Returns:
       Hcore : the one-electron Hamiltonian matrix.
     """
+    omega = params["omega"]
     n_points, n_basis = basis.shape
     nx = len(xgrid)
     ny = len(ygrid)
     dx = xgrid[1] - xgrid[0]
     dy = ygrid[1] - ygrid[0]
 
-    # Create 2D grid for the potential term with omega
+    # 2D grid for the harmonic oscillator potential
     X, Y = np.meshgrid(xgrid, ygrid, indexing="ij")
     V_ho = 0.5 * (omega**2) * (X**2 + Y**2)
 

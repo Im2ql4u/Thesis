@@ -1,13 +1,13 @@
 import numpy as np
 import math
 from math import factorial
-from scipy.integrate import simps
+from scipy import integrate
 import torch
 
 from utils import inject_params
 
 ###############################################################################
-# 1) 2D Harmonic Oscillator Basis Functions (with harmonic oscillator constant omega)
+# 1) 2D Harmonic Oscillator Basis Functions (with harmonic oscillator constant ω)
 ###############################################################################
 
 
@@ -19,62 +19,49 @@ def hermite_polynomial(n, x):
     return np.polynomial.hermite.hermval(x, coeffs)
 
 
-def harmonic_oscillator_wavefunction_1d(n, x, omega):
+@inject_params
+def harmonic_oscillator_wavefunction_1d(n, x, *, params=None):
     """
-    1D harmonic oscillator eigenfunction ψ_n(x) with harmonic oscillator constant omega:
-
-      ψ_n(x) = (ω/π)^(1/4)/sqrt(2^n n!) * exp(-ω x²/2) * H_n(√ω x)
-
-    Parameters:
-      n     : quantum number
-      x     : spatial coordinate (can be a numpy array)
-      omega : harmonic oscillator frequency
+    1D harmonic oscillator eigenfunction ψ_n(x) with ω from params:
+      ψ_n(x) = (ω/π)^(1/4) / sqrt(2^n n!) * exp(-ω x²/2) * H_n(√ω x)
     """
-    norm = (omega / np.pi) ** (1 / 4) / np.sqrt((2**n) * factorial(n))
+    omega = params["omega"]
+    norm = (omega / np.pi) ** 0.25 / np.sqrt((2**n) * factorial(n))
     xi = np.sqrt(omega) * x
     Hn = hermite_polynomial(n, xi)
     return norm * np.exp(-0.5 * omega * x**2) * Hn
 
 
-def harmonic_oscillator_wavefunction_2d(n_x, n_y, X, Y, omega):
+@inject_params
+def harmonic_oscillator_wavefunction_2d(n_x, n_y, X, Y, *, params=None):
     """
-    2D product harmonic oscillator eigenfunction:
-
+    2D product eigenfunction with ω from params:
       ψ_{n_x,n_y}(x,y) = ψ_{n_x}(x) * ψ_{n_y}(y)
-
-    with harmonic oscillator constant omega.
-
-    Parameters:
-      n_x   : quantum number in the x-direction
-      n_y   : quantum number in the y-direction
-      X, Y  : 2D arrays (e.g., from np.meshgrid) for the spatial grid
-      omega : harmonic oscillator frequency
     """
-    psi_x = harmonic_oscillator_wavefunction_1d(n_x, X, omega)
-    psi_y = harmonic_oscillator_wavefunction_1d(n_y, Y, omega)
+    psi_x = harmonic_oscillator_wavefunction_1d(n_x, X)  # ω injected
+    psi_y = harmonic_oscillator_wavefunction_1d(n_y, Y)  # ω injected
     return psi_x * psi_y
 
 
-def initialize_harmonic_basis_2d(n_x_max, n_y_max, xgrid, ygrid, omega):
+@inject_params
+def initialize_harmonic_basis_2d(n_x_max, n_y_max, xgrid, ygrid, *, params=None):
     """
-    Build a 2D harmonic oscillator basis set for quantum numbers:
-      0 <= n_x < n_x_max and 0 <= n_y < n_y_max,
-    using the harmonic oscillator constant omega.
-
-    Returns:
-      basis: array of shape (n_points, n_basis) where
-             n_points = len(xgrid) * len(ygrid)
-             n_basis  = n_x_max * n_y_max.
+    Build a 2D harmonic oscillator basis set for 0 <= n_x < n_x_max, 0 <= n_y < n_y_max.
+    ω is read from params. Returns (n_points, n_basis) with n_points=len(xgrid)*len(ygrid).
     """
     X, Y = np.meshgrid(xgrid, ygrid, indexing="ij")  # shape (nx, ny)
     basis_list = []
     for nx_ho in range(n_x_max):
         for ny_ho in range(n_y_max):
-            psi2d = harmonic_oscillator_wavefunction_2d(nx_ho, ny_ho, X, Y, omega)
+            psi2d = harmonic_oscillator_wavefunction_2d(
+                nx_ho, ny_ho, X, Y
+            )  # ω injected
             # Flatten 2D grid to 1D vector (n_points,)
             psi2d_flat = psi2d.ravel()
-            # Normalize numerically (should be ~1 if the 1D functions are normalized)
-            norm_val = np.sqrt(simps(simps(psi2d**2, ygrid), xgrid))
+            # Normalize numerically with Simpson along y, then x (SciPy >= 1.14)
+            dens = psi2d**2  # shape (nx, ny)
+            inner = integrate.simpson(dens, x=ygrid, axis=1)  # -> (nx,)
+            norm_val = np.sqrt(integrate.simpson(inner, x=xgrid, axis=0))
             psi2d_flat /= norm_val
             basis_list.append(psi2d_flat)
 
@@ -84,7 +71,7 @@ def initialize_harmonic_basis_2d(n_x_max, n_y_max, xgrid, ygrid, omega):
 
 
 ###############################################################################
-# 2) One-Electron Integrals in 2D (with modified potential including omega)
+# 2) One-Electron Integrals in 2D (grid spacings are local inputs)
 ###############################################################################
 
 
@@ -95,7 +82,6 @@ def laplacian_2d(phi2d, dx, dy):
     """
     nx, ny = phi2d.shape
     lap = np.zeros_like(phi2d)
-
     # Second derivative in x-direction
     lap[1:-1, :] += (phi2d[:-2, :] - 2 * phi2d[1:-1, :] + phi2d[2:, :]) / (dx**2)
     # Second derivative in y-direction
@@ -113,16 +99,9 @@ def hartree_fock_2d(
 ):
     """
     Perform a closed-shell Hartree-Fock calculation in 2D.
-
-    For a closed-shell system, the number of occupied spatial orbitals is:
-         n_occ = n_electrons // 2
-    The density matrix is constructed as:
-         D_{pq} = 2 * Σ_i C_{p,i} C_{q,i}
-    where the factor of 2 accounts for opposite spins.
-
     Returns:
-      C_occ: array of shape (n_basis, n_occ) containing the occupied orbital coefficients.
-      orbital_energies: array of occupied orbital energies.
+      C_occ: (n_basis, n_occ), occupied orbital coefficients
+      orbital_energies: (n_occ,), occupied orbital energies
     """
     n_basis = Hcore.shape[0]
     n_occ = n_electrons // 2  # For closed-shell systems
@@ -162,31 +141,19 @@ def hartree_fock_2d(
     orbital_energies = eigvals_new[:n_occ]
     E_hf = 0.5 * np.sum(D * (Hcore + F))
     print(f"Final HF Energy = {E_hf:.6f}")
-
     return C_occ, orbital_energies
 
 
 @inject_params
 def slater_determinant_closed_shell(
-    x_config, C_occ, n_basis_x, n_basis_y, params=None, normalize=True
+    x_config, C_occ, n_basis_x, n_basis_y, *, params=None, normalize=True
 ):
     """
-    Compute the Slater determinant for a closed-shell system with harmonic oscillator basis.
-
-    Parameters:
-        x_config  : Tensor (B, n_particles, d), electron positions.
-        C_occ     : Tensor (n_basis_x * n_basis_y, n_spin), orbital coefficients.
-        n_basis_x : Number of basis functions in x.
-        n_basis_y : Number of basis functions in y.
-        omega     : Harmonic oscillator frequency (from params).
-        normalize : Whether to normalize by 1/(n_spin!).
-
-    Returns:
-        Tensor of shape (B, 1), the (possibly normalized) product of spin-up and spin-down determinants.
+    Compute the Slater determinant for a closed-shell system with HO basis.
+    ω is taken from params.
     """
     device = x_config.device
     dtype = x_config.dtype
-    omega = params["omega"]
 
     B, n_particles, d = x_config.shape
     n_spin = n_particles // 2  # Assume closed-shell
@@ -194,21 +161,20 @@ def slater_determinant_closed_shell(
     # Ensure orbital coefficients are on the correct device
     C_occ = C_occ.to(device=device, dtype=dtype)
 
-    # Evaluate the basis functions: must return tensor on same device
+    # Evaluate basis functions (uses ω via params)
     phi_vals = evaluate_basis_functions_torch_batch_2d(
-        x_config, n_basis_x, n_basis_y, omega
-    )
-    # shape: (B, n_particles, n_basis)
+        x_config, n_basis_x, n_basis_y
+    )  # (B, n_particles, n_basis)
 
     # Split spin-up and spin-down
     phi_vals_up = phi_vals[:, :n_spin, :]  # (B, n_spin, n_basis)
     phi_vals_down = phi_vals[:, n_spin:, :]  # (B, n_spin, n_basis)
 
     # Contract with coefficients: result (B, n_spin, n_spin)
-    psi_mat_up = torch.matmul(phi_vals_up, C_occ)  # (B, n_spin, n_spin)
-    psi_mat_down = torch.matmul(phi_vals_down, C_occ)  # (B, n_spin, n_spin)
+    psi_mat_up = torch.matmul(phi_vals_up, C_occ)
+    psi_mat_down = torch.matmul(phi_vals_down, C_occ)
 
-    # Compute log-determinants on CPU (MPS does not support det)
+    # Compute log-determinants on CPU (MPS lacks det support)
     sign_up, logdet_up = torch.linalg.slogdet(psi_mat_up.cpu())
     sign_down, logdet_down = torch.linalg.slogdet(psi_mat_down.cpu())
 
@@ -224,38 +190,32 @@ def slater_determinant_closed_shell(
     return det_full.view(B, 1)
 
 
-# --- 1D Harmonic Oscillator Basis Functions with omega ---
-def evaluate_basis_functions_torch(x, n_basis, omega):
+# --- 1D Harmonic Oscillator Basis Functions with ω ---
+@inject_params
+def evaluate_basis_functions_torch(x, n_basis, *, params=None):
     """
-    Evaluate 1D harmonic oscillator basis functions using a Gaussian times a Hermite polynomial,
-    with the harmonic oscillator parameter omega incorporated.
-
-    The eigenfunction is:
-      ψ_n(x) = (ω/π)^(1/4) / √(2ⁿ n!)  H_n(√ω x) exp(-ω x²/2)
-
-    Parameters:
-        x      : Tensor of shape (B, N) with spatial coordinates.
-        n_basis: Number of basis functions.
-        omega  : Harmonic oscillator frequency.
-
+    Evaluate 1D HO basis functions with ω from params.
+    Input:
+        x: Tensor (B, N)
+        n_basis: int
     Returns:
-        A tensor of shape (B, N, n_basis) with the evaluated basis functions.
+        (B, N, n_basis)
     """
+    omega = params["omega"]
     B, N = x.shape
     sqrt_omega = math.sqrt(omega)
     gauss = torch.exp(-0.5 * omega * x**2)
-    # Normalization for the n=0 basis function.
+    # Normalization for n=0
     norm0 = (omega / math.pi) ** 0.25
     phi_list = [norm0 * gauss]  # n = 0
 
     if n_basis > 1:
-        # n = 1: H_1(√ω x) = 2√ω x and normalization factor √2 in the denominator.
+        # n = 1: H_1(√ω x) = 2√ω x; normalization factor √2 in denominator.
         norm1 = norm0 / math.sqrt(2)
         phi_list.append(norm1 * (2 * sqrt_omega * x) * gauss)
 
     if n_basis > 2:
-        # Use the recurrence relation for Hermite polynomials:
-        # H_{n+1}(√ω x) = 2√ω x * H_n(√ω x) - 2n * H_{n-1}(√ω x)
+        # Recurrence: H_{n+1}(√ω x) = 2√ω x * H_n(√ω x) - 2n * H_{n-1}(√ω x)
         H_prev_prev = torch.ones_like(x)  # H_0(√ω x)
         H_prev = 2 * sqrt_omega * x  # H_1(√ω x)
         for n in range(1, n_basis - 1):
@@ -263,36 +223,26 @@ def evaluate_basis_functions_torch(x, n_basis, omega):
             norm = norm0 / math.sqrt((2 ** (n + 1)) * math.factorial(n + 1))
             phi_list.append(norm * H_curr * gauss)
             H_prev_prev, H_prev = H_prev, H_curr
+
     return torch.stack(phi_list, dim=-1)
 
 
 # --- 2D Basis Functions from 1D ---
-def evaluate_basis_functions_torch_batch_2d(x, n_basis_x, n_basis_y, omega):
+@inject_params
+def evaluate_basis_functions_torch_batch_2d(x, n_basis_x, n_basis_y, *, params=None):
     """
-    Evaluate 2D harmonic oscillator basis functions as a separable product of 1D basis functions.
-
-    Parameters:
-        x        : Tensor of shape (B, N, d) with spatial coordinates,
-                   where d >= 2 and the first two components correspond to x and y.
-        n_basis_x: Number of 1D basis functions in the x direction.
-        n_basis_y: Number of 1D basis functions in the y direction.
-        omega    : Harmonic oscillator frequency.
-
+    Evaluate 2D HO basis functions as separable products; ω from params.
+    Input:
+        x: Tensor (B, N, d) with x- and y-coordinates in the first two components.
     Returns:
-        A tensor of shape (B, N, n_basis_x * n_basis_y) with the evaluated 2D basis functions.
+        (B, N, n_basis_x * n_basis_y)
     """
     B, N, d = x.shape
-    x_coord = x[..., 0]  # shape: (B, N)
-    y_coord = x[..., 1]  # shape: (B, N)
-    phi_x = evaluate_basis_functions_torch(
-        x_coord, n_basis_x, omega
-    )  # shape: (B, N, n_basis_x)
-    phi_y = evaluate_basis_functions_torch(
-        y_coord, n_basis_y, omega
-    )  # shape: (B, N, n_basis_y)
+    x_coord = x[..., 0]  # (B, N)
+    y_coord = x[..., 1]  # (B, N)
+    phi_x = evaluate_basis_functions_torch(x_coord, n_basis_x)  # ω injected
+    phi_y = evaluate_basis_functions_torch(y_coord, n_basis_y)  # ω injected
 
-    # Compute the outer product of phi_x and phi_y for each electron.
-    product = phi_x.unsqueeze(-1) * phi_y.unsqueeze(
-        -2
-    )  # shape: (B, N, n_basis_x, n_basis_y)
+    # Outer product per electron/sample
+    product = phi_x.unsqueeze(-1) * phi_y.unsqueeze(-2)  # (B, N, n_basis_x, n_basis_y)
     return product.reshape(B, N, n_basis_x * n_basis_y)

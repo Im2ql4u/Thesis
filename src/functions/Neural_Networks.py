@@ -1,129 +1,131 @@
 import torch
-from .Slater_Determinant import slater_determinant_closed_shell
-from utils import inject_params
-from .Physics import compute_coulomb_interaction
 from torch.func import jacfwd, jacrev
+
+from utils import inject_params
+from .Slater_Determinant import slater_determinant_closed_shell
+from .Physics import compute_coulomb_interaction
 
 
 def compute_laplacian_fastt(psi_fn, f_net, x, C_occ):
     """
-    Compute ψ and ∇²ψ via a single Hessian‐trace, for batch x of shape (B,N,d).
+    Compute ψ and ∇²ψ via a single Hessian-trace for batch x of shape (B,N,d).
     """
-    # 1) make sure x has grad enabled
     x = x.requires_grad_(True)  # (B, N, d)
     B, N, d = x.shape
 
-    # 2) define a sum‐over‐batch wrapper for functorch
     def psi_sum(x_batch):
-        # returns a scalar: sum of ψ over the batch
+        # scalar: sum of ψ over the batch
         return psi_fn(f_net, x_batch, C_occ).sum()
 
-    # 3) compute Hessian H_{αβ} = ∂²(∑ψ)/∂x_α∂x_β in one shot
-    H = jacfwd(jacrev(psi_sum))(x)  # shape (B, N, d, N, d)
+    # Hessian w.r.t. flattened coordinates
+    H = jacfwd(jacrev(psi_sum))(x)  # (B, N, d, N, d)
+    lap = H.reshape(B, N * d, N * d).diagonal(dim1=-2, dim2=-1).sum(dim=-1)  # (B,)
 
-    # 4) trace and reshape: sum over the diagonal of the flattened (N·d)x(N·d)
-    lap = (
-        H.reshape(B, N * d, N * d).diagonal(dim1=-2, dim2=-1).sum(dim=-1)  # shape (B,)
-    )
-
-    # 5) return ψ (as column) and ∇²ψ
-    psi = psi_fn(f_net, x, C_occ).unsqueeze(1)  # (B,1)
-    return psi, lap.unsqueeze(1)  # both (B,1)
+    psi = psi_fn(f_net, x, C_occ).unsqueeze(1)  # (B, 1)
+    return psi, lap.unsqueeze(1)  # (B, 1), (B, 1)
 
 
 @inject_params
-def psi_fn(f_net, x_batch, C_occ, device=None, params=None):
+def psi_fn(f_net, x_batch, C_occ, *, params=None):
     """
-    Compute the wavefunction for a single configuration.
-    Args:
-        x_single (torch.Tensor): (n_particles, d) with requires_grad=True.
-    Returns:
-        Scalar tensor for psi.
+    Wavefunction ψ = det(Slater) * exp(f_net).
+    Uses params['nx'], params['ny'] for basis sizes; ω is injected inside Slater.
     """
-    SD_val = slater_determinant_closed_shell(x_batch, C_occ, params["nx"], params["ny"])
-    f_val = torch.exp(f_net(x_batch))
+    SD_val = slater_determinant_closed_shell(
+        x_batch, C_occ, params["nx"], params["ny"]
+    )  # (B, 1)
+    f_val = torch.exp(f_net(x_batch))  # broadcastable to (B, 1)
     psi_val = SD_val * f_val
-    return psi_val
+    return psi_val.squeeze(-1)  # (B,)
 
 
 def compute_laplacian_fast(psi_fn, f_net, x, C_occ):
     """
-    Exact Laplacian via nested torch.autograd.grad calls.
+    Exact Laplacian via nested autograd.
 
     Args:
-      psi_fn : callable(f_net, x_batch, C_occ, nx, ny) -> psi of shape (batch,)
-      f_net  : your neural network
-      x      : Tensor (batch, n_particles, d) with requires_grad=True
-      C_occ, nx, ny : parameters for slater_determinant_closed_shell
-
-    Returns:
-      lap : Tensor of shape (batch, 1), containing ∇²ψ for each sample.
+      psi_fn : callable(f_net, x, C_occ) -> (B,)
+      f_net  : NN mapping x -> log factor
+      x      : (B, N, d) with requires_grad=True
+      C_occ  : (n_basis, n_spin)
     """
-    # ensure we have a fresh graph on x
     x = x.requires_grad_(True)
-    batch, n, d = x.shape
+    B, N, d = x.shape
 
-    # 1) compute psi (batch,)
-    Psi = psi_fn(f_net, x, C_occ)
-    psi = Psi  # .squeeze()
-    # 2) first derivatives ∂ψ/∂x  -> shape (batch, n, d)
-    grads = torch.autograd.grad(psi.sum(), x, create_graph=True)[0]
+    Psi = psi_fn(f_net, x, C_occ)  # (B,)
+    grads = torch.autograd.grad(Psi.sum(), x, create_graph=True)[0]  # (B, N, d)
 
-    # 3) accumulate second derivatives per coordinate
-    lap = torch.zeros(batch, device=x.device)
-    for i in range(n):
+    lap = torch.zeros(B, device=x.device, dtype=x.dtype)
+    for i in range(N):
         for j in range(d):
-            # sum over batch to get scalar for this coordinate
             g_ij = grads[:, i, j].sum()
-            # second derivative ∂²ψ/∂x_{i,j}²
             second = torch.autograd.grad(g_ij, x, create_graph=True)[0]
-            # add the diagonal piece
             lap = lap + second[:, i, j]
 
-    return Psi, lap.unsqueeze(1)  # shape (batch,1)
+    return Psi.unsqueeze(1), lap.unsqueeze(1)  # both (B, 1)
 
 
 @inject_params
 def train_model(
-    V, E, f_net, optimizer, C_occ, std=2.5, factor=0.1, params=None, print_e=50
+    f_net, optimizer, C_occ, *, params=None, std=2.5, factor=0.1, print_e=50
 ):
     """
-    Train the model as a PINN by minimizing the PDE residual and enforcing normalization.
-    (This function is kept unchanged.)
+    Train the PINN by minimizing the PDE residual and enforcing normalization.
+
+    Notes:
+    - Reads V and E from params["V"] and params["E"] (no longer passed as args).
+    - Uses omega, n_particles, n_epochs, d, N_collocation, device from params.
     """
-    device = params["device"]
+    device = params["device"]  # string like "cpu" / "cuda" / "mps"
     w = params["omega"]
     n_particles = params["n_particles"]
     n_epochs = params["n_epochs"]
     d = params["d"]
     N_collocation = params["N_collocation"]
+    E = params["E"]
+
     QHO_const = 0.5 * w**2
     f_net.to(device)
+
     for epoch in range(n_epochs):
         optimizer.zero_grad()
+
+        # sample collocation points
         x = torch.normal(0, std, size=(N_collocation, n_particles, d), device=device)
         x = x.clamp(min=-5, max=5)
+
+        # ψ and ∇²ψ
         psi, laplacian = compute_laplacian_fast(psi_fn, f_net, x, C_occ)
+
+        # normalize ψ
         norm = torch.norm(psi, p=2)
         psi = psi / norm
 
+        # potentials
         V_harmonic = QHO_const * (x**2).sum(dim=(1, 2)).view(-1, 1)
-        V_int = compute_coulomb_interaction(x, V)
+        V_int = compute_coulomb_interaction(x)  # V comes from params
         V_total = V_harmonic + V_int
+
+        # Hamiltonian on ψ and residual
         H_psi = -0.5 * laplacian + V_total * psi
-
         residual = H_psi - E * psi
-        loss_pde = torch.mean((residual) ** 2)
-        variance = torch.var(H_psi / psi)
 
+        # losses
+        loss_pde = torch.mean(residual**2)
+        variance = torch.var(H_psi / psi)
         loss_norm = factor * (norm - 1) ** 2
         loss = loss_pde + loss_norm
+
         loss.backward()
         optimizer.step()
+
         if epoch % print_e == 0:
             print(
-                f"Epoch {epoch:05d}: PDE Loss = {loss_pde.item():.3e},Norm = {norm.item():.3e},  Variance = {variance.item():.3e}"
+                f"Epoch {epoch:05d}: PDE={loss_pde.item():.3e}  "
+                f"Norm={norm.item():.3e}  Var={variance.item():.3e}"
             )
+
+        # free graph memory each iter
         del (
             loss,
             variance,
@@ -136,7 +138,8 @@ def train_model(
             psi,
             laplacian,
         )
-    return f_net  # , metrics
+
+    return f_net
 
 
 """

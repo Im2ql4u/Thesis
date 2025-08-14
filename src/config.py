@@ -1,4 +1,3 @@
-# config.py
 from __future__ import annotations
 from dataclasses import dataclass, asdict, replace
 from contextlib import contextmanager
@@ -12,29 +11,63 @@ import torch
 def _default_device() -> str:
     if torch.cuda.is_available():
         return "cuda"
-    if torch.backends.mps.is_available():  # Apple Silicon
+    if torch.backends.mps.is_available():
         return "mps"
     return "cpu"
 
 
+_ACTIVATIONS = {
+    "gelu": torch.nn.GELU,
+    "relu": torch.nn.ReLU,
+    "tanh": torch.nn.Tanh,
+    "silu": torch.nn.SiLU,
+    "mish": getattr(torch.nn, "Mish", torch.nn.SiLU),
+}
+
+
 @dataclass(frozen=True)
 class Config:
-    # ---- physics / model ----
-    omega: float = 1.0
+    # physics / model
+    omega: float = 0.1
 
-    # ---- compute policy ----
-    device: str = _default_device()  # store as string for easy serialization
-    dtype: str = "float64"  # one of: float32, float64, bfloat16, float16, etc.
-    seed: Optional[int] = 0  # None = don't touch RNGs
+    # compute policy
+    device: str = _default_device()
+    dtype: str = "float64"  # "float32" | "float64" | "float16" | "bfloat16"
+    seed: Optional[int] = 0
 
-    # ---- paths (extend as needed) ----
+    # training / architecture
+    hidden_dim: int = 64
+    n_layers: int = 3
+    act_fn_name: str = "gelu"
+    learning_rate: float = 1e-4
+    N_collocation: int = 2000
+    n_epochs: int = 3000
+    n_epochs_norm: int = 200
+
+    # system constants (kept your original keys)
+    E: float = 0.44079
+    V: float = 1.0
+    d: int = 2
+    n_particles: int = 2
+    nx: int = 1
+    ny: int = 1
+    dimensions: int = 2
+
+    # grids / sampling
+    L: float = 8.0
+    L_E: float = 9.0
+    n_grid: int = 30
+    batch_size: int = int(1e3)
+    n_samples: int = int(1e5)
+
+    # paths
     data_dir: Optional[str] = None
     results_dir: Optional[str] = None
 
+    # --- helpers ---
     def as_dict(self) -> Dict[str, Any]:
         return asdict(self)
 
-    # runtime helpers
     @property
     def torch_device(self) -> torch.device:
         return torch.device(self.device)
@@ -51,21 +84,25 @@ class Config:
             raise ValueError(f"Unsupported dtype '{self.dtype}'.")
         return mapping[self.dtype]
 
+    @property
+    def act_fn(self) -> torch.nn.Module:
+        key = self.act_fn_name.lower()
+        if key not in _ACTIVATIONS:
+            raise ValueError(
+                f"Unsupported activation '{self.act_fn_name}'. "
+                f"Valid: {sorted(_ACTIVATIONS)}"
+            )
+        return _ACTIVATIONS[key]()
 
-# ---- global current config (immutable) ----
+
 _CURRENT = Config()
 
 
 def get() -> Config:
-    """Return the current Config (immutable)."""
     return _CURRENT
 
 
 def update(**overrides) -> Config:
-    """
-    Install a new Config with fields changed.
-    Example: config.update(omega=0.7, device="cuda", dtype="float64", seed=123)
-    """
     global _CURRENT
     _CURRENT = replace(_CURRENT, **overrides)
     _apply_seed_policy(_CURRENT)
@@ -74,9 +111,6 @@ def update(**overrides) -> Config:
 
 @contextmanager
 def override(**overrides):
-    """
-    Temporarily override config values inside a 'with' block.
-    """
     global _CURRENT
     prev = _CURRENT
     try:
@@ -89,7 +123,6 @@ def override(**overrides):
 
 
 def _apply_seed_policy(cfg: Config) -> None:
-    """Set RNG seeds if cfg.seed is not None."""
     if cfg.seed is None:
         return
     random.seed(cfg.seed)

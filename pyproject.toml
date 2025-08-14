@@ -3,9 +3,7 @@ name = "thesis"
 version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
-authors = [
-    { name = "Im2ql4u", email = "122972303+Im2ql4u@users.noreply.github.com" }
-]
+authors = [{ name = "Im2ql4u", email = "122972303+Im2ql4u@users.noreply.github.com" }]
 requires-python = ">=3.9"
 dependencies = [
     "ipykernel>=6.30.1",
@@ -23,12 +21,22 @@ dependencies = [
     "tqdm>=4.67.1",
 ]
 
-[project.scripts]
-thesis = "thesis:main"
+# Remove this block unless you actually have a callable "main" in a module named "thesis"
+# [project.scripts]
+# thesis = "thesis:main"
 
 [build-system]
-requires = ["uv_build>=0.8.9,<0.9.0"]
-build-backend = "uv_build"
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+# Tell setuptools that code is under src/
+[tool.setuptools]
+package-dir = {"" = "src"}
+py-modules = ["config", "utils", "PINN"]             # single-file modules
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["functions*"]                              # the only package dir
 
 [dependency-groups]
 dev = [

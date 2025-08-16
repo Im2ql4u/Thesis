@@ -1,42 +1,42 @@
 import torch
-from torch.func import jacfwd, jacrev
 
 from utils import inject_params
 from .Slater_Determinant import slater_determinant_closed_shell
 from .Physics import compute_coulomb_interaction
 
 
-def compute_laplacian_fastt(psi_fn, f_net, x, C_occ):
-    """
-    Compute ψ and ∇²ψ via a single Hessian-trace for batch x of shape (B,N,d).
-    """
-    x = x.requires_grad_(True)  # (B, N, d)
-    B, N, d = x.shape
-
-    def psi_sum(x_batch):
-        # scalar: sum of ψ over the batch
-        return psi_fn(f_net, x_batch, C_occ).sum()
-
-    # Hessian w.r.t. flattened coordinates
-    H = jacfwd(jacrev(psi_sum))(x)  # (B, N, d, N, d)
-    lap = H.reshape(B, N * d, N * d).diagonal(dim1=-2, dim2=-1).sum(dim=-1)  # (B,)
-
-    psi = psi_fn(f_net, x, C_occ).unsqueeze(1)  # (B, 1)
-    return psi, lap.unsqueeze(1)  # (B, 1), (B, 1)
-
-
 @inject_params
 def psi_fn(f_net, x_batch, C_occ, *, params=None):
     """
-    Wavefunction ψ = det(Slater) * exp(f_net).
-    Uses params['nx'], params['ny'] for basis sizes; ω is injected inside Slater.
+    ψ(x) = det(Slater(x; C_occ)) * exp(f_net(x)).
+    Basis selection is handled inside slater_determinant_closed_shell via params['basis'].
     """
-    SD_val = slater_determinant_closed_shell(
-        x_batch, C_occ, params["nx"], params["ny"]
-    )  # (B, 1)
-    f_val = torch.exp(f_net(x_batch))  # broadcastable to (B, 1)
-    psi_val = SD_val * f_val
-    return psi_val.squeeze(-1)  # (B,)
+    # Pull nx, ny if present; FD path will ignore them inside Slater
+    nx = int(params.get("nx", 0))
+    ny = int(params.get("ny", 0))
+
+    # Make tensors contiguous + on the right device/dtype (cheap, helps matmul kernels)
+    x_batch = x_batch.contiguous()
+    C_occ = C_occ.to(device=x_batch.device, dtype=x_batch.dtype).contiguous()
+
+    # Slater determinant: basis dispatch is inside this call
+    SD = slater_determinant_closed_shell(
+        x_config=x_batch,
+        C_occ=C_occ,
+        n_basis_x=nx,
+        n_basis_y=ny,
+        params=params,
+        normalize=True,
+    )  # (B,1)
+
+    # Jastrow/log-amplitude from f_net — clamp to keep exp stable early in training
+    f = f_net(x_batch)
+    if f.ndim == 1:
+        f = f.unsqueeze(-1)
+    f = torch.clamp(f, max=30).exp_()  # in-place exp to avoid extra allocs
+
+    SD.mul_(f)  # in-place multiply, keeps grad
+    return SD.squeeze(-1)  # (B,)
 
 
 def compute_laplacian_fast(psi_fn, f_net, x, C_occ):
@@ -140,93 +140,3 @@ def train_model(
         )
 
     return f_net
-
-
-"""
-import torch
-import matplotlib.pyplot as plt
-from typing import Callable, Tuple
-
-# ---------- 1. Build configurations ---------- #
-def construct_grid2_random(
-    n_particles: int,
-    dims: int,
-    probe_idx: int,          # which particle we draw on the grid
-    Ngrid: int,
-    L: float,
-    n_random: int,
-    device: str = "cpu"
-) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
-
-    Parameters
-    ----------
-    probe_idx : int
-        Index of the particle whose (x,y) coordinates are scanned.
-    Ngrid, L :
-        Grid resolution and half-width; the grid is [-L, L]².
-    n_random : int
-        Number of Monte-Carlo samples for every grid node.
-    Returns
-    -------
-    x_configs : (n_random*Ngrid², n_particles, dims) tensor
-    X, Y      : (Ngrid, Ngrid) tensors with grid coordinates (useful for pcolormesh)
-
-    assert dims == 2, "This routine assumes 2-D particles."
-
-    # Square mesh for (x,y) of the probe particle
-    lin = torch.linspace(-L, L, Ngrid, device=device)
-    X, Y = torch.meshgrid(lin, lin, indexing="ij")                 # (Ngrid, Ngrid)
-
-    # Random block: shape (n_random, Ngrid, Ngrid, n_particles, dims)
-    rand = torch.randn(n_random, Ngrid, Ngrid, n_particles, dims, device=device)
-
-    # Overwrite probe coordinates with the mesh (broadcasting happens automatically)
-    rand[..., probe_idx, 0] = X           # x-coordinate
-    rand[..., probe_idx, 1] = Y           # y-coordinate
-
-    # Collapse the first three axes → batch dimension
-    x_configs = rand.reshape(-1, n_particles, dims)                # (n_random*Ngrid², …)
-    return x_configs, X, Y
-
-# ---------- 2. Evaluate and plot ---------- #
-def plot_marginal_2d(
-    psi_fn: Callable[[torch.Tensor], torch.Tensor],
-    n_particles: int,
-    probe_idx: int,
-    Ngrid: int,
-    L: float,
-    n_random: int,
-    device: str = "cpu",
-    batch_size: int = 4096,
-    cmap: str = "viridis",
-):
-
-    Averages |Ψ|² over random companions and shows a 2-D density for particle `probe_idx`.
-
-    # Build configurations
-    configs, X, Y = construct_grid2_random(
-        n_particles, 2, probe_idx,
-        Ngrid, L, n_random, device
-    )
-
-    # Evaluate psi in manageable chunks
-    psi_sq = torch.empty(configs.shape[0], device=device)
-    for i in range(0, configs.shape[0], batch_size):
-        out = psi_fn_with_fnet(f_net, configs[i:i+batch_size],C_occ)                # (batch, 1) or (batch,)
-        psi_sq[i:i+batch_size] = out.squeeze().abs()**2
-
-    # Reshape and Monte-Carlo average
-    psi_sq = psi_sq.view(n_random, Ngrid, Ngrid)             # (n_random, Ngrid, Ngrid)
-    density = psi_sq.mean(dim=0).cpu()                       # (Ngrid, Ngrid)
-
-    # Plot
-    plt.figure(figsize=(7,5))
-    plt.pcolormesh(X.cpu(), Y.cpu(), density.detach(), shading="auto", cmap=cmap)
-    plt.xlabel(f"x (particle {probe_idx})")
-    plt.ylabel(f"y (particle {probe_idx})")
-    plt.title(r"fakk off")
-    plt.colorbar(label="Probability density")
-    plt.tight_layout()
-    plt.show()
-
-"""

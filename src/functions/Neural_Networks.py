@@ -8,22 +8,35 @@ from .Physics import compute_coulomb_interaction
 @inject_params
 def psi_fn(f_net, x_batch, C_occ, *, params=None):
     """
-    ψ(x) = det(Slater) * exp(f_net). Works for both bases:
-      - FD: Slater uses params['emax']; nx,ny are ignored.
-      - Cartesian: Slater uses (nx, ny).
-    Accepts NN outputs shaped (B,1), (B,), (B,N,1), or (B,N).
+    ψ(x) = det(Slater(x; C_occ)) * exp(f_net(x)).
+    Basis selection is handled inside slater_determinant_closed_shell via params['basis'].
     """
-    nx, ny = params.get("nx", 1), params.get("ny", 1)
-    SD = slater_determinant_closed_shell(x_batch, C_occ, nx, ny)  # (B,1)
+    # Pull nx, ny if present; FD path will ignore them inside Slater
+    nx = int(params.get("nx", 0))
+    ny = int(params.get("ny", 0))
 
+    # Make tensors contiguous + on the right device/dtype (cheap, helps matmul kernels)
+    x_batch = x_batch.contiguous()
+    C_occ = C_occ.to(device=x_batch.device, dtype=x_batch.dtype).contiguous()
+
+    # Slater determinant: basis dispatch is inside this call
+    SD = slater_determinant_closed_shell(
+        x_config=x_batch,
+        C_occ=C_occ,
+        n_basis_x=nx,
+        n_basis_y=ny,
+        params=params,
+        normalize=True,
+    )  # (B,1)
+
+    # Jastrow/log-amplitude from f_net — clamp to keep exp stable early in training
     f = f_net(x_batch)
-    if f.dim() == 3:  # (B,N,1) or (B,N)
-        f = f.sum(dim=1, keepdim=False)  # -> (B,1) or (B,)
-    if f.dim() == 1:  # (B,)
-        f = f.unsqueeze(-1)  # -> (B,1)
+    if f.ndim == 1:
+        f = f.unsqueeze(-1)
+    f = torch.clamp(f, max=30).exp_()  # in-place exp to avoid extra allocs
 
-    f = f.to(x_batch.dtype)
-    return (SD * torch.exp(f)).squeeze(-1)  # (B,)
+    SD.mul_(f)  # in-place multiply, keeps grad
+    return SD.squeeze(-1)  # (B,)
 
 
 def compute_laplacian_fast(psi_fn, f_net, x, C_occ):

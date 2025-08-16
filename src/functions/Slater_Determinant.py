@@ -671,7 +671,6 @@ def slater_determinant_closed_shell(
 
     basis = params.get("basis", "cart").lower()
     omega = params["omega"]
-
     if basis.startswith("fd"):
         emax = params["emax"]
         make_real = params.get("fd_make_real", True)

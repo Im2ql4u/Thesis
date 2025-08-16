@@ -1,7 +1,7 @@
 from __future__ import annotations
 from dataclasses import dataclass, asdict, replace
 from contextlib import contextmanager
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, Literal
 import os
 import random
 import numpy as np
@@ -27,15 +27,33 @@ _ACTIVATIONS = {
 
 @dataclass(frozen=True)
 class Config:
+    # -----------------------------
     # physics / model
+    # -----------------------------
     omega: float = 0.1
 
+    # Basis selection & parameters
+    basis: Literal["cart", "fd"] = "cart"  # "cart" (Cartesian HO) or "fd" (Fock–Darwin)
+    emax: int = 2  # FD only: shell cutoff (2n+|m| <= emax)
+    nx: int = 1  # Cartesian only: number of 1D x-basis functions
+    ny: int = 1  # Cartesian only: number of 1D y-basis functions
+    fd_make_real: bool = True  # FD Slater uses real cos/sin combos
+    fd_idx: Optional[list] = None
+
+    # Coulomb / convolution controls
+    kappa: float = 1.0  # dielectric screening (1/kappa) prefactor
+    pad_factor: int = 2  # FFT padding for Coulomb convolution
+
+    # -----------------------------
     # compute policy
+    # -----------------------------
     device: str = _default_device()
     dtype: str = "float64"  # "float32" | "float64" | "float16" | "bfloat16"
     seed: Optional[int] = 0
 
+    # -----------------------------
     # training / architecture
+    # -----------------------------
     hidden_dim: int = 64
     n_layers: int = 3
     act_fn_name: str = "gelu"
@@ -44,25 +62,37 @@ class Config:
     n_epochs: int = 3000
     n_epochs_norm: int = 200
 
-    # system constants (kept your original keys)
+    # -----------------------------
+    # system constants (kept as-is)
+    # -----------------------------
     E: float = 0.44079
     V: float = 1.0
     d: int = 2
     n_particles: int = 2
-    nx: int = 1
-    ny: int = 1
     dimensions: int = 2
 
+    # -----------------------------
     # grids / sampling
+    # -----------------------------
     L: float = 8.0
     L_E: float = 9.0
     n_grid: int = 30
     batch_size: int = int(1e3)
     n_samples: int = int(1e5)
 
+    # -----------------------------
     # paths
+    # -----------------------------
     data_dir: Optional[str] = None
     results_dir: Optional[str] = None
+
+    # -----------------------------
+    # HF solver (optional overrides used by hartree_fock_closed_shell)
+    # -----------------------------
+    hf_max_iter: int = 100
+    hf_tol: float = 1e-8
+    hf_damping: float = 0.0
+    hf_verbose: bool = True
 
     # --- helpers ---
     def as_dict(self) -> Dict[str, Any]:

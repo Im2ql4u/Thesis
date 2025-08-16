@@ -1,4 +1,43 @@
 \graphicspath{{../results/figures/methods/}}
+\chapter{Quantum Mechanics}
+\subsection{Single--particle basis sets}
+
+In order to represent the electronic wave function we employ two families of single--particle orbitals: the Cartesian harmonic oscillator basis and the Fock--Darwin basis. Both are natural choices for two--dimensional confined systems, and they enter our method at two different stages: (i) in the Hartree--Fock procedure, where we require matrix elements of the Hamiltonian, and (ii) during the variational training, where the Slater determinant must be evaluated efficiently at arbitrary particle coordinates.
+
+\paragraph{Cartesian harmonic oscillator basis.}
+The Cartesian basis consists of products of one--dimensional harmonic oscillator eigenfunctions along the $x$ and $y$ axes,
+\[
+\psi_{n_x,n_y}(x,y) \;=\; \psi_{n_x}(x)\,\psi_{n_y}(y),
+\]
+where $\psi_{n}(x)$ are Hermite--Gaussian functions with oscillator frequency $\omega$. The basis is truncated at $n_x < n_x^{\max}$ and $n_y < n_y^{\max}$, giving a total of $n_x^{\max}\times n_y^{\max}$ orbitals. 
+
+\emph{Advantages.} 
+The Cartesian form is simple, separable, and directly compatible with tensor--product quadrature on a uniform grid. The recurrence relations for Hermite polynomials enable fast analytic evaluation inside PyTorch.  
+
+\emph{Disadvantages.} 
+Cartesian functions are not eigenfunctions of the two--dimensional harmonic oscillator in polar coordinates, and thus do not respect angular momentum symmetry. Consequently, higher values of $n_x$ and $n_y$ are often needed to represent rotationally symmetric states.
+
+\paragraph{Fock--Darwin basis.}
+The Fock--Darwin orbitals are the eigenfunctions of the two--dimensional isotropic harmonic oscillator in polar coordinates,
+\[
+\phi_{n,m}(r,\theta) \;=\; N_{n,m}\, r^{|m|} e^{-r^2/2} L_{n}^{|m|}(r^2)\, e^{\mathrm{i} m \theta},
+\]
+with radial quantum number $n\ge 0$, angular momentum $m\in\mathbb{Z}$, and associated Laguerre polynomials $L_n^{|m|}$. The energy depends only on the shell index $2n+|m|$, and the basis is truncated at $2n+|m| \leq e_{\max}$. For numerical work we employ a real form where $m>0$ states are represented by $\cos(m\theta)$ and $\sin(m\theta)$ combinations. 
+
+\emph{Advantages.} 
+Fock--Darwin functions diagonalize the non--interacting Hamiltonian exactly, and they carry definite angular momentum quantum numbers. This makes them very compact for rotationally symmetric problems: a small $e_{\max}$ already spans the relevant Hilbert space.
+
+\emph{Disadvantages.} 
+Evaluation involves generalized Laguerre polynomials and a polar coordinate transform, which is somewhat more expensive per function call compared to the Cartesian Hermite functions. In addition, constructing Coulomb integrals requires care with angular momentum selection rules.
+
+\paragraph{Usage in our pipeline.}
+In the Hartree--Fock stage, both bases are realized on a uniform Cartesian grid of size $n_{\text{grid}}\times n_{\text{grid}}$ within $[-L,L]^2$. The orbitals are sampled on this mesh to form overlap, one--body, and two--body matrix elements using Simpson quadrature and FFT--based convolution for the Coulomb kernel. Once the Hartree--Fock equations are solved, the occupied orbitals are expressed as coefficient vectors $C_{\text{occ}}$ in the chosen basis.
+
+During training of the neural--network ansatz, the Slater determinant must be evaluated for arbitrary particle coordinates. In this step no interpolation from the grid is performed. Instead, the orbital values are recomputed analytically using recurrence relations (Cartesian) or Laguerre expansions (Fock--Darwin) inside the PyTorch backend. This ensures exact functional forms, full differentiability, and avoids discretization errors in the variational stage.
+
+\paragraph{Summary.}
+The Cartesian basis offers simplicity and ease of implementation, but converges slowly for rotationally symmetric problems. The Fock--Darwin basis is symmetry--adapted and compact, but slightly more involved to evaluate. In practice both choices are supported in our code, and the optimal choice depends on whether angular momentum conservation or implementation speed is the main priority.
+
 \chapter{Machine Learning}
 \label{sec:theory}
 \section{Activation Functions for PINNs}

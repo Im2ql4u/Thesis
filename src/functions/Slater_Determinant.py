@@ -3,21 +3,12 @@
 # Clean, basis-agnostic engines for 2D HO (Cartesian + Fock–Darwin)
 # ---------------------------------------------------------------
 from __future__ import annotations
-
 import math
 from math import factorial
 from typing import List, Tuple, Optional
-
 import numpy as np
-
-# SciPy generalized symmetric eig (preferred), with graceful fallback
-try:
-    from scipy.linalg import eigh as eigh_generalized  # solves A v = S v w
-except Exception:
-    eigh_generalized = None
-
+from scipy.linalg import eigh as eigh_generalized  # solves A v = S v w
 import torch
-
 from utils import inject_params
 
 # ===============================================================

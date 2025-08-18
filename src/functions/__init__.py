@@ -33,6 +33,14 @@ from .Physics import (
     one_electron_integral_2d,
 )
 
+# --- Plotting ---
+from .Plotting import (
+    make_mala_sample_fn,
+    radial_two_body_density_2d,
+    run_radial_map,
+    mirror_quadrants,
+)
+
 __all__ = [
     # Slater_Determinant (existing)
     "hermite_polynomial",
@@ -57,4 +65,9 @@ __all__ = [
     "gaussian_interaction_potential_2d",
     "compute_two_body_integrals_2d",
     "one_electron_integral_2d",
+    # Plotting
+    "make_mala_sample_fn",
+    "radial_two_body_density_2d",
+    "run_radial_map",
+    "mirror_quadrants",
 ]

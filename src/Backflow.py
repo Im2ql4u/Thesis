@@ -1,4 +1,5 @@
 import math
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -72,18 +73,14 @@ class BackflowNet(nn.Module):
         self.psi = self._mlp(upd_in, hidden, d, layers, self._act)
 
         # positive learnable scale via softplus
-        self.bf_scale_raw = nn.Parameter(
-            torch.tensor(math.log(math.exp(bf_scale_init) - 1.0))
-        )
+        self.bf_scale_raw = nn.Parameter(torch.tensor(math.log(math.exp(bf_scale_init) - 1.0)))
         # zero-init last ψ layer to start Δx≈0 (identity backflow)
         if zero_init_last:
             last = self.psi[-1]  # Linear
             nn.init.zeros_(last.weight)
             nn.init.zeros_(last.bias)
 
-    def _mlp(
-        self, in_dim: int, hid: int, out_dim: int, num_layers: int, act: nn.Module
-    ):
+    def _mlp(self, in_dim: int, hid: int, out_dim: int, num_layers: int, act: nn.Module):
         assert num_layers >= 1
         layers = []
         if num_layers == 1:
@@ -111,9 +108,7 @@ class BackflowNet(nn.Module):
             return m_ij.max(dim=2).values
         raise ValueError(f"Unknown aggregation '{self.aggregation}'")
 
-    def forward(
-        self, x: torch.Tensor, spin: torch.Tensor | None = None
-    ) -> torch.Tensor:
+    def forward(self, x: torch.Tensor, spin: torch.Tensor | None = None) -> torch.Tensor:
         """
         x: (B, N, d), spin optional: (N,) or (B, N) with {0,1}
         returns Δx: (B, N, d)

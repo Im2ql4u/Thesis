@@ -11,7 +11,7 @@ class PINN(nn.Module):
         n_layers=2,
         omega=1.0,
         r=0.1,
-        act=nn.GELU(),
+        act="gelu",
         dL=5,
         init="xavier",
     ):
@@ -28,13 +28,15 @@ class PINN(nn.Module):
             n_layers (int): Number of hidden layers for each sub-network.
             act (nn.Module): Activation function.
         """
-        super(PINN, self).__init__()
+        super().__init__()
         self.idx_i, self.idx_j = torch.triu_indices(
             n_particles, n_particles, offset=1
         )  # shape (2, P)
         self.n_particles = n_particles
         self.d = d
         self.dL = dL
+        if act == "gelu":
+            act = nn.GELU()
         self.r = r
         self.omega = omega
         # Build the per-particle network φ: maps d -> 1.
@@ -97,9 +99,7 @@ class PINN(nn.Module):
             elif scheme == "lecun":
                 for m in self.modules():
                     if isinstance(m, nn.Linear):
-                        nn.init.kaiming_normal_(
-                            m.weight, mode="fan_in", nonlinearity="linear"
-                        )
+                        nn.init.kaiming_normal_(m.weight, mode="fan_in", nonlinearity="linear")
                         nn.init.zeros_(m.bias)
             else:
                 raise ValueError(f"Unknown init scheme {scheme}")

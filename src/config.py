@@ -1,9 +1,11 @@
 from __future__ import annotations
-from dataclasses import dataclass, asdict, replace
-from contextlib import contextmanager
-from typing import Any, Dict, Optional, Literal
+
 import os
 import random
+from contextlib import contextmanager
+from dataclasses import asdict, dataclass, replace
+from typing import Any, Literal
+
 import numpy as np
 import torch
 
@@ -38,7 +40,7 @@ class Config:
     nx: int = 1  # Cartesian only: number of 1D x-basis functions
     ny: int = 1  # Cartesian only: number of 1D y-basis functions
     fd_make_real: bool = True  # FD Slater uses real cos/sin combos
-    fd_idx: Optional[list] = None
+    fd_idx: list | None = None
 
     # Coulomb / convolution controls
     kappa: float = 1.0  # dielectric screening (1/kappa) prefactor
@@ -49,7 +51,7 @@ class Config:
     # -----------------------------
     device: str = _default_device()
     dtype: str = "float64"  # "float32" | "float64" | "float16" | "bfloat16"
-    seed: Optional[int] = 0
+    seed: int | None = 0
 
     # -----------------------------
     # training / architecture
@@ -83,8 +85,8 @@ class Config:
     # -----------------------------
     # paths
     # -----------------------------
-    data_dir: Optional[str] = None
-    results_dir: Optional[str] = None
+    data_dir: str | None = None
+    results_dir: str | None = None
 
     # -----------------------------
     # HF solver (optional overrides used by hartree_fock_closed_shell)
@@ -95,7 +97,7 @@ class Config:
     hf_verbose: bool = True
 
     # --- helpers ---
-    def as_dict(self) -> Dict[str, Any]:
+    def as_dict(self) -> dict[str, Any]:
         return asdict(self)
 
     @property
@@ -119,8 +121,7 @@ class Config:
         key = self.act_fn_name.lower()
         if key not in _ACTIVATIONS:
             raise ValueError(
-                f"Unsupported activation '{self.act_fn_name}'. "
-                f"Valid: {sorted(_ACTIVATIONS)}"
+                f"Unsupported activation '{self.act_fn_name}'. Valid: {sorted(_ACTIVATIONS)}"
             )
         return _ACTIVATIONS[key]()
 

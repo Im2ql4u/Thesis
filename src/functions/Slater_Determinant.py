@@ -3,12 +3,14 @@
 # Clean, basis-agnostic engines for 2D HO (Cartesian + Fock–Darwin)
 # ---------------------------------------------------------------
 from __future__ import annotations
+
 import math
 from math import factorial
-from typing import List, Tuple, Optional
+
 import numpy as np
-from scipy.linalg import eigh as eigh_generalized  # solves A v = S v w
 import torch
+from scipy.linalg import eigh as eigh_generalized  # solves A v = S v w
+
 from utils import inject_params
 
 # ===============================================================
@@ -29,9 +31,7 @@ def simpson_weights(x: np.ndarray) -> np.ndarray:
     return w * (h / 3.0)
 
 
-def mesh_xy(
-    L: float, n_grid: int
-) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+def mesh_xy(L: float, n_grid: int) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     x = np.linspace(-L, L, n_grid)
     y = np.linspace(-L, L, n_grid)
     X, Y = np.meshgrid(x, y, indexing="ij")
@@ -40,7 +40,7 @@ def mesh_xy(
 
 def _zero_pad_center(
     f: np.ndarray, pad_factor: int = 2
-) -> Tuple[np.ndarray, Tuple[int, int], Tuple[int, int]]:
+) -> tuple[np.ndarray, tuple[int, int], tuple[int, int]]:
     """Center f into a larger complex array for linear convolution."""
     nx, ny = f.shape
     Nx, Ny = pad_factor * nx, pad_factor * ny
@@ -51,9 +51,7 @@ def _zero_pad_center(
     return F, (i0, j0), (Nx, Ny)
 
 
-def _crop_center(
-    h: np.ndarray, out_shape: Tuple[int, int], origin: Tuple[int, int]
-) -> np.ndarray:
+def _crop_center(h: np.ndarray, out_shape: tuple[int, int], origin: tuple[int, int]) -> np.ndarray:
     """Crop the centered physical region after linear convolution."""
     i0, j0 = origin
     nx, ny = out_shape
@@ -109,9 +107,7 @@ def hermite_polynomial(n: int, x: np.ndarray) -> np.ndarray:
 
 
 @inject_params
-def harmonic_oscillator_wavefunction_1d(
-    n: int, x: np.ndarray, *, params=None
-) -> np.ndarray:
+def harmonic_oscillator_wavefunction_1d(n: int, x: np.ndarray, *, params=None) -> np.ndarray:
     r"""
     1D HO eigenfunction ψ_n(x) with frequency ω from params:
       ψ_n(x) = (ω/π)^(1/4) / sqrt(2^n n!) * exp(-ω x²/2) * H_n(√ω x)
@@ -171,9 +167,7 @@ def laplacian_2d(phi2d: np.ndarray, dx: float, dy: float) -> np.ndarray:
 
 # Torch evaluators (Cartesian)
 @inject_params
-def evaluate_basis_functions_torch(
-    x: torch.Tensor, n_basis: int, *, params=None
-) -> torch.Tensor:
+def evaluate_basis_functions_torch(x: torch.Tensor, n_basis: int, *, params=None) -> torch.Tensor:
     """1D HO basis in torch with ω from params, returns (B,N,n_basis)."""
     omega = float(params["omega"])
     dtype = x.dtype
@@ -219,7 +213,7 @@ def evaluate_basis_functions_torch_batch_2d(
 # ===============================================================
 
 
-def _fd_indices(emax: int) -> List[Tuple[int, int]]:
+def _fd_indices(emax: int) -> list[tuple[int, int]]:
     """List of (n,m) with 2n+|m| <= emax, ordered by shell then m."""
     out = []
     for e in range(emax + 1):
@@ -275,10 +269,10 @@ def _fd_orbital_torch(
 
 
 # Global FD index order, set after compute_integrals() so Slater matches HF exactly.
-_fd_idx_global: Optional[List[Tuple[int, int]]] = None
+_fd_idx_global: list[tuple[int, int]] | None = None
 
 
-def set_fd_idx(idx_list: List[Tuple[int, int]]) -> None:
+def set_fd_idx(idx_list: list[tuple[int, int]]) -> None:
     """Set the global FD (n,m) order to the integrals' order."""
     global _fd_idx_global
     _fd_idx_global = list(idx_list)
@@ -316,10 +310,10 @@ def _evaluate_fd_basis_torch_batch(
 @inject_params
 def fd_wavefunctions_on_grid(
     e_max: int, omega: float, x: np.ndarray, y: np.ndarray, *, params=None
-) -> Tuple[np.ndarray, List[Tuple[int, int]]]:
+) -> tuple[np.ndarray, list[tuple[int, int]]]:
     """
     Fock–Darwin orbitals on a Cartesian grid (NumPy).
-    If params['fd_make_real'] is True (default), returns REAL cos/sin combos matching the Torch evaluator:
+    If params['fd_make_real'] is True (default)-> REAL cos/sin combos:
       - m = 0:             φ_{n,0}(r)                           (1 column)
       - m > 0:             √2 φ_{n,|m|}(r) cos(mθ)  -> index (n, +m)
       - m < 0:             √2 φ_{n,|m|}(r) sin(|m|θ) -> index (n, -|m|)
@@ -341,8 +335,8 @@ def fd_wavefunctions_on_grid(
     rho = r / l0
 
     idx_raw = _fd_indices(e_max)  # pairs (n,m) with 2n+|m|<=emax
-    cols: List[np.ndarray] = []
-    idx: List[Tuple[int, int]] = []
+    cols: list[np.ndarray] = []
+    idx: list[tuple[int, int]] = []
 
     # Use generalized Laguerre with α=|m|
     try:
@@ -366,9 +360,7 @@ def fd_wavefunctions_on_grid(
     for n, m in idx_raw:
         am = abs(m)
         # analytic normalization
-        N = (1.0 / l0) * math.sqrt(
-            math.factorial(n) / (math.pi * math.factorial(n + am))
-        )
+        N = (1.0 / l0) * math.sqrt(math.factorial(n) / (math.pi * math.factorial(n + am)))
         radial = Rnm(n, am, rho2)
 
         if not make_real:
@@ -451,9 +443,7 @@ def compute_integrals(
         else:
             mvals = [m for (n, m) in idx]
     elif basis_type_l.startswith("cart"):
-        Phi_real = initialize_harmonic_basis_2d(
-            n_x_max, n_y_max, x, y
-        )  # (npts, nb), real
+        Phi_real = initialize_harmonic_basis_2d(n_x_max, n_y_max, x, y)  # (npts, nb), real
         Phi = Phi_real.astype(np.complex128)
         nb = Phi.shape[1]
         basis_name = "cart"
@@ -483,18 +473,13 @@ def compute_integrals(
             Tp = lap_list[p]  # (nx,ny)
             for q in range(p, nb):
                 Tpq = np.real(np.sum(wx * (phi_grid[q].real * Tp) * wy))
-                Vpq = np.real(
-                    np.sum(wx * (phi_grid[p] * (Vtrap * phi_grid[q])).real * wy)
-                )
+                Vpq = np.real(np.sum(wx * (phi_grid[p] * (Vtrap * phi_grid[q])).real * wy))
                 Hcore[p, q] = Tpq + Vpq
                 Hcore[q, p] = Hcore[p, q]
 
         # ---- two-electron Dirac via centered FFT convolution (correct formulation)
     V_fft = coulomb_kernel_fft(x, y, pad_factor=pad_factor, kappa=kappa)
-    rho = [
-        [(phi_grid[p] * np.conjugate(phi_grid[r])) for r in range(nb)]
-        for p in range(nb)
-    ]
+    rho = [[(phi_grid[p] * np.conjugate(phi_grid[r])) for r in range(nb)] for p in range(nb)]
 
     def allow(p, r, q, s) -> bool:
         if mvals is None:
@@ -539,10 +524,8 @@ def compute_integrals(
 # ===============================================================
 
 
-def _eigh_generalized_or_lowdin(
-    A: np.ndarray, S: np.ndarray
-) -> Tuple[np.ndarray, np.ndarray]:
-    """Solve A v = S v w for Hermitian A,S. Uses SciPy if available, else Löwdin orthogonalization."""
+def _eigh_generalized_or_lowdin(A: np.ndarray, S: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+    """Solve A v = S v w for Hermitian A,S, (scipy or lowdin fallback)."""
     if eigh_generalized is not None:
         eps, C = eigh_generalized(A, S)
         return eps.real, C.real if np.isrealobj(A) and np.isrealobj(S) else (eps, C)
@@ -561,9 +544,9 @@ def hartree_fock_closed_shell(
     Hcore: np.ndarray,
     two_dirac: np.ndarray,  # (pr|qs)
     *,
-    S: Optional[np.ndarray] = None,
+    S: np.ndarray | None = None,
     params=None,
-) -> Tuple[np.ndarray, np.ndarray, float]:
+) -> tuple[np.ndarray, np.ndarray, float]:
     """
     Basis-agnostic closed-shell RHF (Roothaan):
       F C = S C ε,  with C^T S C = I  (or Löwdin fallback).
@@ -600,9 +583,7 @@ def hartree_fock_closed_shell(
         C_occ_new = C_new[:, :n_occ]
         D_new = density(C_occ_new)
 
-        D_mix = (
-            (1 - damping) * D_new + damping * D if damping and damping > 0 else D_new
-        )
+        D_mix = (1 - damping) * D_new + damping * D if damping and damping > 0 else D_new
         dD = np.linalg.norm(D_mix - D)
         if verbose:
             print(f"HF iter {it:3d}: ||ΔD|| = {dD:.3e}")
@@ -629,7 +610,7 @@ def hartree_fock_closed_shell(
 # ===============================================================
 
 
-def _slogdet_batched(M: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
+def _slogdet_batched(M: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
     """Safe slogdet on batch; falls back to CPU if needed."""
     try:
         return torch.linalg.slogdet(M)
@@ -714,7 +695,7 @@ def hartree_fock_2d(
     two_body: np.ndarray,
     max_iter: int = 100,
     tol: float = 1e-6,
-) -> Tuple[np.ndarray, np.ndarray]:
+) -> tuple[np.ndarray, np.ndarray]:
     """
     Legacy RHF assuming orthonormal basis. Kept for compatibility.
     Prefer hartree_fock_closed_shell with S from compute_integrals().

@@ -2,6 +2,7 @@ import torch
 
 from utils import inject_params
 
+from .Normalizing_Flow import sample_with_flow
 from .Physics import compute_coulomb_interaction
 from .Slater_Determinant import slater_determinant_closed_shell
 
@@ -20,10 +21,6 @@ def psi_fn(
     ψ(x) = det(Slater(x+Δx; C_occ)) * exp(f_net(x+Δx)) with optional backflow Δx.
     Basis selection is handled inside slater_determinant_closed_shell via params['basis'].
     """
-    # Pull nx, ny if present; FD path will ignore them inside Slater
-    nx = int(params.get("nx", 0))
-    ny = int(params.get("ny", 0))
-
     # Device / dtype hygiene
     x_batch = x_batch.contiguous()
     C_occ = C_occ.to(device=x_batch.device, dtype=x_batch.dtype).contiguous()
@@ -40,8 +37,6 @@ def psi_fn(
     SD = slater_determinant_closed_shell(
         x_config=x_eff,
         C_occ=C_occ,
-        n_basis_x=nx,
-        n_basis_y=ny,
         params=params,
         normalize=True,
     )  # (B,1)
@@ -58,7 +53,7 @@ def psi_fn(
     return psi  # SD.squeeze(-1)  # (B,)
 
 
-def compute_laplacian_fast(psi_fn, f_net, x, C_occ, probes=4, **psi_kwargs):
+def compute_laplacian_fast2(psi_fn, f_net, x, C_occ, probes=4, **psi_kwargs):
     """
     Unbiased stochastic Laplacian via Hutchinson: E_v[v^T H v] with v∈{±1}^{B×N×d}.
     Returns (Psi, Δψ_est) both (B,1).
@@ -79,7 +74,7 @@ def compute_laplacian_fast(psi_fn, f_net, x, C_occ, probes=4, **psi_kwargs):
     return Psi, lap
 
 
-def compute_laplacian_fast2(psi_fn, f_net, x, C_occ, **psi_kwargs):
+def compute_laplacian_fast(psi_fn, f_net, x, C_occ, **psi_kwargs):
     """
     Exact Laplacian via nested autograd (no torch.func), avoiding in-place ops.
 
@@ -119,6 +114,7 @@ def train_model(
     f_net,
     optimizer,
     C_occ,
+    mapper,
     *,
     backflow_net=None,
     spin: torch.Tensor | None = None,
@@ -137,11 +133,7 @@ def train_model(
     w = params["omega"]
     n_particles = params["n_particles"]
     n_epochs = params["n_epochs"]
-    d = params["d"]
-    N_collocation = params["N_collocation"]
     E = params["E"]
-    dtype = params.get("torch_dtype", None)
-
     QHO_const = 0.5 * w**2
 
     # Move nets
@@ -161,14 +153,14 @@ def train_model(
         optimizer.zero_grad()
 
         # sample collocation points
-        x = torch.normal(
-            0,
-            std,
-            size=(N_collocation, n_particles, d),
-            device=device,
-            dtype=dtype if dtype is not None else None,
-        ).clamp(min=-9, max=9)
-
+        # x = torch.normal(
+        #     0,
+        #     std,
+        #     size=(N_collocation, n_particles, d),
+        #     device=device,
+        #     dtype=dtype if dtype is not None else None,
+        # ).clamp(min=-9, max=9)
+        x = sample_with_flow(mapper) * std
         # ψ and ∇²ψ at x (+ backflow if provided)
         psi, laplacian = compute_laplacian_fast(
             psi_fn, f_net, x, C_occ, backflow_net=backflow_net, spin=spin, params=params

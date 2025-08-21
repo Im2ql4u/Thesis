@@ -157,11 +157,19 @@ def initialize_harmonic_basis_2d(
     return np.column_stack(cols)  # (nx*ny, n_basis)
 
 
-def laplacian_2d(phi2d: np.ndarray, dx: float, dy: float) -> np.ndarray:
+def laplacian_2d2(phi2d: np.ndarray, dx: float, dy: float) -> np.ndarray:
     """Five-point FD Laplacian on a regular 2D grid."""
     lap = np.zeros_like(phi2d)
     lap[1:-1, :] += (phi2d[:-2, :] - 2.0 * phi2d[1:-1, :] + phi2d[2:, :]) / (dx * dx)
     lap[:, 1:-1] += (phi2d[:, :-2] - 2.0 * phi2d[:, 1:-1] + phi2d[:, 2:]) / (dy * dy)
+    return lap
+
+
+def laplacian_2d(phi2d: np.ndarray, dx: float, dy: float) -> np.ndarray:
+    # reflect pad by 1 on all sides
+    G = np.pad(phi2d, ((1, 1), (1, 1)), mode="reflect")
+    lap = (G[2:, 1:-1] - 2.0 * G[1:-1, 1:-1] + G[:-2, 1:-1]) / (dx * dx)
+    lap += (G[1:-1, 2:] - 2.0 * G[1:-1, 1:-1] + G[1:-1, :-2]) / (dy * dy)
     return lap
 
 
@@ -525,10 +533,14 @@ def compute_integrals(
 
 
 def _eigh_generalized_or_lowdin(A: np.ndarray, S: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
-    """Solve A v = S v w for Hermitian A,S, (scipy or lowdin fallback)."""
+    """Solve A v = S v w for Hermitian A,S, (scipy or Löwdin fallback)."""
     if eigh_generalized is not None:
         eps, C = eigh_generalized(A, S)
-        return eps.real, C.real if np.isrealobj(A) and np.isrealobj(S) else (eps, C)
+        if np.isrealobj(A) and np.isrealobj(S):
+            return eps.real, C.real
+        else:
+            return eps, C
+
     # Löwdin orthogonalization fallback
     evals, U = np.linalg.eigh(S)
     evals[evals < 1e-14] = 1e-14
@@ -623,8 +635,6 @@ def _slogdet_batched(M: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
 def slater_determinant_closed_shell(
     x_config: torch.Tensor,
     C_occ: torch.Tensor,
-    n_basis_x: int,
-    n_basis_y: int,
     *,
     params=None,
     normalize: bool = True,
@@ -643,6 +653,8 @@ def slater_determinant_closed_shell(
 
     basis = params.get("basis", "cart").lower()
     omega = params["omega"]
+    n_basis_x = params["nx"]
+    n_basis_y = params["ny"]
     if basis.startswith("fd"):
         emax = params["emax"]
         make_real = params.get("fd_make_real", True)

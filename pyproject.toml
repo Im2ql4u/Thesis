@@ -7,6 +7,7 @@ authors = [{ name = "Im2ql4u", email = "122972303+Im2ql4u@users.noreply.github.c
 requires-python = ">=3.9"
 dependencies = [
     "ipykernel>=6.30.1",
+    "joblib>=1.5.1",
     "jupyter>=1.1.1",
     "matplotlib>=3.9.4",
     "numpy>=2.0.2",
@@ -21,22 +22,17 @@ dependencies = [
     "tqdm>=4.67.1",
 ]
 
-# Remove this block unless you actually have a callable "main" in a module named "thesis"
-# [project.scripts]
-# thesis = "thesis:main"
-
 [build-system]
 requires = ["setuptools>=68", "wheel"]
 build-backend = "setuptools.build_meta"
 
-# Tell setuptools that code is under src/
 [tool.setuptools]
 package-dir = {"" = "src"}
-py-modules = ["config", "utils", "PINN"]             # single-file modules
+py-modules = ["config", "utils", "PINN"]
 
 [tool.setuptools.packages.find]
 where = ["src"]
-include = ["functions*"]                              # the only package dir
+include = ["functions*"]
 
 [dependency-groups]
 dev = [
@@ -49,7 +45,7 @@ dev = [
 ]
 
 [tool.mypy]
-python_version = "3.12"          # Make mypy accept `A | B` unions, pattern matching, etc.
+python_version = "3.12"
 ignore_missing_imports = true
 warn_unused_ignores = true
 strict_optional = true
@@ -64,9 +60,8 @@ target-version = "py312"
 fix = true
 
 [tool.ruff.lint]
-select = ["E", "F", "I", "UP", "B"]   # basic errors, isort, pyupgrade, bugbear
+select = ["E", "F", "I", "UP", "B"]
 
 [tool.ruff.format]
 quote-style = "double"
 indent-style = "space"
-

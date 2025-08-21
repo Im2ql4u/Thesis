@@ -13,6 +13,7 @@ from .Neural_Networks import (
     psi_fn,
     train_model,
 )
+from .Normalizing_Flow import sample_with_flow, train_flow_driver
 
 # --- Physics ---
 from .Physics import (
@@ -31,6 +32,11 @@ from .Plotting import (
     plot_f_psi_sd_with_backflow,
     radial_two_body_density_2d,
     run_radial_map,
+)
+from .Save_Model import (
+    load_model_into,
+    load_object,
+    save_model,
 )
 from .Slater_Determinant import (
     # Engines (basis-agnostic) + FD helper
@@ -83,4 +89,11 @@ __all__ = [
     "local_energy_autograd",
     "estimate_energy_vmc",
     "potential_qdot_2d",
+    # Normalizing_Flow
+    "train_flow_driver",
+    "sample_with_flow",
+    # Save_Model
+    "save_model",
+    "load_object",
+    "load_model_into",
 ]

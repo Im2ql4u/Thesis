@@ -56,7 +56,7 @@ def potential_qdot_2d(X: torch.Tensor, *, params=None) -> torch.Tensor:
 # -----------------------
 @inject_params
 def local_energy_autograd(
-    psi_fn, f_net, X: torch.Tensor, C_occ: torch.Tensor, *, params=None
+    psi_fn, f_net, X: torch.Tensor, C_occ: torch.Tensor, *, backflow_net=None, params=None
 ) -> torch.Tensor:
     """
     E_L = -1/2 * [ Δ log|ψ| + ||∇ log|ψ||^2 ] + V(X)
@@ -64,7 +64,7 @@ def local_energy_autograd(
     Returns: (B,)
     """
     # ψ
-    psi = psi_fn(f_net, X, C_occ, params)  # (B,)
+    psi = psi_fn(f_net, X, C_occ, backflow_net=backflow_net)  # (B,)
     if torch.is_complex(psi):
         amp = torch.sqrt(psi.real**2 + psi.imag**2 + 1e-30)
     else:
@@ -94,6 +94,74 @@ def local_energy_autograd(
     return kinetic + V
 
 
+@inject_params
+def local_energy_exactpsi(psi_fn, f_net, X, C_occ, *, backflow_net=None, params=None):
+    """
+    E_L = -1/2 (Δψ / ψ) + V; computes Δψ exactly by ND second-derivatives.
+    More stable near nodes than using log|ψ|, but O(ND) backprops per batch.
+    """
+    X = X.requires_grad_(True)
+    psi = psi_fn(f_net, X, C_occ, backflow_net=backflow_net)  # (B,)
+    (grad_psi,) = torch.autograd.grad(psi.sum(), X, create_graph=True)  # (B,N,D)
+
+    B, N, D = X.shape
+    lap_psi = torch.zeros(B, device=X.device, dtype=X.dtype)
+    gflat = grad_psi.reshape(B, N * D)
+    for k in range(N * D):
+        (dgk_dx,) = torch.autograd.grad(
+            gflat[:, k].sum(), X, retain_graph=True, create_graph=False
+        )  # (B,N,D)
+        lap_psi = lap_psi + dgk_dx.reshape(B, N * D)[:, k]
+
+    psi_safe = psi + (psi == 0).to(psi.dtype) * 1e-30
+    kinetic = -0.5 * (lap_psi / psi_safe)
+    V = potential_qdot_2d(X, params=params)
+    return kinetic + V
+
+
+# ---- Energy (Hutchinson) ----
+
+
+def _score_logpsi(psi_fn, f_net, X, C_occ, *, backflow_net=None):
+    # s = ∇ log |ψ|
+    psi = psi_fn(f_net, X, C_occ, backflow_net=backflow_net)  # (B,)
+    amp = psi.abs() + 1e-30
+    logpsi = amp.log()
+    (score,) = torch.autograd.grad(logpsi.sum(), X, create_graph=True)  # (B,N,D)
+    return score
+
+
+def _divergence_hutchinson(score_fn, X, K=4):
+    """
+    div s(x) ≈ E_epsilon[ epsilon · J_s epsilon ] using K probes.
+    """
+    B = X.shape[0]
+    div = torch.zeros(B, device=X.device, dtype=X.dtype)
+    for _ in range(K):
+        eps = torch.randn_like(X)  # Rademacher also works
+        s = score_fn(X)  # (B,N,D)
+        # directional derivative (J_s ε) via one backward:
+        (Jv,) = torch.autograd.grad((s * eps).sum(), X, create_graph=False, retain_graph=True)
+        div = div + (Jv * eps).sum(dim=(1, 2))  # ε · (J_s ε)
+    return div / K
+
+
+@inject_params
+def local_energy_hutchinson(psi_fn, f_net, X, C_occ, *, backflow_net=None, K=4, params=None):
+    """
+    Unbiased Hutchinson estimator of div(∇log|ψ|) with K probes.
+    Much faster than ND per-sample loop; stable near nodes.
+    """
+    X = X.requires_grad_(True)
+    s = _score_logpsi(psi_fn, f_net, X, C_occ, backflow_net=backflow_net)  # (B,N,D)
+    div_s = _divergence_hutchinson(
+        lambda Z: _score_logpsi(psi_fn, f_net, Z, C_occ, backflow_net=backflow_net), X, K=K
+    )  # (B,)
+    kinetic = -0.5 * (div_s + (s * s).sum(dim=(1, 2)))
+    V = potential_qdot_2d(X, params=params)
+    return kinetic + V
+
+
 # -----------------------
 # VMC estimator (streaming)
 # -----------------------
@@ -104,6 +172,7 @@ def estimate_energy_vmc(
     C_occ: torch.Tensor,
     sample_fn,
     *,
+    backflow_net=None,
     batches: int = 200,
     batch_size: int = 1024,
     chunk: int = 256,
@@ -133,7 +202,9 @@ def estimate_energy_vmc(
         # Process in chunks to keep autograd graphs small
         for i0 in range(0, Xb.shape[0], chunk):
             Xi = Xb[i0 : i0 + chunk].clone().requires_grad_(True)
-            Ei = local_energy_autograd(psi_fn, f_net, Xi, C_occ, params=params).detach()  # (Ci,)
+            Ei = local_energy_hutchinson(
+                psi_fn, f_net, Xi, C_occ, backflow_net=backflow_net, params=params
+            ).detach()  # (Ci,)
 
             # Welford online stats for numerical stability
             for e in Ei.tolist():

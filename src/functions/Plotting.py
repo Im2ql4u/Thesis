@@ -70,11 +70,16 @@ def make_mala_sample_fn(
             backflow_net=backflow_net_local,
             spin=spin,
             params=params,
-        )  # (B,)
+        )  # (B,) or (B,1)
+        # Ensure 1-D per batch
+        if psi.ndim > 1 and psi.shape[-1] == 1:
+            psi = psi.squeeze(-1)
+
         if torch.is_complex(psi):
-            amp2 = (psi.real**2 + psi.imag**2) + eps
+            amp2 = (psi.real**2 + psi.imag**2).clamp_min(eps)  # (B,)
         else:
-            amp2 = (psi**2) + eps
+            amp2 = (psi**2).clamp_min(eps)  # (B,)
+
         logp = torch.log(amp2)  # (B,)
         (g,) = torch.autograd.grad(logp.sum(), X, create_graph=False)
         return logp, g
@@ -349,6 +354,7 @@ def plot_f_psi_sd_with_backflow(
     f_vals = torch.empty(G, device=device, dtype=dtype)
     sd_vals = torch.empty(G, device=device, dtype=dtype)
     dx0_all = torch.zeros(G, 2, device=device, dtype=dtype) if backflow_net is not None else None
+    assert dx0_all is not None, "arr is None at this point"
 
     def _chunks(T, bs):
         for s in range(0, T, bs):
@@ -371,10 +377,10 @@ def plot_f_psi_sd_with_backflow(
         SD = slater_determinant_closed_shell(
             x_config=x_eff,
             C_occ=C_occ_t,
-            n_basis_x=n_basis_x,
-            n_basis_y=n_basis_y,
             normalize=True,
-        ).squeeze(-1)  # (b,)
+        ).squeeze(
+            -1
+        )  # (b,)
 
         # f_net at x_eff
         f = f_net(x_eff)

@@ -13,7 +13,7 @@ from .Neural_Networks import (
     psi_fn,
     train_model,
 )
-from .Normalizing_Flow import sample_with_flow, train_flow_driver
+from .Normalizing_Flow import build_mapper, sample_with_flow, train_flow_driver
 
 # --- Physics ---
 from .Physics import (
@@ -92,6 +92,7 @@ __all__ = [
     # Normalizing_Flow
     "train_flow_driver",
     "sample_with_flow",
+    "build_mapper",
     # Save_Model
     "save_model",
     "load_object",

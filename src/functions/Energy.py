@@ -1,5 +1,4 @@
 # energy.py
-import math
 
 import torch
 from tqdm import tqdm
@@ -37,8 +36,8 @@ def potential_qdot_2d(X: torch.Tensor, *, params=None) -> torch.Tensor:
     V_coul (user's convention) = sum_{i<j} 1/(κ * |r_i - r_j|); set kappa=0 to disable.
     Returns: (B,)
     """
-    omega = float(params.get("omega", 1.0))
-    kappa = float(params.get("kappa", 0.0))
+    omega = float(getattr(params, "omega", 1.0))
+    kappa = float(getattr(params, "kappa", 0.0))
 
     # trap
     r2_sum = (X**2).sum(dim=-1).sum(dim=1)  # (B,)
@@ -124,6 +123,7 @@ def local_energy_exactpsi(psi_fn, f_net, X, C_occ, *, backflow_net=None, params=
 
 def _score_logpsi(psi_fn, f_net, X, C_occ, *, backflow_net=None):
     # s = ∇ log |ψ|
+    X = X.requires_grad_(True)
     psi = psi_fn(f_net, X, C_occ, backflow_net=backflow_net)  # (B,)
     amp = psi.abs() + 1e-30
     logpsi = amp.log()
@@ -173,49 +173,77 @@ def estimate_energy_vmc(
     sample_fn,
     *,
     backflow_net=None,
-    batches: int = 200,
-    batch_size: int = 1024,
+    total_samples: int = 10000,
     chunk: int = 256,
+    method: str = "hutchinson",  # or "exact", "logpsi"
+    K: int = 4,  # Only used for Hutchinson
+    return_all=False,
     params=None,
 ):
     """
-    Streaming mean / stderr of E_L using samples ~ |ψ|^2.
-    'chunk' trades memory for speed when doing second derivatives.
+    Estimate ⟨E⟩ and std_err from |ψ|² samples.
 
-    Returns: (mean, stderr)
+    Parameters:
+        psi_fn       : callable(f_net, x, C_occ) -> ψ
+        f_net        : neural net model
+        C_occ        : orbital coefficients
+        sample_fn    : function that returns (B, N, D) ~ |ψ|²
+        total_samples: total number of samples to draw
+        chunk        : chunk size for autograd/Laplacian evaluation
+        method       : "hutchinson", "exact", or "logpsi"
+        K            : Hutchinson probe count
+        return_all   : if True, return all energies too (useful for histograms)
+
+    Returns:
+        mean energy, stderr, optionally (energies tensor)
     """
-    # Choose device/dtype from C_occ or model params
-    if hasattr(C_occ, "device"):
-        device = C_occ.device
+    device = C_occ.device if hasattr(C_occ, "device") else next(f_net.parameters()).device
+    dtype = C_occ.dtype if hasattr(C_occ, "dtype") else next(f_net.parameters()).dtype
+
+    # Sample once
+    X = sample_fn(total_samples).to(device=device, dtype=dtype)
+    X_chunks = X.split(chunk, dim=0)
+
+    # Choose energy function
+    if method == "hutchinson":
+
+        def energy_fn(x):
+            return local_energy_hutchinson(
+                psi_fn, f_net, x, C_occ, backflow_net=backflow_net, K=K, params=params
+            )
+
+    elif method == "exact":
+
+        def energy_fn(x):
+            return local_energy_exactpsi(
+                psi_fn, f_net, x, C_occ, backflow_net=backflow_net, params=params
+            )
+
+    elif method == "logpsi":
+
+        def energy_fn(x):
+            return local_energy_autograd(
+                psi_fn, f_net, x, C_occ, backflow_net=backflow_net, params=params
+            )
+
     else:
-        device = next(f_net.parameters()).device
-    if hasattr(C_occ, "dtype"):
-        dtype = C_occ.dtype
+        raise ValueError(f"Unknown energy method: {method}")
+
+    # Compute energies
+    energies = []
+    for Xi in tqdm(X_chunks, desc="Energy chunks"):
+        Xi = Xi.clone().requires_grad_(True)
+        Ei = energy_fn(Xi)
+        energies.append(Ei.detach().cpu())
+
+    E_all = torch.cat(energies)  # (total_samples,)
+    mean = E_all.mean().item()
+    stderr = E_all.std(unbiased=True).item() / (len(E_all) ** 0.5)
+
+    if return_all:
+        return mean, stderr, E_all
     else:
-        dtype = next(f_net.parameters()).dtype
-
-    mean, m2, n = 0.0, 0.0, 0
-
-    for _ in tqdm(range(batches), desc="VMC"):
-        Xb = sample_fn(batch_size).to(device=device, dtype=dtype)  # (B,N,D)
-
-        # Process in chunks to keep autograd graphs small
-        for i0 in range(0, Xb.shape[0], chunk):
-            Xi = Xb[i0 : i0 + chunk].clone().requires_grad_(True)
-            Ei = local_energy_hutchinson(
-                psi_fn, f_net, Xi, C_occ, backflow_net=backflow_net, params=params
-            ).detach()  # (Ci,)
-
-            # Welford online stats for numerical stability
-            for e in Ei.tolist():
-                n += 1
-                delta = e - mean
-                mean += delta / n
-                m2 += delta * (e - mean)
-
-    var = m2 / max(n - 1, 1)
-    stderr = math.sqrt(var / max(n, 1))
-    return mean, stderr
+        return mean, stderr
 
 
 # -----------------------

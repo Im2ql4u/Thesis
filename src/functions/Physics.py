@@ -1,6 +1,8 @@
 import numpy as np
 import torch
+
 from utils import inject_params
+
 from .Slater_Determinant import laplacian_2d
 
 
@@ -45,12 +47,8 @@ def gaussian_interaction_2d(x, eps: float = 1e-12, *, params=None):
     """
     V = params["V"]
     batch, n_particles, _ = x.shape
-    idx_i, idx_j = torch.triu_indices(
-        n_particles, n_particles, offset=1, device=x.device
-    )
-    rij = torch.norm(x[:, idx_i] - x[:, idx_j], dim=-1).clamp_min_(
-        eps
-    )  # (batch, n_pairs)
+    idx_i, idx_j = torch.triu_indices(n_particles, n_particles, offset=1, device=x.device)
+    rij = torch.norm(x[:, idx_i] - x[:, idx_j], dim=-1).clamp_min_(eps)  # (batch, n_pairs)
     V_int = (V / rij).sum(dim=1, keepdim=True)  # (batch, 1)
     return V_int
 

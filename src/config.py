@@ -92,6 +92,7 @@ class Config:
     N_collocation: int = 2000
     n_epochs: int = 3000
     n_epochs_norm: int = 200
+    std: float = 1.8
 
     # -----------------------------
     # system constants

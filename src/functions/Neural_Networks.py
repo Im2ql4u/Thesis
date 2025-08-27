@@ -2,7 +2,6 @@ import torch
 
 from utils import inject_params
 
-from .Normalizing_Flow import sample_with_flow
 from .Physics import compute_coulomb_interaction
 from .Slater_Determinant import slater_determinant_closed_shell
 
@@ -32,7 +31,7 @@ def psi_fn(
         x_eff = x_batch + dx
     else:
         x_eff = x_batch
-
+    assert x_eff.requires_grad, "x_eff must have requires_grad=True for autograd"
     # Slater determinant at x_eff; basis dispatch is inside this call
     SD = slater_determinant_closed_shell(
         x_config=x_eff,
@@ -50,7 +49,7 @@ def psi_fn(
 
     # SD.mul_(f)  # in-place multiply, keeps grad
     psi = SD * f  # (B,1)
-    return psi  # SD.squeeze(-1)  # (B,)
+    return psi.squeeze(-1)  # SD.squeeze(-1)  # (B,)
 
 
 def compute_laplacian_fast2(psi_fn, f_net, x, C_occ, probes=4, **psi_kwargs):
@@ -134,6 +133,9 @@ def train_model(
     n_particles = params["n_particles"]
     n_epochs = params["n_epochs"]
     E = params["E"]
+    N_collocation = params["N_collocation"]
+    d = params["d"]
+    dtype = params.get("torch_dtype", None)
     QHO_const = 0.5 * w**2
 
     # Move nets
@@ -153,14 +155,14 @@ def train_model(
         optimizer.zero_grad()
 
         # sample collocation points
-        # x = torch.normal(
-        #     0,
-        #     std,
-        #     size=(N_collocation, n_particles, d),
-        #     device=device,
-        #     dtype=dtype if dtype is not None else None,
-        # ).clamp(min=-9, max=9)
-        x = sample_with_flow(mapper) * std
+        x = torch.normal(
+            0,
+            std,
+            size=(N_collocation, n_particles, d),
+            device=device,
+            dtype=dtype if dtype is not None else None,
+        ).clamp(min=-9, max=9)
+        # x = sample_with_flow(mapper) * std
         # ψ and ∇²ψ at x (+ backflow if provided)
         psi, laplacian = compute_laplacian_fast(
             psi_fn, f_net, x, C_occ, backflow_net=backflow_net, spin=spin, params=params

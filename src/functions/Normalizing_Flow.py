@@ -219,7 +219,7 @@ def train_flow_with_cfm(
 # ------------------------------------------------------------
 @torch.no_grad()
 @inject_params
-def sample_with_flow(mapper: nn.Module, *, n_steps=10, params=None):
+def sample_with_flow(mapper: nn.Module, *, n_steps=10, params=None, clamp_val=5.0):
     device = params["torch_device"]
     dtype = params["torch_dtype"]
     n_particles = params["n_particles"]
@@ -241,7 +241,7 @@ def sample_with_flow(mapper: nn.Module, *, n_steps=10, params=None):
         v = mapper(model_in)  # (B, N*D)
         v = v.view(size, n_particles, d).to(dtype=dtype)
         x = x + dt * v
-
+    x = torch.clamp(x, -clamp_val, clamp_val)
     return x  # (size, N, D)
 
 

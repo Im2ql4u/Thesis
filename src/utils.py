@@ -1,13 +1,17 @@
 # src/utils.py
 from __future__ import annotations
+
 import functools
 import inspect
-from typing import Any, Callable, Dict
+from collections.abc import Callable
+from typing import Any
+
 import torch
+
 import config as _cfg  # flat layout: top-level module (not relative)
 
 
-def get_params_dict() -> Dict[str, Any]:
+def get_params_dict() -> dict[str, Any]:
     """
     Dict view of the current config, plus ready-to-use torch objects.
     """
@@ -19,18 +23,16 @@ def get_params_dict() -> Dict[str, Any]:
     return d
 
 
-def to_policy(t: torch.Tensor, params: Dict[str, Any] | None = None) -> torch.Tensor:
+def to_policy(t: torch.Tensor, params: dict[str, Any] | None = None) -> torch.Tensor:
     if params is None:
         params = get_params_dict()
     return t.to(device=params["torch_device"], dtype=params["torch_dtype"])
 
 
-def make_tensor(x, params: Dict[str, Any] | None = None) -> torch.Tensor:
+def make_tensor(x, params: dict[str, Any] | None = None) -> torch.Tensor:
     if params is None:
         params = get_params_dict()
-    return torch.as_tensor(
-        x, device=params["torch_device"], dtype=params["torch_dtype"]
-    )
+    return torch.as_tensor(x, device=params["torch_device"], dtype=params["torch_dtype"])
 
 
 def inject_params(fn: Callable) -> Callable:
@@ -40,9 +42,7 @@ def inject_params(fn: Callable) -> Callable:
     """
     sig = inspect.signature(fn)
     if "params" not in sig.parameters:
-        raise TypeError(
-            f"@inject_params: '{fn.__name__}' must accept a 'params' argument."
-        )
+        raise TypeError(f"@inject_params: '{fn.__name__}' must accept a 'params' argument.")
 
     @functools.wraps(fn)
     def wrapper(*args, **kwargs):
@@ -62,7 +62,7 @@ def inject_params(fn: Callable) -> Callable:
 # Optional: notebook helper
 def get_promoted_params(
     names: list[str] | None = None, include_runtime: bool = False
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     d = _cfg.get().as_dict()
     if include_runtime:
         r = get_params_dict()

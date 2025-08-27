@@ -1,109 +1,180 @@
 import torch
 
 from utils import inject_params
-from .Slater_Determinant import slater_determinant_closed_shell
+
 from .Physics import compute_coulomb_interaction
+from .Slater_Determinant import slater_determinant_closed_shell
 
 
 @inject_params
-def psi_fn(f_net, x_batch, C_occ, *, params=None):
+def psi_fn(
+    f_net,
+    x_batch: torch.Tensor,
+    C_occ: torch.Tensor,
+    *,
+    backflow_net=None,
+    spin: torch.Tensor | None = None,
+    params=None,
+):
     """
-    ψ(x) = det(Slater(x; C_occ)) * exp(f_net(x)).
+    ψ(x) = det(Slater(x+Δx; C_occ)) * exp(f_net(x+Δx)) with optional backflow Δx.
     Basis selection is handled inside slater_determinant_closed_shell via params['basis'].
     """
-    # Pull nx, ny if present; FD path will ignore them inside Slater
-    nx = int(params.get("nx", 0))
-    ny = int(params.get("ny", 0))
-
-    # Make tensors contiguous + on the right device/dtype (cheap, helps matmul kernels)
+    # Device / dtype hygiene
     x_batch = x_batch.contiguous()
     C_occ = C_occ.to(device=x_batch.device, dtype=x_batch.dtype).contiguous()
 
-    # Slater determinant: basis dispatch is inside this call
+    # Optional backflow: Δx = backflow_net(x, spin)
+    if backflow_net is not None:
+        # spin can be (N,) or (B,N); both are supported by the provided BackflowNet
+        dx = backflow_net(x_batch, spin=spin)
+        x_eff = x_batch + dx
+    else:
+        x_eff = x_batch
+    assert x_eff.requires_grad, "x_eff must have requires_grad=True for autograd"
+    # Slater determinant at x_eff; basis dispatch is inside this call
     SD = slater_determinant_closed_shell(
-        x_config=x_batch,
+        x_config=x_eff,
         C_occ=C_occ,
-        n_basis_x=nx,
-        n_basis_y=ny,
         params=params,
         normalize=True,
     )  # (B,1)
 
     # Jastrow/log-amplitude from f_net — clamp to keep exp stable early in training
-    f = f_net(x_batch)
+    f = f_net(x_eff)
     if f.ndim == 1:
         f = f.unsqueeze(-1)
-    f = torch.clamp(f, max=30).exp_()  # in-place exp to avoid extra allocs
+    f = torch.clamp(f, max=30)  # .exp_()  # in-place exp to avoid extra allocs
+    f = torch.exp(f)
 
-    SD.mul_(f)  # in-place multiply, keeps grad
-    return SD.squeeze(-1)  # (B,)
+    # SD.mul_(f)  # in-place multiply, keeps grad
+    psi = SD * f  # (B,1)
+    return psi.squeeze(-1)  # SD.squeeze(-1)  # (B,)
 
 
-def compute_laplacian_fast(psi_fn, f_net, x, C_occ):
+def compute_laplacian_fast2(psi_fn, f_net, x, C_occ, probes=4, **psi_kwargs):
     """
-    Exact Laplacian via nested autograd.
+    Unbiased stochastic Laplacian via Hutchinson: E_v[v^T H v] with v∈{±1}^{B×N×d}.
+    Returns (Psi, Δψ_est) both (B,1).
+    """
+    x = x.requires_grad_(True)
+    Psi = psi_fn(f_net, x, C_occ, **psi_kwargs)  # (B,1)
+    grad = torch.autograd.grad(Psi.sum(), x, create_graph=True)[0]  # (B,N,d)
+
+    B, N, d = x.shape
+    acc = torch.zeros(B, device=x.device, dtype=x.dtype)
+
+    for _ in range(probes):
+        v = torch.empty_like(x).bernoulli_(0.5).mul_(2).add_(-1)  # Rademacher ±1
+        Hv = torch.autograd.grad(grad, x, grad_outputs=v, create_graph=True)[0]  # (B,N,d)
+        acc = acc + (v * Hv).sum(dim=(1, 2))  # vᵀH v
+
+    lap = (acc / probes).unsqueeze(1)  # (B,1)
+    return Psi, lap
+
+
+def compute_laplacian_fast(psi_fn, f_net, x, C_occ, **psi_kwargs):
+    """
+    Exact Laplacian via nested autograd (no torch.func), avoiding in-place ops.
 
     Args:
       psi_fn : callable(f_net, x, C_occ) -> (B,)
       f_net  : NN mapping x -> log factor
-      x      : (B, N, d) with requires_grad=True
-      C_occ  : (n_basis, n_spin)
+      x      : (B, N, d) with requires_grad=True (will be set here)
+      C_occ  : (n_basis, n_occ)
+
+    Returns:
+      Psi        : (B,1)
+      Laplacian  : (B,1)  (Δψ)
     """
     x = x.requires_grad_(True)
     B, N, d = x.shape
 
-    Psi = psi_fn(f_net, x, C_occ)  # (B,)
-    grads = torch.autograd.grad(Psi.sum(), x, create_graph=True)[0]  # (B, N, d)
+    Psi = psi_fn(f_net, x, C_occ, **psi_kwargs)  # (B,)
+    grads = torch.autograd.grad(Psi.sum(), x, create_graph=True, retain_graph=True)[0]  # (B,N,d)
 
     lap = torch.zeros(B, device=x.device, dtype=x.dtype)
+    # accumulate ∂²ψ/∂x_{i,j}²
     for i in range(N):
         for j in range(d):
-            g_ij = grads[:, i, j].sum()
-            second = torch.autograd.grad(g_ij, x, create_graph=True)[0]
+            g_ij = grads[:, i, j]  # (B,)
+            # sum over batch to get a scalar, then differentiate wrt x and pick the same coord
+            gsum = g_ij.sum()
+            second = torch.autograd.grad(gsum, x, create_graph=True, retain_graph=True)[
+                0
+            ]  # (B,N,d)
             lap = lap + second[:, i, j]
 
-    return Psi.unsqueeze(1), lap.unsqueeze(1)  # both (B, 1)
+    return Psi.unsqueeze(1), lap.unsqueeze(1)  # (B,1), (B,1)
 
 
 @inject_params
 def train_model(
-    f_net, optimizer, C_occ, *, params=None, std=2.5, factor=0.1, print_e=50
+    f_net,
+    optimizer,
+    C_occ,
+    mapper,
+    *,
+    backflow_net=None,
+    spin: torch.Tensor | None = None,
+    params=None,
+    std=2.5,
+    factor=0.1,
+    print_e=50,
 ):
     """
     Train the PINN by minimizing the PDE residual and enforcing normalization.
 
-    Notes:
-    - Reads V and E from params["V"] and params["E"] (no longer passed as args).
-    - Uses omega, n_particles, n_epochs, d, N_collocation, device from params.
+    Reads: omega, n_particles, n_epochs, d, N_collocation, E,
+           device, (optional) torch_dtype from params.
     """
-    device = params["device"]  # string like "cpu" / "cuda" / "mps"
+    device = params["device"]
     w = params["omega"]
     n_particles = params["n_particles"]
     n_epochs = params["n_epochs"]
-    d = params["d"]
-    N_collocation = params["N_collocation"]
     E = params["E"]
-
+    N_collocation = params["N_collocation"]
+    d = params["d"]
+    dtype = params.get("torch_dtype", None)
     QHO_const = 0.5 * w**2
+
+    # Move nets
     f_net.to(device)
+    if backflow_net is not None:
+        backflow_net.to(device)
+
+    # Prepare a default closed-shell spin pattern if not supplied
+    if spin is None:
+        up = n_particles // 2
+        down = n_particles - up
+        spin = torch.cat(
+            [torch.zeros(up, dtype=torch.long), torch.ones(down, dtype=torch.long)]
+        ).to(device)
 
     for epoch in range(n_epochs):
         optimizer.zero_grad()
 
         # sample collocation points
-        x = torch.normal(0, std, size=(N_collocation, n_particles, d), device=device)
-        x = x.clamp(min=-5, max=5)
-
-        # ψ and ∇²ψ
-        psi, laplacian = compute_laplacian_fast(psi_fn, f_net, x, C_occ)
+        x = torch.normal(
+            0,
+            std,
+            size=(N_collocation, n_particles, d),
+            device=device,
+            dtype=dtype if dtype is not None else None,
+        ).clamp(min=-9, max=9)
+        # x = sample_with_flow(mapper) * std
+        # ψ and ∇²ψ at x (+ backflow if provided)
+        psi, laplacian = compute_laplacian_fast(
+            psi_fn, f_net, x, C_occ, backflow_net=backflow_net, spin=spin, params=params
+        )
 
         # normalize ψ
         norm = torch.norm(psi, p=2)
         psi = psi / norm
-
+        laplacian = laplacian / norm  # scale Laplacian by the same factor
         # potentials
         V_harmonic = QHO_const * (x**2).sum(dim=(1, 2)).view(-1, 1)
-        V_int = compute_coulomb_interaction(x)  # V comes from params
+        V_int = compute_coulomb_interaction(x)  # Coulomb from Physics.py
         V_total = V_harmonic + V_int
 
         # Hamiltonian on ψ and residual
@@ -120,9 +191,20 @@ def train_model(
         optimizer.step()
 
         if epoch % print_e == 0:
+            # Try to report the *effective* scale if present
+            bf_scale_str = ""
+            if backflow_net is not None:
+                try:
+                    # Prefer a property that returns softplus(raw)
+                    bf_val = backflow_net.bf_scale
+                    if torch.is_tensor(bf_val):
+                        bf_val = bf_val.item()
+                    bf_scale_str = f"  bf_scale={bf_val:.3e}"
+                except Exception:
+                    bf_scale_str = ""
             print(
                 f"Epoch {epoch:05d}: PDE={loss_pde.item():.3e}  "
-                f"Norm={norm.item():.3e}  Var={variance.item():.3e}"
+                f"Norm={norm.item():.3e}  Var={variance.item():.3e}{bf_scale_str}"
             )
 
         # free graph memory each iter
@@ -139,4 +221,4 @@ def train_model(
             laplacian,
         )
 
-    return f_net
+    return f_net, backflow_net

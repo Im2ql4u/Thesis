@@ -1,145 +1,335 @@
+import math
+
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
+
+
+class ZeroJastrow(nn.Module):
+    """f(x) ≡ 0. No parameters; always returns zeros of shape (B,1)."""
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        return torch.zeros(x.shape[0], 1, device=x.device, dtype=x.dtype)
+
+
+class DetachWrapper(nn.Module):
+    def __init__(self, mod: nn.Module):
+        super().__init__()
+        self.mod = mod
+        for p in self.mod.parameters():
+            p.requires_grad = False
+
+    def forward(self, *args, **kwargs):
+        with torch.no_grad():
+            return self.mod(*args, **kwargs)
 
 
 class PINN(nn.Module):
+    """
+    f(x) = rho( [ mean_i φ(x_i),  mean_{i<j} ψ(||x_i - x_j||) ] ),  output shape: (B,1)
+    Use exp(f) as your correlation factor: Ψ(x) = SD(x) * exp(f(x)).
+    """
+
     def __init__(
         self,
-        n_particles,
-        d,
-        hidden_dim=100,
-        n_layers=2,
-        omega=1.0,
-        r=0.1,
-        act=nn.GELU(),
-        dL=5,
-        init="xavier",
+        n_particles: int,
+        d: int,
+        *,
+        dL: int = 5,  # feature width per branch
+        hidden_dim: int = 128,
+        n_layers: int = 2,  # hidden layers per φ/ψ MLP
+        act: str = "gelu",
+        init: str = "xavier",  # "xavier"|"he"|"custom"|"lecun"
     ):
-        """
-        Constructs a network where the logarithm of the correlation factor is given by:
-          sum_i phi(x_i) + sum_{i<j} psi(x_i, x_j)
-
-        For the pairwise term, here we use (x_i - x_j)^2 as input (element-wise).
-
-        Args:
-            n_particles (int): Number of particles.
-            d (int): Dimension per particle.
-            hidden_dim (int): Hidden layer size for sub-networks.
-            n_layers (int): Number of hidden layers for each sub-network.
-            act (nn.Module): Activation function.
-        """
-        super(PINN, self).__init__()
-        self.idx_i, self.idx_j = torch.triu_indices(
-            n_particles, n_particles, offset=1
-        )  # shape (2, P)
+        super().__init__()
         self.n_particles = n_particles
         self.d = d
         self.dL = dL
-        self.r = r
-        self.omega = omega
-        # Build the per-particle network φ: maps d -> 1.
-        self.phi = self.build_mlp(
-            in_dim=d, hidden_dim=hidden_dim, out_dim=dL, n_layers=n_layers, act=act
+
+        # --- activations ---
+        self.act = self._make_act(act)
+
+        # --- i<j index buffers (move with device) ---
+        idx_i, idx_j = torch.triu_indices(n_particles, n_particles, offset=1)
+        self.register_buffer("idx_i", idx_i, persistent=False)
+        self.register_buffer("idx_j", idx_j, persistent=False)
+
+        # --- φ: per-particle MLP, maps ℝ^d → ℝ^{dL} ---
+        self.phi = self._build_mlp(
+            in_dim=d, hidden_dim=hidden_dim, out_dim=dL, n_layers=n_layers, act=self.act
         )
-        self.psi = self.build_mlp(
-            in_dim=1, hidden_dim=hidden_dim, out_dim=dL, n_layers=n_layers, act=act
+
+        # --- ψ: pairwise MLP, maps ℝ → ℝ^{dL} (input is r_ij = ||x_i - x_j||) ---
+        self.psi = self._build_mlp(
+            in_dim=1, hidden_dim=hidden_dim, out_dim=dL, n_layers=n_layers, act=self.act
         )
-        self.rho = self.build_mlp(
-            in_dim=dL * 2, hidden_dim=hidden_dim, out_dim=1, n_layers=n_layers, act=act
-        )
-        # Apply Kaiming (He) initialization to every Linear layer.
+
+        # --- ρ: tiny readout; keep it linear (recommended) ---
+        self.rho = nn.Linear(2 * dL, 1)
+
+        # init
         self._initialize_weights(init)
+        # Optional: start ρ as small non-zero so grads flow even if you freeze it
+        with torch.no_grad():
+            self.rho.weight.fill_(1.0 / (2 * dL))
+            self.rho.bias.zero_()
 
-    def build_mlp(self, in_dim, hidden_dim, out_dim, n_layers, act):
-        """
-        Build a multi-layer perceptron (MLP).
-        Args:
-            in_dim (int): Input dimension.
-            hidden_dim (int): Hidden layer size.
-            out_dim (int): Output dimension.
-            n_layers (int): Number of hidden layers (excluding the first and final Linear layers).
-            act (nn.Module): Activation function.
+    # ---------- helpers ----------
+    def _make_act(self, name: str) -> nn.Module:
+        name = name.lower()
+        if name == "relu":
+            return nn.ReLU()
+        if name == "gelu":
+            return nn.GELU()
+        if name == "tanh":
+            return nn.Tanh()
+        if name in ("silu", "swish"):
+            return nn.SiLU()
+        if name == "mish":
+            return getattr(nn, "Mish", nn.SiLU)()
+        if name == "leakyrelu":
+            return nn.LeakyReLU(0.1)
+        raise ValueError(f"Unknown act '{name}'")
 
-        Returns:
-            nn.Sequential: The constructed MLP.
-        """
-        layers = []
-        # First layer: in_dim -> hidden_dim.
-        layers.append(nn.Linear(in_dim, hidden_dim))
-        layers.append(act)
-        # Additional hidden layers.
+    def _build_mlp(self, in_dim, hidden_dim, out_dim, n_layers, act):
+        layers = [nn.Linear(in_dim, hidden_dim), act]
         for _ in range(n_layers - 1):
-            layers.append(nn.Linear(hidden_dim, hidden_dim))
-            layers.append(act)
-        # Final output layer: hidden_dim -> out_dim.
-        layers.append(nn.Linear(hidden_dim, out_dim))
+            layers += [nn.Linear(hidden_dim, hidden_dim), act]
+        layers += [nn.Linear(hidden_dim, out_dim)]
         return nn.Sequential(*layers)
 
-    def _initialize_weights(self, scheme):
+    def _initialize_weights(self, scheme: str):
         for m in self.modules():
-            if scheme == "custom":
-                gain = 1.13  # ≈1/√0.1580 for GELU
-                for m in self.modules():
-                    if isinstance(m, nn.Linear):
-                        nn.init.xavier_normal_(m.weight, gain=gain)
-                        nn.init.zeros_(m.bias)
-            elif scheme == "xavier":
-                for m in self.modules():
-                    if isinstance(m, nn.Linear):
-                        nn.init.xavier_normal_(m.weight)
-                        nn.init.zeros_(m.bias)
-            elif scheme == "he":
-                for m in self.modules():
-                    if isinstance(m, nn.Linear):
-                        nn.init.kaiming_normal_(m.weight, mode="fan_in")
-                        nn.init.zeros_(m.bias)
-            # (you can remove 'lecun' if not used)
-            elif scheme == "lecun":
-                for m in self.modules():
-                    if isinstance(m, nn.Linear):
-                        nn.init.kaiming_normal_(
-                            m.weight, mode="fan_in", nonlinearity="linear"
-                        )
-                        nn.init.zeros_(m.bias)
-            else:
-                raise ValueError(f"Unknown init scheme {scheme}")
+            if isinstance(m, nn.Linear):
+                if scheme == "custom":
+                    gain = 1.13  # good for GELU-ish
+                    nn.init.xavier_normal_(m.weight, gain=gain)
+                elif scheme == "xavier":
+                    nn.init.xavier_normal_(m.weight)
+                elif scheme == "he":
+                    nn.init.kaiming_normal_(m.weight, mode="fan_in", nonlinearity="relu")
+                elif scheme == "lecun":
+                    nn.init.kaiming_normal_(m.weight, mode="fan_in", nonlinearity="linear")
+                else:
+                    raise ValueError(f"Unknown init scheme {scheme}")
+                nn.init.zeros_(m.bias)
 
-            # Always zero out biases
-            nn.init.zeros_(m.bias)
+    # ---------- trainability controls ----------
+    def set_trainable(self, *, phi: bool = True, psi: bool = True, rho: bool = True):
+        for p in self.phi.parameters():
+            p.requires_grad = phi
+        for p in self.psi.parameters():
+            p.requires_grad = psi
+        for p in self.rho.parameters():
+            p.requires_grad = rho
 
-    def forward(self, x):
+    def freeze_rho_as_avg(self):
         """
-        Compute the logarithm of the correlation factor.
-
-        Args:
-            x (torch.Tensor): Input of shape (batch, n_particles, d).
-
-        Returns:
-            torch.Tensor: Output of shape (batch, 1) representing log(Ψ_corr),
-                          so that the full wavefunction is given by
-                          Ψ(x) = SD(x) * exp(f(x)).
+        Freeze ρ as a fixed averaging readout so φ/ψ still backpropagate.
         """
-        batch, n, d = x.shape
+        with torch.no_grad():
+            self.rho.weight.fill_(1.0 / (2 * self.dL))
+            self.rho.bias.zero_()
+        for p in self.rho.parameters():
+            p.requires_grad = False
 
-        # 1) φ-branch: apply φ to each particle, then average across particles.
-        #    φ expects input shape (batch * n_particles, d) -> outputs (batch*n, dL)
-        phi_flat = x.view(-1, d)  # (batch*n, d)
-        phi_out = self.phi(phi_flat)  # (batch*n, dL)
-        phi_out = phi_out.view(batch, n, -1)  # (batch, n, dL)
-        phi_mean = phi_out.mean(dim=1)  # (batch, dL)
+    def unfreeze_rho(self, *, reinit_zero: bool = False):
+        if reinit_zero:
+            nn.init.zeros_(self.rho.weight)
+            nn.init.zeros_(self.rho.bias)
+        for p in self.rho.parameters():
+            p.requires_grad = True
 
-        # 2) Pairwise ψ-branch: compute all pairwise distances in one call.
+    def param_groups(self, *, lr_phi=1e-3, lr_psi=1e-3, lr_rho=2e-4, wd=0.0):
+        groups = []
+        if any(p.requires_grad for p in self.phi.parameters()):
+            groups.append({"params": list(self.phi.parameters()), "lr": lr_phi, "weight_decay": wd})
+        if any(p.requires_grad for p in self.psi.parameters()):
+            groups.append({"params": list(self.psi.parameters()), "lr": lr_psi, "weight_decay": wd})
+        if any(p.requires_grad for p in self.rho.parameters()):
+            groups.append({"params": list(self.rho.parameters()), "lr": lr_rho, "weight_decay": wd})
+        return groups
 
-        diff = x.unsqueeze(2) - x.unsqueeze(1)
-        # Select only i<j pairs: (batch, num_pairs, d)
-        diff_pairs = diff[:, self.idx_i, self.idx_j, :]  # (batch, P, d)
-        r_ij = diff_pairs.norm(dim=-1, keepdim=True)
-        psi_in = r_ij.view(-1, 1)  # (batch*P, 1)
-        psi_out = self.psi(psi_in)  # (batch*P, k)
-        psi_out = psi_out.view(batch, -1, self.dL)  # (batch, P, k)
-        psi_sum = psi_out.sum(dim=1)  # (batch, k)
+    # ---------- forward ----------
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """
+        x: (B, N, d) -> out: (B, 1) is log-correlation f(x)
+        """
+        B, N, d = x.shape
+        assert N == self.n_particles and d == self.d
 
-        # --- Combine and finalize ---
-        rho_in = torch.cat([phi_mean, psi_sum], dim=1)  # (batch, dL + k)
-        out = self.rho(rho_in)  # (batch, 1)
+        # φ branch: mean over particles
+        phi_flat = x.reshape(B * N, d)  # (B*N, d)
+        phi_out = self.phi(phi_flat).reshape(B, N, self.dL)  # (B, N, dL)
+        phi_mean = phi_out.mean(dim=1)  # (B, dL)
+
+        # ψ branch: distances for i<j, then mean over pairs
+        diff = x.unsqueeze(2) - x.unsqueeze(1)  # (B, N, N, d)
+        diff_pairs = diff[:, self.idx_i, self.idx_j, :]  # (B, P, d)
+        r_ij = diff_pairs.norm(dim=-1, keepdim=True)  # (B, P, 1)
+        psi_in = r_ij.reshape(-1, 1)  # (B*P, 1)
+        psi_out = self.psi(psi_in).reshape(B, -1, self.dL)  # (B, P, dL)
+
+        psi_mean = psi_out.mean(dim=1)  # (B, dL)
+
+        # ρ readout
+        rho_in = torch.cat([phi_mean, psi_mean], dim=1)  # (B, 2*dL)
+        out = self.rho(rho_in)  # (B, 1)
         return out
+
+
+class BackflowNet(nn.Module):
+    """
+    Minimal, configurable backflow network.
+    Returns Δx with shape (B, N, d).
+
+    Configurable:
+      - act: "gelu"|"relu"|"tanh"|"silu"|"mish"|"leakyrelu"|"identity"
+      - msg_layers / msg_hidden  (message MLP φ)
+      - layers / hidden          (node/update MLP ψ)
+      - aggregation: "sum"|"mean"|"max"
+      - use_spin & same_spin_only
+      - out_bound: "tanh"|"identity"
+      - zero_init_last (start near identity)
+    """
+
+    def __init__(
+        self,
+        d: int,
+        *,
+        msg_hidden: int = 128,
+        msg_layers: int = 2,
+        hidden: int = 128,
+        layers: int = 3,
+        act: str = "silu",
+        aggregation: str = "sum",
+        use_spin: bool = True,
+        same_spin_only: bool = False,
+        out_bound: str = "tanh",
+        bf_scale_init: float = 0.05,
+        zero_init_last: bool = True,
+    ):
+        super().__init__()
+        self.d = d
+        self.use_spin = use_spin
+        self.same_spin_only = same_spin_only
+        self.aggregation = aggregation
+        self.out_bound = out_bound
+
+        # --- tiny activation factory (no helpers) ---
+        def make_act(name: str) -> nn.Module:
+            name = name.lower()
+            if name == "relu":
+                return nn.ReLU()
+            if name == "gelu":
+                return nn.GELU()
+            if name == "tanh":
+                return nn.Tanh()
+            if name in ("silu", "swish"):
+                return nn.SiLU()
+            if name == "mish":
+                return getattr(nn, "Mish", nn.SiLU)()
+            if name == "leakyrelu":
+                return nn.LeakyReLU(0.1)
+            if name in ("identity", "none"):
+                return nn.Identity()
+            raise ValueError(f"Unknown activation '{name}'")
+
+        self._act = make_act(act)
+
+        # φ: message MLP → maps (3d+2) → msg_hidden
+        msg_in = 3 * d + 2
+        self.phi = self._mlp(msg_in, msg_hidden, msg_hidden, msg_layers, self._act)
+
+        # ψ: node/update MLP → maps (d + msg_hidden) → d
+        upd_in = d + msg_hidden
+        self.psi = self._mlp(upd_in, hidden, d, layers, self._act)
+
+        # positive learnable scale via softplus
+        self.bf_scale_raw = nn.Parameter(torch.tensor(math.log(math.exp(bf_scale_init) - 1.0)))
+        # zero-init last ψ layer to start Δx≈0 (identity backflow)
+        if zero_init_last:
+            last = self.psi[-1]  # Linear
+            nn.init.zeros_(last.weight)
+            nn.init.zeros_(last.bias)
+
+    def _mlp(self, in_dim: int, hid: int, out_dim: int, num_layers: int, act: nn.Module):
+        assert num_layers >= 1
+        layers = []
+        if num_layers == 1:
+            layers.append(nn.Linear(in_dim, out_dim))
+        else:
+            layers.append(nn.Linear(in_dim, hid))
+            layers.append(act)
+            for _ in range(num_layers - 2):
+                layers.append(nn.Linear(hid, hid))
+                layers.append(act)
+            layers.append(nn.Linear(hid, out_dim))
+        return nn.Sequential(*layers)
+
+    @property
+    def bf_scale(self):
+        return F.softplus(self.bf_scale_raw)
+
+    def _aggregate(self, m_ij: torch.Tensor) -> torch.Tensor:
+        # m_ij: (B, N, N, H)
+        if self.aggregation == "sum":
+            return m_ij.sum(dim=2)
+        if self.aggregation == "mean":
+            return m_ij.mean(dim=2)
+        if self.aggregation == "max":
+            return m_ij.max(dim=2).values
+        raise ValueError(f"Unknown aggregation '{self.aggregation}'")
+
+    def forward(self, x: torch.Tensor, spin: torch.Tensor | None = None) -> torch.Tensor:
+        """
+        x: (B, N, d), spin optional: (N,) or (B, N) with {0,1}
+        returns Δx: (B, N, d)
+        """
+        B, N, d = x.shape
+        assert d == self.d
+
+        # Pairwise deltas and norms
+        r = x.unsqueeze(2) - x.unsqueeze(1)  # (B,N,N,d)
+        r2 = (r**2).sum(dim=-1, keepdim=True)  # (B,N,N,1)
+        r1 = torch.sqrt(r2 + 1e-12)  # (B,N,N,1)
+
+        xi = x.unsqueeze(2).expand(B, N, N, d)
+        xj = x.unsqueeze(1).expand(B, N, N, d)
+        msg_in = torch.cat([xi, xj, r, r1, r2], dim=-1)  # (B,N,N,3d+2)
+
+        # Spin weights (optional)
+        if self.use_spin and spin is not None:
+            if spin.ndim == 1:
+                s_i = spin.view(1, N, 1, 1).to(x.dtype).expand(B, N, N, 1)
+                s_j = spin.view(1, 1, N, 1).to(x.dtype).expand(B, N, N, 1)
+            else:  # (B,N)
+                s_i = spin.view(B, N, 1, 1).to(x.dtype).expand(B, N, N, 1)
+                s_j = spin.view(B, 1, N, 1).to(x.dtype).expand(B, N, N, 1)
+            same = (s_i == s_j).to(x.dtype)
+            weight = same if self.same_spin_only else torch.ones_like(same)
+        else:
+            weight = torch.ones_like(r[..., :1])
+
+        # Remove self-messages
+        eye = torch.eye(N, device=x.device, dtype=x.dtype).view(1, N, N, 1)
+        weight = weight * (1.0 - eye)
+
+        # Message pass + aggregate
+        m_ij = self.phi(msg_in) * weight  # (B,N,N,H)
+        m_i = self._aggregate(m_ij)  # (B,N,H)
+
+        # Node/update → Δx_i
+        upd = torch.cat([x, m_i], dim=-1)  # (B,N,d+H)
+        dx = self.psi(upd)  # (B,N,d)
+
+        # Output bound + positive scale
+        if self.out_bound == "tanh":
+            dx = torch.tanh(dx)
+        elif self.out_bound == "identity":
+            pass
+        else:
+            raise ValueError(f"Unknown out_bound '{self.out_bound}'")
+
+        bf_scale = F.softplus(self.bf_scale_raw)  # > 0
+        return dx * bf_scale

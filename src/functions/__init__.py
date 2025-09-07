@@ -1,10 +1,9 @@
 # src/functions/__init__.py
 
 # --- Slater_Determinant (Cartesian + FD + engines) ---
+from .Analysis import analyze_model_all, render_analysis_report
 from .Energy import (
-    estimate_energy_vmc,
-    local_energy_autograd,
-    potential_qdot_2d,
+    evaluate_energy_vmc,
 )
 
 # --- Neural_Networks ---
@@ -53,6 +52,7 @@ from .Slater_Determinant import (
     laplacian_2d,
     slater_determinant_closed_shell,  # basis-agnostic under params['basis']
 )
+from .Stochastic_Reconfiguration import sr_step_energy, train_model_sr_energy
 
 __all__ = [
     # Slater_Determinant (existing)
@@ -86,9 +86,7 @@ __all__ = [
     "construct_grid_configurations",
     "plot_f_psi_sd_with_backflow",
     # Energy
-    "local_energy_autograd",
-    "estimate_energy_vmc",
-    "potential_qdot_2d",
+    "evaluate_energy_vmc",
     # Normalizing_Flow
     "train_flow_driver",
     "sample_with_flow",
@@ -97,4 +95,10 @@ __all__ = [
     "save_model",
     "load_object",
     "load_model_into",
+    # Stochastic_Reconfiguration
+    "sr_step_energy",
+    "train_model_sr_energy",
+    # Analysis
+    "analyze_model_all",
+    "render_analysis_report",
 ]

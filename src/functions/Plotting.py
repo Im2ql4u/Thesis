@@ -304,13 +304,13 @@ def plot_f_psi_sd_with_backflow(
     n_particles: int,
     Ngrid: int,
     L: float,
-    n_basis_x: int,
-    n_basis_y: int,
+    n_basis_x: int,  # kept for signature parity (basis handled via params)
+    n_basis_y: int,  # kept for signature parity (basis handled via params)
     device: str = "cpu",
     dtype: torch.dtype = torch.float64,
     cmap_main: str = "viridis",
     cmap_ratio: str = "coolwarm",
-    clamp_max: float = 30.0,  # stability clamp for exp
+    clamp_max: float = 30.0,  # stability clamp for exp (applied to 2*log values)
     batch_points: int = 8192,  # chunk size
     show_quiver: bool = True,
     arrow_scale: float = 1.0,  # multiply Δx arrows by this factor
@@ -322,18 +322,23 @@ def plot_f_psi_sd_with_backflow(
     Sweeps electron 0 over a 2D grid and renders:
       - Panel 1: f_net(x_eff)
       - Panel 2: |ψ(x_eff)|^2 where ψ = det(Slater(x_eff)) * exp(f_net(x_eff))
-      - Panel 3: |SD(x_eff)|^2
+      - Panel 3: |SD(x_eff)|^2   (with SD = det(Slater(x_eff)))
     with x_eff = x + Δx from backflow if backflow_net is provided.
     Quiver shows Δx_0 at each grid point (arrow from x → x+Δx).
 
-    Returns a dict with the raw arrays.
+    Notes:
+      - Uses log-domain for stability: |SD|^2 = exp(2*logabs), |ψ|^2 = exp(2*(logabs+f)).
+      - clamp_max applies to the *2×log* exponents to avoid overflow only for plotting.
     """
+
     # --- grid for electron 0 (others fixed) ---
+    # Assumes you have this helper elsewhere in your codebase:
+    # construct_grid_configurations(n_particles, dims=2, Ngrid, L, device, dtype)
     x_configs, X, Y = construct_grid_configurations(
         n_particles=n_particles, dims=2, Ngrid=Ngrid, L=L, device=device, dtype=dtype
     )  # (G, N, 2) where G=Ngrid*Ngrid
 
-    # tensor hygiene
+    # Set eval mode, correct device/dtype
     f_net = f_net.to(device=device, dtype=dtype).eval()
     if backflow_net is not None:
         backflow_net = backflow_net.to(device=device, dtype=dtype).eval()
@@ -351,10 +356,10 @@ def plot_f_psi_sd_with_backflow(
         spin = spin.to(device)
 
     G = x_configs.shape[0]
+    # We'll store f, log|SD|, and Δx_0 (optional)
     f_vals = torch.empty(G, device=device, dtype=dtype)
-    sd_vals = torch.empty(G, device=device, dtype=dtype)
+    logabsSD = torch.empty(G, device=device, dtype=dtype)
     dx0_all = torch.zeros(G, 2, device=device, dtype=dtype) if backflow_net is not None else None
-    assert dx0_all is not None, "arr is None at this point"
 
     def _chunks(T, bs):
         for s in range(0, T, bs):
@@ -369,18 +374,18 @@ def plot_f_psi_sd_with_backflow(
             if arrow_flip:
                 dx = -dx
             x_eff = xb + dx
-            dx0_all[s:e] = dx[:, 0, :] * arrow_scale
+            if dx0_all is not None:
+                dx0_all[s:e] = dx[:, 0, :] * arrow_scale
         else:
             x_eff = xb
 
-        # Slater at x_eff
-        SD = slater_determinant_closed_shell(
+        # Slater at x_eff (now returns sign, logabs)
+        sign, logabs = slater_determinant_closed_shell(
             x_config=x_eff,
             C_occ=C_occ_t,
+            params=params,
             normalize=True,
-        ).squeeze(
-            -1
-        )  # (b,)
+        )  # sign: (b,), logabs: (b,)
 
         # f_net at x_eff
         f = f_net(x_eff)
@@ -388,20 +393,26 @@ def plot_f_psi_sd_with_backflow(
             f = f.squeeze(-1)  # (b,)
 
         f_vals[s:e] = f
-        sd_vals[s:e] = SD
+        logabsSD[s:e] = logabs
 
-    # Build ψ from components (same as psi_fn definition)
-    # ψ = SD * exp(f); we plot |ψ|²
-    amp = torch.exp(torch.clamp(f_vals, max=clamp_max))
-    psi2 = (sd_vals.abs() ** 2) * (amp**2)
-    sd2 = sd_vals.abs() ** 2
+    # Build |ψ|^2 and |SD|^2 from logs for stability
+    # Apply clamp to the *2×log* exponents to avoid overflow in visualization.
+    two_logpsi = 2.0 * (logabsSD + f_vals)  # (G,)
+    two_logSD = 2.0 * logabsSD
+
+    if clamp_max is not None:
+        two_logpsi = two_logpsi.clamp(max=clamp_max)
+        two_logSD = two_logSD.clamp(max=clamp_max)
+
+    psi2 = torch.exp(two_logpsi)
+    sd2 = torch.exp(two_logSD)
 
     # Reshape to grids
     F = f_vals.reshape(Ngrid, Ngrid).cpu().numpy()
     PSI = psi2.reshape(Ngrid, Ngrid).cpu().numpy()
     SD2 = sd2.reshape(Ngrid, Ngrid).cpu().numpy()
 
-    # Quiver fields (Δx_0)
+    # Quiver fields (Δx_0), if any
     if dx0_all is not None:
         DX = dx0_all[:, 0].reshape(Ngrid, Ngrid).cpu().numpy()
         DY = dx0_all[:, 1].reshape(Ngrid, Ngrid).cpu().numpy()
@@ -430,8 +441,8 @@ def plot_f_psi_sd_with_backflow(
     cb2 = fig.colorbar(im2, ax=axs[2])
     cb2.set_label(r"$|SD|^2$")
 
-    # Quiver overlay (use same downsampling in all panels for consistency)
-    if show_quiver and backflow_net is not None:
+    # Quiver overlay (on panel 3 by default)
+    if show_quiver and dx0_all is not None:
         step = max(1, Ngrid // 24)
         Xq = X[::step, ::step]
         Yq = Y[::step, ::step]
@@ -448,6 +459,6 @@ def plot_f_psi_sd_with_backflow(
         "psi2": PSI,
         "sd2": SD2,
     }
-    if backflow_net is not None:
+    if dx0_all is not None:
         out["dx0"] = (DX, DY)
     return out

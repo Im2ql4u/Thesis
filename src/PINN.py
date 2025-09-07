@@ -34,6 +34,7 @@ class PINN(nn.Module):
         self,
         n_particles: int,
         d: int,
+        omega: float,
         *,
         dL: int = 5,  # feature width per branch
         hidden_dim: int = 128,
@@ -45,6 +46,7 @@ class PINN(nn.Module):
         self.n_particles = n_particles
         self.d = d
         self.dL = dL
+        self.omega = omega
 
         # --- activations ---
         self.act = self._make_act(act)
@@ -61,17 +63,19 @@ class PINN(nn.Module):
 
         # --- ψ: pairwise MLP, maps ℝ → ℝ^{dL} (input is r_ij = ||x_i - x_j||) ---
         self.psi = self._build_mlp(
-            in_dim=1, hidden_dim=hidden_dim, out_dim=dL, n_layers=n_layers, act=self.act
+            in_dim=3, hidden_dim=hidden_dim, out_dim=dL, n_layers=n_layers, act=self.act
         )
+        self.psi_norm = nn.LayerNorm(dL, elementwise_affine=True)  # optional, see §3
 
-        # --- ρ: tiny readout; keep it linear (recommended) ---
-        self.rho = nn.Linear(2 * dL, 1)
+        # --- ρ: tiny readout
+        self.rho = nn.Linear(2 * dL + 3, 1)
+        self.rho_norm = nn.LayerNorm(2 * dL + 3, elementwise_affine=True)
 
         # init
         self._initialize_weights(init)
         # Optional: start ρ as small non-zero so grads flow even if you freeze it
         with torch.no_grad():
-            self.rho.weight.fill_(1.0 / (2 * dL))
+            self.rho.weight.fill_(1.0 / (2 * dL + 3))
             self.rho.bias.zero_()
 
     # ---------- helpers ----------
@@ -128,7 +132,7 @@ class PINN(nn.Module):
         Freeze ρ as a fixed averaging readout so φ/ψ still backpropagate.
         """
         with torch.no_grad():
-            self.rho.weight.fill_(1.0 / (2 * self.dL))
+            self.rho.weight.fill_(1.0 / (2 * self.dL + 3))
             self.rho.bias.zero_()
         for p in self.rho.parameters():
             p.requires_grad = False
@@ -157,7 +161,7 @@ class PINN(nn.Module):
         """
         B, N, d = x.shape
         assert N == self.n_particles and d == self.d
-
+        x = x * self.omega**0.5
         # φ branch: mean over particles
         phi_flat = x.reshape(B * N, d)  # (B*N, d)
         phi_out = self.phi(phi_flat).reshape(B, N, self.dL)  # (B, N, dL)
@@ -166,14 +170,22 @@ class PINN(nn.Module):
         # ψ branch: distances for i<j, then mean over pairs
         diff = x.unsqueeze(2) - x.unsqueeze(1)  # (B, N, N, d)
         diff_pairs = diff[:, self.idx_i, self.idx_j, :]  # (B, P, d)
-        r_ij = diff_pairs.norm(dim=-1, keepdim=True)  # (B, P, 1)
-        psi_in = r_ij.reshape(-1, 1)  # (B*P, 1)
-        psi_out = self.psi(psi_in).reshape(B, -1, self.dL)  # (B, P, dL)
+        r_ij = diff_pairs.norm(dim=-1, keepdim=True)  # (B,P,1), x already scaled by sqrt(omega)
+        eps = 3e-2  # scaled units (0.02–0.05 works well)
+        inv_r = 1.0 / (1.0 + eps + r_ij)  # (B,P,1), bounded, smooth
+        cos_r = torch.cos(r_ij)  # (B,P,1), low-k radial
 
-        psi_mean = psi_out.mean(dim=1)  # (B, dL)
-
+        psi_in = torch.cat([r_ij, inv_r, cos_r], dim=-1)  # (B,P,3)
+        psi_out = self.psi(psi_in.reshape(-1, 3)).reshape(B, -1, self.dL)  # (B,P,dL)
+        # psi_out = self.psi_norm(psi_out)
+        psi_mean = psi_out.mean(dim=1)  # (B,dL)            # (B,dL)
         # ρ readout
-        rho_in = torch.cat([phi_mean, psi_mean], dim=1)  # (B, 2*dL)
+        r2_mean = (x**2).mean(dim=(1, 2)).unsqueeze(1)  # (B,1)
+        mean_rij = r_ij.mean(dim=(1, 2)).unsqueeze(1)  # (B,1)
+        cos1 = torch.cos(r_ij).mean(dim=(1, 2)).unsqueeze(1) * 0.5  # (B,1)  α1 = 1/(1+1^2)
+
+        extras = torch.cat([r2_mean, mean_rij, cos1], dim=1)  # (B,3)
+        rho_in = torch.cat([phi_mean, psi_mean, extras], dim=1)
         out = self.rho(rho_in)  # (B, 1)
         return out
 
@@ -333,3 +345,47 @@ class BackflowNet(nn.Module):
 
         bf_scale = F.softplus(self.bf_scale_raw)  # > 0
         return dx * bf_scale
+
+
+# Usage:
+# --- Training Backflow ---
+# opt = torch.optim.AdamW([
+#     {"params": [p for n,p in bf.named_parameters() if n != "bf_scale_raw"], "lr": 1e-3},
+#     {"params": [bf.bf_scale_raw], "lr": 1e-3, "weight_decay": 1e-5},
+# ])
+
+# _, bf = train_model(
+#     f_net_zero,
+#     opt,
+#     C_occ,
+#     mapper,
+#     backflow_net=bf,
+#     std=std,
+#     print_e=10,
+# )
+# bf_frozen = DetachWrapper(bf).to(cfg.torch_device, cfg.torch_dtype)
+
+# --- Training phi only ---
+# f_net.freeze_rho_as_avg()
+# f_net.set_trainable(phi=True, psi=False, rho=False)
+# opt = torch.optim.AdamW(f_net.param_groups(lr_phi=1e-3, lr_psi=0, lr_rho=0, wd=1e-4))
+
+# --- Training psi only ---
+# f_net.freeze_rho_as_avg()
+# f_net.set_trainable(phi=False, psi=True, rho=False)
+# opt = torch.optim.AdamW(f_net.param_groups(lr_phi=0, lr_psi=1e-3, lr_rho=0, wd=1e-4))
+
+# --- Training entire network ---
+# f_net.unfreeze_rho(reinit_zero=False)   # keep averaging weights as a warm start
+# f_net.set_trainable(phi=True, psi=True, rho=True)
+# opt = torch.optim.AdamW(f_net.param_groups(lr_phi=1e-4, lr_psi=1e-3, lr_rho=1e-4, wd=0))
+
+# f_net, _ = train_model(
+#     f_net,
+#     opt,
+#     C_occ,
+#     mapper,
+#     backflow_net=None,
+#     std=std,
+#     print_e=10,
+# )

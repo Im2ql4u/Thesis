@@ -1,264 +1,205 @@
-# energy.py
+# =========================
+# Thorough energy evaluation
+# =========================
+import math
 
 import torch
-from tqdm import tqdm
+from tqdm.auto import tqdm
 
 from utils import inject_params
 
 
-# -----------------------
-# Potentials & utilities
-# -----------------------
-def _coulomb_energy_batched(
-    X: torch.Tensor, inv_kappa_scale: float = 0.0, eps: float = 1e-8
-) -> torch.Tensor:
+# --- (re)use the same FD-Hutch local energy from the SR module ---
+# If you already imported it, you can remove this duplicate.
+def _local_energy_fd2(psi_log_fn, x, compute_coulomb_interaction, omega, probes=2, eps=1e-3):
     """
-    X: (B, N, D)
-    Returns Coulomb sum per batch: (B,)
-    If inv_kappa_scale==0.0 -> disabled (returns zeros).
-    Uses the user's convention: V_ij = 1 / (kappa * r_ij); here we pass inv_kappa_scale = 1/kappa.
+    E_L = -1/2 * (Δ logψ + ||∇ logψ||^2) + V(x), with Δ logψ via FD-Hutch (first-order only).
+    Returns:
+      E_L  : (B,)
+      logψ : (B,)
     """
-    if inv_kappa_scale == 0.0:
-        return torch.zeros(X.shape[0], device=X.device, dtype=X.dtype)
+    x = x.requires_grad_(True)
 
-    B, N, D = X.shape
-    diffs = X[:, :, None, :] - X[:, None, :, :]  # (B,N,N,D)
-    d = torch.linalg.norm(diffs, dim=-1).clamp_min(eps)  # (B,N,N)
-    i, j = torch.tril_indices(N, N, offset=-1, device=X.device)
-    return inv_kappa_scale * (1.0 / d[:, i, j]).sum(dim=1)  # (B,)
+    # ∇ logψ
+    logpsi = psi_log_fn(x)  # (B,)
+    g = torch.autograd.grad(logpsi.sum(), x, create_graph=True)[0]  # (B,N,d)
+    g2 = (g**2).sum(dim=(1, 2))  # (B,)
 
+    # Δ logψ via FD-Hutch
+    B = x.shape[0]
+    acc = torch.zeros(B, device=x.device, dtype=x.dtype)
+    for _ in range(probes):
+        v = torch.empty_like(x).bernoulli_(0.5).mul_(2).add_(-1)
+        x_p = (x + eps * v).requires_grad_(True)
+        lp = psi_log_fn(x_p)
+        gp = torch.autograd.grad(lp.sum(), x_p, create_graph=True)[0]
+        x_m = (x - eps * v).requires_grad_(True)
+        lm = psi_log_fn(x_m)
+        gm = torch.autograd.grad(lm.sum(), x_m, create_graph=True)[0]
+        acc += ((gp * v).sum(dim=(1, 2)) - (gm * v).sum(dim=(1, 2))) / (2.0 * eps)
 
-@inject_params
-def potential_qdot_2d(X: torch.Tensor, *, params=None) -> torch.Tensor:
-    """
-    X: (B,N,2)
-    V_trap = 1/2 * ω^2 * sum_i |r_i|^2
-    V_coul (user's convention) = sum_{i<j} 1/(κ * |r_i - r_j|); set kappa=0 to disable.
-    Returns: (B,)
-    """
-    omega = float(getattr(params, "omega", 1.0))
-    kappa = float(getattr(params, "kappa", 0.0))
+    lap_log = acc / probes
 
-    # trap
-    r2_sum = (X**2).sum(dim=-1).sum(dim=1)  # (B,)
-    V_trap = 0.5 * (omega**2) * r2_sum  # (B,)
+    # Potentials at physical coords x
+    V_harm = 0.5 * (omega**2) * (x**2).sum(dim=(1, 2))  # (B,)
+    V_int = compute_coulomb_interaction(x).view(-1)  # (B,)
+    V = V_harm + V_int
 
-    # coulomb with user's scaling: 1/(kappa * r)
-    inv_kappa_scale = 0.0 if (kappa == 0.0) else (1.0 / kappa)
-    V_coul = _coulomb_energy_batched(X, inv_kappa_scale=inv_kappa_scale)  # (B,)
-
-    return V_trap + V_coul
-
-
-# -----------------------
-# Local energy via log|ψ|
-# -----------------------
-@inject_params
-def local_energy_autograd(
-    psi_fn, f_net, X: torch.Tensor, C_occ: torch.Tensor, *, backflow_net=None, params=None
-) -> torch.Tensor:
-    """
-    E_L = -1/2 * [ Δ log|ψ| + ||∇ log|ψ||^2 ] + V(X)
-    X: (B,N,D) requires_grad=True
-    Returns: (B,)
-    """
-    # ψ
-    psi = psi_fn(f_net, X, C_occ, backflow_net=backflow_net)  # (B,)
-    if torch.is_complex(psi):
-        amp = torch.sqrt(psi.real**2 + psi.imag**2 + 1e-30)
-    else:
-        amp = psi.abs() + 1e-30
-
-    logpsi = amp.log()  # (B,)
-
-    # score = ∇_X log|ψ|
-    (score,) = torch.autograd.grad(logpsi.sum(), X, create_graph=True)  # (B,N,D)
-
-    # Δ log|ψ| = div(score) = sum of diagonal entries of Jacobian(score)
-    B, N, D = X.shape
-    lap_logpsi = torch.zeros(B, device=X.device, dtype=X.dtype)
-    score_flat = score.reshape(B, N * D)
-    for k in range(N * D):
-        gk = score_flat[:, k]  # (B,)
-        (dgk_dx,) = torch.autograd.grad(
-            gk.sum(), X, retain_graph=True, create_graph=False, allow_unused=False
-        )  # (B,N,D)
-        lap_logpsi = lap_logpsi + dgk_dx.reshape(B, N * D)[:, k]
-
-    kinetic = -0.5 * (lap_logpsi + (score**2).sum(dim=[1, 2]))
-
-    # Potential
-    V = potential_qdot_2d(X, params=params)  # (B,)
-
-    return kinetic + V
+    E_L = -0.5 * (lap_log + g2) + V
+    return E_L.detach(), logpsi.detach()
 
 
-@inject_params
-def local_energy_exactpsi(psi_fn, f_net, X, C_occ, *, backflow_net=None, params=None):
-    """
-    E_L = -1/2 (Δψ / ψ) + V; computes Δψ exactly by ND second-derivatives.
-    More stable near nodes than using log|ψ|, but O(ND) backprops per batch.
-    """
-    X = X.requires_grad_(True)
-    psi = psi_fn(f_net, X, C_occ, backflow_net=backflow_net)  # (B,)
-    (grad_psi,) = torch.autograd.grad(psi.sum(), X, create_graph=True)  # (B,N,D)
-
-    B, N, D = X.shape
-    lap_psi = torch.zeros(B, device=X.device, dtype=X.dtype)
-    gflat = grad_psi.reshape(B, N * D)
-    for k in range(N * D):
-        (dgk_dx,) = torch.autograd.grad(
-            gflat[:, k].sum(), X, retain_graph=True, create_graph=False
-        )  # (B,N,D)
-        lap_psi = lap_psi + dgk_dx.reshape(B, N * D)[:, k]
-
-    psi_safe = psi + (psi == 0).to(psi.dtype) * 1e-30
-    kinetic = -0.5 * (lap_psi / psi_safe)
-    V = potential_qdot_2d(X, params=params)
-    return kinetic + V
-
-
-# ---- Energy (Hutchinson) ----
-
-
-def _score_logpsi(psi_fn, f_net, X, C_occ, *, backflow_net=None):
-    # s = ∇ log |ψ|
-    X = X.requires_grad_(True)
-    psi = psi_fn(f_net, X, C_occ, backflow_net=backflow_net)  # (B,)
-    amp = psi.abs() + 1e-30
-    logpsi = amp.log()
-    (score,) = torch.autograd.grad(logpsi.sum(), X, create_graph=True)  # (B,N,D)
-    return score
-
-
-def _divergence_hutchinson(score_fn, X, K=4):
-    """
-    div s(x) ≈ E_epsilon[ epsilon · J_s epsilon ] using K probes.
-    """
-    B = X.shape[0]
-    div = torch.zeros(B, device=X.device, dtype=X.dtype)
-    for _ in range(K):
-        eps = torch.randn_like(X)  # Rademacher also works
-        s = score_fn(X)  # (B,N,D)
-        # directional derivative (J_s ε) via one backward:
-        (Jv,) = torch.autograd.grad((s * eps).sum(), X, create_graph=False, retain_graph=True)
-        div = div + (Jv * eps).sum(dim=(1, 2))  # ε · (J_s ε)
-    return div / K
-
-
-@inject_params
-def local_energy_hutchinson(psi_fn, f_net, X, C_occ, *, backflow_net=None, K=4, params=None):
-    """
-    Unbiased Hutchinson estimator of div(∇log|ψ|) with K probes.
-    Much faster than ND per-sample loop; stable near nodes.
-    """
-    X = X.requires_grad_(True)
-    s = _score_logpsi(psi_fn, f_net, X, C_occ, backflow_net=backflow_net)  # (B,N,D)
-    div_s = _divergence_hutchinson(
-        lambda Z: _score_logpsi(psi_fn, f_net, Z, C_occ, backflow_net=backflow_net), X, K=K
-    )  # (B,)
-    kinetic = -0.5 * (div_s + (s * s).sum(dim=(1, 2)))
-    V = potential_qdot_2d(X, params=params)
-    return kinetic + V
-
-
-# -----------------------
-# VMC estimator (streaming)
-# -----------------------
-@inject_params
-def estimate_energy_vmc(
-    psi_fn,
-    f_net,
-    C_occ: torch.Tensor,
-    sample_fn,
-    *,
-    backflow_net=None,
-    total_samples: int = 10000,
-    chunk: int = 256,
-    method: str = "hutchinson",  # or "exact", "logpsi"
-    K: int = 4,  # Only used for Hutchinson
-    return_all=False,
-    params=None,
+# --- Metropolis sampler that also reports acceptance rate ---
+def _metropolis_psi2(
+    psi_log_fn, x0, n_steps: int = 30, step_sigma: float = 0.2, return_accept: bool = False
 ):
     """
-    Estimate ⟨E⟩ and std_err from |ψ|² samples.
-
-    Parameters:
-        psi_fn       : callable(f_net, x, C_occ) -> ψ
-        f_net        : neural net model
-        C_occ        : orbital coefficients
-        sample_fn    : function that returns (B, N, D) ~ |ψ|²
-        total_samples: total number of samples to draw
-        chunk        : chunk size for autograd/Laplacian evaluation
-        method       : "hutchinson", "exact", or "logpsi"
-        K            : Hutchinson probe count
-        return_all   : if True, return all energies too (useful for histograms)
-
+    Simple independent-proposal Metropolis for |Ψ|^2. Ensures x fed to psi_fn has requires_grad=True
+    (your psi_fn asserts this). Evaluations are under no_grad, so no big graphs are built.
     Returns:
-        mean energy, stderr, optionally (energies tensor)
+      x_final (B,N,d) [requires_grad=True]
+      (optional) accept_rate in [0,1]
     """
-    device = C_occ.device if hasattr(C_occ, "device") else next(f_net.parameters()).device
-    dtype = C_occ.dtype if hasattr(C_occ, "dtype") else next(f_net.parameters()).dtype
+    x = x0.clone().requires_grad_(True)
+    accepts = 0.0
 
-    # Sample once
-    X = sample_fn(total_samples).to(device=device, dtype=dtype)
-    X_chunks = X.split(chunk, dim=0)
+    with torch.no_grad():
+        lp = psi_log_fn(x) * 2.0  # (B,)
+        for _ in range(n_steps):
+            prop = (x + torch.randn_like(x) * step_sigma).requires_grad_(True)
+            lp_prop = psi_log_fn(prop) * 2.0
 
-    # Choose energy function
-    if method == "hutchinson":
+            accept_logprob = lp_prop - lp
+            accept = (torch.rand_like(accept_logprob).log() < accept_logprob).view(-1, 1, 1).float()
+            accepts += float(accept.mean().item())
 
-        def energy_fn(x):
-            return local_energy_hutchinson(
-                psi_fn, f_net, x, C_occ, backflow_net=backflow_net, K=K, params=params
-            )
+            x = accept * prop + (1.0 - accept) * x
+            lp = accept.view(-1) * lp_prop + (1.0 - accept.view(-1)) * lp
 
-    elif method == "exact":
+    if return_accept:
+        return x, accepts / max(1, n_steps)
+    return x
 
-        def energy_fn(x):
-            return local_energy_exactpsi(
-                psi_fn, f_net, x, C_occ, backflow_net=backflow_net, params=params
-            )
 
-    elif method == "logpsi":
+# --- Thorough energy estimator with tqdm ---
+@inject_params
+def evaluate_energy_vmc(
+    f_net,
+    C_occ,
+    *,
+    psi_fn,  # your (f_net, x, C_occ, ...) -> (logψ, ψ)
+    compute_coulomb_interaction,  # Physics.py function
+    backflow_net=None,
+    spin=None,
+    params=None,  # dict with device, torch_dtype, omega, n_particles, d
+    n_samples: int = 50_000,  # total |Ψ|^2 samples to use
+    batch_size: int = 1024,  # evaluated per iteration
+    sampler_steps: int = 40,  # Metropolis steps per batch
+    sampler_step_sigma: float = 0.15,  # proposal std; tune for ~30–70% accept
+    fd_probes: int = 4,  # FD-Hutch probes for Δ logψ
+    fd_eps: float = 1e-3,  # FD step size (absolute; set ~1e-3 of typical length scale)
+    progress: bool = True,
+    ci_level: float = 0.95,  # confidence interval level
+):
+    """
+    Evaluates the energy E = ⟨E_L⟩_{|Ψ|^2} with lots of samples, showing a tqdm progress bar.
 
-        def energy_fn(x):
-            return local_energy_autograd(
-                psi_fn, f_net, x, C_occ, backflow_net=backflow_net, params=params
-            )
+    Returns a dict with:
+      E_mean, E_std, E_stderr, E_CI (tuple), n_samples_effective, accept_rate_avg
+    """
+    assert (
+        params is not None
+    ), "params dict (device, torch_dtype, omega, n_particles, d) is required."
+    device = params["device"]
+    dtype = params.get("torch_dtype", torch.float32)
+    omega = float(params["omega"])
+    N = int(params["n_particles"])
+    d = int(params["d"])
 
+    # spin default (closed shell)
+    if spin is None:
+        up = N // 2
+        spin = torch.cat(
+            [torch.zeros(up, dtype=torch.long), torch.ones(N - up, dtype=torch.long)]
+        ).to(device)
     else:
-        raise ValueError(f"Unknown energy method: {method}")
+        spin = spin.to(device)
 
-    # Compute energies
-    energies = []
-    for Xi in tqdm(X_chunks, desc="Energy chunks"):
-        Xi = Xi.clone().requires_grad_(True)
-        Ei = energy_fn(Xi)
-        energies.append(Ei.detach().cpu())
+    # nets to device/dtype
+    f_net.to(device).to(dtype).eval()
+    if backflow_net is not None:
+        backflow_net.to(device).to(dtype).eval()
 
-    E_all = torch.cat(energies)  # (total_samples,)
-    mean = E_all.mean().item()
-    stderr = E_all.std(unbiased=True).item() / (len(E_all) ** 0.5)
+    # wrapper that guarantees requires_grad=True for your psi_fn assert
+    def psi_log_fn(x):
+        if not x.requires_grad:
+            x = x.detach().requires_grad_(True)
+        logpsi, _psi = psi_fn(f_net, x, C_occ, backflow_net=backflow_net, spin=spin, params=params)
+        return logpsi  # (B,)
 
-    if return_all:
-        return mean, stderr, E_all
-    else:
-        return mean, stderr
+    # running stats
+    total = 0
+    sum_E = 0.0
+    sum_E2 = 0.0
+    acc_accum = 0.0
 
+    pbar = tqdm(total=n_samples, desc="Evaluating energy", leave=True) if progress else None
 
-# -----------------------
-# Example usage (comment)
-# -----------------------
-# from your_code import psi_fn, f_net, C_occ, make_mala_sample_fn, config
-# cfg = config.get()
-# sample_fn = make_mala_sample_fn(
-#     psi_fn, f_net, C_occ, params=cfg,
-#     step_size=0.02, n_steps=40, burn_in=80, thinning=2,
-#     init_std=1.0,
-#     device=cfg.torch_device, dtype=cfg.torch_dtype,
-# )
-# f_net = f_net.to(cfg.torch_device, cfg.torch_dtype).eval()
-# C_occ = C_occ.to(cfg.torch_device, cfg.torch_dtype)
-# E, dE = estimate_energy_vmc(psi_fn, f_net, C_occ, sample_fn,
-#                             batches=150, batch_size=1024, chunk=256, params=cfg)
-# print(f"VMC energy: {E:.6f} ± {dE:.6f} (1σ)")
+    while total < n_samples:
+        bsz = min(batch_size, n_samples - total)
+        # draw initial states, sample to |Ψ|^2
+        x0 = torch.randn(bsz, N, d, device=device, dtype=dtype)
+        x, acc = _metropolis_psi2(
+            psi_log_fn, x0, n_steps=sampler_steps, step_sigma=sampler_step_sigma, return_accept=True
+        )
+
+        # local energy on this batch
+        E_L, _ = _local_energy_fd2(
+            psi_log_fn, x, compute_coulomb_interaction, omega, probes=fd_probes, eps=fd_eps
+        )  # (bsz,)
+
+        # update stats
+        E_L_cpu = E_L.detach().cpu()
+        sum_E += float(E_L_cpu.sum().item())
+        sum_E2 += float((E_L_cpu**2).sum().item())
+        total += bsz
+        acc_accum += acc
+
+        if pbar is not None:
+            pbar.update(bsz)
+            pbar.set_postfix_str(
+                f"E≈{sum_E/total:.6f},"
+                f" σ≈{math.sqrt(max(sum_E2/total - (sum_E/total)**2, 0.0)):.4f},"
+                f" acc={acc_accum * batch_size / (total):.2f}"
+            )
+
+        # free per-batch tensors
+        del x, E_L, E_L_cpu
+
+    if pbar is not None:
+        pbar.close()
+
+    # finalize statistics
+    mean = sum_E / total
+    var = max(sum_E2 / total - mean * mean, 0.0)
+    std = math.sqrt(var)
+    stderr = std / math.sqrt(total)
+
+    # normal approx CI
+    # z for ci_level (two-sided): invert CDF of normal; quick approx for 95% => 1.96
+    def _z_from_alpha(alpha):
+        # crude lookup; replace with scipy if you have it
+        return 1.96 if abs(alpha - 0.95) < 1e-6 else 1.645 if abs(alpha - 0.90) < 1e-6 else 2.576
+
+    z = _z_from_alpha(ci_level)
+    ci = (mean - z * stderr, mean + z * stderr)
+
+    metrics = {
+        "E_mean": mean,
+        "E_std": std,
+        "E_stderr": stderr,
+        "E_CI": ci,
+        "n_samples_effective": total,  # raw count; if you thin chains, adjust here
+        "accept_rate_avg": acc_accum / max(1, math.ceil(n_samples / batch_size)),
+    }
+    return metrics

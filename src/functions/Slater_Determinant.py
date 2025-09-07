@@ -5,7 +5,7 @@
 from __future__ import annotations
 
 import math
-from math import factorial
+from math import factorial, log
 
 import numpy as np
 import torch
@@ -672,12 +672,6 @@ def slater_determinant_closed_shell(
 
     Psi = torch.matmul(Phi, C_occ)  # (B,N,n_occ)
 
-    # N=2 closed-shell shortcut (more stable)
-    if N == 2 and C_occ.shape[1] == 1:
-        mo = Psi.squeeze(-1)  # (B,2)
-        sd = (mo[:, 0] * mo[:, 1]).view(B, 1)
-        return sd if not normalize else sd  # factorial(1)=1
-
     # general closed-shell determinant with spin split [↑...][↓...]
     n_spin = N // 2
     Psi_up = Psi[:, :n_spin, :]
@@ -685,12 +679,14 @@ def slater_determinant_closed_shell(
 
     sign_u, log_u = _slogdet_batched(Psi_up)
     sign_d, log_d = _slogdet_batched(Psi_down)
-    det_full = (sign_u * sign_d) * torch.exp(log_u + log_d)  # (B,)
+    sign = sign_d * sign_u
+    logabs = log_u + log_d - log(factorial(n_spin))
+    # det_full = (sign_u * sign_d) * torch.exp(log_u + log_d)  # (B,)
 
-    if normalize and n_spin > 1:
-        det_full = det_full / math.factorial(n_spin)
+    # if normalize and n_spin > 1:
+    #     det_full = det_full / math.factorial(n_spin)
 
-    return det_full.view(B, 1)
+    return sign, logabs  # det_full.view(B, 1)
 
 
 # ===============================================================

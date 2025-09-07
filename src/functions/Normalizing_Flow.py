@@ -272,3 +272,24 @@ def train_flow_driver(C_occ, *, params=None):
         dtype=dtype,
     )
     return mapper
+
+
+# Example usage:
+# mapper = train_flow_driver(C_occ)
+# x_flow = sample_with_flow(mapper)
+# import matplotlib.pyplot as plt
+
+# @torch.no_grad()
+# def compare_hist_1d(x_flow, n_particles, d, particle_index=0, coord=0, bins=100):
+#     xf = x_flow[:, particle_index, coord].detach().cpu()
+#     plt.figure()
+#     plt.hist(xf, bins=bins, density=True, alpha=0.5, label="Flow")
+#     plt.xlabel(f"x[{particle_index},{coord}]")
+#     plt.ylabel("Density")
+#     plt.legend()
+#     plt.title("Flow vs Metropolis (marginal)")
+#     plt.show()
+
+# # Example after training:
+# x_flow  = sample_with_flow(mapper)
+# compare_hist_1d(x_flow, 2, 2, particle_index=4, coord=1)

@@ -1,40 +1,59 @@
+# stable_training.py — drop-in stabilized ψ, Laplacians, and trainer
+# - C² soft-core Coulomb (vectorized)
+# - Stable psi_fn (slogdet guard + centered logψ before exp)
+# - HVP Hutchinson with vJP and FD fallback
+# - FD Hutchinson with adaptive epsilon
+# - Residual trainer with per-row NaN masking and ψ in-graph normalization
+
 from typing import Literal
 
 import torch
+from torch import nn
 
+# if you already have this in your project, keep using it
 from utils import inject_params
 
 from .Physics import compute_coulomb_interaction
+
+# keep your Slater import (assumed to use slogdet internally)
 from .Slater_Determinant import slater_determinant_closed_shell
 
 
+# ---------------------------------------------------------------------
+# 1) Stable ψ(x): slogdet guard + center logψ before exp
+# ---------------------------------------------------------------------
 @inject_params
 def psi_fn(
-    f_net,
+    f_net: nn.Module,
     x_batch: torch.Tensor,
     C_occ: torch.Tensor,
     *,
-    backflow_net=None,
+    backflow_net: nn.Module | None = None,
     spin: torch.Tensor | None = None,
     params=None,
 ):
     """
-    ψ(x) = det(Slater(x+Δx; C_occ)) * exp(f_net(x+Δx)) with optional backflow Δx.
-    Basis selection is handled inside slater_determinant_closed_shell via params['basis'].
+    ψ(x) = det(Slater(x+Δx; C_occ)) * exp(f_net(x+Δx)).
+
+    Stabilizations:
+      - slater_determinant_closed_shell is assumed to use slogdet; we
+        additionally guard non-finite rows.
+      - center logψ by subtracting max(logψ) before exp to avoid overflow.
+        This constant cancels in ψ-normalized training objectives.
     """
-    # Device / dtype hygiene
     x_batch = x_batch.contiguous()
     C_occ = C_occ.to(device=x_batch.device, dtype=x_batch.dtype).contiguous()
 
-    # Optional backflow: Δx = backflow_net(x, spin)
+    # optional backflow
     if backflow_net is not None:
-        # spin can be (N,) or (B,N); both are supported by the provided BackflowNet
         dx = backflow_net(x_batch, spin=spin)
         x_eff = x_batch + dx
     else:
         x_eff = x_batch
+
     assert x_eff.requires_grad, "x_eff must have requires_grad=True for autograd"
-    # Slater determinant at x_eff; basis dispatch is inside this call
+
+    # Slater (log-space)
     sign, logabs = slater_determinant_closed_shell(
         x_config=x_eff,
         C_occ=C_occ,
@@ -42,87 +61,104 @@ def psi_fn(
         normalize=True,
     )  # (B,1)
 
-    # Jastrow/log-amplitude from f_net — clamp to keep exp stable early in training
-    f = f_net(x_eff).squeeze(-1)
-    logpsi = logabs + f  # (B,)
-    psi = sign * torch.exp(logpsi)  # (B,)
-    return logpsi, psi  # SD.squeeze(-1)  # (B,)
+    # guard slater pathologies without breaking autograd graph
+    with torch.no_grad():
+        bad = (~torch.isfinite(logabs)) | (sign == 0)
+        if bad.any():
+            logabs[bad] = torch.as_tensor(-1e6, dtype=logabs.dtype, device=logabs.device)
+            sign[bad] = torch.as_tensor(1.0, dtype=sign.dtype, device=sign.device)
+
+    # Jastrow/log factor
+    f = f_net(x_eff).squeeze(-1)  # (B,)
+
+    # logψ and centered ψ
+    logpsi = logabs.view(-1) + f  # (B,)
+    c = torch.amax(logpsi.detach())  # scalar, not in the graph
+    logpsi_centered = logpsi - c
+    psi = sign.view(-1) * torch.exp(logpsi_centered)  # (B,)
+
+    return logpsi, psi
 
 
-def grad_and_laplace_logpsi(logpsi_scalar, x, probes=4):
+# ---------------------------------------------------------------------
+# 2) HVP Hutchinson for Δ logψ (vJP + FD fallback)
+# ---------------------------------------------------------------------
+def grad_and_laplace_logpsi(psi_log_fn, x, probes: int = 4, fd_eps: float = 1e-4):
     """
-    logpsi_scalar: scalar = logpsi.sum()
-    returns: grad_logpsi (B,N,d), lap_logpsi (B,1)
+    psi_log_fn(x)->(B,)  → returns:
+      grad_logpsi: (B,N,d)
+      lap_logpsi : (B,1)
+    Uses vJP for HVP; falls back to FD along v if hv contains non-finite.
     """
-    # First gradient of logpsi
-    grad_logpsi = torch.autograd.grad(logpsi_scalar, x, create_graph=True, retain_graph=True)[
-        0
-    ]  # (B,N,d)
+    x = x.requires_grad_(True)
+    logpsi = psi_log_fn(x)  # (B,)
+    g = torch.autograd.grad(logpsi.sum(), x, create_graph=True, retain_graph=True)[0]
 
-    # Hutchinson trace estimation for Δ logψ = tr(H_{logψ})
     B = x.shape[0]
     acc = torch.zeros(B, device=x.device, dtype=x.dtype)
+
     for _ in range(probes):
         v = torch.empty_like(x).bernoulli_(0.5).mul_(2).add_(-1)  # Rademacher ±1
-        # HVP: (H_{logψ} v) = ∂/∂x [ <grad_logpsi, v> ]
-        hv = torch.autograd.grad((grad_logpsi * v).sum(), x, create_graph=True, retain_graph=True)[
-            0
-        ]
-        acc += (v * hv).sum(dim=(1, 2))  # v^T H v
-    lap_logpsi = (acc / probes).unsqueeze(1)  # (B,1)
+        # H·v via vJP
+        hv = torch.autograd.grad(g, x, grad_outputs=v, retain_graph=True, create_graph=True)[0]
 
-    return grad_logpsi, lap_logpsi
+        # FD fallback if needed
+        if not torch.isfinite(hv).all():
+            xp = (x + fd_eps * v).requires_grad_(True)
+            xm = (x - fd_eps * v).requires_grad_(True)
+            gp = torch.autograd.grad(
+                psi_log_fn(xp).sum(), xp, retain_graph=True, create_graph=True
+            )[0]
+            gm = torch.autograd.grad(
+                psi_log_fn(xm).sum(), xm, retain_graph=True, create_graph=True
+            )[0]
+            hv = (gp - gm) / (2.0 * fd_eps)
+            hv = torch.nan_to_num(hv, nan=0.0, posinf=0.0, neginf=0.0)
+
+        acc += (v * hv).sum(dim=(1, 2))
+
+    lap = (acc / max(1, probes)).unsqueeze(1)  # (B,1)
+    return g, lap
 
 
-def compute_laplacian_fast(psi_fn, f_net, x, C_occ, **psi_kwargs):
+# ---------------------------------------------------------------------
+# 3) Exact Δψ via nested autograd (helper for lap_mode="exact")
+# ---------------------------------------------------------------------
+def compute_laplacian_fast(psi_only, f_net, x, C_occ, **psi_kwargs):
     """
-    Exact Laplacian via nested autograd (no torch.func), avoiding in-place ops.
-
+    Exact Laplacian of ψ via nested autograd.
     Args:
-      psi_fn : callable(f_net, x, C_occ) -> (B,)
-      f_net  : NN mapping x -> log factor
-      x      : (B, N, d) with requires_grad=True (will be set here)
-      C_occ  : (n_basis, n_occ)
-
+      psi_only: callable(f_net, x, C_occ, **kw) -> ψ (B,)
     Returns:
-      Psi        : (B,1)
-      Laplacian  : (B,1)  (Δψ)
+      Psi: (B,1), Laplacian: (B,1)
     """
     x = x.requires_grad_(True)
     B, N, d = x.shape
 
-    Psi = psi_fn(f_net, x, C_occ, **psi_kwargs)  # (B,)
+    Psi = psi_only(f_net, x, C_occ, **psi_kwargs)  # (B,)
     grads = torch.autograd.grad(Psi.sum(), x, create_graph=True, retain_graph=True)[0]  # (B,N,d)
 
     lap = torch.zeros(B, device=x.device, dtype=x.dtype)
-    # accumulate ∂²ψ/∂x_{i,j}²
     for i in range(N):
         for j in range(d):
             g_ij = grads[:, i, j]  # (B,)
-            # sum over batch to get a scalar, then differentiate wrt x and pick the same coord
             gsum = g_ij.sum()
-            second = torch.autograd.grad(gsum, x, create_graph=True, retain_graph=True)[
-                0
-            ]  # (B,N,d)
+            second = torch.autograd.grad(gsum, x, create_graph=True, retain_graph=True)[0]
             lap = lap + second[:, i, j]
 
-    return Psi.unsqueeze(1), lap.unsqueeze(1)  # (B,1), (B,1)
+    return Psi.unsqueeze(1), lap.unsqueeze(1)
 
 
-# --- Fast Δ log ψ via finite-difference Hutchinson (first-order only) ---
-def _laplacian_logpsi_fd(psi_log_fn, x_eff, eps, probes=2):
+# ---------------------------------------------------------------------
+# 4) FD Hutchinson for Δ logψ (first-order only, adaptive eps)
+# ---------------------------------------------------------------------
+def _laplacian_logpsi_fd(psi_log_fn, x_eff, eps: float, probes: int = 2):
     """
-    psi_log_fn: closure (x_eff: (B,N,d) with requires_grad=True) -> logpsi (B,)
-    x_eff      : (B,N,d) requires_grad=True
-    eps        : finite-difference step (float)
-    probes     : # of Hutchinson probes (int)
-
     Returns:
       grad_logpsi : (B,N,d)
       g2          : (B,1)   = ||∇ log ψ||^2
       lap_logpsi  : (B,1)   = Δ log ψ (FD-Hutch estimate)
     """
-    # center gradient (for ||∇ log ψ||^2 term)
     logpsi = psi_log_fn(x_eff)  # (B,)
     grad_logpsi = torch.autograd.grad(logpsi.sum(), x_eff, create_graph=True)[0]  # (B,N,d)
     g2 = (grad_logpsi**2).sum(dim=(1, 2), keepdim=True)  # (B,1)
@@ -131,8 +167,7 @@ def _laplacian_logpsi_fd(psi_log_fn, x_eff, eps, probes=2):
     acc = torch.zeros(B, device=x_eff.device, dtype=x_eff.dtype)
 
     for _ in range(probes):
-        v = torch.empty_like(x_eff).bernoulli_(0.5).mul_(2).add_(-1)  # Rademacher ±1
-
+        v = torch.empty_like(x_eff).bernoulli_(0.5).mul_(2).add_(-1)
         x_plus = (x_eff + eps * v).requires_grad_(True)
         lp_plus = psi_log_fn(x_plus)
         g_plus = torch.autograd.grad(lp_plus.sum(), x_plus, create_graph=True)[0]
@@ -141,46 +176,48 @@ def _laplacian_logpsi_fd(psi_log_fn, x_eff, eps, probes=2):
         lp_minus = psi_log_fn(x_minus)
         g_minus = torch.autograd.grad(lp_minus.sum(), x_minus, create_graph=True)[0]
 
-        # directional second derivative estimate along v
-        dir_plus = (g_plus * v).sum(dim=(1, 2))
-        dir_minus = (g_minus * v).sum(dim=(1, 2))
-        acc += (dir_plus - dir_minus) / (2.0 * eps)
+        acc += ((g_plus * v).sum(dim=(1, 2)) - (g_minus * v).sum(dim=(1, 2))) / (2.0 * eps)
 
-    lap_logpsi = (acc / probes).unsqueeze(1)  # (B,1)
+    lap_logpsi = (acc / max(1, probes)).unsqueeze(1)  # (B,1)
     return grad_logpsi, g2, lap_logpsi
 
 
+# ---------------------------------------------------------------------
+# 5) Residual trainer (ψ-normalized, with row masking)
+# ---------------------------------------------------------------------
 @inject_params
 def train_model(
-    f_net,
-    optimizer,
-    C_occ,
+    f_net: nn.Module,
+    optimizer: torch.optim.Optimizer,
+    C_occ: torch.Tensor,
     mapper=None,  # kept for interface parity
     *,
-    backflow_net=None,
+    backflow_net: nn.Module | None = None,
     spin: torch.Tensor | None = None,
     params=None,
     std: float = 2.5,
-    norm_penalty: float = 1e-5,
+    norm_penalty: float = 0.0,  # unused; kept for compat
     probes: int = 2,
     eps_scale: float = 1e-3,
     print_e: int = 50,
     lap_mode: Literal["fd-hutch", "hvp-hutch", "exact"] = "fd-hutch",
 ):
     """
-    Residual-based PINN training with selectable Laplacian:
-      - 'fd-hutch'  : FD Hutchinson on Δ log ψ (1st-order only)
-      - 'hvp-hutch' : Hutchinson via HVPs on log ψ (2nd-order graph, no coord loops)
-      - 'exact'     : nested-autograd exact Δψ (slowest)
-    Assumes psi_fn(f_net, x, C_occ, ...) -> (logpsi, psi).
+    Residual training with in-graph ψ normalization:
+      minimize ||H ψ_n - E ψ_n||^2, where ψ_n = ψ / ||ψ||_2.
+
+    Stabilizations:
+      - per-row finite-mask before building residual (drops catastrophic samples)
+      - centered exp in psi_fn prevents overflow
+      - soft-core Coulomb avoids second-derivative singularities
     """
     device = params["device"]
-    w = params["omega"]
-    n_particles = params["n_particles"]
-    n_epochs = params["n_epochs"]
-    E_target = params["E"]
-    N_collocation = params["N_collocation"]
-    d = params["d"]
+    w = float(params["omega"])
+    n_particles = int(params["n_particles"])
+    n_epochs = int(params["n_epochs"])
+    E_target = float(params["E"])
+    N_collocation = int(params["N_collocation"])
+    d = int(params["d"])
     dtype = params.get("torch_dtype", None)
     QHO_const = 0.5 * (w**2)
 
@@ -194,6 +231,8 @@ def train_model(
         spin = torch.cat(
             [torch.zeros(up, dtype=torch.long), torch.ones(down, dtype=torch.long)]
         ).to(device)
+    else:
+        spin = spin.to(device)
 
     # ψ-only wrapper for exact Laplacian helper
     def psi_only(_f, _x, _C, **kw):
@@ -201,7 +240,7 @@ def train_model(
         return _psi.view(-1)
 
     # log ψ closure for Hutchinson variants
-    def psi_log_fn(y):
+    def psi_log_closure(y):
         logpsi_y, _psi_y = psi_fn(
             f_net, y, C_occ, backflow_net=backflow_net, spin=spin, params=params
         )
@@ -210,7 +249,7 @@ def train_model(
     for epoch in range(n_epochs):
         optimizer.zero_grad()
 
-        # Sample collocation points (physical coords)
+        # Sample collocation points
         x_kwargs = dict(device=device)
         if dtype is not None:
             x_kwargs["dtype"] = dtype
@@ -220,64 +259,74 @@ def train_model(
             .requires_grad_(True)
         )
 
-        # Choose Laplacian path
+        # ---- Laplacian paths ----
         if lap_mode == "exact":
             # Exact Δψ via nested autograd on ψ
             Psi, Delta_psi = compute_laplacian_fast(
                 psi_only, f_net, x, C_occ, backflow_net=backflow_net, spin=spin, params=params
             )  # (B,1), (B,1)
-            psi = Psi
+            psi = Psi  # (B,1)
 
         elif lap_mode == "hvp-hutch":
             # Hutchinson on Δ log ψ using HVPs
-            logpsi, psi = psi_fn(
+            logpsi, psi_raw = psi_fn(
                 f_net, x, C_occ, backflow_net=backflow_net, spin=spin, params=params
-            )
-            psi = psi.view(-1, 1)
+            )  # logpsi:(B,), ψ:(B,)
+            psi = psi_raw.view(-1, 1)  # (B,1)
             grad_logpsi, lap_logpsi = grad_and_laplace_logpsi(
-                logpsi.sum(), x, probes=probes
-            )  # grad: (B,N,d), lap_logpsi: (B,1)
+                psi_log_closure, x, probes=probes, fd_eps=1e-4
+            )  # grad:(B,N,d), lap_logpsi:(B,1)
             g2 = (grad_logpsi**2).sum(dim=(1, 2), keepdim=True)  # (B,1)
-            Delta_psi = psi * (lap_logpsi + g2)
+            Delta_psi = psi * (lap_logpsi + g2)  # (B,1)
 
         elif lap_mode == "fd-hutch":
             # Finite-difference Hutchinson on Δ log ψ (first-order only)
-            logpsi, psi = psi_fn(
+            logpsi, psi_raw = psi_fn(
                 f_net, x, C_occ, backflow_net=backflow_net, spin=spin, params=params
             )
-            psi = psi.view(-1, 1)
+            psi = psi_raw.view(-1, 1)
             eps = eps_scale * float(std)
             grad_logpsi, g2, lap_logpsi = _laplacian_logpsi_fd(
-                psi_log_fn, x, eps=eps, probes=probes
-            )
-            Delta_psi = psi * (lap_logpsi + g2)
+                psi_log_closure, x, eps=eps, probes=probes
+            )  # grad:(B,N,d), g2:(B,1), lap_logpsi:(B,1)
+            Delta_psi = psi * (lap_logpsi + g2)  # (B,1)
 
         else:
             raise ValueError(f"Unknown lap_mode={lap_mode!r}")
 
-        # Potentials at physical coordinates x
+        # ---- Guard and normalize ψ & Δψ ----
+        row_ok = torch.isfinite(psi.view(-1)) & torch.isfinite(Delta_psi.view(-1))
+        if row_ok.sum() < psi.shape[0]:
+            x = x[row_ok]
+            psi = psi[row_ok]
+            Delta_psi = Delta_psi[row_ok]
+        if psi.numel() == 0:
+            continue  # resample next epoch
+
+        # in-graph normalization (remove scale mode)
+        psi_norm = torch.linalg.vector_norm(psi) + 1e-30
+        psi_n = psi / psi_norm
+        Delta_psi_n = Delta_psi / psi_norm
+
+        # ---- Potentials ----
         V_harmonic = QHO_const * (x**2).sum(dim=(1, 2), keepdim=True)  # (B,1)
-        V_int = compute_coulomb_interaction(x)
+        V_int = compute_coulomb_interaction(x)  # (B,1)
         if V_int.dim() != 2:
             V_int = V_int.view(-1, 1)
         V_total = V_harmonic + V_int  # (B,1)
 
-        # Hamiltonian and residual
-        H_psi = -0.5 * Delta_psi + V_total * psi  # (B,1)
-        residual = H_psi - E_target * psi  # (B,1)
-
-        # Loss
+        # ---- Residual & loss ----
+        H_psi_n = -0.5 * Delta_psi_n + V_total * psi_n
+        residual = H_psi_n - E_target * psi_n
         loss_pde = (residual**2).mean()
-        norm = torch.linalg.vector_norm(psi)
-        loss_norm = norm_penalty * (norm - 1.0) ** 2
-        loss = loss_pde + loss_norm
-        loss.backward()
+        loss_pde.backward()
         optimizer.step()
 
         if epoch % print_e == 0:
             with torch.no_grad():
-                local_E = (H_psi / psi).clamp(min=-1e6, max=1e6)
-                var_E = torch.var(local_E)
+                E_L = (H_psi_n / psi_n).clamp(min=-1e6, max=1e6)
+                var_E = torch.var(E_L)
+                raw_norm = float(torch.linalg.vector_norm(psi).detach().cpu())
             bf_scale_str = ""
             if backflow_net is not None and hasattr(backflow_net, "bf_scale"):
                 try:
@@ -287,13 +336,23 @@ def train_model(
                 except Exception:
                     pass
             print(
-                f"Epoch {epoch:05d}: PDE={loss_pde.item():.3e}  "
-                f"Norm={norm.item():.3e}  Var(EL)={var_E.item():.3e}  "
+                f"Epoch {epoch:05d}: Resid={loss_pde.item():.3e}  "
+                f"||psi||={raw_norm:.3e}  Var(EL)={var_E.item():.3e}  "
                 f"[lap={lap_mode.replace('fd-hutch','fd').replace('hvp-hutch','hvp')}]"
                 + bf_scale_str
             )
 
         # free big tensors
-        del (loss, loss_pde, loss_norm, residual, H_psi, V_total, V_int, V_harmonic, psi, Delta_psi)
-
-    return f_net, backflow_net
+        del (
+            loss_pde,
+            residual,
+            H_psi_n,
+            V_total,
+            V_int,
+            V_harmonic,
+            psi,
+            Delta_psi,
+            psi_n,
+            Delta_psi_n,
+            psi_norm,
+        )

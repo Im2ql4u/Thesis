@@ -1,3 +1,5 @@
+import math
+
 import numpy as np
 import torch
 
@@ -7,23 +9,43 @@ from .Slater_Determinant import laplacian_2d
 
 
 @inject_params
-def compute_coulomb_interaction(x, eps: float = 1e-18, *, params=None):
+def compute_coulomb_interaction(
+    x: torch.Tensor,
+    *,
+    params=None,
+    eps_rel: float = 1e-6,  # ε = eps_rel * 1/sqrt(ω)  (physical units)
+    cap: float = 1e6,  # clamp absurd contributions
+) -> torch.Tensor:
     """
-    Computes the Coulomb interaction potential for a system of particles.
+    Vectorized Coulomb with C² soft-core radius r̃ = sqrt(r^2 + ε^2).
+    Returns V_int of shape (B,1).
+    """
+    kappa = float(params["V"])
+    omega = float(params["omega"])
+    B, N, d = x.shape
+    dev = x.device
 
-    Parameters:
-    - x: Tensor of shape (batch_size, n_particles, d), where d is the spatial dimension.
-    - V: Taken from params["V"] (interaction strength).
-    """
-    V = params["V"]
-    batch_size, n_particles, d = x.shape
-    V_int = torch.zeros(batch_size, device=x.device, dtype=x.dtype)
-    for i in range(n_particles):
-        for j in range(i + 1, n_particles):
-            r = x[:, i, :] - x[:, j, :]  # (batch, d)
-            r_norm = torch.norm(r, dim=1) + eps  # (batch,)
-            V_int += V / r_norm
-    return V_int.view(-1, 1)
+    # pairwise diffs and distances (physical coords)
+    diff = x.unsqueeze(2) - x.unsqueeze(1)  # (B,N,N,d)
+    ii, jj = torch.triu_indices(N, N, 1, device=dev)
+    r2 = (diff[:, ii, jj, :] ** 2).sum(-1)  # (B,P)
+
+    # soft-core ε in physical units
+    l0 = 1.0 / math.sqrt(max(omega, 1e-12))
+    eps2 = (eps_rel * l0) ** 2
+
+    r_soft = torch.sqrt(r2 + eps2)  # (B,P)
+    Vij = kappa / r_soft  # (B,P)
+
+    # clamp and guard
+    Vij = torch.clamp(Vij, max=cap)
+    Vij = torch.nan_to_num(Vij, nan=cap, posinf=cap, neginf=-cap)
+
+    V = Vij.sum(dim=1, keepdim=True)  # (B,1)
+    bad = ~torch.isfinite(V).squeeze(1)
+    if bad.any():
+        V[bad] = 0.0  # optional: or resample those rows upstream
+    return V
 
 
 @inject_params

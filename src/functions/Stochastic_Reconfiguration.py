@@ -299,7 +299,6 @@ def _cg(matvec, b, lam: float = 1e-3, tol: float = 1e-6, max_iter: int = 100):
     return x, k
 
 
-
 # ============================================================
 # One SR step (energy-based) with selectable Laplacian
 # ============================================================

@@ -10,14 +10,46 @@ import numpy as np
 import torch
 
 
+# ---------------------------------------------------------------------
+# GPU selection helpers
+# ---------------------------------------------------------------------
+def _select_best_gpu() -> str:
+    """Return the CUDA device with the most free memory."""
+    if not torch.cuda.is_available():
+        return "cpu"
+
+    best_idx, best_free = 0, -1
+    for i in range(torch.cuda.device_count()):
+        props = torch.cuda.get_device_properties(i)
+        total = props.total_memory
+        reserved = torch.cuda.memory_reserved(i)
+        allocated = torch.cuda.memory_allocated(i)
+        free_cached = reserved - allocated
+        free_mem = total - allocated - reserved + free_cached  # conservative
+
+        if free_mem > best_free:
+            best_idx, best_free = i, free_mem
+
+    return f"cuda:{best_idx}"
+
+
 def _default_device() -> str:
+    # Manual override first
+    manual = os.environ.get("CUDA_MANUAL_DEVICE")
+    if manual is not None and torch.cuda.is_available():
+        return f"cuda:{manual}"
+
+    # Otherwise pick best GPU
     if torch.cuda.is_available():
-        return "cuda"
+        return _select_best_gpu()
     if torch.backends.mps.is_available():
         return "mps"
     return "cpu"
 
 
+# ---------------------------------------------------------------------
+# Activations
+# ---------------------------------------------------------------------
 _ACTIVATIONS = {
     "gelu": torch.nn.GELU,
     "relu": torch.nn.ReLU,
@@ -26,12 +58,12 @@ _ACTIVATIONS = {
     "mish": getattr(torch.nn, "Mish", torch.nn.SiLU),
 }
 
+
 # ---------------------------------------------------------------------
-# Reference DMC energies E(N, omega)  [fill/extend as needed]
-# omega keys should be floats like 0.1, 0.28, 0.5, 1.0
+# Reference DMC energies
 # ---------------------------------------------------------------------
 DMC_ENERGIES: dict[int, dict[float, float]] = {
-    2: {0.1: 0.44079, 0.28: 1.02164, 0.5: 1.65977, 1.0: 3.00000},
+    2: {0.01: 0.07384, 0.1: 0.44079, 0.28: 1.02164, 0.5: 1.65977, 1.0: 3.00000},
     6: {0.1: 3.55385, 0.28: 7.60019, 0.5: 11.78484, 1.0: 20.15932},
     12: {0.1: 12.26984, 0.28: 25.63577, 0.5: 39.15960, 1.0: 65.70010},
     20: {0.1: 29.97790, 0.28: 61.92680, 0.5: 93.87520, 1.0: 155.88220},
@@ -40,7 +72,6 @@ _SUPPORTED_OMEGAS = sorted({w for table in DMC_ENERGIES.values() for w in table.
 
 
 def _snap_omega(omega: float) -> float:
-    # snap to nearest supported omega
     return min(_SUPPORTED_OMEGAS, key=lambda w: abs(w - float(omega)))
 
 
@@ -55,14 +86,13 @@ def _lookup_dmc_energy(n_particles: int, omega: float) -> float:
     return float(DMC_ENERGIES[n][w])
 
 
+# ---------------------------------------------------------------------
+# Config
+# ---------------------------------------------------------------------
 @dataclass(frozen=True)
 class Config:
-    # -----------------------------
     # physics / model
-    # -----------------------------
     omega: float = 0.1
-
-    # Basis selection & parameters
     basis: Literal["cart", "fd"] = "cart"
     emax: int = 2
     nx: int = 1
@@ -70,21 +100,17 @@ class Config:
     fd_make_real: bool = True
     fd_idx: list | None = None
 
-    # Coulomb / convolution controls
+    # Coulomb / convolution
     kappa: float = 1.0
     pad_factor: int = 2
     cart_scale: np.ndarray | None = field(default=None, repr=False, compare=False)
 
-    # -----------------------------
     # compute policy
-    # -----------------------------
     device: str = _default_device()
     dtype: str = "float64"
     seed: int | None = 0
 
-    # -----------------------------
     # training / architecture
-    # -----------------------------
     hidden_dim: int = 64
     n_layers: int = 3
     act_fn_name: str = "gelu"
@@ -94,34 +120,25 @@ class Config:
     n_epochs_norm: int = 200
     std: float = 1.8
 
-    # -----------------------------
     # system constants
-    # -----------------------------
-    # E can be "auto" to pull DMC(E) from table based on (n_particles, omega)
     E: float | Literal["auto"] = "auto"
     V: float = 1.0
     d: int = 2
     n_particles: int = 2
     dimensions: int = 2
 
-    # -----------------------------
     # grids / sampling
-    # -----------------------------
     L: float = 8.0
     L_E: float = 9.0
     n_grid: int = 30
     batch_size: int = int(1e3)
     n_samples: int = int(1e5)
 
-    # -----------------------------
     # paths
-    # -----------------------------
     data_dir: str | None = None
     results_dir: str | None = None
 
-    # -----------------------------
     # HF solver
-    # -----------------------------
     hf_max_iter: int = 100
     hf_tol: float = 1e-8
     hf_damping: float = 0.0
@@ -157,6 +174,9 @@ class Config:
         return _ACTIVATIONS[key]()
 
 
+# ---------------------------------------------------------------------
+# Global state
+# ---------------------------------------------------------------------
 _CURRENT = Config()
 
 
@@ -172,7 +192,6 @@ def _apply_seed_policy(cfg: Config) -> None:
 
 
 def _maybe_set_auto_energy(cfg: Config) -> Config:
-    # if E is "auto", set it from DMC table using current (n_particles, omega)
     if isinstance(cfg.E, str) and cfg.E == "auto":
         E_val = _lookup_dmc_energy(cfg.n_particles, cfg.omega)
         return replace(cfg, E=E_val)
@@ -199,7 +218,7 @@ def override(**overrides):
         tmp = replace(_CURRENT, **overrides)
         tmp = _maybe_set_auto_energy(tmp)
         _apply_seed_policy(tmp)
-        object.__setattr__(globals(), "_CURRENT", tmp)  # keep global in sync inside context
+        object.__setattr__(globals(), "_CURRENT", tmp)
         yield tmp
     finally:
         object.__setattr__(globals(), "_CURRENT", prev)

@@ -24,6 +24,16 @@ class DetachWrapper(nn.Module):
             return self.mod(*args, **kwargs)
 
 
+def _softplus_mlp(in_dim: int, hidden: int, out_dim: int):
+    mlp = nn.Sequential(nn.Linear(in_dim, hidden), nn.Softplus(), nn.Linear(hidden, out_dim))
+    # small, well-conditioned init
+    for m in mlp.modules():
+        if isinstance(m, nn.Linear):
+            nn.init.xavier_uniform_(m.weight, gain=0.5)
+            nn.init.zeros_(m.bias)
+    return mlp
+
+
 class PINN(nn.Module):
     """
     f(x) = rho( [ mean_i φ(x_i),  mean_{i<j} ψ(||x_i - x_j||) ] ),  output shape: (B,1)
@@ -155,38 +165,77 @@ class PINN(nn.Module):
         return groups
 
     # ---------- forward ----------
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
+    def forward(self, x: torch.Tensor, spin: torch.Tensor | None = None) -> torch.Tensor:
         """
-        x: (B, N, d) -> out: (B, 1) is log-correlation f(x)
+        x: (B, N, d)  ->  out: (B, 1) = log-correlation f(x)
         """
         B, N, d = x.shape
         assert N == self.n_particles and d == self.d
-        x = x * self.omega**0.5
-        # φ branch: mean over particles
-        phi_flat = x.reshape(B * N, d)  # (B*N, d)
-        phi_out = self.phi(phi_flat).reshape(B, N, self.dL)  # (B, N, dL)
-        phi_mean = phi_out.mean(dim=1)  # (B, dL)
 
-        # ψ branch: distances for i<j, then mean over pairs
-        diff = x.unsqueeze(2) - x.unsqueeze(1)  # (B, N, N, d)
-        diff_pairs = diff[:, self.idx_i, self.idx_j, :]  # (B, P, d)
-        r_ij = diff_pairs.norm(dim=-1, keepdim=True)  # (B,P,1), x already scaled by sqrt(omega)
-        eps = 3e-2  # scaled units (0.02–0.05 works well)
-        inv_r = 1.0 / (1.0 + eps + r_ij)  # (B,P,1), bounded, smooth
-        cos_r = torch.cos(r_ij)  # (B,P,1), low-k radial
+        # scaled coords
+        x = x * (self.omega**0.5)
 
-        psi_in = torch.cat([r_ij, inv_r, cos_r], dim=-1)  # (B,P,3)
-        psi_out = self.psi(psi_in.reshape(-1, 3)).reshape(B, -1, self.dL)  # (B,P,dL)
-        # psi_out = self.psi_norm(psi_out)
-        psi_mean = psi_out.mean(dim=1)  # (B,dL)            # (B,dL)
-        # ρ readout
-        r2_mean = (x**2).mean(dim=(1, 2)).unsqueeze(1)  # (B,1)
-        mean_rij = r_ij.mean(dim=(1, 2)).unsqueeze(1)  # (B,1)
-        cos1 = torch.cos(r_ij).mean(dim=(1, 2)).unsqueeze(1) * 0.5  # (B,1)  α1 = 1/(1+1^2)
+        # ---------------- particle branch (φ) ----------------
+        phi_flat = x.reshape(B * N, d)
+        phi_out = self.phi(phi_flat).reshape(B, N, self.dL)  # (B,N,dL)
+        phi_mean = phi_out.mean(dim=1)  # (B,dL)
 
-        extras = torch.cat([r2_mean, mean_rij, cos1], dim=1)  # (B,3)
+        # ---------------- pairwise branch (ψ) ----------------
+        diff = x.unsqueeze(2) - x.unsqueeze(1)  # (B,N,N,d)
+        diff_pairs = diff[:, self.idx_i, self.idx_j, :]  # (B,P,d)
+        r2 = (diff_pairs * diff_pairs).sum(dim=-1, keepdim=True)  # (B,P,1)
+
+        # soft-core distance for bounded ∂ and ∂²
+        delta = getattr(self, "delta_soft", 3e-2)  # scaled units
+        delta = torch.as_tensor(delta, dtype=x.dtype, device=x.device)
+        r_soft = torch.sqrt(r2 + delta * delta)  # (B,P,1)
+
+        inv_r = 1.0 / (1.0 + r_soft)  # bounded, smooth
+        cos_r = torch.cos(r_soft)  # low-k radial
+        psi_in = torch.cat([r_soft, inv_r, cos_r], dim=-1)  # (B,P,3)
+
+        psi_out = self.psi(psi_in.reshape(-1, 3)).reshape(B, -1, self.dL)
+        psi_mean = psi_out.mean(dim=1)  # (B,dL)
+
+        # ---------------- simple global extras ----------------
+        r2_mean = (x**2).mean(dim=(1, 2), keepdim=True).reshape(B, 1)  # (B,1)
+        mean_r = r_soft.mean(dim=(1, 2), keepdim=True).reshape(B, 1)  # (B,1)
+        cos1 = torch.cos(r_soft).mean(dim=(1, 2), keepdim=True).mul(0.5).reshape(B, 1)  # (B,1)
+
+        extras = torch.cat([r2_mean, mean_r, cos1], dim=1)  # (B,3)
+
+        # ---------------- readout ----------------
         rho_in = torch.cat([phi_mean, psi_mean, extras], dim=1)
-        out = self.rho(rho_in)  # (B, 1)
+        out = self.rho(rho_in)  # (B,1)
+
+        # ---------------- exact cusp term ----------------
+        # if not provided, assume closed shell
+        if spin is None:
+            up = N // 2
+            spin = torch.cat(
+                [
+                    torch.zeros(up, dtype=torch.long, device=x.device),
+                    torch.ones(N - up, dtype=torch.long, device=x.device),
+                ]
+            )
+        # spin pair mask (P,)
+        same_spin = (spin[self.idx_i] == spin[self.idx_j]).to(x.dtype)
+
+        # γ coefficients (register as buffers; defaults shown)
+        gamma_para = torch.as_tensor(
+            getattr(self, "gamma_para", 0.25), dtype=x.dtype, device=x.device
+        )
+        gamma_apara = torch.as_tensor(
+            getattr(self, "gamma_apara", 0.50), dtype=x.dtype, device=x.device
+        )
+
+        gamma = same_spin * gamma_para + (1.0 - same_spin) * gamma_apara  # (P,)
+        gamma = gamma.view(1, -1, 1)  # (1,P,1) for broadcast
+
+        # Add ∑_{i<j} γ_ij * r_soft as a fixed analytic contribution to log Ψ
+        cusp = (gamma * r_soft).sum(dim=1)  # (B,1)
+        out = out + cusp
+
         return out
 
 

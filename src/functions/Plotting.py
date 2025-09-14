@@ -1,4 +1,6 @@
 import math
+from collections.abc import Mapping
+from typing import Any, cast
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -6,6 +8,17 @@ import torch
 from tqdm import tqdm
 
 from .Slater_Determinant import slater_determinant_closed_shell
+
+
+def _coerce_int(d: Mapping[str, Any], keys: tuple[str, ...], default: int) -> int:
+    """Return the first key present in d as int,
+    accepting ints/floats/numpy scalars; else default."""
+    for k in keys:
+        v = d.get(k)
+        # Py311+ allows union types in isinstance:
+        if isinstance(v, int | np.integer | float | np.floating):
+            return int(v)
+    return default
 
 
 def make_mala_sample_fn(
@@ -16,119 +29,129 @@ def make_mala_sample_fn(
     *,
     backflow_net=None,
     spin: torch.Tensor | None = None,  # (N,) or (B,N)
-    step_size=0.02,
-    n_steps=40,
-    burn_in=80,
-    thinning=2,
-    init_std=1.0,
-    device=None,
-    dtype=torch.float32,
+    step_size: float = 0.02,  # Langevin step (per-dim variance = step_size)
+    n_steps: int = 40,
+    burn_in: int = 80,
+    thinning: int = 2,
+    init_std: float = 1.0,
+    device: torch.device | None = None,
+    dtype: torch.dtype = torch.float32,
+    # Burn-in adaptation (optional)
+    adapt_step: bool = True,
+    target_accept: float = 0.55,  # aim for ~0.35–0.60
+    adapt_rate: float = 0.05,  # learning rate for log(step) updates during burn-in
+    grad_clip: float | None = None,  # e.g., 10.0 to clip ||grad||
 ):
     """
-    Returns sample_fn(batch_size) -> (B, N, D) ~ |ψ|^2 via MALA.
-    ψ may include backflow via psi_fn(..., backflow_net=..., spin=...).
-    Accept/reject is done with batch indexing (no broadcasting bugs).
+    Returns sample_fn(batch_size) -> (B, N, D) ~ |ψ|^2 via MALA using your psi_fn API:
+      psi_fn(f_net, x, C_occ, backflow_net=..., spin=..., params=...) -> (logpsi, psi)
+
+    Exposes:
+      sample_fn.last_accept: Optional[float]
+      sample_fn.step_size: float
     """
-
-    # --- helpers ---
-    def _asdict(p):
-        return p if isinstance(p, dict) else vars(p)
-
-    def _pget(p, key, default=None):
-        return p[key] if key in p else default
-
-    P = _asdict(params)
+    P: Mapping[str, Any] = params if isinstance(params, dict) else vars(params)
     device = device or (torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu"))
 
-    f_net_local = f_net.to(device=device, dtype=dtype).eval()
-    C_occ_local = C_occ.to(device=device, dtype=dtype)
-    backflow_net_local = (
-        backflow_net.to(device=device, dtype=dtype).eval() if backflow_net is not None else None
-    )
+    f_net = f_net.to(device=device, dtype=dtype).eval()
+    C_occ = C_occ.to(device=device, dtype=dtype)
+    if backflow_net is not None:
+        backflow_net = backflow_net.to(device=device, dtype=dtype).eval()
 
-    Np = int(_pget(P, "n_particles", _pget(P, "N", 2)))
-    D = int(_pget(P, "d", 2))
-    eps = torch.finfo(dtype).eps
-    step = torch.as_tensor(step_size, device=device, dtype=dtype)
+    Np = _coerce_int(P, ("n_particles", "N"), 2)
+    D = _coerce_int(P, ("d",), 2)
 
-    # Default spin (closed shell) if not provided
     if spin is None:
         up = Np // 2
-        down = Np - up
         spin = torch.cat(
-            [torch.zeros(up, dtype=torch.long), torch.ones(down, dtype=torch.long)]
+            [torch.zeros(up, dtype=torch.long), torch.ones(Np - up, dtype=torch.long)], dim=0
         ).to(device)
     else:
         spin = spin.to(device)
 
-    def logp_and_grad(X):
-        # X: (B,N,D) with requires_grad=True
-        psi = psi_fn(
-            f_net_local,
-            X,
-            C_occ_local,
-            backflow_net=backflow_net_local,
-            spin=spin,
-            params=params,
-        )  # (B,) or (B,1)
-        # Ensure 1-D per batch
-        if psi.ndim > 1 and psi.shape[-1] == 1:
-            psi = psi.squeeze(-1)
+    # keep step as a tensor
+    step = torch.tensor(float(step_size), device=device, dtype=dtype)
 
-        if torch.is_complex(psi):
-            amp2 = (psi.real**2 + psi.imag**2).clamp_min(eps)  # (B,)
-        else:
-            amp2 = (psi**2).clamp_min(eps)  # (B,)
+    def _logp_and_grad(X: torch.Tensor):
+        # log p(x) = 2 * logψ(x)
+        logpsi, _psi = psi_fn(f_net, X, C_occ, backflow_net=backflow_net, spin=spin, params=params)
+        if logpsi.ndim > 1:
+            logpsi = logpsi.squeeze(-1)
+        logp = 2.0 * logpsi
+        (g,) = torch.autograd.grad(logp.sum(), X, create_graph=False, retain_graph=False)
+        if grad_clip is not None:
+            B = g.shape[0]
+            g_flat = g.view(B, -1)
+            norms = g_flat.norm(dim=1).clamp_min(1e-12)
+            scale = (norms.clamp(max=grad_clip) / norms).view(B, 1, 1)
+            g = g * scale
+        return logp.detach(), g.detach()
 
-        logp = torch.log(amp2)  # (B,)
-        (g,) = torch.autograd.grad(logp.sum(), X, create_graph=False)
-        return logp, g
-
-    def log_q(x_to, x_from, grad_from, step):
-        # Gaussian proposal: mean = x_from + (step/2)*grad_from, cov = step*I
-        mean = x_from + 0.5 * step * grad_from
+    def _log_q(x_to, x_from, grad_from, step_scalar: torch.Tensor):
+        mean = x_from + 0.5 * step_scalar * grad_from
         diff = x_to - mean
-        return -(diff.pow(2).sum(dim=[1, 2])) / (2.0 * step)
+        return -(diff.pow(2).sum(dim=(1, 2))) / (2.0 * step_scalar)
 
-    def _accept_move(X, X_prop, logp_x, grad_x, logp_y, grad_y):
-        # MALA acceptance (batchwise)
+    def _accept_move(X, X_prop, logp_x, grad_x, logp_y, grad_y, step_scalar: torch.Tensor):
         log_acc = (logp_y - logp_x) + (
-            log_q(X, X_prop, grad_y, step) - log_q(X_prop, X, grad_x, step)
+            _log_q(X, X_prop, grad_y, step_scalar) - _log_q(X_prop, X, grad_x, step_scalar)
         )
         u = torch.rand(X.shape[0], device=device).log()
-        accept = u < log_acc  # (B,)
+        accept = u < log_acc
         X = X.detach()
         X_prop = X_prop.detach()
         X[accept] = X_prop[accept]
-        return X.requires_grad_(True)
+        return X.requires_grad_(True), float(accept.float().mean().item())
 
-    def sample_fn(batch_size):
-        # init ~ N(0, init_std^2 I)
-        X = init_std * torch.randn(batch_size, Np, D, device=device, dtype=dtype)
-        X.requires_grad_(True)
+    def sample_fn(batch_size: int):
+        X = (init_std * torch.randn(batch_size, Np, D, device=device, dtype=dtype)).requires_grad_(
+            True
+        )
 
-        # --- burn-in ---
+        acc_hist: list[float] = []
+
+        # ---- burn-in (with optional tensor-safe step adaptation) ----
         for _ in range(burn_in):
-            logp_x, grad_x = logp_and_grad(X)
+            logp_x, grad_x = _logp_and_grad(X)
             noise = torch.randn_like(X)
-            X_prop = X + 0.5 * step * grad_x + torch.sqrt(step) * noise
-            X_prop.requires_grad_(True)
-            logp_y, grad_y = logp_and_grad(X_prop)
-            X = _accept_move(X, X_prop, logp_x, grad_x, logp_y, grad_y)
+            X_prop = (X + 0.5 * step * grad_x + torch.sqrt(step) * noise).requires_grad_(True)
+            logp_y, grad_y = _logp_and_grad(X_prop)
+            X, acc_rate = _accept_move(X, X_prop, logp_x, grad_x, logp_y, grad_y, step)
+            acc_hist.append(acc_rate)
 
-        # --- production with thinning; keep final state ---
+            if adapt_step:
+                # Tensor-safe Robbins–Monro on log(step)
+                with torch.no_grad():
+                    err_t = torch.as_tensor(acc_rate - target_accept, device=device, dtype=dtype)
+                    step.mul_(torch.exp(adapt_rate * err_t)).clamp_(min=1e-6, max=1.0)
+
+        # ---- production with thinning ----
+        prod_acc: list[float] = []
         for _ in range(n_steps):
             for __ in range(thinning):
-                logp_x, grad_x = logp_and_grad(X)
+                logp_x, grad_x = _logp_and_grad(X)
                 noise = torch.randn_like(X)
-                X_prop = X + 0.5 * step * grad_x + torch.sqrt(step) * noise
-                X_prop.requires_grad_(True)
-                logp_y, grad_y = logp_and_grad(X_prop)
-                X = _accept_move(X, X_prop, logp_x, grad_x, logp_y, grad_y)
+                X_prop = (X + 0.5 * step * grad_x + torch.sqrt(step) * noise).requires_grad_(True)
+                logp_y, grad_y = _logp_and_grad(X_prop)
+                X, acc_rate = _accept_move(X, X_prop, logp_x, grad_x, logp_y, grad_y, step)
+                prod_acc.append(acc_rate)
+
+        # Attach attributes on the function object (cast to Any for mypy)
+        cast(Any, sample_fn).last_accept = (
+            (sum(prod_acc) / max(1, len(prod_acc)))
+            if prod_acc
+            else (sum(acc_hist) / max(1, len(acc_hist)))
+        )
+        cast(Any, sample_fn).step_size = float(step.item())
 
         return X.detach()
 
-    return sample_fn
+    # Initialize attributes so they exist before first call
+    cast(Any, sample_fn).last_accept = None
+    cast(Any, sample_fn).step_size = float(step.item())
+
+    # Return as Any so downstream attribute access type-checks
+    return cast(Any, sample_fn)
 
 
 # -------------------------

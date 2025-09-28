@@ -5,7 +5,7 @@
 from __future__ import annotations
 
 import math
-from math import factorial, log
+from math import factorial
 
 import numpy as np
 import torch
@@ -637,56 +637,91 @@ def slater_determinant_closed_shell(
     C_occ: torch.Tensor,
     *,
     params=None,
+    spin: torch.Tensor | None = None,  # (N,) or (B,N) with identical rows
     normalize: bool = True,
-) -> torch.Tensor:
+) -> tuple[torch.Tensor, torch.Tensor]:
     """
-    Closed-shell Slater determinant (basis-agnostic).
-      - If params['basis'] starts with "fd", use FD evaluator (@inject_params).
-      - Else use Cartesian evaluator with (n_basis_x, n_basis_y).
-      - For N=2 and n_occ=1, uses product shortcut φ_occ(r1) φ_occ(r2).
-    Returns: (B,1) real/float tensor.
+    Closed-shell Slater determinant with explicit spin row selection.
+    Returns (sign, logabs), both shape (B,).
+    Assumes a full shell: N even and N_up=N_down=N/2.
     """
     device = x_config.device
     B, N, d = x_config.shape
     if d < 2:
         raise ValueError("x_config must contain (x,y) coordinates.")
+    if (N % 2) != 0:
+        raise ValueError("Closed-shell requires even N.")
+    n_spin = N // 2
 
     basis = params.get("basis", "cart").lower()
     omega = params["omega"]
     n_basis_x = params["nx"]
     n_basis_y = params["ny"]
+
     if basis.startswith("fd"):
         emax = params["emax"]
         make_real = params.get("fd_make_real", True)
         Phi = _evaluate_fd_basis_torch_batch(
             x_config, emax=emax, omega=omega, make_real=make_real
-        )  # (B,N,nb_fd)
+        )  # (B,N,n_basis)
     else:
-        Phi = evaluate_basis_functions_torch_batch_2d(x_config, n_basis_x, n_basis_y)
+        Phi = evaluate_basis_functions_torch_batch_2d(
+            x_config, n_basis_x, n_basis_y
+        )  # (B,N,n_basis)
 
+    # orbitals for occupied columns
     C_occ = C_occ.to(device=device, dtype=Phi.dtype)  # (n_basis, n_occ)
     if Phi.shape[-1] != C_occ.shape[0]:
         raise RuntimeError(
-            f"Basis size mismatch: Phi has {Phi.shape[-1]} cols, C_occ has {C_occ.shape[0]} rows."
+            f"Basis size mismatch: Phi has {Phi.shape[-1]}, C_occ has {C_occ.shape[0]}."
         )
+    Psi = torch.matmul(Phi, C_occ)  # (B, N, n_occ)
 
-    Psi = torch.matmul(Phi, C_occ)  # (B,N,n_occ)
+    # --- select electron rows by spin ---
+    if spin is None:
+        spin_vec = torch.cat(
+            [
+                torch.zeros(n_spin, dtype=torch.long, device=device),
+                torch.ones(n_spin, dtype=torch.long, device=device),
+            ],
+            dim=0,
+        )  # (N,)
+    else:
+        s = spin.to(device)
+        if s.dim() == 1:
+            if s.numel() != N:
+                raise ValueError(f"spin has {s.numel()} entries but N={N}.")
+            spin_vec = s.long()
+        elif s.dim() == 2:
+            if s.shape != (B, N):
+                raise ValueError(f"spin shape {tuple(s.shape)} != (B,N)=({B},{N}).")
+            # For closed-shell MC we expect the same spin pattern across the batch.
+            if not torch.all(s == s[0:1]).item():
+                raise ValueError("For batched closed-shell, spin must be identical across batch.")
+            spin_vec = s[0].long()  # use the shared pattern
+        else:
+            raise ValueError("spin must be (N,) or (B,N).")
 
-    # general closed-shell determinant with spin split [↑...][↓...]
-    n_spin = N // 2
-    Psi_up = Psi[:, :n_spin, :]
-    Psi_down = Psi[:, n_spin:, :]
+    idx_up = torch.nonzero(spin_vec == 0, as_tuple=False).squeeze(-1)
+    idx_down = torch.nonzero(spin_vec == 1, as_tuple=False).squeeze(-1)
+    if idx_up.numel() != n_spin or idx_down.numel() != n_spin:
+        raise ValueError("Closed-shell requires exactly N/2 up and N/2 down electrons.")
 
-    sign_u, log_u = _slogdet_batched(Psi_up)
-    sign_d, log_d = _slogdet_batched(Psi_down)
-    sign = sign_d * sign_u
-    logabs = log_u + log_d - log(factorial(n_spin))
-    # det_full = (sign_u * sign_d) * torch.exp(log_u + log_d)  # (B,)
+    Psi_up = Psi.index_select(dim=1, index=idx_up)  # (B, n_spin, n_occ_up)
+    Psi_down = Psi.index_select(dim=1, index=idx_down)  # (B, n_spin, n_occ_down)
 
-    # if normalize and n_spin > 1:
-    #     det_full = det_full / math.factorial(n_spin)
+    # robust slogdet
+    sign_u, log_u = torch.linalg.slogdet(Psi_up)
+    sign_d, log_d = torch.linalg.slogdet(Psi_down)
 
-    return sign, logabs  # det_full.view(B, 1)
+    sign = sign_d * sign_u  # (B,)
+    logabs = log_u + log_d
+
+    # Optional normalization by n_spin! (unchanged from your version)
+    if normalize:
+        logabs = logabs - math.lgamma(n_spin + 1)
+
+    return sign, logabs
 
 
 # ===============================================================

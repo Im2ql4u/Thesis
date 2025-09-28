@@ -14,13 +14,13 @@ def compute_coulomb_interaction(
     *,
     params=None,
     eps_rel: float = 1e-6,  # ε = eps_rel * 1/sqrt(ω)  (physical units)
-    cap: float = 1e6,  # clamp absurd contributions
+    cap: float = 1e8,  # clamp absurd contributions
 ) -> torch.Tensor:
     """
     Vectorized Coulomb with C² soft-core radius r̃ = sqrt(r^2 + ε^2).
     Returns V_int of shape (B,1).
     """
-    kappa = float(params["V"])
+    kappa = 1  # float(params["V"])
     omega = float(params["omega"])
     B, N, d = x.shape
     dev = x.device

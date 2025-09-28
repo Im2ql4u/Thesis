@@ -24,20 +24,17 @@ class DetachWrapper(nn.Module):
             return self.mod(*args, **kwargs)
 
 
-def _softplus_mlp(in_dim: int, hidden: int, out_dim: int):
-    mlp = nn.Sequential(nn.Linear(in_dim, hidden), nn.Softplus(), nn.Linear(hidden, out_dim))
-    # small, well-conditioned init
-    for m in mlp.modules():
-        if isinstance(m, nn.Linear):
-            nn.init.xavier_uniform_(m.weight, gain=0.5)
-            nn.init.zeros_(m.bias)
-    return mlp
-
-
 class PINN(nn.Module):
     """
-    f(x) = rho( [ mean_i φ(x_i),  mean_{i<j} ψ(||x_i - x_j||) ] ),  output shape: (B,1)
-    Use exp(f) as your correlation factor: Ψ(x) = SD(x) * exp(f(x)).
+    f(x) = rho([ mean_i φ(x_i),  pooled_{i<j} ψ(safe_features(r_ij)) , safe_extras ]) -> (B,1)
+    Ψ(x) = SD(x) * exp(f(x)).
+    Adds analytic cusp u(r)=γ r exp(-r/ℓ) directly to log Ψ.
+
+    Safe-by-design:
+      • Pair features: ds/dr → 0 as r→0 (no extra 1/r in ∇/Δ logΨ).
+      • No raw r in 'extras' (uses ⟨r²⟩ and safe ⟨s1⟩).
+      • Optional gate χ(r): χ(0)=χ'(0)=0, fades to 1 past ~0.3 a_ho.
+      • Optional simple radial attention (degree-normalized).
     """
 
     def __init__(
@@ -46,49 +43,55 @@ class PINN(nn.Module):
         d: int,
         omega: float,
         *,
-        dL: int = 5,  # feature width per branch
+        dL: int = 5,
         hidden_dim: int = 128,
-        n_layers: int = 2,  # hidden layers per φ/ψ MLP
+        n_layers: int = 2,
         act: str = "gelu",
-        init: str = "xavier",  # "xavier"|"he"|"custom"|"lecun"
+        init: str = "xavier",
+        use_pair_attn: bool = False,
+        use_gate: bool = True,
+        gate_radius_aho: float = 0.30,
+        eps_feat_aho: float = 0.20,
     ):
         super().__init__()
-        self.n_particles = n_particles
-        self.d = d
-        self.dL = dL
-        self.omega = omega
+        self.n_particles = int(n_particles)
+        self.d = int(d)
+        self.dL = int(dL)
+        self.omega = float(omega)
+        self.use_pair_attn = bool(use_pair_attn)
+        self.use_gate = bool(use_gate)
+        self.gate_radius_aho = float(gate_radius_aho)
+        self.eps_feat_aho = float(eps_feat_aho)
 
-        # --- activations ---
+        # indices for i<j pairs
+        ii, jj = torch.triu_indices(self.n_particles, self.n_particles, offset=1)
+        self.register_buffer("idx_i", ii, persistent=False)
+        self.register_buffer("idx_j", jj, persistent=False)
+
+        # activations / MLPs
         self.act = self._make_act(act)
+        self.phi = self._build_mlp(self.d, hidden_dim, self.dL, n_layers, self.act)
+        self.psi_in_dim = 6
+        self.psi = self._build_mlp(self.psi_in_dim, hidden_dim, self.dL, n_layers, self.act)
+        # inputs: mean φ (dL) + pooled ψ (dL) + safe extras (2) = 2*dL + 2
+        self.rho = self._build_mlp(2 * self.dL + 2, hidden_dim, 1, 2, self.act)
 
-        # --- i<j index buffers (move with device) ---
-        idx_i, idx_j = torch.triu_indices(n_particles, n_particles, offset=1)
-        self.register_buffer("idx_i", idx_i, persistent=False)
-        self.register_buffer("idx_j", idx_j, persistent=False)
+        # optional norms (off by default)
+        self.psi_norm = nn.LayerNorm(self.dL, elementwise_affine=True)
+        self.rho_norm = nn.LayerNorm(2 * self.dL + 2, elementwise_affine=True)
 
-        # --- φ: per-particle MLP, maps ℝ^d → ℝ^{dL} ---
-        self.phi = self._build_mlp(
-            in_dim=d, hidden_dim=hidden_dim, out_dim=dL, n_layers=n_layers, act=self.act
-        )
-
-        # --- ψ: pairwise MLP, maps ℝ → ℝ^{dL} (input is r_ij = ||x_i - x_j||) ---
-        self.psi = self._build_mlp(
-            in_dim=3, hidden_dim=hidden_dim, out_dim=dL, n_layers=n_layers, act=self.act
-        )
-        self.psi_norm = nn.LayerNorm(dL, elementwise_affine=True)  # optional, see §3
-
-        # --- ρ: tiny readout
-        self.rho = nn.Linear(2 * dL + 3, 1)
-        self.rho_norm = nn.LayerNorm(2 * dL + 3, elementwise_affine=True)
-
-        # init
         self._initialize_weights(init)
-        # Optional: start ρ as small non-zero so grads flow even if you freeze it
-        with torch.no_grad():
-            self.rho.weight.fill_(1.0 / (2 * dL + 3))
-            self.rho.bias.zero_()
 
-    # ---------- helpers ----------
+        # analytic cusp params (general d): γ_ud=1/(d-1), γ_uu=1/(d+1)
+        self.gamma_apara = 1.0 / max(1, (self.d - 1))
+        self.gamma_para = 1.0 / (self.d + 1)
+        self.cusp_len = 1.0 / (self.omega**0.5)
+
+        # attention defaults
+        self.attn_rc = 0.4
+        self.attn_p = 6.0
+
+    # ----- utils -----
     def _make_act(self, name: str) -> nn.Module:
         name = name.lower()
         if name == "relu":
@@ -116,8 +119,7 @@ class PINN(nn.Module):
         for m in self.modules():
             if isinstance(m, nn.Linear):
                 if scheme == "custom":
-                    gain = 1.13  # good for GELU-ish
-                    nn.init.xavier_normal_(m.weight, gain=gain)
+                    nn.init.xavier_normal_(m.weight, gain=1.13)
                 elif scheme == "xavier":
                     nn.init.xavier_normal_(m.weight)
                 elif scheme == "he":
@@ -128,115 +130,143 @@ class PINN(nn.Module):
                     raise ValueError(f"Unknown init scheme {scheme}")
                 nn.init.zeros_(m.bias)
 
-    # ---------- trainability controls ----------
-    def set_trainable(self, *, phi: bool = True, psi: bool = True, rho: bool = True):
-        for p in self.phi.parameters():
-            p.requires_grad = phi
-        for p in self.psi.parameters():
-            p.requires_grad = psi
-        for p in self.rho.parameters():
-            p.requires_grad = rho
-
-    def freeze_rho_as_avg(self):
+    # ----- safe radial features & gate -----
+    def _safe_pair_features(self, r: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
         """
-        Freeze ρ as a fixed averaging readout so φ/ψ still backpropagate.
+        r: (B,P,1)
+        Returns (features, s1_mean) where features is (B,P,6) and s1_mean is (B,1) for extras.
+        All channels have ds/dr -> 0 as r->0.
         """
-        with torch.no_grad():
-            self.rho.weight.fill_(1.0 / (2 * self.dL + 3))
-            self.rho.bias.zero_()
-        for p in self.rho.parameters():
-            p.requires_grad = False
+        a_ho = 1.0 / (self.omega**0.5)
+        eps = self.eps_feat_aho * a_ho
+        r2 = r * r
+        rt = torch.sqrt(r2 + eps * eps)  # mollified radius
 
-    def unfreeze_rho(self, *, reinit_zero: bool = False):
-        if reinit_zero:
-            nn.init.zeros_(self.rho.weight)
-            nn.init.zeros_(self.rho.bias)
-        for p in self.rho.parameters():
-            p.requires_grad = True
+        s1 = torch.log1p((rt / eps) ** 2)  # ds/dr ~ 2r/eps^2
+        s2 = r2 / (r2 + eps * eps)  # ds/dr ~ O(r)
+        s3 = (rt / eps) ** 2 * torch.exp(-((rt / eps) ** 2))  # bump, ds/dr ~ O(r)
 
-    def param_groups(self, *, lr_phi=1e-3, lr_psi=1e-3, lr_rho=2e-4, wd=0.0):
-        groups = []
-        if any(p.requires_grad for p in self.phi.parameters()):
-            groups.append({"params": list(self.phi.parameters()), "lr": lr_phi, "weight_decay": wd})
-        if any(p.requires_grad for p in self.psi.parameters()):
-            groups.append({"params": list(self.psi.parameters()), "lr": lr_psi, "weight_decay": wd})
-        if any(p.requires_grad for p in self.rho.parameters()):
-            groups.append({"params": list(self.rho.parameters()), "lr": lr_rho, "weight_decay": wd})
-        return groups
+        g = torch.as_tensor([0.25, 1.0, 4.0], device=r.device, dtype=r.dtype).view(1, 1, -1)
+        rbf = torch.exp(-g * s1)  # χ(0)=1, χ'(0)=0
 
-    # ---------- forward ----------
+        feat = torch.cat([s1, s2, s3, rbf], dim=-1)  # (B,P,6)
+        s1_mean = s1.mean(dim=1, keepdim=False)  # (B,1) safe extra
+        return feat, s1_mean
+
+    def _short_range_gate(self, r: torch.Tensor) -> torch.Tensor:
+        """χ(0)=0, χ'(0)=0, χ→1 after ~gate_radius_aho * a_ho. r: (B,P,1)"""
+        if not self.use_gate:
+            return torch.ones_like(r)
+        a_ho = 1.0 / (self.omega**0.5)
+        rg = self.gate_radius_aho * a_ho
+        r2 = r * r
+        return r2 / (r2 + rg * rg)
+
+    # ----- forward -----
     def forward(self, x: torch.Tensor, spin: torch.Tensor | None = None) -> torch.Tensor:
         """
-        x: (B, N, d)  ->  out: (B, 1) = log-correlation f(x)
+        x: (B,N,d) -> (B,1), returns NN f plus analytic cusp (added to log Ψ).
         """
         B, N, d = x.shape
         assert N == self.n_particles and d == self.d
 
-        # scaled coords
-        x = x * (self.omega**0.5)
+        # scaled coords for φ/extras
+        x_scaled = x * (self.omega**0.5)
 
-        # ---------------- particle branch (φ) ----------------
-        phi_flat = x.reshape(B * N, d)
-        phi_out = self.phi(phi_flat).reshape(B, N, self.dL)  # (B,N,dL)
-        phi_mean = phi_out.mean(dim=1)  # (B,dL)
-
-        # ---------------- pairwise branch (ψ) ----------------
+        # pairwise distances
         diff = x.unsqueeze(2) - x.unsqueeze(1)  # (B,N,N,d)
         diff_pairs = diff[:, self.idx_i, self.idx_j, :]  # (B,P,d)
         r2 = (diff_pairs * diff_pairs).sum(dim=-1, keepdim=True)  # (B,P,1)
+        r = torch.sqrt(r2 + torch.finfo(x.dtype).eps)  # (B,P,1)
+        P = r.shape[1]
 
-        # soft-core distance for bounded ∂ and ∂²
-        delta = getattr(self, "delta_soft", 3e-2)  # scaled units
-        delta = torch.as_tensor(delta, dtype=x.dtype, device=x.device)
-        r_soft = torch.sqrt(r2 + delta * delta)  # (B,P,1)
+        # φ branch
+        phi_flat = x_scaled.reshape(B * N, d)
+        phi_out = self.phi(phi_flat).reshape(B, N, self.dL)
+        phi_mean = phi_out.mean(dim=1)  # (B,dL)
 
-        inv_r = 1.0 / (1.0 + r_soft)  # bounded, smooth
-        cos_r = torch.cos(r_soft)  # low-k radial
-        psi_in = torch.cat([r_soft, inv_r, cos_r], dim=-1)  # (B,P,3)
+        # ψ branch (safe features)
+        psi_in, s1_mean = self._safe_pair_features(r)  # (B,P,6), (B,1)
+        psi_out = self.psi(psi_in.reshape(-1, self.psi_in_dim)).reshape(B, P, self.dL)
 
-        psi_out = self.psi(psi_in.reshape(-1, 3)).reshape(B, -1, self.dL)
-        psi_mean = psi_out.mean(dim=1)  # (B,dL)
+        # optional gate near coalescence
+        gate = self._short_range_gate(r)  # (B,P,1)
+        psi_out = psi_out * gate
 
-        # ---------------- simple global extras ----------------
-        r2_mean = (x**2).mean(dim=(1, 2), keepdim=True).reshape(B, 1)  # (B,1)
-        mean_r = r_soft.mean(dim=(1, 2), keepdim=True).reshape(B, 1)  # (B,1)
-        cos1 = torch.cos(r_soft).mean(dim=(1, 2), keepdim=True).mul(0.5).reshape(B, 1)  # (B,1)
+        # (optional) psi_out = self.psi_norm(psi_out)
 
-        extras = torch.cat([r2_mean, mean_r, cos1], dim=1)  # (B,3)
+        # pair pooling
+        if self.use_pair_attn:
+            attn_rc = torch.as_tensor(self.attn_rc, dtype=x.dtype, device=x.device).clamp_min(1e-4)
+            attn_p = torch.as_tensor(self.attn_p, dtype=x.dtype, device=x.device).clamp_min(1.0)
+            w = torch.exp(-((r / attn_rc) ** attn_p)).squeeze(-1)  # (B,P)
 
-        # ---------------- readout ----------------
-        rho_in = torch.cat([phi_mean, psi_mean, extras], dim=1)
+            i_idx = self.idx_i
+            den = torch.zeros(B, N, dtype=x.dtype, device=x.device)
+            den.scatter_add_(1, i_idx.unsqueeze(0).expand(B, -1), w)  # sum_j w_ij
+            den = den.index_select(1, i_idx).unsqueeze(-1) + 1e-12  # (B,P,1)
+            w = (w / den.squeeze(-1)).unsqueeze(-1)  # (B,P,1)
+
+            g = torch.zeros(B, N, self.dL, dtype=psi_out.dtype, device=x.device)
+            g.index_add_(1, i_idx, w * psi_out)  # (B,N,dL)
+            psi_mean = g.mean(dim=1)  # (B,dL)
+        else:
+            psi_mean = psi_out.mean(dim=1)  # (B,dL)
+
+        # SAFE extras only: <r^2> in trap units and <s1>
+        r2_mean = (x_scaled**2).mean(dim=(1, 2), keepdim=False).unsqueeze(-1)  # (B,1)
+        extras = torch.cat([r2_mean, s1_mean], dim=1)  # (B,2)
+
+        # readout
+        rho_in = torch.cat([phi_mean, psi_mean, extras], dim=1)  # (B,2*dL+2)
+        # rho_in = self.rho_norm(rho_in)
         out = self.rho(rho_in)  # (B,1)
 
-        # ---------------- exact cusp term ----------------
-        # if not provided, assume closed shell
+        # analytic cusp (added to log Ψ)
         if spin is None:
             up = N // 2
-            spin = torch.cat(
-                [
-                    torch.zeros(up, dtype=torch.long, device=x.device),
-                    torch.ones(N - up, dtype=torch.long, device=x.device),
-                ]
-            )
-        # spin pair mask (P,)
-        same_spin = (spin[self.idx_i] == spin[self.idx_j]).to(x.dtype)
+            spin = (
+                torch.cat(
+                    [
+                        torch.zeros(up, dtype=torch.long, device=x.device),
+                        torch.ones(N - up, dtype=torch.long, device=x.device),
+                    ],
+                    dim=0,
+                )
+                .unsqueeze(0)
+                .expand(B, -1)
+            )  # (B,N)
+        else:
+            if spin.dim() == 1:
+                spin = spin.to(x.device).long().unsqueeze(0).expand(B, -1)
+            elif spin.dim() == 2:
+                spin = spin.to(x.device).long()
+                if spin.shape != (B, N):
+                    raise ValueError(f"spin shape {tuple(spin.shape)} != (B,N)=({B},{N})")
+            else:
+                raise ValueError("spin must be (N,) or (B,N)")
 
-        # γ coefficients (register as buffers; defaults shown)
-        gamma_para = torch.as_tensor(
-            getattr(self, "gamma_para", 0.25), dtype=x.dtype, device=x.device
+        si = spin[:, self.idx_i]
+        sj = spin[:, self.idx_j]
+        same_spin = (si == sj).to(x.dtype).unsqueeze(-1)  # (B,P,1)
+
+        gamma_para = torch.as_tensor(self.gamma_para, dtype=x.dtype, device=x.device).view(1, 1, 1)
+        gamma_apara = torch.as_tensor(self.gamma_apara, dtype=x.dtype, device=x.device).view(
+            1, 1, 1
         )
-        gamma_apara = torch.as_tensor(
-            getattr(self, "gamma_apara", 0.50), dtype=x.dtype, device=x.device
-        )
+        gamma = same_spin * gamma_para + (1.0 - same_spin) * gamma_apara  # (B,P,1)
 
-        gamma = same_spin * gamma_para + (1.0 - same_spin) * gamma_apara  # (P,)
-        gamma = gamma.view(1, -1, 1)  # (1,P,1) for broadcast
+        ell = torch.as_tensor(self.cusp_len, dtype=x.dtype, device=x.device).view(1, 1, 1)
+        pair_u = gamma * r * torch.exp(-r / ell)  # (B,P,1)
+        cusp_sum = pair_u.sum(dim=1)  # (B,1)
 
-        # Add ∑_{i<j} γ_ij * r_soft as a fixed analytic contribution to log Ψ
-        cusp = (gamma * r_soft).sum(dim=1)  # (B,1)
-        out = out + cusp
+        # detached centering during training (OFF at eval)
+        if self.training:
+            cusp_term = cusp_sum  # - cusp_sum.mean(dim=0, keepdim=True).detach()
+        else:
+            cusp_term = cusp_sum
 
-        return out
+        return out + cusp_term
 
 
 class BackflowNet(nn.Module):

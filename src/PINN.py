@@ -83,7 +83,7 @@ class PINN(nn.Module):
         self._initialize_weights(init)
 
         # analytic cusp params (general d): γ_ud=1/(d-1), γ_uu=1/(d+1)
-        self.gamma_apara = 1.0 / max(1, (self.d - 1))
+        self.gamma_apara = 1.0 / (self.d - 1)
         self.gamma_para = 1.0 / (self.d + 1)
         self.cusp_len = 1.0 / (self.omega**0.5)
 
@@ -165,64 +165,50 @@ class PINN(nn.Module):
     # ----- forward -----
     def forward(self, x: torch.Tensor, spin: torch.Tensor | None = None) -> torch.Tensor:
         """
-        x: (B,N,d) -> (B,1), returns NN f plus analytic cusp (added to log Ψ).
+        x : (B,N,d)  -> used for NN features (phi/psi/extras)
+        cusp_coords : (B,N,d) or None; if provided, cusp distances are computed
+                      from these *physical* coords (default: x).
+        returns: (B,1) = f_NN(x) + u_cusp(cusp_coords)
         """
         B, N, d = x.shape
         assert N == self.n_particles and d == self.d
 
-        # scaled coords for φ/extras
+        # --- NN features & pooling use (possibly backflowed) 'x' ---
         x_scaled = x * (self.omega**0.5)
-
-        # pairwise distances
-        diff = x.unsqueeze(2) - x.unsqueeze(1)  # (B,N,N,d)
+        diff = x_scaled.unsqueeze(2) - x_scaled.unsqueeze(1)  # (B,N,N,d)
         diff_pairs = diff[:, self.idx_i, self.idx_j, :]  # (B,P,d)
         r2 = (diff_pairs * diff_pairs).sum(dim=-1, keepdim=True)  # (B,P,1)
-        r = torch.sqrt(r2 + torch.finfo(x.dtype).eps)  # (B,P,1)
-        P = r.shape[1]
+        r = torch.sqrt(r2 + torch.finfo(x.dtype).eps)
 
         # φ branch
         phi_flat = x_scaled.reshape(B * N, d)
         phi_out = self.phi(phi_flat).reshape(B, N, self.dL)
         phi_mean = phi_out.mean(dim=1)  # (B,dL)
 
-        # ψ branch (safe features)
+        # ψ branch (safe pair features)
         psi_in, s1_mean = self._safe_pair_features(r)  # (B,P,6), (B,1)
-        psi_out = self.psi(psi_in.reshape(-1, self.psi_in_dim)).reshape(B, P, self.dL)
+        psi_out = self.psi(psi_in.reshape(-1, self.psi_in_dim)).reshape(B, -1, self.dL)
 
-        # optional gate near coalescence
+        # optional short-range gate
         gate = self._short_range_gate(r)  # (B,P,1)
         psi_out = psi_out * gate
+        psi_mean = psi_out.mean(dim=1)  # (B,dL)  (or your attn)
 
-        # (optional) psi_out = self.psi_norm(psi_out)
-
-        # pair pooling
-        if self.use_pair_attn:
-            attn_rc = torch.as_tensor(self.attn_rc, dtype=x.dtype, device=x.device).clamp_min(1e-4)
-            attn_p = torch.as_tensor(self.attn_p, dtype=x.dtype, device=x.device).clamp_min(1.0)
-            w = torch.exp(-((r / attn_rc) ** attn_p)).squeeze(-1)  # (B,P)
-
-            i_idx = self.idx_i
-            den = torch.zeros(B, N, dtype=x.dtype, device=x.device)
-            den.scatter_add_(1, i_idx.unsqueeze(0).expand(B, -1), w)  # sum_j w_ij
-            den = den.index_select(1, i_idx).unsqueeze(-1) + 1e-12  # (B,P,1)
-            w = (w / den.squeeze(-1)).unsqueeze(-1)  # (B,P,1)
-
-            g = torch.zeros(B, N, self.dL, dtype=psi_out.dtype, device=x.device)
-            g.index_add_(1, i_idx, w * psi_out)  # (B,N,dL)
-            psi_mean = g.mean(dim=1)  # (B,dL)
-        else:
-            psi_mean = psi_out.mean(dim=1)  # (B,dL)
-
-        # SAFE extras only: <r^2> in trap units and <s1>
+        # SAFE extras only
         r2_mean = (x_scaled**2).mean(dim=(1, 2), keepdim=False).unsqueeze(-1)  # (B,1)
         extras = torch.cat([r2_mean, s1_mean], dim=1)  # (B,2)
 
         # readout
         rho_in = torch.cat([phi_mean, psi_mean, extras], dim=1)  # (B,2*dL+2)
-        # rho_in = self.rho_norm(rho_in)
         out = self.rho(rho_in)  # (B,1)
 
-        # analytic cusp (added to log Ψ)
+        # --- Analytic cusp uses *physical* coords by default ---
+        diff = x.unsqueeze(2) - x.unsqueeze(1)  # (B,N,N,d)
+        diff_pairs = diff[:, self.idx_i, self.idx_j, :]  # (B,P,d)
+        r2_c = (diff_pairs * diff_pairs).sum(dim=-1, keepdim=True)  # (B,P,1)
+        r_c = torch.sqrt(r2_c + torch.finfo(x.dtype).eps)
+
+        # spin handling (same as before)
         if spin is None:
             up = N // 2
             spin = (
@@ -237,14 +223,9 @@ class PINN(nn.Module):
                 .expand(B, -1)
             )  # (B,N)
         else:
+            spin = spin.to(x.device).long()
             if spin.dim() == 1:
-                spin = spin.to(x.device).long().unsqueeze(0).expand(B, -1)
-            elif spin.dim() == 2:
-                spin = spin.to(x.device).long()
-                if spin.shape != (B, N):
-                    raise ValueError(f"spin shape {tuple(spin.shape)} != (B,N)=({B},{N})")
-            else:
-                raise ValueError("spin must be (N,) or (B,N)")
+                spin = spin.unsqueeze(0).expand(B, -1)
 
         si = spin[:, self.idx_i]
         sj = spin[:, self.idx_j]
@@ -256,15 +237,8 @@ class PINN(nn.Module):
         )
         gamma = same_spin * gamma_para + (1.0 - same_spin) * gamma_apara  # (B,P,1)
 
-        ell = torch.as_tensor(self.cusp_len, dtype=x.dtype, device=x.device).view(1, 1, 1)
-        pair_u = gamma * r * torch.exp(-r / ell)  # (B,P,1)
-        cusp_sum = pair_u.sum(dim=1)  # (B,1)
-
-        # detached centering during training (OFF at eval)
-        if self.training:
-            cusp_term = cusp_sum  # - cusp_sum.mean(dim=0, keepdim=True).detach()
-        else:
-            cusp_term = cusp_sum
+        pair_u = gamma * r_c * torch.exp(-r_c)  # (B,P,1)
+        cusp_term = pair_u.sum(dim=1)  # (B,1)
 
         return out + cusp_term
 

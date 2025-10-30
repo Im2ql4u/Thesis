@@ -7,15 +7,78 @@
 \usepackage{amssymb} % For advanced mathematical symbols
 \usepackage{fancyhdr}
 \usepackage{graphicx}
+\usepackage[utf8]{inputenc}
+\usepackage{booktabs}
 \usepackage{bm}
+\usepackage[numbers,sort&compress]{natbib} % in the preamble
 %\usepackage{newpxtext,newpxmath} 
 \usepackage[a4paper,margin=2.5cm]{geometry}
 \usepackage{microtype}
 \usepackage{titlesec}
 \usepackage{xcolor}
 \usepackage{physics}
-\usepackage{biblatex}
+\usepackage{braket}
+\usepackage{tikz}
+
+\usetikzlibrary{calc}
+\usetikzlibrary{arrows.meta,positioning,fit}
+\usepackage[flushleft]{threeparttable}  % provides the threeparttable and tablenotes environments
+
+\usetikzlibrary{positioning, arrows.meta, shapes.geometric}
+
+% Define your professional hex colors:
+% ================== Colors (use your palette) ==================
+% Base hex colors
+\definecolor{mutedblue}{HTML}{1F77B4}
+\definecolor{deepwine}{HTML}{A13333}
+\definecolor{earthybrown}{HTML}{8c564b}
+\definecolor{mutedpurple}{HTML}{9467bd}
+
+% Lighter (50% white) versions for reduced saturation
+\colorlet{mutedblueLight}{mutedblue!20!white}
+\colorlet{deepwineLight}{deepwine!30!white}
+\colorlet{lightearthybrown}{earthybrown!30!white}
+\colorlet{lightmutedpurple}{mutedpurple!20!white}
+
+% Optional aliases to keep earlier code working (map my soft names to yours)
+\colorlet{softblue}{mutedblueLight}
+\colorlet{softpurple}{lightmutedpurple}
+\colorlet{softrose}{deepwineLight}
+\colorlet{softsand}{lightearthybrown}
+\colorlet{softteal}{mutedblueLight} % reuse light blue for pooling
+% ================================================================
 \definecolor{myaccent}{HTML}{a13333}
+
+% put this in your preamble, after amsmath/amssymb
+\newcommand{\RR}{\mathbb{R}}        % expectation
+\newcommand{\EE}{\mathbb{E}}        % expectation
+
+% expectation & probability
+
+\newcommand{\PP}{\mathbb{P}}
+\newcommand{\KL}{\mathrm{D}_{\mathrm{KL}}}
+
+% variance & covariance
+\newcommand{\Var}{\mathrm{Var}}
+\newcommand{\Cov}{\mathrm{Cov}}
+
+% bold vectors (uses bm package you already load)
+\newcommand{\bx}{\bm{x}}
+\newcommand{\bz}{\bm{z}}
+\newcommand{\bw}{\bm{w}}
+\newcommand{\btheta}{\bm{\theta}}
+
+% distributions
+\newcommand{\calN}{\mathcal{N}}   % normal distribution symbol
+
+% convenience
+\usepackage{amsthm}
+\numberwithin{equation}{chapter}
+\newtheorem{theorem}{Theorem}[chapter]
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{proposition}[theorem]{Proposition}
+
+
 
 \titleformat{\chapter}
   [display]  % display = title is on its own line
@@ -35,7 +98,7 @@
     % Small rule below the title
 
 \pagestyle{fancy}
-\addbibresource{references.bib}
+
 \title{On the state of Many body quantum mechanics, and on PINNs}
 \author{Aleksander Sekkelsten}
 
@@ -46,6 +109,7 @@
 \maketitle
 \tableofcontents
 \part{Theory}
+
 \input{theory}
 \part{Methods}
 \input{method}
@@ -59,6 +123,8 @@
 \part{Conclusion}
 \input{conclusion}
 
-\printbibliography
+%\bibliographystyle{johd}
+\bibliographystyle{unsrtnat} 
+\bibliography{references}
 
 \end{document}

@@ -1,6 +1,694 @@
-@article{example2025,
-  title={An Example Paper},
-  author={Doe, Jane},
-  journal={Example Journal},
-  year={2025}
+# Create references.bib and a minimal LaTeX file that cites them.
+bibtex_content = r"""
+@article{raissi2019pinns,
+  title   = {Physics-Informed Neural Networks: A Deep Learning Framework for Solving Forward and Inverse Problems Involving Nonlinear Partial Differential Equations},
+  author  = {Raissi, Maziar and Perdikaris, Paris and Karniadakis, George Em},
+  journal = {Journal of Computational Physics},
+  volume  = {378},
+  pages   = {686--707},
+  year    = {2019},
+  doi     = {10.1016/j.jcp.2018.10.045}
+}
+
+@article{sirignano2018dgm,
+  title   = {{DGM}: A Deep Learning Algorithm for Solving Partial Differential Equations},
+  author  = {Sirignano, Justin and Spiliopoulos, Konstantinos},
+  journal = {Journal of Computational Physics},
+  volume  = {375},
+  pages   = {1339--1364},
+  year    = {2018},
+  doi     = {10.1016/j.jcp.2018.08.029}
+}
+
+@article{kharazmi2019vpinn,
+  title   = {Variational Physics-Informed Neural Networks For Solving Partial Differential Equations},
+  author  = {Kharazmi, Ehsan and Zhang, Zhongqiang and Karniadakis, George Em},
+  journal = {arXiv preprint arXiv:1912.00873},
+  year    = {2019},
+  url     = {https://arxiv.org/abs/1912.00873}
+}
+
+@article{kharazmi2021hpvpin,
+  title   = {hp-{VPINNs}: Variational Physics-Informed Neural Networks with Domain Decomposition},
+  author  = {Kharazmi, Ehsan and Zhang, Zhongqiang and Karniadakis, George Em},
+  journal = {Computer Methods in Applied Mechanics and Engineering},
+  volume  = {374},
+  pages   = {113547},
+  year    = {2021},
+  doi     = {10.1016/j.cma.2020.113547}
+}
+
+@article{wang2021gradpath,
+  title   = {Understanding and Mitigating Gradient Flow Pathologies in Physics-Informed Neural Networks},
+  author  = {Wang, Sifan and Teng, Yujun and Perdikaris, Paris},
+  journal = {SIAM Journal on Scientific Computing},
+  volume  = {43},
+  number  = {5},
+  pages   = {A3055--A3081},
+  year    = {2021},
+  doi     = {10.1137/20M1318043}
+}
+
+@inproceedings{krishnapriyan2021failure,
+  title     = {Characterizing Possible Failure Modes in Physics-Informed Neural Networks},
+  author    = {Krishnapriyan, Aditi S. and Gholami, Amir and Zhe, Shandian and Kirby, Robert M. and Mahoney, Michael W.},
+  booktitle = {Advances in Neural Information Processing Systems (NeurIPS)},
+  year      = {2021},
+  url       = {https://arxiv.org/abs/2109.01050}
+}
+
+@article{mishra2020forward,
+  title   = {Estimates on the Generalization Error of Physics Informed Neural Networks (PINNs) for Approximating PDEs},
+  author  = {Mishra, Siddhartha and Molinaro, Roberto},
+  journal = {arXiv preprint arXiv:2006.16144},
+  year    = {2020},
+  url     = {https://arxiv.org/abs/2006.16144}
+}
+
+@article{mishra2020inverse,
+  title   = {Estimates on the Generalization Error of Physics Informed Neural Networks (PINNs) for Approximating a Class of Inverse Problems for PDEs},
+  author  = {Mishra, Siddhartha and Molinaro, Roberto},
+  journal = {arXiv preprint arXiv:2007.01138},
+  year    = {2020},
+  url     = {https://arxiv.org/abs/2007.01138}
+}
+
+@article{deryck2022kolmogorov,
+  title   = {Error Analysis for Physics-Informed Neural Networks (PINNs) Approximating Kolmogorov PDEs},
+  author  = {De Ryck, Tim and Mishra, Siddhartha},
+  journal = {Advances in Computational Mathematics},
+  volume  = {48},
+  number  = {6},
+  pages   = {79},
+  year    = {2022},
+  doi     = {10.1007/s10444-022-09985-9}
+}
+
+@article{deryck2024navierstokes,
+  title   = {Error Estimates for Physics-Informed Neural Networks Approximating the Navier--Stokes Equations},
+  author  = {De Ryck, Tim and Jagtap, Ameya D. and Mishra, Siddhartha},
+  journal = {arXiv preprint arXiv:2203.09346},
+  year    = {2022},
+  url     = {https://arxiv.org/abs/2203.09346}
+}
+
+@article{molinaro2023variational,
+  title   = {A Theory of Physics-Informed Neural Networks (PINNs): A Variational Perspective},
+  author  = {Molinaro, Roberto and Darbon, Jérôme and Li, Qianxiao and Osher, Stanley},
+  journal = {Journal of Machine Learning Research},
+  volume  = {24},
+  number  = {181},
+  pages   = {1--76},
+  year    = {2023},
+  url     = {https://jmlr.org/papers/v24/23-0348.html}
+}
+
+@article{hu2024cod,
+  title   = {Tackling the Curse of Dimensionality with Physics-Informed Neural Networks},
+  author  = {Hu, Zhichao and Jagtap, Ameya D. and Karniadakis, George Em and Kawaguchi, Kenji},
+  journal = {Neural Networks},
+  volume  = {178},
+  pages   = {106369},
+  year    = {2024},
+  doi     = {10.1016/j.neunet.2024.106369}
+}
+
+@article{Amari1998-NaturalGradient,
+  author  = {Shun-ichi Amari},
+  title   = {Natural gradient works efficiently in learning},
+  journal = {Neural Computation},
+  volume  = {10},
+  pages   = {251},
+  year    = {1998}
+}
+
+@article{AmariDouglas1998-WhyNaturalGradient,
+  author  = {Shun-Ichi Amari and Scott C. Douglas},
+  title   = {Why natural gradient?},
+  journal = {--},
+  volume  = {2},
+  pages   = {1213},
+  year    = {1998},
+  note    = {Details as provided in source list}
+}
+
+@article{Anderson1975-RandomWalkSchrodinger,
+  author  = {James B. Anderson},
+  title   = {A random-walk simulation of the Schr{\"o}dinger equation: H\({}^+_3\)},
+  journal = {The Journal of Chemical Physics},
+  volume  = {63},
+  pages   = {1499},
+  year    = {1975}
+}
+
+@misc{Apaja2018-ManyBodyPhysicsNotes,
+  author  = {Vesa Apaja},
+  title   = {Many-body physics},
+  year    = {2018},
+  note    = {Lecture notes from University of Jyväskylä, Finland. Accessed on May 1, 2024}
+}
+
+@book{BeccaSorella2017-QMCBook,
+  author    = {Federico Becca and Sandro Sorella},
+  title     = {Quantum Monte Carlo approaches for correlated systems},
+  publisher = {Cambridge University Press},
+  year      = {2017}
+}
+
+@article{SharirShashuaCarleo2022-ExpressivePowerNQS,
+  author  = {Or Sharir and Amnon Shashua and Giuseppe Carleo},
+  title   = {Neural tensor contractions and the expressive power of deep neural quantum states},
+  journal = {Physical Review B},
+  volume  = {106},
+  number  = {20},
+  pages   = {205136},
+  year    = {2022}
+}
+
+@article{LeRouxBengio2008-RBMUniversal,
+  author  = {Nicolas Le Roux and Yoshua Bengio},
+  title   = {Representational power of restricted Boltzmann machines and deep belief networks},
+  journal = {Neural Computation},
+  volume  = {20},
+  number  = {6},
+  pages   = {1631--1649},
+  year    = {2008}
+}
+
+@misc{LangeEtAl2024-NQSReview,
+  author  = {Hannah Lange and Anka Van de Walle and Atiye Abedinnia and Annabelle Bohrdt},
+  title   = {From architectures to applications: A review of neural quantum states},
+  year    = {2024},
+  note    = {Preprint; details as provided in source list}
+}
+
+@article{Pfau2020-FermiNet,
+  author  = {David Pfau and James S. Spencer and Alexander G. D. G. Matthews and W. Matthew C. Foulkes},
+  title   = {Ab initio solution of the many-electron Schr{\"o}dinger equation with deep neural networks},
+  journal = {Physical Review Research},
+  volume  = {2},
+  pages   = {033429},
+  year    = {2020}
+}
+
+@misc{KimEtAl2023-UltracoldFermiNQS,
+  author  = {Jane Kim and Gabriel Pescia and Bryce Fore and Jannes Nys and Giuseppe Carleo and Stefano Gandolfi and Morten Hjorth-Jensen and Alessandro Lovato},
+  title   = {Neural-network quantum states for ultracold Fermi gases},
+  year    = {2023},
+  note    = {Preprint; details as provided in source list}
+}
+
+@misc{PfauEtAl2024-ExcitedStatesNQMC,
+  author  = {David Pfau and Simon Axelrod and Halvard Sutterud and Ingrid von Glehn and James S. Spencer},
+  title   = {Natural quantum Monte Carlo computation of excited states},
+  year    = {2024},
+  note    = {Preprint; details as provided in source list}
+}
+
+@misc{LawrenceShelbyYamauchi2024-FlowStates,
+  author  = {Scott Lawrence and Arlee Shelby and Yukari Yamauchi},
+  title   = {Quantum states from normalizing flows},
+  year    = {2024},
+  note    = {Preprint; details as provided in source list}
+}
+
+@book{Rudin1976-Analysis,
+  author    = {Walter Rudin and others},
+  title     = {Principles of Mathematical Analysis},
+  edition   = {3},
+  publisher = {McGraw-Hill},
+  year      = {1976}
+}
+
+@book{Jensen2017-IntroCompChem,
+  author    = {Frank Jensen},
+  title     = {Introduction to Computational Chemistry},
+  publisher = {John Wiley \& Sons},
+  year      = {2017}
+}
+
+@article{Kato1957-EigenfunctionsManyParticle,
+  author  = {Tosio Kato},
+  title   = {On the eigenfunctions of many-particle systems in quantum mechanics},
+  journal = {Communications on Pure and Applied Mathematics},
+  volume  = {10},
+  pages   = {151},
+  year    = {1957}
+}
+
+@article{Kroese2014-WhyMonteCarlo,
+  author  = {Dirk P. Kroese and Tim Brereton and Thomas Taimre and Zdravko I. Botev},
+  title   = {Why the Monte Carlo method is so important today},
+  journal = {Wiley Interdisciplinary Reviews: Computational Statistics},
+  volume  = {6},
+  pages   = {386},
+  year    = {2014}
+}
+
+@article{Metropolis1953,
+  author  = {Nicholas Metropolis and Arianna W. Rosenbluth and Marshall N. Rosenbluth and Augusta H. Teller and Edward Teller},
+  title   = {Equation of State Calculations by Fast Computing Machines},
+  journal = {The Journal of Chemical Physics},
+  volume  = {21},
+  pages   = {1087},
+  year    = {1953}
+}
+
+@incollection{PanMeng2024-SignProblemQMC,
+  author    = {Gaopei Pan and Zi Yang Meng},
+  title     = {The sign problem in quantum Monte Carlo simulations},
+  booktitle = {--},
+  pages     = {879},
+  publisher = {Elsevier},
+  year      = {2024},
+  note      = {Details as provided in source list}
+}
+
+@misc{HjorthJensen2021-AdvancedTopicsCompPhys,
+  author  = {Morten Hjorth-Jensen},
+  title   = {Advanced topics in computational physics},
+  year    = {2021},
+  note    = {Accessed: 2024-05-12}
+}
+
+@article{GelmanGilksRoberts1997-OptimalRWMetropolis,
+  author  = {Andrew Gelman and W. R. Gilks and Gareth O. Roberts},
+  title   = {Weak convergence and optimal scaling of random walk Metropolis algorithms},
+  journal = {The Annals of Applied Probability},
+  volume  = {7},
+  pages   = {110},
+  year    = {1997}
+}
+
+@article{KalosLevesqueVerlet1974-ImportanceSampling,
+  author  = {Malvin H. Kalos and Dominique Levesque and Loup Verlet},
+  title   = {Helium at zero temperature with hard-sphere and other forces},
+  journal = {Physical Review A},
+  volume  = {9},
+  pages   = {2178},
+  year    = {1974}
+}
+
+@article{KosztinFaberSchulten1996-IntroDMC,
+  author  = {Ioan Kosztin and Byron Faber and Klaus Schulten},
+  title   = {Introduction to the diffusion Monte Carlo method},
+  journal = {American Journal of Physics},
+  volume  = {64},
+  pages   = {633},
+  year    = {1996}
+}
+
+@misc{Chin1990-QuadraticDMC,
+  author  = {Siu A. Chin},
+  title   = {Quadratic diffusion Monte Carlo algorithms for solving atomic many-body problems},
+  howpublished = {Physical Review A},
+  volume  = {42},
+  pages   = {6991},
+  year    = {1990}
+}
+
+@book{VanKampen1992-StochasticProcesses,
+  author    = {Nicolaas Godfried van Kampen},
+  title     = {Stochastic Processes in Physics and Chemistry},
+  volume    = {1},
+  publisher = {Elsevier},
+  year      = {1992}
+}
+
+@book{HastieTibshiraniFriedman2009-ESL,
+  author    = {Trevor Hastie and Robert Tibshirani and Jerome H. Friedman},
+  title     = {The Elements of Statistical Learning: Data Mining, Inference, and Prediction},
+  volume    = {2},
+  publisher = {Springer},
+  year      = {2009}
+}
+
+@inproceedings{KingmaBa2015-Adam,
+  author    = {Diederik Kingma and Jimmy Ba},
+  title     = {Adam: A Method for Stochastic Optimization},
+  booktitle = {International Conference on Learning Representations (ICLR)},
+  address   = {San Diego, CA, USA},
+  year      = {2015}
+}
+
+@article{ReyadSarhanArafa2023-ModifiedAdam,
+  author  = {Mohamed Reyad and Amany M. Sarhan and Mohammad Arafa},
+  title   = {A modified Adam algorithm for deep neural network optimization},
+  journal = {Neural Computing and Applications},
+  volume  = {35},
+  pages   = {17095},
+  year    = {2023}
+}
+
+@inproceedings{ZhangEtAl2022-AdamConverges,
+  author    = {Yushun Zhang and Congliang Chen and Naichen Shi and Ruoyu Sun and Zhi-Quan Luo},
+  title     = {Adam can converge without any modification on update rules},
+  booktitle = {Advances in Neural Information Processing Systems},
+  volume    = {35},
+  pages     = {28386},
+  year      = {2022}
+}
+
+@article{Kiwiel2001-QuasiConvexSGD,
+  author  = {Krzysztof C. Kiwiel},
+  title   = {Convergence and efficiency of subgradient methods for quasiconvex minimization},
+  journal = {Mathematical Programming},
+  volume  = {90},
+  pages   = {1},
+  year    = {2001}
+}
+
+@inproceedings{Bottou1991-SGDNoise,
+  author    = {L{\'e}on Bottou and others},
+  title     = {Stochastic gradient learning in neural networks},
+  booktitle = {Proceedings of Neuro-N{\i}mes},
+  volume    = {91},
+  number    = {8},
+  pages     = {12},
+  year      = {1991}
+}
+
+@inproceedings{ZhouEtAl2019-NoiseImportance,
+  author    = {Mo Zhou and Tianyi Liu and Yan Li and Dachao Lin and Enlu Zhou and Tuo Zhao},
+  title     = {Toward understanding the importance of noise in training neural networks},
+  booktitle = {International Conference on Machine Learning (ICML)},
+  pages     = {7594},
+  publisher = {PMLR},
+  year      = {2019}
+}
+
+@article{HarrowNapp2021-LowDepthGradients,
+  author  = {Aram W. Harrow and John C. Napp},
+  title   = {Low-depth gradient measurements can improve convergence in variational hybrid quantum-classical algorithms},
+  journal = {Physical Review Letters},
+  volume  = {126},
+  pages   = {140502},
+  year    = {2021}
+}
+
+@article{DrissiEtAl2024-SecondOrderNQS,
+  author  = {M. Drissi and J. W. T. Keeble and J. Rozal{\'e}n Sarmiento and A. Rios},
+  title   = {Second-order optimization strategies for neural network quantum states},
+  journal = {Philosophical Transactions of the Royal Society A},
+  volume  = {382},
+  pages   = {20240057},
+  year    = {2024}
+}
+
+@article{McArdleEtAl2019-ImagTimeAnsatz,
+  author  = {Sam McArdle and Tyson Jones and Suguru Endo and Ying Li and Simon C. Benjamin and Xiao Yuan},
+  title   = {Variational ansatz-based quantum simulation of imaginary time evolution},
+  journal = {npj Quantum Information},
+  volume  = {5},
+  pages   = {75},
+  year    = {2019}
+}
+
+@article{StokesEtAl2020-QuantumNaturalGradient,
+  author  = {James Stokes and Josh Izaac and Nathan Killoran and Giuseppe Carleo},
+  title   = {Quantum natural gradient},
+  journal = {Quantum},
+  volume  = {4},
+  pages   = {269},
+  year    = {2020}
+}
+
+@article{ParkKastoryano2020-GeometryNQS,
+  author  = {Chae-Yeun Park and Michael J. Kastoryano},
+  title   = {Geometry of learning neural quantum states},
+  journal = {Physical Review Research},
+  volume  = {2},
+  pages   = {023232},
+  year    = {2020}
+}
+
+@article{KeebleEtAl2023-SpinlessFermionsNQS,
+  author  = {J. W. T. Keeble and M. Drissi and A. Rojo-Franc{\`a}s and B. Juli{\'a}-D{\'\i}az and A. Rios},
+  title   = {Machine learning one-dimensional spinless trapped fermionic systems with neural-network quantum states},
+  journal = {Physical Review A},
+  volume  = {108},
+  pages   = {063320},
+  year    = {2023}
+}
+
+@article{CarleoTroyer2017-ScienceNQS,
+  author  = {Giuseppe Carleo and Matthias Troyer},
+  title   = {Solving the quantum many-body problem with artificial neural networks},
+  journal = {Science},
+  volume  = {355},
+  pages   = {602},
+  year    = {2017}
+}
+
+@article{Gabrielsson2020-GraphUniversality,
+  author  = {Rickard Br{\"u}el Gabrielsson},
+  title   = {Universal function approximation on graphs},
+  journal = {Advances in Neural Information Processing Systems},
+  volume  = {33},
+  pages   = {19762},
+  year    = {2020}
+}
+
+@misc{Grosse2021-TrainingDynamicsNotes,
+  author  = {Roger Grosse},
+  title   = {Topics in Machine Learning: Neural Net Training Dynamics},
+  year    = {2021},
+  howpublished = {https://www.cs.toronto.edu/\~{}rgrosse/courses/csc2541\_2021/},
+  note    = {Accessed: 2024-05-09}
+}
+
+@article{OnenEtAl2022-AnalogDLResistors,
+  author  = {Murat Onen and Nicolas Emond and Baoming Wang and Difei Zhang and Frances M. Ross and Ju Li and Bilge Yildiz and Jes{\'u}s A. Del Alamo},
+  title   = {Nanosecond protonic programmable resistors for analog deep learning},
+  journal = {Science},
+  volume  = {377},
+  pages   = {539},
+  year    = {2022}
+}
+
+@inproceedings{FuEtAl2019-ATSNE,
+  author    = {Cong Fu and Yonghui Zhang and Deng Cai and Xiang Ren},
+  title     = {ATSNE: Efficient and robust visualization on GPU through hierarchical optimization},
+  booktitle = {Proceedings of the 25th ACM SIGKDD International Conference on Knowledge Discovery \& Data Mining},
+  pages     = {176},
+  year      = {2019}
+}
+
+@misc{Neutelings2021-TikZNN,
+  author  = {Izaak Neutelings},
+  title   = {Neural networks in TikZ},
+  year    = {2021},
+  howpublished = {https://tikz.net/neural\_networks/\#full\_code},
+  note    = {Accessed: 2024-05-30}
+}
+
+@book{Nielsen2015-NNandDL,
+  author    = {Michael A. Nielsen},
+  title     = {Neural Networks and Deep Learning},
+  publisher = {Determination Press},
+  address   = {San Francisco, CA, USA},
+  year      = {2015}
+}
+
+@article{Cybenko1989-UniversalApprox,
+  author  = {George Cybenko},
+  title   = {Approximation by superpositions of a sigmoidal function},
+  journal = {Mathematics of Control, Signals and Systems},
+  volume  = {2},
+  pages   = {303},
+  year    = {1989}
+}
+
+@article{LeshnoEtAl1993-NonpolyActivationUniversality,
+  author  = {Moshe Leshno and Vladimir Ya. Lin and Allan Pinkus and Shimon Schocken},
+  title   = {Multilayer feedforward networks with a nonpolynomial activation function can approximate any function},
+  journal = {Neural Networks},
+  volume  = {6},
+  number  = {6},
+  pages   = {861},
+  year    = {1993}
+}
+
+@article{Zhou2020-UniversalityCNN,
+  author  = {Ding-Xuan Zhou},
+  title   = {Universality of deep convolutional neural networks},
+  journal = {Applied and Computational Harmonic Analysis},
+  volume  = {48},
+  pages   = {787},
+  year    = {2020}
+}
+
+@inproceedings{SchaeferZimmermann2006-RNNUniversal,
+  author    = {Anton Maximilian Sch{\"a}fer and Hans Georg Zimmermann},
+  title     = {Recurrent neural networks are universal approximators},
+  booktitle = {Artificial Neural Networks--ICANN 2006},
+  pages     = {632},
+  publisher = {Springer},
+  year      = {2006}
+}
+
+@article{HuangFilippiUmrigar1998-SpinContamination,
+  author  = {Chien-Jung Huang and Claudia Filippi and C. J. Umrigar},
+  title   = {Spin contamination in quantum Monte Carlo wave functions},
+  journal = {The Journal of Chemical Physics},
+  volume  = {108},
+  pages   = {8838},
+  year    = {1998}
+}
+
+@article{LinGoldshlagerLin2023-ExplicitAntiSym,
+  author  = {J{\'e}f{\'e}min Lin and Gil Goldshlager and Lin Lin},
+  title   = {Explicitly antisymmetrized neural network layers for variational Monte Carlo simulation},
+  journal = {Journal of Computational Physics},
+  volume  = {474},
+  pages   = {111765},
+  year    = {2023}
+}
+
+@article{HolzmannCeperley2003-Backflow,
+  author  = {M. Holzmann and D. M. Ceperley and C. Pierleoni and K. Esler},
+  title   = {Backflow correlations for the electron gas and metallic hydrogen},
+  journal = {Physical Review E},
+  volume  = {68},
+  number  = {4},
+  pages   = {046707},
+  year    = {2003}
+}
+
+@inproceedings{Zaheer2017-DeepSets,
+  author    = {Manzil Zaheer and Satwik Kottur and Siamak Ravanbakhsh and Barnabas Poczos and Russ R. Salakhutdinov and Alexander J. Smola},
+  title     = {Deep Sets},
+  booktitle = {Advances in Neural Information Processing Systems},
+  volume    = {30},
+  year      = {2017}
+}
+
+@phdthesis{JaneMeeKim2023-PhDThesisNQS,
+  author = {Jane Mee Kim},
+  title  = {Solving the Quantum Many-Body Problem with Neural-Network Quantum States},
+  school = {Michigan State University},
+  year   = {2023}
+}
+
+@mastersthesis{Nordhagen2019-MLQuantumDots,
+  author = {Even Marius Nordhagen},
+  title  = {Studies of quantum dots using machine learning},
+  school = {University of Oslo},
+  year   = {2019}
+}
+
+@article{Jonsson2018-BlockingSE,
+  author  = {Marius Jonsson},
+  title   = {Standard error estimation by an automated blocking method},
+  journal = {Physical Review E},
+  volume  = {98},
+  pages   = {043304},
+  year    = {2018}
+}
+
+@article{FlyvbjergPetersen1989-Blocking,
+  author  = {H. Flyvbjerg and H. G. Petersen},
+  title   = {Error estimates on averages of correlated data},
+  journal = {The Journal of Chemical Physics},
+  volume  = {91},
+  pages   = {461},
+  year    = {1989},
+  note    = {American Institute of Physics}
+}
+
+@book{SzaboOstlund2012-ModernQC,
+  author    = {Attila Szabo and Neil S. Ostlund},
+  title     = {Modern quantum chemistry: introduction to advanced electronic structure theory},
+  publisher = {Courier Corporation},
+  year      = {2012}
+}
+
+@article{VogiatzisEtAl2017-MCSCFParallelCI,
+  author  = {Konstantinos D. Vogiatzis and Dongxia Ma and Jeppe Olsen and Laura Gagliardi and Wibe A. De Jong},
+  title   = {Pushing configuration-interaction to the limit: Towards massively parallel MCSCF calculations},
+  journal = {The Journal of Chemical Physics},
+  volume  = {147},
+  number  = {18},
+  year    = {2017}
+}
+
+@mastersthesis{Hogberget2013-DMCMasters,
+  author = {J{\o}rgen H{\o}gberget},
+  title  = {Quantum Monte-Carlo studies of generalized many-body systems},
+  school = {--},
+  year   = {2013},
+  note   = {Master's thesis; details as provided in source list}
+}
+
+@mastersthesis{Mariadason2018-DoubleDotHF,
+  author = {Alfred Alocias Mariadason},
+  title  = {Quantum many-body simulations of double dot system},
+  school = {University of Oslo},
+  year   = {2018}
+}
+
+@article{CarleoTroyer2017-AgainForNQSSection,
+  author  = {Giuseppe Carleo and Matthias Troyer},
+  title   = {Solving the quantum many-body problem with artificial neural networks},
+  journal = {Science},
+  volume  = {355},
+  pages   = {602},
+  year    = {2017}
+}
+
+@book{BereraDelDebbio2021-QuantumMechanics,
+  author    = {Arjun Berera and Luigi Del Debbio},
+  title     = {Quantum Mechanics},
+  publisher = {Cambridge University Press},
+  year      = {2021}
+}
+@book{GriffithsSchroeter2018-IntroQM,
+  author    = {David J. Griffiths and Darrell F. Schroeter},
+  title     = {Introduction to Quantum Mechanics},
+  publisher = {Cambridge University Press},
+  year      = {2018}
+}
+@inbook{Berner_2022,
+   title={The Modern Mathematics of Deep Learning},
+   ISBN={9781316516782},
+   url={http://dx.doi.org/10.1017/9781009025096.002},
+   DOI={10.1017/9781009025096.002},
+   booktitle={Mathematical Aspects of Deep Learning},
+   publisher={Cambridge University Press},
+   author={Berner, Julius and Grohs, Philipp and Kutyniok, Gitta and Petersen, Philipp},
+   year={2022},
+   month=dec, pages={1–111} }
+@misc{wu2022alignmentpropertysgdnoise,
+      title={The alignment property of SGD noise and how it helps select flat minima: A stability analysis}, 
+      author={Lei Wu and Mingze Wang and Weijie Su},
+      year={2022},
+      eprint={2207.02628},
+      archivePrefix={arXiv},
+      primaryClass={stat.ML},
+      url={https://arxiv.org/abs/2207.02628}, 
+}
+@article{Cybenko1989,
+  author    = {George Cybenko},
+  title     = {Approximation by superpositions of a sigmoidal function},
+  journal   = {Mathematics of Control, Signals and Systems},
+  volume    = {2},
+  pages     = {303--314},
+  year      = {1989},
+  doi       = {10.1007/BF02551274},
+  url       = {https://doi.org/10.1007/BF02551274}
+}
+
+@article{HORNIK1991251,
+title = {Approximation capabilities of multilayer feedforward networks},
+journal = {Neural Networks},
+volume = {4},
+number = {2},
+pages = {251-257},
+year = {1991},
+issn = {0893-6080},
+doi = {https://doi.org/10.1016/0893-6080(91)90009-T},
+url = {https://www.sciencedirect.com/science/article/pii/089360809190009T},
+author = {Kurt Hornik},
+keywords = {Multilayer feedforward networks, Activation function, Universal approximation capabilities, Input environment measure, () approximation, Uniform approximation, Sobolev spaces, Smooth approximation},
+abstract = {We show that standard multilayer feedforward networks with as few as a single hidden layer and arbitrary bounded and nonconstant activation function are universal approximators with respect to Lp(μ) performance criteria, for arbitrary finite input environment measures μ, provided only that sufficiently many hidden units are available. If the activation function is continuous, bounded and nonconstant, then continuous mappings can be learned uniformly over compact input sets. We also give very general conditions ensuring that networks with sufficiently smooth activation functions are capable of arbitrarily accurate approximation to a function and its derivatives.}
 }

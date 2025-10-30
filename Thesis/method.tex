@@ -1,207 +1,537 @@
-\graphicspath{{../results/figures/methods/}}
-\chapter{Quantum Mechanics}
-\subsection{Single--particle basis sets}
+\chapter{Trial Wavefunction}
+\label{ch:trial_wavefunction}
 
-In order to represent the electronic wave function we employ two families of single--particle orbitals: the Cartesian harmonic oscillator basis and the Fock--Darwin basis. Both are natural choices for two--dimensional confined systems, and they enter our method at two different stages: (i) in the Hartree--Fock procedure, where we require matrix elements of the Hamiltonian, and (ii) during the variational training, where the Slater determinant must be evaluated efficiently at arbitrary particle coordinates.
+In this chapter we specify the concrete modeling and algorithmic choices used in our computations.
+We proceed from the physical setup and trial states to objectives, with an emphasis on stability,
+symmetry, and differentiability---all of which are critical for Laplacian-based local-energy
+evaluations and stochastic reconfiguration (SR). Unless otherwise stated, we work in atomic units.
 
-\paragraph{Cartesian harmonic oscillator basis.}
-The Cartesian basis consists of products of one--dimensional harmonic oscillator eigenfunctions along the $x$ and $y$ axes,
+\section{Preliminaries}
+\label{sec:setup}
+
+\paragraph{Hamiltonian and units.}
+We study $N$ spin-$\tfrac12$ fermions in two spatial dimensions confined by a harmonic trap
+and interacting via Coulomb repulsion,
+\begin{equation}
+\label{eq:dot-h}
+H \;=\; \sum_{i=1}^N \Big( -\tfrac12 \nabla_{\mathbf r_i}^2 + \tfrac12 \,\omega^2 r_i^2 \Big)
+\;+\; \sum_{1\le i<j\le N} \frac{1}{|\mathbf r_i-\mathbf r_j|},
+\qquad (\hbar=m_e=e=1).
+\end{equation}
+Spin does not appear in $H$; eigenstates factorize into a spatial function with good $L_z$ and a
+spin function with good $(S,S_z)$.
+
+\paragraph{Coordinates and scaling.}
+We collect positions as $R=(\mathbf r_1,\ldots,\mathbf r_N)\in\mathbb R^{2N}$ and use trap scaling
+$\tilde{\mathbf r}_i=\sqrt{\omega}\,\mathbf r_i$, $\tilde{R}=\sqrt{\omega}\,R$. This aligns typical
+length scales to $\mathcal O(1)$, improves conditioning of second derivatives, and makes the
+noninteracting ground state $\omega$-independent. When useful, we also use pair distances
+$r_{ij}=|\mathbf r_i-\mathbf r_j|$ and their scaled versions $\tilde r_{ij}=|\tilde{\mathbf r}_i-\tilde{\mathbf r}_j|$.
+
+\paragraph{Sectors and focus.}
+We primarily report \emph{closed-shell} cases (unique spin singlet at the noninteracting level).
+Open shells introduce a degenerate manifold and additional choices for the reference; we keep this
+to brief remarks only where needed.
+
+\paragraph{Spin–orbitals and basis.}
+One-particle spatial orbitals are Fock–Darwin functions $\{\phi_{nm}(\mathbf r)\}$ with
+$E_{nm}=\omega(2n+|m|+1)$, $n\in\mathbb N_0$, $m\in\mathbb Z$. Spin–orbitals are
+$\varepsilon_\alpha(x)=\phi_{nm}(\mathbf r)\chi_\sigma(s)$, $\sigma\in\{\uparrow,\downarrow\}$.
+
+% ==========================================================
+
+\section{Overview of the ansatz}
+\label{sec:ansatz}
+Our trial state combines exact antisymmetry, an analytic short-range cusp, and a compact
+neural residual, while optionally evaluating the Slater determinant on backflowed coordinates:
+\begin{align}
+  \Psi_{\theta,\beta}(R)
+  &= \mathrm{SD}\big(\tilde{R}'\big)\;
+     \exp\!\Big(
+       \sum_{i<j} u_{\sigma_i \sigma_j}(\tilde r_{ij})
+       + W_\theta(\tilde{R})
+     \Big),\label{eq:ansatz-overall} \\
+  \tilde{R}' &= \tilde{R} + \Delta_\beta(\tilde{R}).\label{eq:bf-coords}
+\end{align}
+Here $\mathrm{SD}$ enforces antisymmetry; $u$ hard-wires the Kato cusp; $W_\theta$ (the NQS correlator) learns smooth
+medium/long-range structure; and $\Delta_\beta$ (backflow) adjusts the nodes by smoothly warping the coordinates used
+inside the determinants. We deliberately feed the NQS with $\tilde{R}$ (not $\tilde{R}'$) to avoid self-reinforcing feedback
+and keep local-energy variance low.
+
+\paragraph{Design principles.}
+(i) \emph{Separate guaranteed physics from learned details:} antisymmetry and the cusp are hard-wired; the network learns the rest.
+(ii) \emph{Condition the geometry:} work in trap units and use soft-core pair features so that first/second derivatives are bounded.
+(iii) \emph{Keep the learned object small and smooth:} once the cusp is explicit, a compact NQS suffices across $(N,\omega)$.
+
+\section{Slater reference}
+\label{subsec:slater}
+For closed shells we use a restricted product of spin-block determinants of the lowest $N/2$ harmonic oscillator orbitals (trap units):
+\begin{equation}
+  \mathrm{SD}(\tilde{R})
+  =
+  \det\!\big[\phi_a(\tilde{\mathbf r}_i)\big]_{i\in\uparrow,\;a\le N/2}\;
+  \det\!\big[\phi_a(\tilde{\mathbf r}_j)\big]_{j\in\downarrow,\;a\le N/2}.
+  \label{eq:slater}
+\end{equation}
+The correlator reweights amplitudes \emph{within} nodal pockets; without backflow, the nodes are those of~\eqref{eq:slater}.
+
+\section{Neural correlator $W_\theta$}
+\label{subsec:nqs}
+The NQS aggregates \emph{particlewise} and \emph{pairwise} embeddings with permutation-invariant pooling and appends two global
+statistics, all in $\tilde{R}$. A core safety requirement is that pair channels satisfy $d s_k/d\tilde r \to 0$ as $\tilde r\to 0$
+so that $W_\theta$ never injects spurious $1/\tilde r$ terms into $\nabla\log\Psi$ or $\Delta\log\Psi$.
+
+\subsection{Particle branch (DeepSets).}
+This part of the network is typically referred to as Deep Sets [kilde]. The permutation invariance of quantum many-body mechanics is naturally captured by this architecture. 
+A neural network $\phi$ creates a latent embedding for each particle individually. All embeddings are pooled together to form a global representation, which is used later in the readout. Formally, we have
 \[
-\psi_{n_x,n_y}(x,y) \;=\; \psi_{n_x}(x)\,\psi_{n_y}(y),
+  \mathbf h_i^\phi=\phi(\tilde{\mathbf x}_i)\in\mathbb R^{d_L},\qquad
+  \overline{\mathbf h}^{\phi}=N^{-1}\sum_i \mathbf h_i^\phi\in\mathbb R^{d_L}.
 \]
-where $\psi_{n}(x)$ are Hermite--Gaussian functions with oscillator frequency $\omega$. The basis is truncated at $n_x < n_x^{\max}$ and $n_y < n_y^{\max}$, giving a total of $n_x^{\max}\times n_y^{\max}$ orbitals. 
 
-\emph{Advantages.} 
-The Cartesian form is simple, separable, and directly compatible with tensor--product quadrature on a uniform grid. The recurrence relations for Hermite polynomials enable fast analytic evaluation inside PyTorch.  
-
-\emph{Disadvantages.} 
-Cartesian functions are not eigenfunctions of the two--dimensional harmonic oscillator in polar coordinates, and thus do not respect angular momentum symmetry. Consequently, higher values of $n_x$ and $n_y$ are often needed to represent rotationally symmetric states.
-
-\paragraph{Fock--Darwin basis.}
-The Fock--Darwin orbitals are the eigenfunctions of the two--dimensional isotropic harmonic oscillator in polar coordinates,
+\subsection{Pair branch (soft-core, even channels).}
+Although the particle branch could theoretically produce pair correlations, in practice it struggles to represent sharp near-field structure. We therefore add a dedicated pair branch that builds features from interparticle distances.
+This network processes all pairs $(i,j), i\ne j$ individually and pools the resulting latent embeddings. 
+The problem is that raw distances $\tilde r_{ij}$ have unbounded derivatives at coalescence, which destabilizes Laplacian evaluations. We therefore build \emph{safe} pair features with bounded first and second derivatives as $\tilde r\to 0$.
+With $\tilde r^{\rm soft}=\sqrt{\tilde r^2+\varepsilon^2}$ ($\varepsilon\!\in[0.15,0.30]$ in trap units), we build six “safe” features
+\begin{align}
+  s_1 &= \log\!\big(1+(\tilde r^{\rm soft}/\varepsilon)^2\big),\quad
+  s_2 = \tfrac{\tilde r^{2}}{\tilde r^{2}+\varepsilon^2},\quad
+  s_3 = (\tilde r^{\rm soft}/\varepsilon)^{2}\exp[-(\tilde r^{\rm soft}/\varepsilon)^{2}], \notag\\
+  \mathrm{rbf}_g &= \exp(-g\,s_1),\quad g\in\{0.25,1,4\},\qquad
+  \mathbf u_{ij}=[s_1,s_2,s_3,\mathrm{rbf}_{0.25},\mathrm{rbf}_{1},\mathrm{rbf}_4]\in\mathbb R^{6}.
+  \label{eq:safe-feats}
+\end{align}
+An MLP $\psi$ maps $\mathbf u_{ij}\mapsto\mathbf h^{\psi}_{ij}\in\mathbb R^{d_L}$. A short-range gate
 \[
-\phi_{n,m}(r,\theta) \;=\; N_{n,m}\, r^{|m|} e^{-r^2/2} L_{n}^{|m|}(r^2)\, e^{\mathrm{i} m \theta},
+  \chi(\tilde r)=\frac{\tilde r^{2}}{\tilde r^{2}+r_g^{2}},\quad r_g\approx 0.3,\quad \chi(0)=\chi'(0)=0,
 \]
-with radial quantum number $n\ge 0$, angular momentum $m\in\mathbb{Z}$, and associated Laguerre polynomials $L_n^{|m|}$. The energy depends only on the shell index $2n+|m|$, and the basis is truncated at $2n+|m| \leq e_{\max}$. For numerical work we employ a real form where $m>0$ states are represented by $\cos(m\theta)$ and $\sin(m\theta)$ combinations. 
+suppresses learned responses \emph{at} coalescence, we use $\chi\,\mathbf h^\psi_{ij}$ downstream.
 
-\emph{Advantages.} 
-Fock--Darwin functions diagonalize the non--interacting Hamiltonian exactly, and they carry definite angular momentum quantum numbers. This makes them very compact for rotationally symmetric problems: a small $e_{\max}$ already spans the relevant Hilbert space.
+\subsection{Analytic short-range cusp}
+\label{subsec:cusp}
+Due to the nesseccity of the safe features in the pair branch, the NQS cannot represent the Kato cusp condition exactly. 
+We therefore add an analytic cusp term to the exponent in~\eqref{eq:ansatz-overall}. 
+We enforce the electron–electron cusp in trap units via
+\begin{equation}
+  u_{\sigma\sigma'}(\tilde r)
+  =
+  \gamma_{\sigma\sigma'}\,\tilde r\,e^{-\tilde r},
+  \qquad
+  \gamma_{\uparrow\downarrow}=\tfrac{1}{d-1},\quad
+  \gamma_{\uparrow\uparrow}=\tfrac{1}{d+1}.
+  \label{eq:cusp}
+\end{equation}
+Equivalently, in physical units $r$, $u(r)=\gamma_{\sigma\sigma'}\,(r/a_{\rm ho})\,\exp[-(r/a_{\rm ho})]$.
+The linear coefficient yields the Kato slope at contact in general $d$; the exponential taper suppresses long-range interference, which means the NQS need not unlearn cusp structure at medium/long range.
 
-\emph{Disadvantages.} 
-Evaluation involves generalized Laguerre polynomials and a polar coordinate transform, which is somewhat more expensive per function call compared to the Cartesian Hermite functions. In addition, constructing Coulomb integrals requires care with angular momentum selection rules.
 
-\paragraph{Usage in our pipeline.}
-In the Hartree--Fock stage, both bases are realized on a uniform Cartesian grid of size $n_{\text{grid}}\times n_{\text{grid}}$ within $[-L,L]^2$. The orbitals are sampled on this mesh to form overlap, one--body, and two--body matrix elements using Simpson quadrature and FFT--based convolution for the Coulomb kernel. Once the Hartree--Fock equations are solved, the occupied orbitals are expressed as coefficient vectors $C_{\text{occ}}$ in the chosen basis.
+\subsection{Global readout}
+With contributions from the particle and pair branches, we form a global representation for the final readout. In addition to the pooled embeddings $\overline{\mathbf h}^\phi$ and $\overline{\mathbf h}^\psi$, we also include two global statistics that help the network gauge overall system size and density.
+We average pairs by default or apply degree-normalized radial attention
+\[
+  w_{ij}=\exp[-(\tilde r_{ij}/r_c)^p],\quad
+  \hat w_{ij}=w_{ij}\Big/\sum_{k\ne i}w_{ik},\quad
+  (r_c,p)=(0.4,6),
+\]
+then form $g_i=\sum_{j\ne i}\hat w_{ij}\,\mathbf h^\psi_{ij}$ and $\overline{\mathbf h}^\psi=N^{-1}\sum_i g_i$.
+Two system-level scalars in trap units,
+\[
+  \mathbf g(\tilde{R})=
+  \Big[\tfrac{1}{Nd}\sum_i\|\tilde{\mathbf x}_i\|^2,\;
+       \tfrac{2}{N(N-1)}\sum_{i<j}s_1(\tilde r_{ij})\Big]\in\mathbb R^2,
+\]
+are concatenated with $\overline{\mathbf h}^{\phi}$ and $\overline{\mathbf h}^{\psi}$ and mapped to a scalar by a tiny MLP $\rho$:
+\begin{equation}
+  W_\theta(\tilde{R})
+  =
+  \rho\!\Big(\overline{\mathbf h}^{\phi}\ \|\ \overline{\mathbf h}^{\psi}\ \|\ \mathbf g(\tilde{R})\Big).
+  \label{eq:nqs-readout}
+\end{equation}
 
-During training of the neural--network ansatz, the Slater determinant must be evaluated for arbitrary particle coordinates. In this step no interpolation from the grid is performed. Instead, the orbital values are recomputed analytically using recurrence relations (Cartesian) or Laguerre expansions (Fock--Darwin) inside the PyTorch backend. This ensures exact functional forms, full differentiability, and avoids discretization errors in the variational stage.
+\section{Backflow}
+\label{subsec:backflow-method}
+
+Backflow deforms the coordinates \emph{used only inside the Slater reference} so that the nodal surface can adapt to interparticle correlations:
+\begin{equation}
+  \tilde{R}' \;=\; \tilde{R} + \Delta_\beta(\tilde{R}) ,
+  \qquad
+  \Psi_{\theta,\beta}(R) \;=\; \mathrm{SD}(\tilde R')\;
+  \exp\!\Big(\sum_{i<j} u_{\sigma_i\sigma_j}(\tilde r_{ij}) + W_\theta(\tilde R)\Big).
+  \label{eq:bf-def}
+\end{equation}
+The correlator $W_\theta$ and cusp $u$ are evaluated on $\tilde R$ to avoid feedback loops in the local energy; only the determinant ``sees'' $\tilde R'$.
+This choice cleanly separates (i) amplitude reweighting within nodal pockets (handled by $u+W_\theta$) from (ii) nodal \emph{geometry} (handled by backflow).
+
+\paragraph{Design goals.}
+(i) \emph{Stability near coalescence:} messages use mollified radii and short-range gates so that $\partial \Delta_\beta/\partial \tilde r$ remains bounded; \\
+(ii) \emph{Symmetries:} permutation invariance by construction; near translation invariance by centering/projection; rotation equivariance via vector messages; \\
+(iii) \emph{Close to identity at initialization:} zero-initialized last layer and a positive, learnable scale keep $\Delta_\beta\!\approx\!0$ at start.
+
+\subsection{Message–passing construction}
+We use a minimal two-stage message–passing update. For each ordered pair $(i,j)$ with $i\neq j$, form a message
+\begin{align}
+  \mathbf m_{ij}
+  &= \phi_\beta\!\Big(
+      \underbrace{\tilde{\mathbf x}_i}_{\text{node $i$}},\;
+      \underbrace{\tilde{\mathbf x}_j}_{\text{neighbor $j$}},\;
+      \underbrace{\mathbf r_{ij}}_{\tilde{\mathbf x}_i-\tilde{\mathbf x}_j},\;
+      \underbrace{\tilde r_{ij}^{\rm soft}}_{\sqrt{\tilde r_{ij}^2+\varepsilon^2}},\;
+      \underbrace{(\tilde r_{ij}^{\rm soft})^2}_{\text{scale}}
+    \Big)\cdot w_{ij}^{\rm spin},
+  \label{eq:bf-message}
+\end{align}
+where $\phi_\beta$ is a tiny MLP and $\varepsilon\!\ll\!1$ (trap units) mollifies the norm.\footnote{In code: \texttt{BackflowNet.phi} takes $(3d+2)$ inputs: $(\tilde{\mathbf x}_i,\tilde{\mathbf x}_j,\mathbf r_{ij},\tilde r_{ij}^{\rm soft},(\tilde r_{ij}^{\rm soft})^2)$.}
+Spin enters through a light‐weight mask $w_{ij}^{\rm spin}\in\{0,1\}$ (same‐spin only or all pairs).
+
+Messages are aggregated into a node state
+\begin{equation}
+  \mathbf m_i \;=\; \mathrm{Agg}_{j\neq i}\,\mathbf m_{ij},\quad
+  \mathrm{Agg}\in\{\mathrm{sum},\,\mathrm{mean},\,\mathrm{max}\},
+\end{equation}
+and a node/update network $\psi_\beta$ returns a displacement
+\begin{equation}
+  \delta\tilde{\mathbf x}_i \;=\; \psi_\beta\!\big(\tilde{\mathbf x}_i \ \| \ \mathbf m_i\big)
+  \;\in\;\mathbb{R}^d.
+\end{equation}
+To keep displacements bounded and start near identity we apply
+\begin{equation}
+  \Delta_\beta(\tilde R)\;=\;\tanh\!\big(\delta\tilde X\big)\cdot s_\beta,
+  \qquad s_\beta=\mathrm{softplus}(s_\beta^{\rm raw})>0,
+  \label{eq:bf-bound-scale}
+\end{equation}
+with the last linear layer of $\psi_\beta$ zero‐initialized.
+Empirically, this parameterization stabilizes SR/energy tails and protects Laplacians.
+
+\subsection{Short-range behavior and gates}
+As $\tilde r_{ij}\!\to\!0$, raw $1/\tilde r$ factors can make $\nabla\!\cdot\!\Delta_\beta$ spiky.
+We therefore (i) mollify $\tilde r_{ij}$ as in~\eqref{eq:bf-message}, and optionally (ii) gate the message with
+\begin{equation}
+  \chi_{\rm bf}(\tilde r_{ij})=\frac{\tilde r_{ij}^2}{\tilde r_{ij}^2+r_g^2},
+  \qquad \chi_{\rm bf}(0)=\chi'_{\rm bf}(0)=0,\quad r_g\approx 0.3,
+  \label{eq:bf-gate}
+\end{equation}
+or with degree-normalized radial attention
+\begin{equation}
+  w_{ij}=\exp\!\big[-(\tilde r_{ij}/r_c)^p\big],\qquad
+  \hat w_{ij}=\frac{w_{ij}}{\sum_{k\neq i} w_{ik}}.
+\end{equation}
+Either choice keeps the learned response smooth at coalescence and limits the BF contribution to the local energy variance.
+
+\subsection{Symmetries and COM neutrality}
+Permutation symmetry is automatic (pairwise messages and symmetric aggregation).
+To avoid a spurious center-of-mass (COM) drift, we project the flow to zero mean:
+\begin{equation}
+  \Delta_\beta \;\leftarrow\; \Delta_\beta \;-\; \frac{1}{N}\sum_{i=1}^N \Delta_{\beta,i}.
+  \label{eq:bf-com}
+\end{equation}
+With inputs expressed in trap units $\tilde R$ (already centered in practice) and with messages built from $\mathbf r_{ij}$, the update is effectively translation-invariant and rotation-equivariant.%
+\footnote{Implementation note: subtracting the batchwise mean of $\Delta_\beta$ is a one-liner and removes the small residual COM drift seen in ablations.}
+
+\subsection{Effect on the nodes and variational safety}
+Because only $\mathrm{SD}$ is evaluated at $\tilde R'$, backflow changes the \emph{nodes} but leaves the correlator exponent on $\tilde R$. No Jacobian term is introduced (we are not performing a change of variables of the full wavefunction).
+This ``Feynman--Cohen style'' design targets fixed-node error directly while keeping the amplitude model simple and smooth.
+
+\subsection{Regularization, initialization, and cost}
+We found the following defaults robust across $(N,\omega)$:
+(i) $\varepsilon\in[10^{-6},10^{-4}]$ (trap units) for the soft norm;
+(ii) bounded output $\tanh$ with a learnable scale $s_\beta$ initialized in $[0.02,0.10]$;
+(iii) optional gate $\chi_{\rm bf}$ with $r_g\approx 0.3$ (trap units).
+Zero-initializing the last layer of $\psi_\beta$ makes the ansatz start exactly at the Slater nodes and improves optimizer stability.
+The compute/memory cost scales as $O\!\big(BN^2(d+H)\big)$ for batch size $B$ and hidden width $H$.
+
+\subsection{Mapping to implementation}
+The networks $\phi_\beta$ and $\psi_\beta$ correspond to \texttt{BackflowNet.phi} (message MLP) and \texttt{BackflowNet.psi} (node/update MLP).
+Aggregation is selectable: \texttt{sum|mean|max}. Spin handling (\texttt{use\_spin}, \texttt{same\_spin\_only}) produces the mask $w_{ij}^{\rm spin}$.
+Output control matches~\eqref{eq:bf-bound-scale} via \texttt{out\_bound="tanh"} and $s_\beta=\mathrm{softplus}(\texttt{bf\_scale\_raw})$.
+To enforce~\eqref{eq:bf-com} in practice, subtract the batchwise mean of the predicted $\Delta_\beta$ before forming $\tilde R'$.
 
 \paragraph{Summary.}
-The Cartesian basis offers simplicity and ease of implementation, but converges slowly for rotationally symmetric problems. The Fock--Darwin basis is symmetry--adapted and compact, but slightly more involved to evaluate. In practice both choices are supported in our code, and the optimal choice depends on whether angular momentum conservation or implementation speed is the main priority.
+Backflow provides a compact, symmetry-respecting way to move the Slater nodes toward the true correlated nodes. With mollified distances, optional short-range gates/attention, zero-mean projection, and bounded outputs, it integrates cleanly with the analytic cusp and smooth NQS correlator, reducing fixed-node error without inflating local-energy variance.
 
-\chapter{Machine Learning}
-\label{sec:theory}
-\section{Activation Functions for PINNs}
 
-Physics-Informed Neural Networks (PINNs) integrate physical laws—often in the form of partial differential equations—directly into the training process. Consequently, PINNs require not only the first derivative of the network output with respect to the input but also higher-order derivatives, particularly the second derivative. These derivatives are crucial for accurately representing the underlying physics. As a result, the choice of activation function is of paramount importance.
+\chapter{Optimization}
+\label{ch:optimization}
 
-\subsection{ReLU and Its Limitations.}
-The Rectified Linear Unit (ReLU) is defined as
-\[
-\text{ReLU}(x) = \max(0, x).
-\]
-Although ReLU is popular in many deep learning applications due to its simplicity and ability to mitigate first-order vanishing gradients, its piecewise linear nature leads to two significant drawbacks for PINNs:
+\section{Primary objective and two–stage training}
+\label{sec:opt-overview}
+
+Given a parameterized wavefunction $\Psi_\theta$, the variational ground–state energy is
+\begin{equation}
+E(\theta)
+=\frac{\langle\Psi_\theta|H|\Psi_\theta\rangle}{\langle\Psi_\theta|\Psi_\theta\rangle}
+=\mathbb{E}_{\tilde{R}\sim \pi_\theta}\!\big[E_L(\tilde{R})\big],
+\qquad
+\pi_\theta(\tilde{R})=\frac{|\Psi_\theta(\tilde{R})|^2}{\int |\Psi_\theta|^2}.
+\end{equation}
+With scaled coordinates $\tilde{\mathbf r}=\sqrt{\omega}\,\mathbf r$ the local energy reads
+\begin{equation}
+\label{eq:local-energy}
+E_L(\tilde{R})
+= -\tfrac12\sum_{i=1}^N\!\Big[\Delta_{\tilde{\mathbf r}_i}\ln\Psi_\theta + \|\nabla_{\tilde{\mathbf r}_i}\ln\Psi_\theta\|^2\Big]
++\tfrac{1}{2}\sum_{i=1}^N \tilde r_i^2
++\sum_{i<j}\frac{\sqrt{\omega}}{\tilde r_{ij}},
+\end{equation}
+and the zero–variance principle holds: $\mathrm{Var}_{\pi_\theta}[E_L]=0$ iff $\Psi_\theta$ is an eigenstate.
+
+Our optimization follows two stages that mirror the implementation:
 \begin{enumerate}
-    \item \textbf{Lack of Non-linearity in Second Derivatives:} Since ReLU is linear for \(x>0\) (and constant for \(x<0\)), its derivative is either 0 or 1, and the second derivative is zero almost everywhere (with a singularity at \(x=0\)). This absence of curvature information makes it impossible for the network to capture the nuanced variations required when enforcing differential equations.
-    \item \textbf{Poor Differentiability:} The discontinuity at \(x=0\) further complicates the computation of derivatives, leading to instability when higher-order derivatives are required.
+  \item \textbf{Residual–based pretraining (stage I).} We fit the residual of $E_L$ to a moving scalar target $E_{\rm eff}$ using the loss
+  \(
+    \mathcal{L}_{\rm res}(\theta)=\mathbb{E}\!\big[(E_L(\tilde R)-E_{\rm eff})^2\big].
+  \)
+  We begin with a \emph{self–target} (stabilizer) $E_{\rm eff}=\mu$ where $\mu=\mathbb{E}[E_L]$ over the current batch. This choice is equivalent to variance minimization and prevents the network from chasing a potentially inaccurate external target before it can represent low–variance pockets. We then anneal toward a trusted reference $E_{\rm DMC}$ via
+  \begin{equation}
+    E_{\rm eff}(\alpha) \;=\; \alpha\,E_{\rm DMC} + (1-\alpha)\,\mu,
+    \qquad \alpha \in [0,1],
+  \end{equation}
+  with a smooth cosine schedule $\alpha=\alpha(t)$ that ramps from $\alpha_{\rm start}$ to $\alpha_{\rm end}$ over a prescribed fraction of epochs (code: \texttt{alpha\_start}, \texttt{alpha\_end}, \texttt{alpha\_decay\_frac}). Setting the \texttt{objective} to \texttt{"residual"} uses $E_{\rm eff}=\mu$; \texttt{"energy"} uses $E_{\rm eff}=E_{\rm DMC}$; and \texttt{"energy\_var"} uses the annealed blend above.
+  \item \textbf{Stochastic Reconfiguration (stage II).} After residual pretraining, we refine with SR (natural–gradient VMC). Writing $O(\tilde R)=\partial_\theta \log\Psi_\theta(\tilde R)$,
+  \begin{equation}
+    S \;=\; \mathbb{E}_\pi\!\big[O^\top O\big],\qquad
+    g \;=\; 2\,\mathbb{E}_\pi\!\big[(E_L-\mathbb{E}_\pi[E_L])\,O\big],
+  \end{equation}
+  we solve the damped normal equations
+  \begin{equation}
+    (S+\lambda I)\,\Delta\theta \;=\; -\,g,
+  \end{equation}
+  using (preconditioned) conjugate gradients with restarts, a trust–region scale on the final step, and batchwise centering/whitening of $O$ (code: \texttt{damping}, \texttt{max\_param\_step}, CG options).
 \end{enumerate}
+This pipeline exploits the zero–variance principle for stable shaping of $W_\theta$ (and backflow) before applying the geometry–aware SR update.
 
-\subsection{The Role of Second Derivatives in PINNs.}
-In PINNs, the training objective includes terms that enforce the residuals of the governing differential equations. This enforcement requires the computation of second (and sometimes higher) order derivatives of the network output with respect to the input. If the activation function does not provide a smooth and well-behaved second derivative, the training may suffer from inaccurate physics constraints, poor convergence, and numerical instabilities.
+\section{Configuration–space sampling}
+\label{sec:sampling}
 
-\subsection{Sigmoid and Tanh: Strengths and Shortcomings.}
-The \emph{sigmoid} activation,
+\paragraph{Guiding principle (permutation invariance).}
+In a many–body fermionic system, \emph{which} particle indices are close is irrelevant; what matters is \emph{how many} close pairs and at which length scales. Consequently, we can design samplers that (i) emphasize \emph{configurational motifs} (clusters, shells, dimers, long tails) rather than specific labels, and (ii) deliberately permute particles and randomly rotate configurations to explore the space efficiently without biasing towards any ordering.
+
+\subsection{Stratified capped–simplex mixture}
+We draw collocation batches $X\in\mathbb{R}^{B\times N\times d}$ from a five–component mixture,
 \[
-\sigma(x) = \frac{1}{1+e^{-x}},
+\text{\small(center, tails, mixed, shells, dimers)},
 \]
-and the \emph{hyperbolic tangent} (tanh),
-\[
-\tanh(x) = \frac{e^x - e^{-x}}{e^x + e^{-x}},
-\]
-are both smooth functions. Their non-linear nature in the first derivative is beneficial for introducing non-linearity into the network. However, they exhibit two key issues in the context of PINNs:
+with nonnegative weights $w\in\Delta^4$ projected to a \emph{capped simplex} $\{\,w:\, \sum_k w_k=1,\ 0\le w_k\le 0.3\,\}$ to enforce coverage (code: \texttt{\_project\_simplex\_with\_caps}).
+Each component proposes $x$ as follows (all in physical units; the code internally scales by $a_{\rm ho}=1/\sqrt{\omega}$):
 \begin{itemize}
-    \item \textbf{Vanishing Gradients (Sigmoid):} For large \(|x|\), the sigmoid saturates to 0 or 1, and its first derivative approaches zero. Consequently, the second derivative also diminishes rapidly, making it difficult to propagate higher-order information.
-    \item \textbf{Gradient Polarization (Tanh):} Although tanh is zero-centered and generally provides better gradient flow than sigmoid, its derivative can become highly polarized. In saturation regions, the gradients (and their derivatives) are either too steep or too flat, leading to imbalanced updates and potential numerical issues when enforcing second-order physics constraints.
+  \item \textbf{Center:} narrow isotropic Gaussian around the trap center (samples near the density core).
+  \item \textbf{Tails:} wide Gaussian (probes low–density outskirts and large–$r$ behavior).
+  \item \textbf{Mixed:} hybrid batches mixing narrow and moderate spreads per configuration (tests robustness to inhomogeneous spreads).
+  \item \textbf{Shells:} points placed on $K$ hyperspherical shells with trap–scaled radii $\{r_k\}$ and occupancy $\{q_k\}$, with small radial/tangential jitter (captures ring/shell order at weak traps).
+  \item \textbf{Dimers:} we induce a few close pairs per configuration by sampling short interparticle offsets with random directions and log–uniform distances (enforces near–coalescence coverage without singularities).
 \end{itemize}
-\begin{figure}[H]
-    \centering
-    \begin{subfigure}[t]{0.49\textwidth}
-        \centering
-        \includegraphics[width=\textwidth]{Activation-Functions/sigmoid_plot.pdf}
-        \label{fig:Sigmoid}
-        \caption{Sigmoid activation, and it's first + second derivative}
-    \end{subfigure}
-    \hfill
-    \begin{subfigure}[t]{0.49\textwidth}
-        \centering
-        \includegraphics[width=\textwidth]{Activation-Functions/tanh_plot.pdf}
-        \label{fig:Tanh}
-        \caption{Tanh activation, and it's first + second derivative}
-    \end{subfigure}
-\end{figure}
-\subsection{Advantages of Mish, Swish, and GELU.}
-Recent activation functions such as \emph{Mish}, \emph{Swish}, and \emph{GELU} have been developed to address the shortcomings of traditional activations, particularly in settings where second-order derivatives are essential.
+We then apply a random in–plane rotation (for $d=2$), and a random permutation of particle indices; both preserve the target expectations by symmetry.
 
-\textbf{Swish} is defined as:
+\paragraph{Adaptive mixture and shell occupancy.}
+Per epoch we compute simple difficulty scores and update $w$ and $q$ by exponentiated–gradient (EG) steps with momentum, temperature, and an exploration term; $w$ is then projected back to the capped simplex (code: \texttt{eg\_eta}, \texttt{eg\_temp}, \texttt{eg\_momentum}, \texttt{explore\_gamma}, \texttt{prob\_floor}). Mixture difficulty uses the residual $(E_L-E_{\rm eff})^2$ per component; shell difficulty uses a proxy
 \[
-\text{Swish}(x) = x \cdot \sigma(x) = \frac{x}{1+e^{-x}}.
+\underbrace{V_i}_{\text{harm.+Coulomb per particle}}
+\;+\; \underbrace{\gamma_{g^2}\,\|\nabla_{\mathbf x_i}\log\Psi\|^2}_{\text{stiff gradients}}
+\;+\; \underbrace{\gamma_{\rm cusp}\,r_{\min}^{-1}}_{\text{coalescence pressure}},
 \]
-Swish is smooth and non-monotonic, which allows it to maintain a well-behaved first derivative across a broad range of values. Importantly, its second derivative exhibits a bell-shaped (normal distribution–like) profile that avoids the pitfalls of vanishing or excessively polarized gradients.
+aggregated by nearest shell index (code: \texttt{g2\_weight}, \texttt{cusp\_gamma}, safe clip \texttt{rmin\_clip}). This shifts probability mass toward underfit regions \emph{without} collapsing coverage thanks to the caps.
 
-\textbf{Mish} is given by:
-\[
-\text{Mish}(x) = x \cdot \tanh\left(\ln(1+e^x)\right).
-\]
-Mish not only preserves the smooth non-linearity of tanh but also yields a second derivative that is more uniformly distributed. This “normal-like” behavior in the curvature ensures that the second derivative carries robust information for enforcing differential equations, leading to improved training stability and convergence.
+\paragraph{Hard–example injection.}
+We maintain a small buffer of previously challenging configurations (based on residuals) and stochastically inject them, with mild multiplicative and additive jitter, into the next batch (code: \texttt{sampler\_hard\_*}). This provides a curriculum–like pressure while avoiding overfitting to outliers.
 
-\textbf{GELU} (Gaussian Error Linear Unit) is approximated as:
-\[
-\text{GELU}(x) \approx x \cdot \frac{1}{2}\left[1 + \tanh\left(\sqrt{\frac{2}{\pi}}(x + 0.044715x^3)\right)\right].
-\]
-GELU blends the benefits of a smooth activation with a probabilistic interpretation that mirrors the properties of the Gaussian distribution. Its second derivative, akin to a bell curve, ensures that both small and moderate inputs contribute meaningfully to the network's higher-order gradient information.
-\begin{figure}[H]
-    \centering
-    \begin{subfigure}[t]{0.49\textwidth}
-        \centering
-        \includegraphics[width=\textwidth]{Activation-Functions/gelu_plot.pdf}
-        \label{fig:GELU}
-        \caption{GELU activation, and it's first + second derivative}
-    \end{subfigure}
-    \hfill
-    \begin{subfigure}[t]{0.49\textwidth}
-        \centering
-        \includegraphics[width=\textwidth]{Activation-Functions/mish_plot.pdf}
-        \label{fig:Mish}
-        \caption{Mish activation, and it's first + second derivative}
-    \end{subfigure}
-\end{figure}
-\subsection{Summary.}
-The primary advantage of Mish, Swish, and GELU lies in their ability to capture the benefits of sigmoid and tanh for the first derivative—namely, smooth and non-linear behavior—while also providing a well-behaved, normal distribution–like second derivative. This characteristic is crucial for PINNs, where the accurate computation of second-order derivatives is essential to enforce the underlying physical laws. In contrast, ReLU’s lack of higher-order curvature, along with the vanishing or polarized gradients observed in sigmoid and tanh, make them less suitable for our framework.
+\paragraph{Robustness tweaks.}
+We trim extreme local–energy outliers by quantiles (default $3\%$) \emph{before} forming losses/updates; we also micro–batch the evaluation to keep memory bounded, and apply gradient clipping to $f_\theta$ (and backflow) parameters.
 
-In conclusion, by adopting Mish, Swish, or GELU, we ensure that the activation functions in our PINNs not only facilitate effective first-order gradient propagation but also robustly support the computation of higher-order derivatives, ultimately leading to better performance in modeling complex physical systems.
+\section{Residual–based training (stage I)}
+\label{sec:residual-stage}
 
-
-\section{Normalizing Flow}
-In training physics-informed neural networks (PINNs) to solve complex problems such as the many-body Schrödinger equation, the quality and distribution of training samples are critical. Conventional sampling techniques—such as narrow normal, broad normal, and uniform sampling—each have significant drawbacks. For example:
+For a batch $\{\tilde R_b\}_{b=1}^B$ we compute $E_L(\tilde R_b)$ and the batch mean $\mu=\frac{1}{B}\sum_b E_L(\tilde R_b)$.
+The residual loss is
+\begin{equation}
+\mathcal{L}_{\rm res}(\theta; \alpha)
+= \frac{1}{B}\sum_{b=1}^B \big(E_L(\tilde R_b)-E_{\rm eff}(\alpha)\big)^2,
+\qquad
+E_{\rm eff}(\alpha)=\alpha\,E_{\rm DMC}+(1-\alpha)\,\mu.
+\end{equation}
 \begin{itemize}
-    \item \textbf{Narrow Normal Sampling:} Concentrates samples near the center of the domain, leading to insufficient coverage at the boundaries where the solution may still be significant.
-    \item \textbf{Broad Normal Sampling:} Oversamples regions with little physical relevance, thus wasting computational resources.
-    \item \textbf{Uniform Sampling:} Provides inflexible coverage, often missing regions of high interest such as nodes or sharp gradients.
+  \item \textbf{Self–target warmup ($\alpha=0$).} Minimizing $\mathbb{E}[(E_L-\mu)^2]$ is exactly variance minimization; it teaches the network to produce smooth, low–variance amplitudes inside nodal pockets and reduces sensitivity to early sampler noise.
+  \item \textbf{Anneal to reference ($\alpha\uparrow$).} As capacity grows, we blend in the external target, gently steering the mean energy while retaining the variance pressure. The cosine ramp (code: \texttt{alpha\_start}, \texttt{alpha\_end}, \texttt{alpha\_decay\_frac}) avoids abrupt objective switches.
+  \item \textbf{Pure energy fit ($\alpha=1$).} If desired, we can end stage I with $E_{\rm eff}=E_{\rm DMC}$.
 \end{itemize}
-To overcome these issues, we adopt a normalizing flow framework. This method transforms a simple base distribution (typically a standard normal distribution) into a distribution that better aligns with the target function (e.g., the wavefunction). By learning an invertible mapping, normalizing flows adaptively concentrate samples where they are most needed, improving both efficiency and training accuracy.
+In practice we compute $\nabla_\theta \mathcal{L}_{\rm res}$ by autodiff, use micro–batches of size \texttt{micro\_batch}, apply optional gradient clipping (code: \texttt{grad\_clip}), and log per–component usage and shell radii in physical units.
 
-\begin{figure}[H]
-    \centering
-    \begin{subfigure}[t]{0.49\textwidth}
-        \centering
-        \includegraphics[width=0.9\textwidth]{Normalizing-Flow/Narrow_Norm.pdf}
-        \caption{Narrow Normal Distribution Oversampling the Central Region, and Broad Normal Distribution oversampling near the edges}
-        \label{fig:Normal_sampling}
-    \end{subfigure}
-    \hfill
-    \begin{subfigure}[t]{0.49\textwidth}
-        \centering
-        \includegraphics[width=0.9\textwidth]{Normalizing-Flow/Flow2.pdf}
-        \caption{Sampling with Normalizing Flow, reproducing the Slater Determinant}
-        \label{fig:Flow_sampling}
-    \end{subfigure}
-\end{figure}
-\section{Normalizing Flow Sampling}
-Normalizing flows work by constructing an invertible transformation \( T \) that maps a sample \( x \) drawn from a simple base distribution \( p_X(x) \) (e.g., \( x \sim \mathcal{N}(0, I) \)) to a sample \( y = T(x) \) that follows the target distribution \( p_Y(y) \). The change-of-variables formula governs this mapping:
-\[
-p_Y(y) = p_X(x) \left| \det \left( \frac{\partial T^{-1}(y)}{\partial y} \right) \right|.
-\]
-In our approach, we use a variant known as \emph{conditional flow matching}. Rather than learning the transformation \( T \) directly, we conceptualize the mapping in terms of a displacement field. Given a base sample \( x \) and an associated target sample \( y \), the ideal displacement is defined as:
-\[
-v_{\text{true}} = y - x.
-\]
-We then introduce a continuous interpolation parameter \( t \in [0,1] \) and define:
-\[
-\psi_t = (1-t)x + t\, y,
-\]
-which smoothly bridges the base and target distributions. Our goal is to learn a function \( v(\psi_t, t) \) that predicts the required displacement, thereby reconstructing the overall mapping \( T \).
+\paragraph{Local–energy derivatives in practice.}
+We support three Laplacian backends:
+\begin{enumerate}
+  \item \textbf{Exact:} chunked second partials (reference–accurate, heavier).
+  \item \textbf{HVP–Hutchinson:} $\Delta \log\Psi = \mathbb{E}_v[v^\top H_{\log\Psi} v]$ with Rademacher $v$ (fast and stable; fallback to FD if a probe is non–finite).
+  \item \textbf{FD–Hutchinson:} centered finite differences of directional gradients (robust in corner cases; slightly noisier).
+\end{enumerate}
+We average a small number of probes (2–16 in ablations), and trim quantiles before forming losses.
 
-\section{Training Procedure}
-The normalizing flow model is trained to capture the transformation dynamics from the simple base distribution to the complex target distribution. The training process comprises the following steps:
+\section{Stochastic Reconfiguration (stage II)}
+\label{sec:sr-stage}
+
+SR uses the covariance form of the energy gradient
+\begin{equation}
+\partial_{\theta_k}E 
+= 2\,\mathrm{Cov}_\pi\!\big(E_L, O_k\big)
+= 2\Big(\langle E_L O_k\rangle - \langle E_L\rangle\,\langle O_k\rangle\Big),
+\end{equation}
+and approximates a natural–gradient step by solving $(S+\lambda I)\Delta\theta=-g$.
+Implementation details:
+\begin{itemize}
+  \item \textbf{Centering/whitening.} We center $O$ per batch and whiten by the diagonal of $S$ before CG to improve conditioning.
+  \item \textbf{Trust region.} The final step is scaled to satisfy a maximum parameter norm (code: \texttt{max\_param\_step}).
+  \item \textbf{Damping.} A small $\lambda$ (code: \texttt{damping}) stabilizes low–variance directions.
+\end{itemize}
+Because our backflow only alters the Slater coordinates (and $W_\theta$ stays on safe features of $\tilde R$), the SR statistics remain well–behaved even when nodes shift.
+
+\section{Units, scaling, and batch construction}
+\label{sec:units-scaling}
+
+All features are computed in trap units $\tilde{\mathbf x}=\sqrt{\omega}\,\mathbf x$ so that length scales and gates (e.g.\ the short–range gate in the NQS and backflow) behave consistently across $\omega$. The sampler internally widens/narrows Gaussians and shell radii using $a_{\rm ho}=1/\sqrt{\omega}$ in a fixed, explicit way, so that the five components cover comparable \emph{dimensionless} regimes for $\omega\in[0.01,1]$. Batches are i.i.d.\ by design; we rely on the stratified mixture (with caps, EG–adaptation, and hard–injection) rather than long MCMC chains to traverse configurations, which markedly reduces correlation and simplifies accounting.
+
+\section{Workflow summary}
+\label{sec:opt-summary}
 
 \begin{enumerate}
-    \item \textbf{Sample Generation:} 
-    \begin{itemize}
-        \item Generate a batch of base samples \( x \) from a standard normal distribution \( \mathcal{N}(0, I) \).
-        \item Obtain target samples \( y \) using a reliable method (e.g., via a Metropolis--Hastings algorithm or from experimental data) that reflects the desired distribution.
-    \end{itemize}
-    
-    \item \textbf{Interpolation:} 
-    For each pair \( (x, y) \), select a random interpolation parameter \( t \in [0,1] \) and compute the interpolated state:
-    \[
-    \psi_t = (1-t)x + t\, y.
-    \]
-    
-    \item \textbf{Displacement Prediction and Loss Calculation:}
-    A neural network—typically a multilayer perceptron (MLP)—is employed to predict the displacement \( v_{\text{predicted}}(\psi_t, t) \). The network is trained by minimizing the mean squared error (MSE) between the predicted and true displacements:
-    \[
-    \mathcal{L} = \mathbb{E}_{x,y,t} \left[ \| v_{\text{predicted}}(\psi_t, t) - (y - x) \|^2 \right].
-    \]
-    
-    \item \textbf{Optimization:} 
-    We use an optimizer such as Adam to update the network parameters based on the computed loss. Training is performed over multiple epochs until convergence is observed. Once trained, the model is capable of rapidly generating uncorrelated samples that align with the target distribution.
+  \item \textbf{Sample collocation set} $X$ from the stratified capped–simplex mixture (center/tails/mixed/shells/dimers), then apply rotation and permutation; optionally inject hard examples.
+  \item \textbf{Compute} $E_L$ using the selected Laplacian backend; trim outliers.
+  \item \textbf{Stage I (residual).} Minimize $\frac{1}{B}\sum_b(E_L(\tilde R_b)-E_{\rm eff}(\alpha))^2$ with $\alpha$ ramped from $0$ to $\alpha_{\rm end}$; update mixture/shell weights via EG.
+  \item \textbf{Stage II (SR).} Form $S$ and $g$, solve $(S+\lambda I)\Delta\theta=-g$, apply a trust–region step.
 \end{enumerate}
+This procedure keeps the early dynamics variance–dominated and sampler–aware, then transitions to a geometry–aware natural–gradient refinement. Empirically it yields stable convergence across $(N,\omega)$, including weak traps where shell/dimer coverage and permutation–respecting stratification are essential.
 
-\section{Advantages and Implementation Details}
-The use of normalizing flows offers several advantages over traditional sampling methods:
+\chapter{Analysis}
+\label{ch:analysis}
+
+\subsection{Analysis toolbox (what we measure and why)}
+\label{subsec:toolbox}
+All analyses are performed on fresh $|\Psi_\theta|^2$ samples and use the same scaled coordinates.
+
+\paragraph{Forward taps and branch ablations.}
+We expose the intermediates of the correlator pipeline:
+\[
+z_\theta=\big[\overline\phi\;\big|\;\overline\psi\;\big|\;\mathrm{extras}\big],\quad
+f_{\rm base}=\rho_\theta(z_\theta),\quad
+f_{\rm cusp}=\sum_{i<j}\gamma_{\sigma_i\sigma_j}\,r^{\rm soft}_{ij},\quad
+f=f_{\rm base}+f_{\rm cusp}.
+\]
+\textbf{Branch ablation} zeroes one block in $z_\theta$ (either $\overline\phi$, $\overline\psi$, or \textit{extras}) before the linear head and records the absolute drop in the head output. This identifies which source the head actually uses.
+
+\paragraph{Effective rank of the representation.}
+Let $\Sigma=\mathrm{Cov}[z_\theta]$ and $\{\lambda_i\}$ its eigenvalues under $|\Psi|^{2}$ sampling. With $p_i=\lambda_i/\sum_j\lambda_j$ we report the entropy effective rank
+\[
+r_{\rm eff}=\exp\!\Big(-\sum_i p_i\log p_i\Big),
+\]
+and the explained-variance spectrum. Low $r_{\rm eff}$ indicates that $z_\theta$ lies close to a low-dimensional manifold.
+
+\paragraph{PC projection ablation (PCs vs.\ random subspaces).}
+We compute PCA of $z_\theta$ and project onto the top-$k$ PCs, reconstructing the linear head $f_{\rm base}$ from the stored weights. We report the mean absolute error (MAE) relative to the full head, \emph{normalized} by $\mathrm{std}(f_{\rm base})$, and compare against projections onto random $k$-dimensional orthonormal subspaces. If PC$(k)$ attains tiny relative MAE while random$(k)$ does not, the head effectively depends on a $k$-dimensional latent.
+
+\paragraph{Linear probes (semantics of PCs).}
+We regress simple, interpretable summaries per configuration against the PC scores:
+(i) mean pair distance $\bar r$,
+(ii) variance of pair distances $\mathrm{Var}(r)$,
+(iii) near-contact fraction $\Pr(r<r_0)$ in scaled units,
+(iv) a crude ``shell contrast'' from single-particle radial histograms.
+We report $R^2$ to assign physical meaning to the leading PCs (e.g., \emph{PC1 $\approx$ global size}).
+
+\paragraph{PC1 block power shares.}
+We decompose the loading vector of PC1 across the $(\overline\phi\,|\,\overline\psi\,|\,\mathrm{extras})$ blocks and report squared-norm shares that sum to one. This shows \emph{where} the dominant latent is encoded (typically in $\overline\psi$).
+
+\paragraph{Near-field gradient concentration (stable quantile metric).}
+For the \emph{learned residual} $f_{\rm base}$ we measure concentration of gradient energy near electron--electron contact via
+\[
+\mathrm{share}(q)=\frac{\big\langle\|\nabla f_{\rm base}\|^2\;\big|\;r_{\min}\le q\text{-quantile}\big\rangle}{\big\langle\|\nabla f_{\rm base}\|^2\big\rangle},
+\]
+evaluated at $q\in\{1\%,5\%,10\%\}$ with a minimum-count safeguard. Values $\approx 1$ indicate that the analytic cusp successfully offloads short-range stiffness; values $\gg 1$ indicate the residual carries additional near-field structure.
+
+\paragraph{Means of $(f,f_{\rm cusp},f_{\rm base})$.}
+We report $\mathbb{E}[f]$, $\mathbb{E}[f_{\rm cusp}]$, and $\mathbb{E}[f_{\rm base}]$ to summarize the division of labor without relying on variance decompositions that can be confounded by strong cross-covariances.
+
+\subsection{What the toolbox reveals across confinement}
+\label{subsec:omega-story}
+For $N=6$ we observe a clear change with trap strength:
 \begin{itemize}
-    \item \textbf{Adaptive Sampling:} The learned transformation focuses sampling in regions of high importance, avoiding both undersampling and oversampling.
-    \item \textbf{Efficiency:} Unlike methods requiring a burn-in period (as in Markov Chain Monte Carlo), the normalizing flow generates independent samples quickly once training is complete.
-    \item \textbf{Automation:} The framework removes the need for manual hyperparameter tuning of the sampling distribution, making it robust to changes in system parameters.
+  \item \textbf{Tight confinement ($\omega=1.0$):} $r_{\rm eff}\!\approx\!1$, top PC explains $\gtrsim\!99\%$ of variance in $z_\theta$, PC$(1)$ reconstructs the head to $\lesssim\!1\%$ relative MAE while random$(1)$ fails by orders of magnitude, and the head computed from PC1 correlates $\approx\!1$ with the full head. Linear probes assign \emph{PC1 $\approx$ mean separation $\bar r$}; near-field gradient shares are $\approx\!1$. Branch ablation identifies $\overline\psi$ as the dominant source. \emph{Interpretation:} the correlator is effectively one-dimensional and smoothly encodes \emph{global size}.
+  \item \textbf{Loose confinement ($\omega=0.1$):} $r_{\rm eff}\!\approx\!2\text{–}3$, PC$(1)$ alone is insufficient, PC$(2)$ reaches $\sim\!5\%$ relative MAE and random$(2)$ remains much worse; head@PC1 correlation is $\ll 1$. Linear probes assign \emph{PC1 $\approx \bar r$} and \emph{PC2 $\approx \mathrm{Var}(r)$} (\emph{spread}); near-field shares increase modestly. $\overline\psi$ remains dominant. \emph{Interpretation:} the correlator remains low-dimensional but genuinely depends on two smooth latents: \emph{size} and \emph{spread}.
 \end{itemize}
 
-In our implementation, we integrate the normalizing flow sampling within the overall training pipeline of the PINN. Hyperparameters such as learning rate, batch size, and network architecture (e.g., number of hidden layers and neurons) are chosen based on preliminary experiments to ensure efficient convergence. Sample quality is monitored via validation metrics that compare the generated distribution against the target distribution.
+\subsection{Uncertainty, reporting, and sanity checks}
+We report sample means and standard errors $\mathrm{se}=\sigma/\sqrt{B}$ over the evaluation batch. All randomness (initialization, MCMC, probe vectors) uses fixed seeds. We verify:
+(i) agreement between \texttt{hvp-hutch} and exact Laplacian within SE,
+(ii) acceptance in the target window with adequate mixing,
+(iii) stability of $r_{\rm eff}$ under resampling,
+(iv) robustness of near-field conclusions under small changes of the soft-core $\delta$ and quantile levels.
+
+% \section{Normalizing Flow}
+% In training physics-informed neural networks (PINNs) to solve complex problems such as the many-body Schrödinger equation, the quality and distribution of training samples are critical. Conventional sampling techniques—such as narrow normal, broad normal, and uniform sampling—each have significant drawbacks. For example:
+% \begin{itemize}
+%     \item \textbf{Narrow Normal Sampling:} Concentrates samples near the center of the domain, leading to insufficient coverage at the boundaries where the solution may still be significant.
+%     \item \textbf{Broad Normal Sampling:} Oversamples regions with little physical relevance, thus wasting computational resources.
+%     \item \textbf{Uniform Sampling:} Provides inflexible coverage, often missing regions of high interest such as nodes or sharp gradients.
+% \end{itemize}
+% To overcome these issues, we adopt a normalizing flow framework. This method transforms a simple base distribution (typically a standard normal distribution) into a distribution that better aligns with the target function (e.g., the wavefunction). By learning an invertible mapping, normalizing flows adaptively concentrate samples where they are most needed, improving both efficiency and training accuracy.
+
+% \begin{figure}[H]
+%     \centering
+%     \begin{subfigure}[t]{0.49\textwidth}
+%         \centering
+%         \includegraphics[width=0.9\textwidth]{Normalizing-Flow/Narrow_Norm.pdf}
+%         \caption{Narrow Normal Distribution Oversampling the Central Region, and Broad Normal Distribution oversampling near the edges}
+%         \label{fig:Normal_sampling}
+%     \end{subfigure}
+%     \hfill
+%     \begin{subfigure}[t]{0.49\textwidth}
+%         \centering
+%         \includegraphics[width=0.9\textwidth]{Normalizing-Flow/Flow2.pdf}
+%         \caption{Sampling with Normalizing Flow, reproducing the Slater Determinant}
+%         \label{fig:Flow_sampling}
+%     \end{subfigure}
+% \end{figure}
+% \section{Normalizing Flow Sampling}
+% Normalizing flows work by constructing an invertible transformation \( T \) that maps a sample \( x \) drawn from a simple base distribution \( p_X(x) \) (e.g., \( x \sim \mathcal{N}(0, I) \)) to a sample \( y = T(x) \) that follows the target distribution \( p_Y(y) \). The change-of-variables formula governs this mapping:
+% \[
+% p_Y(y) = p_X(x) \left| \det \left( \frac{\partial T^{-1}(y)}{\partial y} \right) \right|.
+% \]
+% In our approach, we use a variant known as \emph{conditional flow matching}. Rather than learning the transformation \( T \) directly, we conceptualize the mapping in terms of a displacement field. Given a base sample \( x \) and an associated target sample \( y \), the ideal displacement is defined as:
+% \[
+% v_{\text{true}} = y - x.
+% \]
+% We then introduce a continuous interpolation parameter \( t \in [0,1] \) and define:
+% \[
+% \psi_t = (1-t)x + t\, y,
+% \]
+% which smoothly bridges the base and target distributions. Our goal is to learn a function \( v(\psi_t, t) \) that predicts the required displacement, thereby reconstructing the overall mapping \( T \).
+
+% \section{Training Procedure}
+% The normalizing flow model is trained to capture the transformation dynamics from the simple base distribution to the complex target distribution. The training process comprises the following steps:
+
+% \begin{enumerate}
+%     \item \textbf{Sample Generation:} 
+%     \begin{itemize}
+%         \item Generate a batch of base samples \( x \) from a standard normal distribution \( \mathcal{N}(0, I) \).
+%         \item Obtain target samples \( y \) using a reliable method (e.g., via a Metropolis--Hastings algorithm or from experimental data) that reflects the desired distribution.
+%     \end{itemize}
+    
+%     \item \textbf{Interpolation:} 
+%     For each pair \( (x, y) \), select a random interpolation parameter \( t \in [0,1] \) and compute the interpolated state:
+%     \[
+%     \psi_t = (1-t)x + t\, y.
+%     \]
+    
+%     \item \textbf{Displacement Prediction and Loss Calculation:}
+%     A neural network—typically a multilayer perceptron (MLP)—is employed to predict the displacement \( v_{\text{predicted}}(\psi_t, t) \). The network is trained by minimizing the mean squared error (MSE) between the predicted and true displacements:
+%     \[
+%     \mathcal{L} = \mathbb{E}_{x,y,t} \left[ \| v_{\text{predicted}}(\psi_t, t) - (y - x) \|^2 \right].
+%     \]
+    
+%     \item \textbf{Optimization:} 
+%     We use an optimizer such as Adam to update the network parameters based on the computed loss. Training is performed over multiple epochs until convergence is observed. Once trained, the model is capable of rapidly generating uncorrelated samples that align with the target distribution.
+% \end{enumerate}
+
+% \section{Advantages and Implementation Details}
+% The use of normalizing flows offers several advantages over traditional sampling methods:
+% \begin{itemize}
+%     \item \textbf{Adaptive Sampling:} The learned transformation focuses sampling in regions of high importance, avoiding both undersampling and oversampling.
+%     \item \textbf{Efficiency:} Unlike methods requiring a burn-in period (as in Markov Chain Monte Carlo), the normalizing flow generates independent samples quickly once training is complete.
+%     \item \textbf{Automation:} The framework removes the need for manual hyperparameter tuning of the sampling distribution, making it robust to changes in system parameters.
+% \end{itemize}
+
+% In our implementation, we integrate the normalizing flow sampling within the overall training pipeline of the PINN. Hyperparameters such as learning rate, batch size, and network architecture (e.g., number of hidden layers and neurons) are chosen based on preliminary experiments to ensure efficient convergence. Sample quality is monitored via validation metrics that compare the generated distribution against the target distribution.

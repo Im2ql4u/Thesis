@@ -1,0 +1,23 @@
+\chapter*{Introduction}
+Two-dimensional quantum dots offer a clean, tunable route from Fermi-liquid behavior to Wigner-molecule physics: as the trap frequency \(\omega\) decreases, the one-body level spacing collapses while Coulomb repulsion dominates, driving electrons to localize into ring/shell patterns whose lab-frame densities are rotationally smeared by zero-point motion. The many-body literature has mapped this crossover qualitatively and, in classical limits, identified preferred shellings (e.g.\ \((1,5)\), \((3,9)\)) \cite{Egger_1999,Kong_2002,schweigert1994spectralpropertieschargedparticles,manninen2007metalclustersquantumdots}. Yet, for fully quantum dots, \emph{quantitative}, topology-resolved diagnostics—occupancy fractions, bond-orientational order \(|\Phi_m|\), and ring “stiffness”—have remained sparse.
+
+\paragraph{Scope and questions.}
+We revisit these dots with a Slater–Jastrow(+Backflow) ansatz designed to be \emph{safe-by-design} for Laplacian-based estimators: coordinates are scaled to trap units (\(\tilde R=\sqrt{\omega}R\)), learned pair features are soft-core (no spurious \(1/r\) in derivatives), and the electron–electron cusp is enforced analytically. A compact backflow provides smooth nodal deformations. We ask:  
+(i) How much neural capacity is \emph{actually} needed once antisymmetry, cusp, and conditioning are explicit?  
+(ii) What additional structure does backflow learn?  
+(iii) Can we extract \emph{physics}—shell occupancies, orientational order, and stiffness—directly from \(|\Psi|^2\) with minimal modeling bias?
+
+\paragraph{Diagnostics and relation to prior work.}
+Alongside energies, we deploy automatic shell detection, a shell-resolved reconstruction test for \(g(r)\) (disentangling geometry from sampling artifacts), bond-orientational order parameters \(|\Phi_m|\) and angular Lindemann-like ratios \(\lambda_\phi\) (adapting ideas from bond-orientational order in classical Wigner/Yukawa layers \cite{Mazars_2008}), and the density parameter \(r_s\) from the first \(g(r)\) peak to anchor the Fermi-liquid \(\to\) Wigner crossover \cite{Egger_1999}. These tools quantify, in a single framework, the emergence of \emph{rotating Wigner molecules}—quantum mixtures of near-degenerate classical minima.
+
+\paragraph{Main contributions.}
+\begin{enumerate}
+\item \textbf{Compact, conditioned accuracy.} A small Slater–Jastrow(+Backflow) in trap units attains DMC-level energies for \(N{=}2\) and \(\sim10^{-2}\!\!-\!10^{-1}\%\) relative errors for \(N\in\{6,12\}\), indicating that \emph{conditioning} (trap units, cusp, safe features) rather than depth governs accuracy.
+\item \textbf{Topology-resolved Wigner diagnostics.} We report, across \(\omega\in[1,10^{-3}]\), (a) two-shell probabilities and inner-count histograms, (b) shell-mixture reconstructions of \(g(r)\) with cosine similarity \(0.989\!-\!1.000\), and (c) sector-wise \(|\Phi_m|\) and \(\lambda_\phi\). At \(\omega=10^{-3}\):  
+\(\;\)– \(N{=}6\): persistent single-ring molecule with a robust \((1,5)\!\leftrightarrow\!(0,6)\) near-degeneracy (fractions \(\approx 0.63\!-\!0.73\) vs.\ \(0.27\!-\!0.37\)); comparable \(|\Phi_5|\), \(|\Phi_6|\), and small \(\lambda_\phi\).  
+\(\;\)– \(N{=}12\): two-shell molecule with \((3,9)\) \emph{modal} under standard thresholds and substantial populations in \((2,10)\) and \((1,11)\); \(|\Phi_3|\!\sim\!0.67\), \(|\Phi_9|\!\sim\!0.50\), low \(\lambda_\phi\)—a rotating Wigner crystal consistent with, and extending, prior crossover and classical shell results \cite{Egger_1999,Kong_2002,schweigert1994spectralpropertieschargedparticles,Filinov_2001}.
+\item \textbf{Representation insight.} Correlator features live on a low-dimensional manifold (1–3 principal axes depending on regime), while backflow carries many local modes—providing node refinements rather than global rescalings.
+\end{enumerate}
+
+\paragraph{Outlook.}
+Because the diagnostics are model-agnostic post-processing of \(|\Psi|^2\), they offer a common language to compare neural, quantum-chemical, and QMC ansätze. The \(\omega=10^{-3}\) results in particular supply quantitative, sector-resolved benchmarks for Wigner-molecule structure in parabolic dots, complementing crossover criteria based on \(r_s\) and inviting direct comparison with future Pfaffian/geminal and multi-determinant studies.

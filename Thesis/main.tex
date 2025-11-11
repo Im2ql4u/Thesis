@@ -1,6 +1,7 @@
 \documentclass{report}
 \usepackage{graphicx}
 \usepackage{caption}
+\usepackage{multirow}
 \usepackage{subcaption}
 \usepackage{float}  % Enables [H]
 \usepackage{amsmath}
@@ -78,7 +79,11 @@
 \newtheorem{lemma}[theorem]{Lemma}
 \newtheorem{proposition}[theorem]{Proposition}
 
-
+\usepackage{subcaption}
+\usepackage{graphicx}
+\newlength\figgutter
+\setlength{\figgutter}{0.3em} % tweak gutter size
+\newcommand{\threecolw}{\dimexpr(\textwidth-2\figgutter)/3\relax}
 
 \titleformat{\chapter}
   [display]  % display = title is on its own line
@@ -103,14 +108,20 @@
 \author{Aleksander Sekkelsten}
 
 \date{\today}
-
 \begin{document}
-
 \maketitle
-\tableofcontents
-\part{Theory}
 
+
+\include{abstract}
+\include{acknowledgement}
+\tableofcontents
+
+\part{Introduction}
+\input{introduction}
+
+\part{Theory}
 \input{theory}
+
 \part{Methods}
 \input{method}
 

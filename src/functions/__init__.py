@@ -1,13 +1,14 @@
 # src/functions/__init__.py
 
 # --- Slater_Determinant (Cartesian + FD + engines) ---
-from .Analysis import analyze_model_all, render_analysis_report
+from .Analysis import run_compact_analysis
 from .Energy import (
     evaluate_energy_vmc,
 )
 
 # --- Neural_Networks ---
 from .Neural_Networks import (
+    compute_laplacian_fast,
     psi_fn,
     train_model,
 )
@@ -26,6 +27,7 @@ from .Plotting import (
     make_mala_sample_fn,
     mirror_quadrants,
     plot_f_psi_sd_with_backflow,
+    radial_two_body_density_2d_fast,
     run_radial_map,
 )
 from .Save_Model import (
@@ -85,8 +87,7 @@ __all__ = [
     # Stochastic_Reconfiguration
     "train_model_sr_energy",
     # Analysis
-    "analyze_model_all",
-    "render_analysis_report",
+    "run_compact_analysis",
     # Neural Networks
     "psi_fn",
     "train_model",

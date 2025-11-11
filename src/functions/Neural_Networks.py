@@ -18,6 +18,7 @@ def _hyperspherical_shell(B, N, d, radii, occ_probs, jitter_sigma, device, dtype
     radii: (K,) absolute radii (already scaled into physical units by caller)
     jitter_sigma: dimensionless, used as relative scale for both radial & tangential
     """
+    K = int(radii.numel())
     x = torch.empty(B, N, d, device=device, dtype=dtype)
     occ_probs = torch.nan_to_num(occ_probs, nan=0.0, posinf=0.0, neginf=0.0)
     occ_probs = occ_probs / (occ_probs.sum() + 1e-12)
@@ -157,6 +158,7 @@ def _allocate_counts_with_caps(
       floor_k = ceil(min_frac[k]*B), ceil_k = floor(max_frac[k]*B)
     Start from largest-remainder rounding of B*probs, then rebalance within caps.
     """
+    K = int(probs.numel())
     p = torch.nan_to_num(probs, nan=0.0, posinf=0.0, neginf=0.0).clamp_min(0)
     p = p / (p.sum() + 1e-12)
 
@@ -509,8 +511,11 @@ def train_model(
     jitter_rot = bool(params.get("sampler_rot", True))
     n_perm = int(params.get("sampler_perm", 1))
     hard_enable = bool(params.get("sampler_hard_enable", True))
+    hard_q = float(params.get("sampler_hard_q", 0.80))
+    hard_cap = int(params.get("sampler_hard_cap", N_collocation))
     hard_inject = float(params.get("sampler_hard_inject", 0.25))
     hard_sigma = float(params.get("sampler_hard_sigma", 0.15))
+    pair_pull_p = float(params.get("sampler_pair_pull_prob", 0.5))
     g2_weight = float(params.get("sampler_g2_weight", 0.30))
     cusp_gamma = float(params.get("sampler_cusp_gamma", 0.08))
     eps_coul_soft = float(params.get("eps_coul_soft", 1e-6))
@@ -893,8 +898,7 @@ def train_model(
             w_now = ", ".join([f"{v:.2f}" for v in mix_w.tolist()])
             var_now = float((EL).var(unbiased=False).detach().item())
             print(
-                f"[ep {epoch:05d} |α={alpha:.3f}|] El={EL.mean().detach():.6f}",
-                f"var={var_now:.3e}  mix=[{w_now}]",
+                f"[ep {epoch:05d} |α={alpha:.3f}|] El={EL.mean().detach():.6f}  var={var_now:.3e}  mix=[{w_now}]"
             )
 
     return f_net, backflow_net, optimizer, history

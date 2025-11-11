@@ -8,8 +8,6 @@ from tqdm.auto import tqdm
 
 from utils import inject_params
 
-from .Neural_Networks import psi_fn
-
 
 # --------------------
 # Small helper: robust params
@@ -58,11 +56,6 @@ def _make_psi_log_fn(f_net, C_occ, *, backflow_net=None, spin=None, params=None)
 # Laplacian backends for Δ logψ
 # --------------------
 def _lap_log_fd_hutch(psi_log_fn, x, probes=16, eps=1e-3):
-    """
-    First-order FD Hutchinson:
-      v ~ Rademacher, approx v^T H v via [g(x+eps v) - g(x-eps v)]·v / (2 eps)
-      Δ logψ ≈ E_v[v^T H v]
-    """
     x = x.detach()
     B = x.shape[0]
     acc = torch.zeros(B, device=x.device, dtype=x.dtype)
@@ -80,10 +73,6 @@ def _lap_log_fd_hutch(psi_log_fn, x, probes=16, eps=1e-3):
 
 
 def _lap_log_fd_central_hutch(psi_log_fn, x, probes=16, eps=1e-3):
-    """
-    Central-difference Hutchinson on gradient:
-      (gp - 2g0 + gm)·v / eps^2 averaged over v ~ Rademacher
-    """
     x0 = x.detach().requires_grad_(True)
     with torch.set_grad_enabled(True):
         l0 = psi_log_fn(x0)
@@ -105,11 +94,6 @@ def _lap_log_fd_central_hutch(psi_log_fn, x, probes=16, eps=1e-3):
 
 
 def _lap_log_hvp_hutch(psi_log_fn, x, probes=16):
-    """
-    Hessian-vector Hutchinson (best trade-off):
-      g = ∇ logψ (with create_graph=True)
-      For each v: v^T H v = <∇_x (g·v), v>
-    """
     x = x.detach().requires_grad_(True)
     with torch.set_grad_enabled(True):
         l = psi_log_fn(x)
@@ -125,20 +109,24 @@ def _lap_log_hvp_hutch(psi_log_fn, x, probes=16):
 
 
 def _lap_log_exact(psi_log_fn, x):
-    """
-    Exact Laplacian by summing second partials: Δ logψ = Σ_{i,k} ∂²/∂x_{ik}² logψ
-    O(B*N*d) backward calls → use only for small batches.
-    """
     x = x.detach().requires_grad_(True)
     with torch.set_grad_enabled(True):
-        l = psi_log_fn(x)
-        g = torch.autograd.grad(l.sum(), x, create_graph=True, retain_graph=True)[0]
+        l = psi_log_fn(x)  # (B,)
+        g = torch.autograd.grad(
+            l, x, grad_outputs=torch.ones_like(l), create_graph=True, retain_graph=True
+        )[
+            0
+        ]  # (B,N,d)
         B, N, d = x.shape
         lap = torch.zeros(B, device=x.device, dtype=x.dtype)
         for i in range(N):
             for k in range(d):
-                gi = g[:, i, k].sum()
-                Hiik = torch.autograd.grad(gi, x, retain_graph=True, create_graph=False)[0][:, i, k]
+                gi = g[:, i, k]  # (B,)
+                Hiik = torch.autograd.grad(
+                    gi, x, grad_outputs=torch.ones_like(gi), retain_graph=True, create_graph=False
+                )[0][
+                    :, i, k
+                ]  # (B,)
                 lap += Hiik
     return lap
 
@@ -157,15 +145,23 @@ def _local_energy_multi(
     fd_eps=3e-3,
 ):
     """
-    Returns E_L (B,) and logψ for optional diagnostics.
-    lap_mode ∈ {"fd-hutch", "fd-central-hutch", "hvp-hutch", "exact"}
+    Returns:
+      E_L (B,), T_loc (B,), V_int (B,), V_harm (B,), logψ (B,)
+    with the selected Laplacian backend.
+
+    T_loc = -1/2 * [Δ logψ + ||∇ logψ||^2]
+    V_harm = 1/2 * ω^2 * ||x||^2
     """
-    # gradient of logψ
     x = x.detach().requires_grad_(True)
     with torch.set_grad_enabled(True):
-        logpsi = psi_log_fn(x)
-        need_graph = lap_mode in ("hvp-hutch", "exact")
-        g = torch.autograd.grad(logpsi.sum(), x, create_graph=need_graph, retain_graph=True)[0]
+        logpsi = psi_log_fn(x)  # (B,)
+        g = torch.autograd.grad(
+            logpsi,
+            x,
+            grad_outputs=torch.ones_like(logpsi),
+            create_graph=(lap_mode in ("hvp-hutch", "exact")),
+            retain_graph=True,
+        )[0]
     g2 = (g * g).sum(dim=(1, 2))
 
     # Δ logψ
@@ -180,13 +176,14 @@ def _local_energy_multi(
     else:
         raise ValueError(f"Unknown lap_mode: {lap_mode}")
 
-    # Potentials & local energy
+    # Potentials & local parts
     with torch.no_grad():
         V_harm = 0.5 * (omega**2) * (x**2).sum(dim=(1, 2))  # (B,)
         V_int = compute_coulomb_interaction(x).view(-1)  # (B,)
-        E_L = -0.5 * (lap_log + g2) + (V_harm + V_int)
+        T_loc = -0.5 * (lap_log + g2)  # (B,)
+        E_L = T_loc + V_harm + V_int  # (B,)
 
-    return E_L.detach(), logpsi.detach()
+    return E_L.detach(), T_loc.detach(), V_int.detach(), V_harm.detach(), logpsi.detach()
 
 
 # --------------------
@@ -195,26 +192,18 @@ def _local_energy_multi(
 def _metropolis_psi2(
     psi_log_fn, x0, n_steps: int = 30, step_sigma: float = 0.2, return_accept: bool = False
 ):
-    """
-    Simple independent-proposal Metropolis for |Ψ|^2.
-    Returns x_final (B,N,d) [requires_grad=True] and optional accept_rate.
-    """
     x = x0.clone().requires_grad_(True)
     accepts = 0.0
-
     with torch.no_grad():
         lp = psi_log_fn(x) * 2.0
         for _ in range(n_steps):
             prop = (x + torch.randn_like(x) * step_sigma).requires_grad_(True)
             lp_prop = psi_log_fn(prop) * 2.0
-
             accept_logprob = lp_prop - lp
             accept = (torch.rand_like(accept_logprob).log() < accept_logprob).view(-1, 1, 1).float()
             accepts += float(accept.mean().item())
-
             x = accept * prop + (1.0 - accept) * x
             lp = accept.view(-1) * lp_prop + (1.0 - accept.view(-1)) * lp
-
     if return_accept:
         return x, accepts / max(1, n_steps)
     return x
@@ -231,42 +220,29 @@ def _metropolis_psi2_persistent(
     thin: int = 5,
     n_keep: int = 1,
     step_sigma: float = 0.15,
-    target_accept: float | None = 0.45,  # None => no adaptation
+    target_accept: float | None = 0.45,
     adapt_lr: float = 0.05,
 ):
-    """
-    Random-walk Metropolis with:
-      - burn-in (optionally with step-size adaptation towards target_accept),
-      - thinning (keep every 'thin'-th post-burn sample),
-      - returns stacked kept samples and exact acceptance = accepted/proposals.
-    Returns: samples(K,B,N,d), x_last(B,N,d), accepted:int, proposals:int
-    """
     x = x0.clone()
     sigma = torch.as_tensor(step_sigma, device=x.device, dtype=x.dtype)
     accepted = 0
     proposals = 0
-
     with torch.no_grad():
         lp = psi_log_fn(x) * 2.0
-
-        # burn-in (adapt σ if target_accept provided)
+        # burn-in
         for _ in range(burn_in):
             prop = x + torch.randn_like(x) * sigma
             lp_prop = psi_log_fn(prop) * 2.0
             logu = torch.log(torch.rand_like(lp_prop))
             acc_m = (logu < (lp_prop - lp)).view(-1, 1, 1)
-
             accepted += int(acc_m.sum().item())
             proposals += acc_m.numel()
-
             x = torch.where(acc_m, prop, x)
             lp = torch.where(acc_m.view(-1), lp_prop, lp)
-
             if target_accept is not None:
                 a_hat = acc_m.float().mean().item()
                 sigma = sigma * math.exp(adapt_lr * (a_hat - target_accept))
-
-        # collect thinned kept samples
+        # collect
         kept = []
         for _ in range(n_keep):
             for _ in range(max(1, thin)):
@@ -274,14 +250,11 @@ def _metropolis_psi2_persistent(
                 lp_prop = psi_log_fn(prop) * 2.0
                 logu = torch.log(torch.rand_like(lp_prop))
                 acc_m = (logu < (lp_prop - lp)).view(-1, 1, 1)
-
                 accepted += int(acc_m.sum().item())
                 proposals += acc_m.numel()
-
                 x = torch.where(acc_m, prop, x)
                 lp = torch.where(acc_m.view(-1), lp_prop, lp)
             kept.append(x.clone())
-
     samples = torch.stack(kept, dim=0).requires_grad_(True)  # (K,B,N,d)
     return samples, x.detach(), accepted, proposals
 
@@ -300,17 +273,15 @@ def evaluate_energy_vmc(
     spin=None,
     params=None,  # dict with device, torch_dtype, omega, n_particles, d
     # ---- sampling / batching ----
-    n_samples: int = 50_000,  # total |Ψ|^2 samples to use
-    batch_size: int = 1024,  # evaluated per iteration
-    # classic (non-persistent) controls
-    sampler_steps: int = 40,  # Metropolis steps per batch (classic mode only)
-    # ω-invariant user inputs (scaled internally by ℓ = 1/sqrt(ω))
+    n_samples: int = 50_000,
+    batch_size: int = 1024,
+    sampler_steps: int = 40,
     sampler_step_sigma: float = 0.15,
     init_std_scale: float = 1.0,
     # ---- Laplacian controls ----
-    lap_mode: str = "hvp-hutch",  # "fd-hutch" | "fd-central-hutch" | "hvp-hutch" | "exact"
-    lap_probes: int = 24,  # probes for Hutchinson (FD/HVP)
-    fd_eps: float = 3e-3,  # ω-invariant; only used for FD variants
+    lap_mode: str = "hvp-hutch",
+    lap_probes: int = 24,
+    fd_eps: float = 3e-3,
     # ---- UI / stats ----
     progress: bool = True,
     ci_level: float = 0.95,
@@ -322,15 +293,12 @@ def evaluate_energy_vmc(
     sampler_target_accept: float | None = 0.45,
     sampler_adapt_lr: float = 0.05,
     # ---- compatibility knobs ----
-    assume_omega_invariant: bool = True,  # if True, scale sigma/eps/init_std by ℓ internally
+    assume_omega_invariant: bool = True,
 ):
     """
-    Evaluates E = ⟨E_L⟩_{|Ψ|^2} with selectable Laplacian backend.
-    Recommended defaults for benchmarks:
-      - persistent=True
-      - lap_mode="hvp-hutch", lap_probes=24–48
-      - sampler_target_accept≈0.45
-      - dtype=float64 for evaluation runs (params["torch_dtype"]="float64")
+    Evaluates component-wise expectations under |Ψ|^2:
+      ⟨T⟩, ⟨V_int⟩, ⟨V_trap⟩, and ⟨E⟩ = ⟨T + V_int + V_trap⟩
+    Returns means, stds, stderrs, CIs, and acceptance stats.
     """
     assert (
         params is not None
@@ -349,12 +317,10 @@ def evaluate_energy_vmc(
     else:
         spin = spin.to(device)
 
-    # nets to device/dtype
     f_net.to(device).to(dtype).eval()
     if backflow_net is not None:
         backflow_net.to(device).to(dtype).eval()
 
-    # ψ wrapper
     def psi_log_fn(x):
         if not x.requires_grad:
             x = x.detach().requires_grad_(True)
@@ -371,11 +337,17 @@ def evaluate_energy_vmc(
     total = 0
     sum_E = 0.0
     sum_E2 = 0.0
+    sum_T = 0.0
+    sum_T2 = 0.0
+    sum_Vi = 0.0
+    sum_Vi2 = 0.0
+    sum_Vh = 0.0
+    sum_Vh2 = 0.0
 
-    # acceptance stats (only exact in persistent mode)
+    # acceptance stats
     accepted_global = 0
     proposals_global = 0
-    acc_avg_simple = 0.0  # fallback for classic mode
+    acc_avg_simple = 0.0
 
     pbar = (
         tqdm(total=n_samples, desc=f"Evaluating energy ({lap_mode})", leave=True)
@@ -383,14 +355,15 @@ def evaluate_energy_vmc(
         else None
     )
 
-    # persistent chain state (only used if persistent=True)
+    # persistent chain state
     prev_x = None
+    did_burn = False
 
     while total < n_samples:
         bsz = min(batch_size, n_samples - total)
 
         if not persistent:
-            # -------- classic batch (old behavior) --------
+            # classic batch
             x0 = torch.randn(bsz, N, d, device=device, dtype=dtype) * (
                 init_std if assume_omega_invariant else 1.0
             )
@@ -399,9 +372,8 @@ def evaluate_energy_vmc(
             )
             acc_avg_simple += acc
 
-            # enable grads for Laplacian calculation
             with torch.set_grad_enabled(True):
-                E_L, _ = _local_energy_multi(
+                E_L, T_loc, V_int, V_harm, _ = _local_energy_multi(
                     psi_log_fn,
                     x,
                     compute_coulomb_interaction,
@@ -411,9 +383,19 @@ def evaluate_energy_vmc(
                     fd_eps=fd_eps_phys,
                 )
 
-            E_L_cpu = E_L.detach().cpu()
-            sum_E += float(E_L_cpu.sum().item())
-            sum_E2 += float((E_L_cpu**2).sum().item())
+            E = E_L.detach().cpu()
+            T = T_loc.detach().cpu()
+            Vi = V_int.detach().cpu()
+            Vh = V_harm.detach().cpu()
+
+            sum_E += float(E.sum().item())
+            sum_E2 += float((E * E).sum().item())
+            sum_T += float(T.sum().item())
+            sum_T2 += float((T * T).sum().item())
+            sum_Vi += float(Vi.sum().item())
+            sum_Vi2 += float((Vi * Vi).sum().item())
+            sum_Vh += float(Vh.sum().item())
+            sum_Vh2 += float((Vh * Vh).sum().item())
             total += bsz
 
             if pbar is not None:
@@ -423,33 +405,34 @@ def evaluate_energy_vmc(
                 pbar.update(bsz)
                 pbar.set_postfix_str(f"E≈{mean:.6f}, σ≈{math.sqrt(var):.4f}, acc≈{acc_disp:.2f}")
 
-            del x, E_L, E_L_cpu
+            del x, E_L, T_loc, V_int, V_harm, E, T, Vi, Vh
 
         else:
-            # -------- stable persistent batch (burn-in/thin/adapt) --------
+            # persistent batch
             if prev_x is None or prev_x.shape[0] < bsz:
                 x0 = torch.randn(bsz, N, d, device=device, dtype=dtype) * init_std
             else:
                 x0 = prev_x[:bsz]
 
+            burn = sampler_burn_in if not did_burn else 0
             samples, x_last, accepted, proposals = _metropolis_psi2_persistent(
                 psi_log_fn,
                 x0,
-                burn_in=sampler_burn_in,
+                burn_in=burn,
                 thin=sampler_thin,
                 n_keep=samples_per_chain,
                 step_sigma=sigma_phys,
                 target_accept=sampler_target_accept,
                 adapt_lr=sampler_adapt_lr,
             )
+            did_burn = True
             prev_x = x_last.detach()
 
-            # (K,B,N,d) -> (K*B,N,d)
             K = samples.shape[0]
             x_flat = samples.reshape(K * bsz, N, d)
 
             with torch.set_grad_enabled(True):
-                E_L, _ = _local_energy_multi(
+                E_L, T_loc, V_int, V_harm, _ = _local_energy_multi(
                     psi_log_fn,
                     x_flat,
                     compute_coulomb_interaction,
@@ -459,11 +442,29 @@ def evaluate_energy_vmc(
                     fd_eps=fd_eps_phys,
                 )
 
-            batch_sum = float(E_L.sum().item())
-            batch_sum2 = float((E_L * E_L).sum().item())
+            E = E_L.detach()
+            T = T_loc.detach()
+            Vi = V_int.detach()
+            Vh = V_harm.detach()
+
+            batch_sumE = float(E.sum().item())
+            batch_sumE2 = float((E * E).sum().item())
+            batch_sumT = float(T.sum().item())
+            batch_sumT2 = float((T * T).sum().item())
+            batch_sumVi = float(Vi.sum().item())
+            batch_sumVi2 = float((Vi * Vi).sum().item())
+            batch_sumVh = float(Vh.sum().item())
+            batch_sumVh2 = float((Vh * Vh).sum().item())
+
             kept_batch = K * bsz
-            sum_E += batch_sum
-            sum_E2 += batch_sum2
+            sum_E += batch_sumE
+            sum_E2 += batch_sumE2
+            sum_T += batch_sumT
+            sum_T2 += batch_sumT2
+            sum_Vi += batch_sumVi
+            sum_Vi2 += batch_sumVi2
+            sum_Vh += batch_sumVh
+            sum_Vh2 += batch_sumVh2
             total += kept_batch
 
             accepted_global += accepted
@@ -476,22 +477,26 @@ def evaluate_energy_vmc(
                 pbar.update(kept_batch)
                 pbar.set_postfix_str(f"E≈{mean:.6f}, σ≈{math.sqrt(var):.4f}, acc={acc_disp:.2f}")
 
-            del samples, x_flat, E_L
+            del samples, x_flat, E_L, T_loc, V_int, V_harm, E, T, Vi, Vh
 
-        # free GPU cache if available
-        if isinstance(device, torch.device) and device.type == "cuda" and torch.cuda.is_available():
-            torch.cuda.empty_cache()
+        torch.cuda.empty_cache()
 
     if pbar is not None:
         pbar.close()
 
     # finalize statistics
-    mean = sum_E / total
-    var = max(sum_E2 / total - mean * mean, 0.0)
-    std = math.sqrt(var)
-    stderr = std / math.sqrt(total)
+    def _finish(sum1, sum2, n):
+        mean = sum1 / n
+        var = max(sum2 / n - mean * mean, 0.0)
+        std = math.sqrt(var)
+        stderr = std / math.sqrt(n)
+        return mean, std, stderr
 
-    # normal approx CI
+    E_mean, E_std, E_stderr = _finish(sum_E, sum_E2, total)
+    T_mean, T_std, T_stderr = _finish(sum_T, sum_T2, total)
+    Vi_mean, Vi_std, Vi_stderr = _finish(sum_Vi, sum_Vi2, total)
+    Vh_mean, Vh_std, Vh_stderr = _finish(sum_Vh, sum_Vh2, total)
+
     def _z_from_alpha(alpha):
         if abs(alpha - 0.95) < 1e-6:
             return 1.96
@@ -502,20 +507,38 @@ def evaluate_energy_vmc(
         return 1.96
 
     z = _z_from_alpha(ci_level)
-    ci = (mean - z * stderr, mean + z * stderr)
+    E_CI = (E_mean - z * E_stderr, E_mean + z * E_stderr)
+    T_CI = (T_mean - z * T_stderr, T_mean + z * T_stderr)
+    Vi_CI = (Vi_mean - z * Vi_stderr, Vi_mean + z * Vi_stderr)
+    Vh_CI = (Vh_mean - z * Vh_stderr, Vh_mean + z * Vh_stderr)
 
     if persistent:
         acc_out = accepted_global / max(1, proposals_global)
-        n_eff = total  # kept after thinning; honest count
+        n_eff = total
     else:
         acc_out = acc_avg_simple / max(1, math.ceil(total / max(1, batch_size)))
         n_eff = total
 
     return {
-        "E_mean": mean,
-        "E_std": std,
-        "E_stderr": stderr,
-        "E_CI": ci,
+        # totals
+        "E_mean": E_mean,
+        "E_std": E_std,
+        "E_stderr": E_stderr,
+        "E_CI": E_CI,
+        # decomposition
+        "T_mean": T_mean,
+        "T_std": T_std,
+        "T_stderr": T_stderr,
+        "T_CI": T_CI,
+        "V_int_mean": Vi_mean,
+        "V_int_std": Vi_std,
+        "V_int_stderr": Vi_stderr,
+        "V_int_CI": Vi_CI,
+        "V_trap_mean": Vh_mean,
+        "V_trap_std": Vh_std,
+        "V_trap_stderr": Vh_stderr,
+        "V_trap_CI": Vh_CI,
+        # sampling stats
         "n_samples_effective": n_eff,
         "accept_rate_avg": acc_out,
     }

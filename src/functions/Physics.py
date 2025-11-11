@@ -13,7 +13,7 @@ def compute_coulomb_interaction(
     x: torch.Tensor,
     *,
     params=None,
-    eps_rel: float = 1e-6,  # ε = eps_rel * 1/sqrt(ω)  (physical units)
+    eps_rel: float = 1e-19,  # ε = eps_rel * 1/sqrt(ω)  (physical units)
     cap: float = 1e8,  # clamp absurd contributions
 ) -> torch.Tensor:
     """

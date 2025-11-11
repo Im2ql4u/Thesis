@@ -122,15 +122,17 @@ bibtex_content = r"""
   year    = {1998}
 }
 
-@article{AmariDouglas1998-WhyNaturalGradient,
-  author  = {Shun-Ichi Amari and Scott C. Douglas},
-  title   = {Why natural gradient?},
-  journal = {--},
-  volume  = {2},
-  pages   = {1213},
-  year    = {1998},
-  note    = {Details as provided in source list}
-}
+@INPROCEEDINGS{AmariDouglas1998-WhyNaturalGradient,
+  author={Amari, S. and Douglas, S.C.},
+  booktitle={Proceedings of the 1998 IEEE International Conference on Acoustics, Speech and Signal Processing, ICASSP '98 (Cat. No.98CH36181)}, 
+  title={Why natural gradient?}, 
+  year={1998},
+  volume={2},
+  number={},
+  pages={1213-1216 vol.2},
+  keywords={Cost function;Parameter estimation;Newton method;Iterative methods;Convergence;Information systems;Cities and towns;Geometry;Optimization methods;Adaptive filters},
+  doi={10.1109/ICASSP.1998.675489}}
+
 
 @article{Anderson1975-RandomWalkSchrodinger,
   author  = {James B. Anderson},
@@ -344,8 +346,7 @@ bibtex_content = r"""
   author    = {Yushun Zhang and Congliang Chen and Naichen Shi and Ruoyu Sun and Zhi-Quan Luo},
   title     = {Adam can converge without any modification on update rules},
   booktitle = {Advances in Neural Information Processing Systems},
-  volume    = {35},
-  pages     = {28386},
+  pages     = {35:28386},
   year      = {2022}
 }
 
@@ -385,6 +386,17 @@ bibtex_content = r"""
   pages   = {140502},
   year    = {2021}
 }
+
+@article{De_Ryck_2024,
+ title={Numerical analysis of physics-informed neural networks and related models in physics-informed machine learning},
+  volume={33},
+  DOI={10.1017/S0962492923000089},
+  journal={Acta Numerica}, 
+  author={De Ryck, Tim and Mishra, Siddhartha}, 
+  year={2024},
+  pages={633–713}
+}
+
 
 @article{DrissiEtAl2024-SecondOrderNQS,
   author  = {M. Drissi and J. W. T. Keeble and J. Rozal{\'e}n Sarmiento and A. Rios},
@@ -490,14 +502,14 @@ bibtex_content = r"""
   year      = {2015}
 }
 
-@article{Cybenko1989-UniversalApprox,
-  author  = {George Cybenko},
-  title   = {Approximation by superpositions of a sigmoidal function},
-  journal = {Mathematics of Control, Signals and Systems},
-  volume  = {2},
-  pages   = {303},
-  year    = {1989}
-}
+% @article{Cybenko1989-UniversalApprox,
+%   author  = {George Cybenko},
+%   title   = {Approximation by superpositions of a sigmoidal function},
+%   journal = {Mathematics of Control, Signals and Systems},
+%   volume  = {2},
+%   pages   = {303},
+%   year    = {1989}
+% }
 
 @article{LeshnoEtAl1993-NonpolyActivationUniversality,
   author  = {Moshe Leshno and Vladimir Ya. Lin and Allan Pinkus and Shimon Schocken},
@@ -648,16 +660,16 @@ bibtex_content = r"""
   publisher = {Cambridge University Press},
   year      = {2018}
 }
-@inbook{Berner_2022,
-   title={The Modern Mathematics of Deep Learning},
-   ISBN={9781316516782},
-   url={http://dx.doi.org/10.1017/9781009025096.002},
-   DOI={10.1017/9781009025096.002},
-   booktitle={Mathematical Aspects of Deep Learning},
-   publisher={Cambridge University Press},
-   author={Berner, Julius and Grohs, Philipp and Kutyniok, Gitta and Petersen, Philipp},
+@inbook{Berner_Grohs_Kutyniok_Petersen_2022,
+ place={Cambridge},
+  title={The Modern Mathematics of Deep Learning},
+   booktitle={Mathematical Aspects of Deep Learning}, 
+   publisher={Cambridge University Press}, 
+   author={Berner, Julius and Grohs, Philipp and Kutyniok, Gitta and Petersen, Philipp}, 
+   editor={Grohs, Philipp and Kutyniok, GittaEditors},
    year={2022},
-   month=dec, pages={1–111} }
+   pages={1–111}
+}
 @misc{wu2022alignmentpropertysgdnoise,
       title={The alignment property of SGD noise and how it helps select flat minima: A stability analysis}, 
       author={Lei Wu and Mingze Wang and Weijie Su},
@@ -691,4 +703,102 @@ url = {https://www.sciencedirect.com/science/article/pii/089360809190009T},
 author = {Kurt Hornik},
 keywords = {Multilayer feedforward networks, Activation function, Universal approximation capabilities, Input environment measure, () approximation, Uniform approximation, Sobolev spaces, Smooth approximation},
 abstract = {We show that standard multilayer feedforward networks with as few as a single hidden layer and arbitrary bounded and nonconstant activation function are universal approximators with respect to Lp(μ) performance criteria, for arbitrary finite input environment measures μ, provided only that sufficiently many hidden units are available. If the activation function is continuous, bounded and nonconstant, then continuous mappings can be learned uniformly over compact input sets. We also give very general conditions ensuring that networks with sufficiently smooth activation functions are capable of arbitrarily accurate approximation to a function and its derivatives.}
+}
+
+
+# Wigner molecules and quantum dots references
+
+@article{Egger_1999,
+  title = {Crossover from Fermi Liquid to Wigner Molecule Behavior in Quantum Dots},
+  author = {Egger, R. and H\"ausler, W. and Mak, C. H. and Grabert, H.},
+  journal = {Phys. Rev. Lett.},
+  volume = {82},
+  issue = {16},
+  pages = {3320--3323},
+  numpages = {0},
+  year = {1999},
+  month = {Apr},
+  publisher = {American Physical Society},
+  doi = {10.1103/PhysRevLett.82.3320},
+  url = {https://link.aps.org/doi/10.1103/PhysRevLett.82.3320}
+}
+
+@incollection{manninen2007metalclustersquantumdots,
+title = {Chapter 12 - Metal Clusters, Quantum Dots, and Trapped Atoms: From Single-Particle Models to Correlation},
+editor = {Purusottam Jena and A. Welford Castleman},
+series = {Science and Technology of Atomic, Molecular, Condensed Matter & Biological Systems},
+publisher = {Elsevier},
+volume = {1},
+pages = {437-484},
+year = {2010},
+booktitle = {Nanoclusters},
+issn = {1875-4023},
+doi = {https://doi.org/10.1016/B978-0-444-53440-8.00012-4},
+url = {https://www.sciencedirect.com/science/article/pii/B9780444534408000124},
+author = {M. Manninen and S.M. Reimann},
+keywords = {metal clusters, quantum dots, quantum rings, cold atom gases, shell structure, Wigner molecule, vortices},
+abstract = {In this chapter, we discuss the electronic structure of finite quantal systems on the nanoscale. After a few general remarks on the many-particle physics of the harmonic oscillator, likely being the most studied example for the many-body systems of finite quantal systems, we turn to the electronic structure of metal clusters. We discuss Jahn–Teller deformations for the so-called “ultimate” jellium model which assumes a complete cancelation of the electronic charge with the ionic background. Within this model, we are also able to understand the stable electronic shell structure of tetrahedral (three-dimensional) or triangular (two-dimensional [2D]) cluster geometries, resembling closed shells of the harmonic confinement, but for Mg clusters being “doubly magic” as the electronic shells occur at precisely twice the atom numbers in the close-packed tetrahedra. Taking a turn to the physics of quantum dot artifical atoms, we discuss the electronic shell structure of the quasi 2D, harmonically confined electron gas. Between the clear shell closings, corresponding to the magic numbers in 2D, Hund's rule acts, maximizing the quantum dot spin at mid-shell. After a brief excursion to multicomponent quantum dots and the formation of Wigner molecules, we turn to finite quantal systems in strong magnetic fields or, equivalently, electron droplets that are set highly rotating. Working within the lowest Landau level, we draw the analogy between magnetic fields and rotation, commenting on the formation of the so-called maximum density droplet (MDD) and its edge reconstruction beyond the integer quantum Hall regime. Formation and localization of vortices beyond the MDD, as well as electron localization at extreme angular momenta, are discussed in detail. Analogies to the bosonic case, and the systematic build-up of the vortex lattice of a rotating Bose–Einstein condensate at high angular momenta, are drawn. With our contribution, we wish to emphasize the many analogies that exist between metallic clusters, semiconductor artificial atoms, and cold atoms in traps.}
+}
+
+@article{Kong_2002,
+  title = {Transition between ground state and metastable states in classical two-dimensional atoms},
+  author = {Kong, Minghui and Partoens, B. and Peeters, F. M.},
+  journal = {Phys. Rev. E},
+  volume = {65},
+  issue = {4},
+  pages = {046602},
+  numpages = {13},
+  year = {2002},
+  month = {Mar},
+  publisher = {American Physical Society},
+  doi = {10.1103/PhysRevE.65.046602},
+  url = {https://link.aps.org/doi/10.1103/PhysRevE.65.046602}
+}
+
+
+@article{schweigert1994spectralpropertieschargedparticles,
+  title = {Spectral properties of classical two-dimensional clusters},
+  author = {Schweigert, Vitaly A. and Peeters, Fran\ifmmode \mbox{\c{c}}\else \c{c}\fi{}ois M.},
+  journal = {Phys. Rev. B},
+  volume = {51},
+  issue = {12},
+  pages = {7700--7713},
+  numpages = {0},
+  year = {1995},
+  month = {Mar},
+  publisher = {American Physical Society},
+  doi = {10.1103/PhysRevB.51.7700},
+  url = {https://link.aps.org/doi/10.1103/PhysRevB.51.7700}
+}
+
+
+@article{Filinov_2001,
+  title = {Wigner Crystallization in Mesoscopic 2D Electron Systems},
+  author = {Filinov, A. V. and Bonitz, M. and Lozovik, Yu. E.},
+  journal = {Phys. Rev. Lett.},
+  volume = {86},
+  issue = {17},
+  pages = {3851--3854},
+  numpages = {0},
+  year = {2001},
+  month = {Apr},
+  publisher = {American Physical Society},
+  doi = {10.1103/PhysRevLett.86.3851},
+  url = {https://link.aps.org/doi/10.1103/PhysRevLett.86.3851}
+}
+
+
+@article{Mazars_2008,
+  doi = {10.1209/0295-5075/84/55002},
+  url = {https://doi.org/10.1209/0295-5075/84/55002},
+  year = {2008},
+  month = {dec},
+  publisher = {},
+  volume = {84},
+  number = {5},
+  pages = {55002},
+  author = {Mazars, M.},
+  title = {Bond orientational order parameters in the crystalline phases of the classical Yukawa-Wigner bilayers},
+  journal = {Europhysics Letters},
+  abstract = {We present a study of the structural properties of the crystalline phases for a planar bilayer of particles interacting via repulsive Yukawa potentials in the weak screening region. The study is done with Monte Carlo computations and the long-ranged contributions to energy are taken into account with the Ewald method for quasi–two-dimensional systems. Two first-order phase transitions (fluid-solid and solid-solid) and one second-order transition (solid-solid) are found when the surface density is varied at constant temperature. Particular attention is paid to the characteristics of the crystalline phases by the analysis of bond orientational order parameters and center-to-center correlations functions.}
 }

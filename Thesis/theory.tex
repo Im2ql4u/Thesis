@@ -581,65 +581,132 @@ For electron–nucleus coalescence ($\mu_{eA}\!\approx\!1$, $Z_i Z_j=-Z_A$):
 \paragraph{Why this matters.}
 These conditions ensure the kinetic energy’s $r^{-1}$ singularity cancels the Coulomb $r^{-1}$
 term so that $E_L$ remains finite as particles coalesce. Enforcing the cusp explicitly improves conditioning.
+\section{Structural diagnostics and Wigner markers}
+\label{sec:analysis-struct}
 
-\section{Wigner regimes in finite quantum dots: theory and observables}
-\label{sec:wigner_theory}
+Unless stated otherwise, curves are accumulated in \emph{trap units} 
+$\tilde{\mathbf r}=\sqrt{\omega}\,\mathbf r$ so that length scales align across $\omega$, 
+while headline distances are reported in \emph{Bohr} (physical units $\mathbf r$).
+Production chains are thinned; we split samples into halves for stability checks 
+(acceptance window, JSD between halves, reproducibility under restarts).
 
-Electrons confined in a low-dimensional trap experience a competition between
-\emph{confinement/kinetic} effects and \emph{Coulomb} repulsion. In extended
-systems, sufficiently low density leads to a Wigner crystal (electrons localize
-on a lattice). In few-electron quantum dots there is no phase transition; the
-finite--$N$ analogue is a \emph{Wigner molecule}: electrons localize at
-symmetry-related sites (for $N{=}2$, opposite ends of a diameter) with
-relatively small fluctuations around those sites. We diagnose this crossover by
-tracking \emph{radial localization}, \emph{angular anti-correlation}, and
-\emph{scaling} with the trap strength.
+\subsection{Pair distribution $g(r)$, $P(r)$, and width markers}
+\label{subsec:gr-pr}
 
-\paragraph{Model and scaling.}
-For two electrons in a 2D harmonic trap (frequency $\omega$) with Coulomb
-repulsion, the effective classical potential for the relative distance $r$
-reads
+We estimate the (spin-summed) pair distribution $g(r)$ via a shell‐area corrected histogram in trap units,
 \begin{equation}
-  V_{\text{eff}}(r) \;=\; \frac{1}{4}\,\omega^2 r^2 \;+\; \frac{1}{r}.
-  \label{eq:veff}
+g(r_\alpha)\;=\;\frac{A_{\mathrm{eff}}}{N(N-1)}\;
+\frac{\big\langle\sum_{i<j}\mathbf{1}\{r_{ij}\!\in[r_\alpha^-,r_\alpha^+)\}\big\rangle}
+{2\pi r_\alpha\,\Delta r_\alpha},\qquad
+r_{ij}=\|\tilde{\mathbf r}_i-\tilde{\mathbf r}_j\|_2,
 \end{equation}
-Minimizing~\eqref{eq:veff} gives $r_*\propto \omega^{-2/3}$. Thus, in the
-weak-trap (Coulomb-dominated) regime, a typical separation in Bohr units should
-obey
+with $A_{\mathrm{eff}}=\pi R_{0.95}^2$ and $R_{0.95}$ the $95\%$ quantile of single‐particle radii (trap units).
+We form the normalized radial probability in $d{=}2$,
+\(
+P(r)\propto r\,g(r),
+\)
+and report the mode $r_{\mathrm{mode}}$, mean $\bar r$, standard deviation $\sigma_r$, FWHM, and quantiles $q_{10},q_{50},q_{90}$ (in Bohr).
+A compact width–to–scale marker is
 \begin{equation}
-  r_{\text{typ}}(\omega) \;=\; C\,\omega^{\alpha},\qquad \alpha_{\text{theory}}=-\tfrac{2}{3}.
-  \label{eq:scaling}
+\gamma \;=\; \sigma_r / r_{\mathrm{mode}},
+\label{eq:gamma}
 \end{equation}
-A convenient collapse check is $r_{\text{typ}}(\omega)\,\omega^{2/3}\to\text{const}$ as
-$\omega\!\downarrow$.
+which decreases as correlations stiffen (narrow distribution around a larger typical radius).\footnote{For $N{=}2$, $\gamma$ is complemented by the pair–distance Lindemann $\gamma_{r_{12}}=\mathrm{std}(r_{12})/\mathrm{mode}(r_{12})$, cf.\ Sec.~\ref{subsec:n2-scaling}.}
 
-\paragraph{What we measure and why.}
-Direct comparison of $g(r)$ across different $\omega$ is misleading (tails tend
-to zero in a finite trap and peak height is dominated by confinement). We
-instead use three dimensionless, robust indicators:
-\begin{itemize}
-  \item \textbf{Radial probability} $P(r)\propto r^{d-1} g(r)$ (here $d{=}2$) normalized to
-  $\int_0^\infty P(r)\,dr=1$. From $P(r)$ we extract
-  \[
-   r_{\text{mode}},\quad \langle r\rangle,\quad \text{FWHM},\quad
-   \gamma \;=\; \frac{\sigma_r}{r_{\text{mode}}},\quad
-   \sigma_r^2=\int (r-\langle r\rangle)^2 P(r)\,dr.
-  \]
-  A decreasing $\gamma$ signals stronger \emph{relative} localization (Wigner-like).
-  \item \textbf{Angular anti-correlation.} For each sample, let $\Delta\phi\in[0,\pi]$
-  be the angle between the two electron position vectors (measured from the trap center).
-  A Wigner molecule (for $N{=}2$) favors $\Delta\phi\approx\pi$. We summarize the locking
-  by the spread $\sigma(\pi-\Delta\phi)$ (smaller is tighter). A random (uniform) baseline
-  has $\sigma_{\text{uniform}}=\pi/\sqrt{12}\approx 0.907$ rad.
-  \item \textbf{Scaling exponent and collapse.} We fit~\eqref{eq:scaling} with
-  $r_{\text{typ}}\equiv r_{\text{mode}}$ and inspect $r_{\text{mode}}\,\omega^{2/3}$.
-\end{itemize}
+\paragraph{Sanity anchors at $\boldsymbol{\omega\!=\!10^{-3}}$.}
+For $N{=}6$ and $N{=}12$, $P(r)$ exhibits sharp peaks with small $\gamma$; these are the expected Wigner-side shapes.\,
+For $N{=}2$ we additionally report the near-origin mass 
+$\int_0^{0.25\,r_{\mathrm{mode}}}\!\rho_1(r)\,dr$ and 
+$\Pr(r_{12}\!\le 0.25\,\mathrm{mode}(r_{12}))$, both $\ll 1$ as required by the cusp and strong repulsion.
 
-\paragraph{Regime labels (finite-$N$).}
-In practice we use: (A) Wigner-like if $\gamma\lesssim 0.30$; (B) Wigner-like if
-$\sigma(\pi-\Delta\phi)\lesssim 0.60$ rad; (C) scaling consistent with
-$\alpha\approx -2/3$ and a near-constant collapse at small $\omega$. These are
-smooth crossovers, not sharp transitions.
+\subsection{Automatic shell detection and topology labeling}
+\label{subsec:shells}
+
+For each frame we sort single‐particle radii $\tilde s_1\le\cdots\le \tilde s_N$ (trap units),
+compute gaps $g_k=\tilde s_{k+1}-\tilde s_k$, and flag a frame as \emph{two‐shell} if
+\begin{equation}
+\max_k g_k \;\ge\; \tau\,\mathrm{median}(g_k),
+\qquad \tau\in[2.0,3.0] \ \text{(robust)}.
+\end{equation}
+The cut radius is the midpoint of the maximal gap; the inner multiplicity $n_{\mathrm{in}}$ defines the topology 
+$(n_{\mathrm{in}}, N-n_{\mathrm{in}})$.
+We report:
+(i) the fraction of two‐shell frames,
+(ii) the histogram over $n_{\mathrm{in}}$ among two‐shell frames, and
+(iii) for selected topologies (e.g.\ $(1,5)$ or $(3,9)$) their fraction among \emph{all} frames.
+
+\paragraph{II/IO/OO decomposition (what is being added).}
+On two‐shell frames we decompose pairs into inner–inner (II), inner–outer (IO), and outer–outer (OO), 
+accumulate $g_{\mathrm{II}},g_{\mathrm{IO}},g_{\mathrm{OO}}$, and reconstruct
+\[
+\tilde g(r)=w_{\mathrm{II}}g_{\mathrm{II}}+w_{\mathrm{IO}}g_{\mathrm{IO}}+w_{\mathrm{OO}}g_{\mathrm{OO}},
+\]
+with empirical weights from pair counts.
+We report $\cos\angle(g,\tilde g)$ (cosine similarity); values $\approx 1$ indicate that the observed $g(r)$ is explained by shell geometry rather than sampling artifacts.
+
+\paragraph{Sanity anchors at $\boldsymbol{\omega\!=\!10^{-3}}$.}
+For $N{=}6$, $w_{\mathrm{OO}}\!:\!w_{\mathrm{IO}}\!\approx\!2\!:\!1$ and $\cos\angle(g,\tilde g)\!=\!1.000$ within numerical precision.
+For $N{=}12$, the two‐shell fraction is $0.906$–$0.990$ across $\tau\in\{3.0,2.5,2.0\}$ and $\cos\angle(g,\tilde g)\!\in[0.989,1.000]$ depending mildly on $\tau$/seed.\,
+The \emph{modal} inner multiplicity at $\omega\!=\!10^{-3}$ is $(3,9)$, while $(2,10)$ and $(1,11)$ retain substantial weight—consistent with a rotating two-shell Wigner molecule. 
+For classical references to shellings and near-degeneracies in parabolic/cluster confinements, see
+Schweigert–Peeters and Kong–Partoens–Peeters.\cite{schweigert1994spectralpropertieschargedparticles,Kong_2002}
+
+\subsection{Orientational order and angular “Lindemann”}
+\label{subsec:orient}
+
+After recentring each detected ring (inner/outer) to remove global rotations, with angles $\{\phi_k\}_{k=1}^n$, we use the bond–orientational order
+\begin{equation}
+\Phi_m \;=\; \frac{1}{n}\sum_{k=1}^n e^{\,\mathrm{i} m \phi_k},
+\qquad m=n,
+\end{equation}
+so that $|\Phi_m|\in[0,1]$ measures $n$‐fold orientational order (e.g.\ $m{=}5$ for $(1,5)$; $m{=}9$ for the outer ring of $(3,9)$).\,
+As a complementary, dimensionless \emph{angular Lindemann} number we use
+\begin{equation}
+\lambda_\phi \;=\; \frac{\mathrm{std}(\Delta\phi)}{\mathbb{E}[\Delta\phi]},
+\qquad 
+\Delta\phi\;=\;\text{nearest‐neighbour angular spacings on the ring}.
+\end{equation}
+Smaller $\lambda_\phi$ indicates a stiffer (more Wigner‐like) ring.
+This follows the spirit of bond–orientational order used in 2D Coulomb/Yukawa systems,\cite{Mazars_2008,Filinov_2001}
+with the Lindemann idea adapted from melting criteria to angular spacings on a fixed-$n$ ring.
+
+\paragraph{Sanity anchors at $\boldsymbol{\omega\!=\!10^{-3}}$.}
+For $N{=}6$, phase-aligned $(1,5)$ and $(0,6)$ sectors show comparable order 
+($|\Phi_5|\!\approx\!0.48$, $|\Phi_6|\!\approx\!0.52$) with $\lambda_\phi\!\approx\!0.29$—a single-ring rotating Wigner molecule.
+For $N{=}12$, $(3,9)$ frames have strong order 
+($|\Phi_3|\!\approx\!0.67$, $|\Phi_9|\!\approx\!0.50$) and small $\lambda_\phi$ ($\sim\!0.24$–$0.26$).
+$(2,10)$ exhibits very tight inner order ($|\Phi_2|\!\approx\!0.73$) with a softer outer ring ($|\Phi_{10}|\!\approx\!0.42$), and $(1,11)$ has weak outer order and a softly vibrating center—precisely the \emph{rotating Wigner molecule} (RWM) picture of fluctuating orientations across near-degenerate shellings.\cite{Egger_1999,Manninen2007metalclustersquantumdots}
+
+\subsection{Scaling check and two-body benchmarks ($N=2$)}
+\label{subsec:n2-scaling}
+
+To connect with the classical strong‐coupling limit we fit 
+\begin{equation}
+r_{\mathrm{mode}}(\omega) \;=\; C\,\omega^{\alpha}
+\end{equation}
+by linear regression in $\big(\log\omega,\log r_{\mathrm{mode}}\big)$ and compare with the two-body classical scaling $\alpha_{\mathrm{cl}}=-2/3$.
+At $\omega\!=\!10^{-3}$ the $r_{12}$ histogram is sharply peaked and the near-origin mass in $\rho_1$ and $p(r_{12})$ is $\ll 1$, validating the cusp implementation while confirming deep Wigner localization (see also Ref.~\cite{Egger_1999} for the crossover criterion in dots).
+
+\subsection{Reporting and stability checks}
+\label{subsec:analysis-sanity}
+
+For all scalars and histograms we report standard errors from block averages over thinned frames.
+We verify: 
+(i) acceptance in the target window,
+(ii) Jensen–Shannon divergence and $\ell_2$ distance between split halves (stationarity),
+(iii) robustness of topology fractions and $|\Phi_m|$ under $\tau\in[2.0,3.0]$ and mild pre‐smoothing of radii, and
+(iv) reproducibility of $g(r)$, $P(r)$, and bond-order metrics under independent sampler restarts.
+All diagnostics operate directly on saved bundles 
+$\{\mathbf{X}_{\mathrm{Bohr}},\,r,\,g(r)\}$.
+
+\paragraph{Interpretation guide (link to Results).}
+Across $\omega\in\{1.0,0.5,0.1,0.01,10^{-3}\}$ these diagnostics map the fluid$\to$Wigner crossover: 
+$\gamma$ and $\lambda_\phi$ shrink, shell gaps sharpen, and shell-resolved $|\Phi_m|$ becomes nonzero after phase alignment. 
+For $N{=}6$ this manifests as a single-ring RWM with $(1,5)$–$(0,6)$ near-degeneracy; 
+for $N{=}12$ as a two-shell RWM with modal $(3,9)$ but sizable $(2,10)$ and $(1,11)$ weights.
+Classical shelling and near-degeneracies in finite Coulomb clusters\cite{schweigert1994spectralpropertieschargedparticles,Kong_2002}
+and quantum Wigner markers in parabolic dots\cite{Egger_1999,Manninen2007metalclustersquantumdots,Filinov_2001,Mazars_2008}
+provide the theoretical backdrop for reading these plots.
 
 % ------------------------------------------------------------
 
@@ -1297,7 +1364,7 @@ In the linearized/NTK view, convergence speed is governed by the spectrum of a p
 Gradient-based training tends to fit low-frequency components first, delaying convergence for solutions with sharp layers or oscillations unless the sampling, features, or architecture emphasize high-frequency content (e.g., Fourier features, windowed bases, curriculum).
 
 \medskip
-Mitigating these challenges requires careful design of architectures, activations, initialization, loss weighting, and sampling strategies.
+Mitigating these challenges requires careful design of architectures, activations, initialization, loss weighting, and sampling strategies. These topics are explained and discussed in detail in \cite{De_Ryck_2024}
 
 \subsection{Relevance to this thesis}
 For scientific machine learning, PINNs provide a principled framework 

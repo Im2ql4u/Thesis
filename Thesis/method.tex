@@ -400,138 +400,264 @@ This procedure keeps the early dynamics variance–dominated and sampler–aware
 \chapter{Analysis}
 \label{ch:analysis}
 
-\subsection{Analysis toolbox (what we measure and why)}
-\label{subsec:toolbox}
-All analyses are performed on fresh $|\Psi_\theta|^2$ samples and use the same scaled coordinates.
+This chapter describes \emph{what} we measure on fresh $|\Psi_\theta|^2$ samples, \emph{how} we compute the diagnostics, and \emph{why} each quantity is informative. Results and numbers are presented in Sec.~\ref{ch:results}.
+\section{Structural diagnostics and Wigner markers}
+\label{sec:analysis-struct}
 
-\paragraph{Forward taps and branch ablations.}
-We expose the intermediates of the correlator pipeline:
+Unless stated otherwise, curves are accumulated in \emph{trap units} 
+$\mathbf{y}=\sqrt{\omega}\,\mathbf{x}$ to compare shapes across $\omega$, 
+while all headline distances are reported in \emph{Bohr} (physical units $\mathbf{x}$).
+Production chains are thinned; we split samples into halves for stability checks 
+(acceptance window, JSD between halves, and reproducibility under restarts).
+Using trap units to compare shapes across confinements is standard in parabolic dots; 
+see the overview in~\cite{manninen2007metalclustersquantumdots}.
+
+\subsection{Pair distribution and radial statistics}
+\label{subsec:gr-pr}
+
+We estimate the pair distribution function $g(r)$ via a shell‐area corrected histogram in trap units,
+\begin{equation}
+g(r_\alpha)\;=\;\frac{A_{\mathrm{eff}}}{N(N-1)}\;
+\frac{\big\langle\sum_{i<j}\mathbf{1}\{r_{ij}\!\in[r_\alpha^-,r_\alpha^+)\}\big\rangle}
+{2\pi r_\alpha\,\Delta r_\alpha},
+\qquad r_{ij}=\|\mathbf{y}_i-\mathbf{y}_j\|_2,
+\end{equation}
+with $A_{\mathrm{eff}}=\pi R_{0.95}^2$ and $R_{0.95}$ the 95\% quantile of single‐particle radii in trap units.
+This $g(r)$-based structural analysis follows established practice in mesoscopic 2D electron systems
+and quantum dots~\cite{Filinov_2001,Egger_1999,manninen2007metalclustersquantumdots}.
+We also form the normalized \emph{radial probability}
+\(
+P(r)\propto r^{d-1}g(r)
+\)
+and report the mode $r_{\mathrm{mode}}$, mean $\bar r$, standard deviation $\sigma_r$, and FWHM (all in Bohr).
+A compact width–to–scale marker is
+\begin{equation}
+\gamma \;=\; \sigma_r / r_{\mathrm{mode}},
+\label{eq:gamma}
+\end{equation}
+which decreases as correlations strengthen (narrower distribution around a larger typical radius),
+consistent with the liquid$\to$Wigner crossover picture~\cite{Egger_1999,Filinov_2001}.
+
+\subsection{Automatic shell detection and topologies}
+\label{subsec:shells}
+
+For each frame we sort the single‐particle radii $s_1\le\cdots\le s_N$ (trap units), compute gaps
+$g_k=s_{k+1}-s_k$, and flag the frame as \emph{two‐shell} if the largest gap exceeds a robust threshold:
+\begin{equation}
+\max_k g_k \;\ge\; \tau\,\mathrm{median}(g_k),
+\qquad \tau\in[2.5,3.5]\ \text{(default 3.0)}.
+\end{equation}
+The cut radius is the midpoint of the maximal gap; the inner multiplicity $n_{\mathrm{in}}$ defines the topology 
+$(n_{\mathrm{in}}, N-n_{\mathrm{in}})$.
+Shelling and discrete ring occupancies are well known in parabolic Coulomb clusters
+and quantum dots~\cite{schweigert1994spectralpropertieschargedparticles,Kong_2002,manninen2007metalclustersquantumdots};
+our detector provides a reproducible, data-driven assignment in that spirit.
+We report:
+(i) the fraction of two‐shell frames,
+(ii) the histogram over $n_{\mathrm{in}}$ among two‐shell frames,
+and (iii) for selected topologies (e.g.\ $(1,5)$ or $(3,9)$) the fraction among \emph{all} frames.
+
+\paragraph{Shell‐resolved reconstruction of $g(r)$.}
+On two‐shell frames we decompose pairs into II, IO, and OO and accumulate histograms
+$g_{\mathrm{II}},g_{\mathrm{IO}},g_{\mathrm{OO}}$. With empirical weights
+$w_{\mathrm{II}},w_{\mathrm{IO}},w_{\mathrm{OO}}$ (combinatorial counts) we reconstruct
+\(\tilde g(r)=w_{\mathrm{II}}g_{\mathrm{II}}+w_{\mathrm{IO}}g_{\mathrm{IO}}+w_{\mathrm{OO}}g_{\mathrm{OO}}\)
+and report $\cos\angle(g,\tilde g)$.
+Values $\approx 1$ indicate that the observed $g(r)$ shape is explained by shell geometry rather than sampling artifacts,
+in line with shell-based descriptions in~\cite{schweigert1994spectralpropertieschargedparticles,Kong_2002,manninen2007metalclustersquantumdots}.
+
+\subsection{Orientational order and “ring stiffness”}
+\label{subsec:orient}
+
+On each detected ring (inner or outer) we center the mean angle to remove global rotations and define 
+angles $\{\phi_k\}_{k=1}^n$.
+Bond‐orientational order is
+\begin{equation}
+\Phi_m \;=\; \frac{1}{n}\sum_{k=1}^n e^{\,\mathrm{i} m \phi_k},
+\qquad m=n,
+\end{equation}
+so that $|\Phi_m|\in[0,1]$ measures $n$‐fold orientational order (e.g.\ $m{=}5$ for $(1,5)$, $m{=}9$ for the outer ring of $(3,9)$),
+analogous to standard bond–orientational order parameters used in 2D Coulomb/Yukawa crystals~\cite{Mazars_2008}.
+As a complementary, dimensionless \emph{angular Lindemann} number we use
+\begin{equation}
+\lambda_\phi \;=\; \frac{\mathrm{std}(\Delta\phi)}{\mathbb{E}[\Delta\phi]},
+\qquad 
+\Delta\phi\;=\;\text{nearest‐neighbour angular spacing on the ring}.
+\end{equation}
+Smaller $\lambda_\phi$ indicates a stiffer (more Wigner‐like) ring.
+This is a Lindemann–type orientational metric tailored to finite rings, motivated by
+the use of Lindemann criteria to diagnose intershell rotational (angular) melting in mesoscopic
+Coulomb clusters and dots~\cite{schweigert1994spectralpropertieschargedparticles,Filinov_2001}.
+
+\subsection{Scaling check for $N=2$}
+\label{subsec:n2-scaling}
+
+To connect with the classical strong‐coupling limit we fit 
+\begin{equation}
+r_{\mathrm{mode}}(\omega) \;=\; C\,\omega^{\alpha}
+\end{equation}
+by linear regression in $\big(\log\omega,\log r_{\mathrm{mode}}\big)$ and compare the slope with the classical reference 
+$\alpha_{\mathrm{cl}}=-2/3$ (two charges in a harmonic trap at strong coupling; see, e.g., the reviews in~\cite{manninen2007metalclustersquantumdots}).
+Approach toward $\alpha_{\mathrm{cl}}$ as $\omega\downarrow$ is one of our Wigner crossover indicators,
+consistent with the crossover phenomenology reported in~\cite{Egger_1999,Filinov_2001}.
+
+\subsection{Reporting and stability checks}
+\label{subsec:analysis-sanity}
+
+For all scalars and histograms we report standard errors calculated over thinned blocks or frames.
+We verify: 
+(i) acceptance in the target window, 
+(ii) Jensen–Shannon divergence and $\ell_2$ distance between halves of production (stationarity),
+(iii) robustness of topology fractions and $|\Phi_m|$ under $\tau\in[2.5,3.5]$ and mild pre‐smoothing of radii, and
+(iv) reproducibility of $g(r)$ and $P(r)$ under independent sampler restarts.
+All diagnostics operate directly on saved bundles 
+$\{\mathbf{X}_{\mathrm{Bohr}},\,r,\,g(r)\}$.
+
+\section{Representation analysis}
+\label{sec:repr-methods}
+
+We probe what the networks learn by evaluating fixed, trained models on fresh
+$|\Psi_\theta|^2$ samples. Unless stated otherwise, features are computed in \emph{trap units}
+$\mathbf{y}=\sqrt{\omega}\,\mathbf{x}$ to match the correlator’s internal scaling.
+All estimates use thinned MCMC frames, split into two equal blocks $A$ and $B$;
+PCA fits on $A$ and reports on $B$ (and vice versa) to avoid circularity. 
+We use \texttt{float64} throughout.
+
+\paragraph{Feature taps.}
+Let $z_\theta\in\mathbb{R}^D$ denote the concatenated correlator representation
 \[
-z_\theta=\big[\overline\phi\;\big|\;\overline\psi\;\big|\;\mathrm{extras}\big],\quad
-f_{\rm base}=\rho_\theta(z_\theta),\quad
-f_{\rm cusp}=\sum_{i<j}\gamma_{\sigma_i\sigma_j}\,r^{\rm soft}_{ij},\quad
+z_\theta=\big[\overline{\phi}\;\big|\;\overline{\psi}\;\big|\;\mathbf{g}\big],
+\]
+where $\overline{\phi}$ are per-particle summaries, $\overline{\psi}$ are pairwise summaries,
+and $\mathbf{g}$ are global/extras. The residual head is linear:
+\begin{equation}
+f_{\rm base}(z)=\rho_\theta(z)=w^\top z+b,
+\qquad
 f=f_{\rm base}+f_{\rm cusp}.
-\]
-\textbf{Branch ablation} zeroes one block in $z_\theta$ (either $\overline\phi$, $\overline\psi$, or \textit{extras}) before the linear head and records the absolute drop in the head output. This identifies which source the head actually uses.
+\end{equation}
+Backflow returns a displacement field $\Delta x\in\mathbb{R}^{N\times d}$ applied before
+the Slater and correlator pipelines.
 
-\paragraph{Effective rank of the representation.}
-Let $\Sigma=\mathrm{Cov}[z_\theta]$ and $\{\lambda_i\}$ its eigenvalues under $|\Psi|^{2}$ sampling. With $p_i=\lambda_i/\sum_j\lambda_j$ we report the entropy effective rank
+\subsection{Preprocessing and PCA}
+\label{subsec:repr-prep}
+Given a sample matrix $Z\in\mathbb{R}^{K\times D}$ (rows are frames), we standardize each
+column using means and standard deviations estimated on block $A$:
 \[
-r_{\rm eff}=\exp\!\Big(-\sum_i p_i\log p_i\Big),
+\tilde Z=(Z-\mu_A)\odot \sigma_A^{-1}.
 \]
-and the explained-variance spectrum. Low $r_{\rm eff}$ indicates that $z_\theta$ lies close to a low-dimensional manifold.
+We perform PCA on $\tilde Z_A$ (SVD of the covariance) to obtain orthonormal loadings
+$U=[u_1,\dots,u_D]$. Scores on $B$ are $S_B=\tilde Z_B U$. Unless noted, 
+all quantities reported below are computed on the held-out block.
 
-\paragraph{PC projection ablation (PCs vs.\ random subspaces).}
-We compute PCA of $z_\theta$ and project onto the top-$k$ PCs, reconstructing the linear head $f_{\rm base}$ from the stored weights. We report the mean absolute error (MAE) relative to the full head, \emph{normalized} by $\mathrm{std}(f_{\rm base})$, and compare against projections onto random $k$-dimensional orthonormal subspaces. If PC$(k)$ attains tiny relative MAE while random$(k)$ does not, the head effectively depends on a $k$-dimensional latent.
-
-\paragraph{Linear probes (semantics of PCs).}
-We regress simple, interpretable summaries per configuration against the PC scores:
-(i) mean pair distance $\bar r$,
-(ii) variance of pair distances $\mathrm{Var}(r)$,
-(iii) near-contact fraction $\Pr(r<r_0)$ in scaled units,
-(iv) a crude ``shell contrast'' from single-particle radial histograms.
-We report $R^2$ to assign physical meaning to the leading PCs (e.g., \emph{PC1 $\approx$ global size}).
-
-\paragraph{PC1 block power shares.}
-We decompose the loading vector of PC1 across the $(\overline\phi\,|\,\overline\psi\,|\,\mathrm{extras})$ blocks and report squared-norm shares that sum to one. This shows \emph{where} the dominant latent is encoded (typically in $\overline\psi$).
-
-\paragraph{Near-field gradient concentration (stable quantile metric).}
-For the \emph{learned residual} $f_{\rm base}$ we measure concentration of gradient energy near electron--electron contact via
+\subsection{Entropy effective rank}
+\label{subsec:repr-erank}
+Let $\{\lambda_i\}_{i=1}^D$ be the eigenvalues of $\mathrm{Cov}(\tilde Z)$
+(on the held-out block). With $p_i=\lambda_i/\sum_j\lambda_j$, the
+\emph{entropy effective rank} is
 \[
-\mathrm{share}(q)=\frac{\big\langle\|\nabla f_{\rm base}\|^2\;\big|\;r_{\min}\le q\text{-quantile}\big\rangle}{\big\langle\|\nabla f_{\rm base}\|^2\big\rangle},
+r_{\rm eff}(Z)\;=\;\exp\!\Big(-\sum_{i=1}^D p_i\log p_i\Big),
 \]
-evaluated at $q\in\{1\%,5\%,10\%\}$ with a minimum-count safeguard. Values $\approx 1$ indicate that the analytic cusp successfully offloads short-range stiffness; values $\gg 1$ indicate the residual carries additional near-field structure.
+which equals $1$ for perfectly one-dimensional representations and increases
+with spectral spread.
 
-\paragraph{Means of $(f,f_{\rm cusp},f_{\rm base})$.}
-We report $\mathbb{E}[f]$, $\mathbb{E}[f_{\rm cusp}]$, and $\mathbb{E}[f_{\rm base}]$ to summarize the division of labor without relying on variance decompositions that can be confounded by strong cross-covariances.
+\subsection{PC ablations of the head}
+\label{subsec:repr-pc-ablate}
+To test how many latent axes the head truly uses, we project $\tilde Z$ onto the top-$k$ PCs:
+\[
+\Pi_k=\sum_{i=1}^k u_i u_i^\top,\qquad z^{(k)}=\Pi_k \tilde z,
+\]
+and re-evaluate the trained linear head \emph{without refitting}:
+$\hat f^{(k)}=\rho_\theta(z^{(k)})$.
+We report a \emph{normalized} error on block $B$,
+\[
+\mathrm{rel\text{-}MAE}(k)\;=\;
+\frac{\mathbb{E}_B\,|\,\hat f^{(k)}-f_{\rm base}\,|}
+     {\mathrm{std}_B(f_{\rm base})},
+\]
+together with the learning curve in $k$.
 
-\subsection{What the toolbox reveals across confinement}
-\label{subsec:omega-story}
-For $N=6$ we observe a clear change with trap strength:
-\begin{itemize}
-  \item \textbf{Tight confinement ($\omega=1.0$):} $r_{\rm eff}\!\approx\!1$, top PC explains $\gtrsim\!99\%$ of variance in $z_\theta$, PC$(1)$ reconstructs the head to $\lesssim\!1\%$ relative MAE while random$(1)$ fails by orders of magnitude, and the head computed from PC1 correlates $\approx\!1$ with the full head. Linear probes assign \emph{PC1 $\approx$ mean separation $\bar r$}; near-field gradient shares are $\approx\!1$. Branch ablation identifies $\overline\psi$ as the dominant source. \emph{Interpretation:} the correlator is effectively one-dimensional and smoothly encodes \emph{global size}.
-  \item \textbf{Loose confinement ($\omega=0.1$):} $r_{\rm eff}\!\approx\!2\text{–}3$, PC$(1)$ alone is insufficient, PC$(2)$ reaches $\sim\!5\%$ relative MAE and random$(2)$ remains much worse; head@PC1 correlation is $\ll 1$. Linear probes assign \emph{PC1 $\approx \bar r$} and \emph{PC2 $\approx \mathrm{Var}(r)$} (\emph{spread}); near-field shares increase modestly. $\overline\psi$ remains dominant. \emph{Interpretation:} the correlator remains low-dimensional but genuinely depends on two smooth latents: \emph{size} and \emph{spread}.
-\end{itemize}
+\subsection{PC1 block power decomposition}
+\label{subsec:repr-pc1-power}
+To attribute the leading axis to branches, we partition $u_1$ conformably with
+$z=[\overline{\phi}\,|\,\overline{\psi}\,|\,\mathbf{g}]$ and report
+\[
+\text{power}(\overline{\phi})=\frac{\|u_{1,\overline{\phi}}\|_2^2}{\|u_1\|_2^2},
+\quad
+\text{power}(\overline{\psi})=\frac{\|u_{1,\overline{\psi}}\|_2^2}{\|u_1\|_2^2},
+\quad
+\text{power}(\mathbf{g})=\frac{\|u_{1,\mathbf{g}}\|_2^2}{\|u_1\|_2^2}.
+\]
+Because PCA is performed on standardized features, these shares are comparable across blocks.
 
-\subsection{Uncertainty, reporting, and sanity checks}
-We report sample means and standard errors $\mathrm{se}=\sigma/\sqrt{B}$ over the evaluation batch. All randomness (initialization, MCMC, probe vectors) uses fixed seeds. We verify:
-(i) agreement between \texttt{hvp-hutch} and exact Laplacian within SE,
-(ii) acceptance in the target window with adequate mixing,
-(iii) stability of $r_{\rm eff}$ under resampling,
-(iv) robustness of near-field conclusions under small changes of the soft-core $\delta$ and quantile levels.
+\subsection{Linear probes from PCs to coarse physics}
+\label{subsec:repr-probes}
+We regress interpretable summaries per configuration on the first $k$ PC scores $S^{(k)}$ using
+ridge regression (tiny penalty $\alpha=10^{-6}$):
+\[
+y \approx S^{(k)} \beta,\qquad 
+y\in\big\{\bar r,\ \mathrm{Var}(r),\ \Pr(r<r_0),\ \text{shell\ contrast}\big\}.
+\]
+We report $R^2$ on the held-out block; $r_0$ is a fixed near-contact cutoff in trap units.
 
-% \section{Normalizing Flow}
-% In training physics-informed neural networks (PINNs) to solve complex problems such as the many-body Schrödinger equation, the quality and distribution of training samples are critical. Conventional sampling techniques—such as narrow normal, broad normal, and uniform sampling—each have significant drawbacks. For example:
-% \begin{itemize}
-%     \item \textbf{Narrow Normal Sampling:} Concentrates samples near the center of the domain, leading to insufficient coverage at the boundaries where the solution may still be significant.
-%     \item \textbf{Broad Normal Sampling:} Oversamples regions with little physical relevance, thus wasting computational resources.
-%     \item \textbf{Uniform Sampling:} Provides inflexible coverage, often missing regions of high interest such as nodes or sharp gradients.
-% \end{itemize}
-% To overcome these issues, we adopt a normalizing flow framework. This method transforms a simple base distribution (typically a standard normal distribution) into a distribution that better aligns with the target function (e.g., the wavefunction). By learning an invertible mapping, normalizing flows adaptively concentrate samples where they are most needed, improving both efficiency and training accuracy.
+\subsection{Near-field gradient concentration (residual head)}
+\label{subsec:repr-nearfield}
+For each frame we compute the minimum pair distance $r_{\min}$ (trap units) and the gradient
+of the residual head with respect to particle coordinates, $\nabla f_{\rm base}(\mathbf{y})$.
+The concentration at quantile $q$ is
+\[
+\mathrm{share}(q)\;=\;
+\frac{\mathbb{E}\big[\|\nabla f_{\rm base}\|_2^2\,\mathbf{1}\{r_{\min}\le Q_q\}\big]}
+     {\mathbb{E}\big[\|\nabla f_{\rm base}\|_2^2\big]},
+\]
+where $Q_q$ is the $q$-quantile of $r_{\min}$. Values $\gg 1$ indicate that residual stiffness is
+concentrated near contact (the analytic cusp is insufficient); values $\approx 1$ indicate that 
+the cusp handles most short-range structure.
 
-% \begin{figure}[H]
-%     \centering
-%     \begin{subfigure}[t]{0.49\textwidth}
-%         \centering
-%         \includegraphics[width=0.9\textwidth]{Normalizing-Flow/Narrow_Norm.pdf}
-%         \caption{Narrow Normal Distribution Oversampling the Central Region, and Broad Normal Distribution oversampling near the edges}
-%         \label{fig:Normal_sampling}
-%     \end{subfigure}
-%     \hfill
-%     \begin{subfigure}[t]{0.49\textwidth}
-%         \centering
-%         \includegraphics[width=0.9\textwidth]{Normalizing-Flow/Flow2.pdf}
-%         \caption{Sampling with Normalizing Flow, reproducing the Slater Determinant}
-%         \label{fig:Flow_sampling}
-%     \end{subfigure}
-% \end{figure}
-% \section{Normalizing Flow Sampling}
-% Normalizing flows work by constructing an invertible transformation \( T \) that maps a sample \( x \) drawn from a simple base distribution \( p_X(x) \) (e.g., \( x \sim \mathcal{N}(0, I) \)) to a sample \( y = T(x) \) that follows the target distribution \( p_Y(y) \). The change-of-variables formula governs this mapping:
-% \[
-% p_Y(y) = p_X(x) \left| \det \left( \frac{\partial T^{-1}(y)}{\partial y} \right) \right|.
-% \]
-% In our approach, we use a variant known as \emph{conditional flow matching}. Rather than learning the transformation \( T \) directly, we conceptualize the mapping in terms of a displacement field. Given a base sample \( x \) and an associated target sample \( y \), the ideal displacement is defined as:
-% \[
-% v_{\text{true}} = y - x.
-% \]
-% We then introduce a continuous interpolation parameter \( t \in [0,1] \) and define:
-% \[
-% \psi_t = (1-t)x + t\, y,
-% \]
-% which smoothly bridges the base and target distributions. Our goal is to learn a function \( v(\psi_t, t) \) that predicts the required displacement, thereby reconstructing the overall mapping \( T \).
+\subsection{Backflow geometry and energy-locality shares}
+\label{subsec:repr-bf}
 
-% \section{Training Procedure}
-% The normalizing flow model is trained to capture the transformation dynamics from the simple base distribution to the complex target distribution. The training process comprises the following steps:
+\paragraph{Field spectrum.}
+We vectorize the backflow displacement per frame,
+$\delta=\mathrm{vec}(\Delta x)\in\mathbb{R}^{Nd}$, standardize across frames,
+and compute $r_{\rm eff}(\Delta x)$ via Sec.~\ref{subsec:repr-erank}.
 
-% \begin{enumerate}
-%     \item \textbf{Sample Generation:} 
-%     \begin{itemize}
-%         \item Generate a batch of base samples \( x \) from a standard normal distribution \( \mathcal{N}(0, I) \).
-%         \item Obtain target samples \( y \) using a reliable method (e.g., via a Metropolis--Hastings algorithm or from experimental data) that reflects the desired distribution.
-%     \end{itemize}
-    
-%     \item \textbf{Interpolation:} 
-%     For each pair \( (x, y) \), select a random interpolation parameter \( t \in [0,1] \) and compute the interpolated state:
-%     \[
-%     \psi_t = (1-t)x + t\, y.
-%     \]
-    
-%     \item \textbf{Displacement Prediction and Loss Calculation:}
-%     A neural network—typically a multilayer perceptron (MLP)—is employed to predict the displacement \( v_{\text{predicted}}(\psi_t, t) \). The network is trained by minimizing the mean squared error (MSE) between the predicted and true displacements:
-%     \[
-%     \mathcal{L} = \mathbb{E}_{x,y,t} \left[ \| v_{\text{predicted}}(\psi_t, t) - (y - x) \|^2 \right].
-%     \]
-    
-%     \item \textbf{Optimization:} 
-%     We use an optimizer such as Adam to update the network parameters based on the computed loss. Training is performed over multiple epochs until convergence is observed. Once trained, the model is capable of rapidly generating uncorrelated samples that align with the target distribution.
-% \end{enumerate}
+\paragraph{Where backflow acts.}
+On the same thinned frames we evaluate local energies with and without backflow,
+$E_{\rm loc}^{\rm BF}$ and $E_{\rm loc}^{\rm noBF}$, using the \emph{same} coordinates.
+We form the signed correction $\Delta E_{\rm loc}=E_{\rm loc}^{\rm BF}-E_{\rm loc}^{\rm noBF}$ and report
+near-field shares at quantile $q$ of $r_{\min}$:
+\[
+\mathrm{NF}\text{-}\Delta E(q)\;=\;
+\frac{\mathbb{E}\big[|\Delta E_{\rm loc}|\,\mathbf{1}\{r_{\min}\le Q_q\}\big]}
+     {\mathbb{E}\big[|\Delta E_{\rm loc}|\big]}.
+\]
+(Using absolute values isolates magnitude; signed averages are also available.)
 
-% \section{Advantages and Implementation Details}
-% The use of normalizing flows offers several advantages over traditional sampling methods:
-% \begin{itemize}
-%     \item \textbf{Adaptive Sampling:} The learned transformation focuses sampling in regions of high importance, avoiding both undersampling and oversampling.
-%     \item \textbf{Efficiency:} Unlike methods requiring a burn-in period (as in Markov Chain Monte Carlo), the normalizing flow generates independent samples quickly once training is complete.
-%     \item \textbf{Automation:} The framework removes the need for manual hyperparameter tuning of the sampling distribution, making it robust to changes in system parameters.
-% \end{itemize}
+\subsection{Alignment of correlator manifolds (noBF vs BF)}
+\label{subsec:repr-alignment}
+We collect two standardized feature matrices $\tilde Z^{\rm noBF}$ and $\tilde Z^{\rm BF}$
+on identical frames (each standardized by its own $\mu,\sigma$), compute their PC1 loadings
+$u_1^{\rm noBF}$ and $u_1^{\rm BF}$, and report the cosine similarity
+\[
+\cos\big(u_1^{\rm noBF},u_1^{\rm BF}\big)\;=\;
+\frac{\langle u_1^{\rm noBF},\,u_1^{\rm BF}\rangle}
+     {\|u_1^{\rm noBF}\|_2\,\|u_1^{\rm BF}\|_2}.
+\]
+Cosines near $1$ indicate that backflow acts as a structured reweighting along the same dominant axis,
+rather than rotating the correlator’s manifold.
 
-% In our implementation, we integrate the normalizing flow sampling within the overall training pipeline of the PINN. Hyperparameters such as learning rate, batch size, and network architecture (e.g., number of hidden layers and neurons) are chosen based on preliminary experiments to ensure efficient convergence. Sample quality is monitored via validation metrics that compare the generated distribution against the target distribution.
+\subsection{Uncertainty and stability}
+\label{subsec:repr-uncertainty}
+For scalars we report standard errors over blocks.
+For PCA-based quantities and cosines we use a block bootstrap (resampling blocks with replacement)
+to obtain 68\%/95\% CIs. Stability checks include:
+(i) swapping train/held-out blocks for PCA,
+(ii) varying the near-field quantiles $q\in\{1,5,10\}\%$,
+(iii) re-running analyses on independent sampler restarts.
+
+\paragraph{Reproducibility package.}
+All diagnostics consume the saved bundles 
+$\{\mathbf{X}_{\rm Bohr},\,r,\,g(r)\}$ and the model snapshot,
+and emit JSON/CSV tables with $r_{\rm eff}$, rel-MAE$(k)$ curves, block-power shares,
+$R^2$ probes, near-field shares, $r_{\rm eff}(\Delta x)$, and noBF/BF cosines.
+As in Sec.~\ref{sec:analysis-struct}, we log JSD/$\ell_2$ splits to confirm stationarity.

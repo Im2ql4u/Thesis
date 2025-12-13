@@ -1,2 +1,57 @@
-\section{Overview}
-Write your conclusion here.
+\section{Conclusions for quantum dots}
+\label{sec:qd-conclusions}
+
+The quantum-dot benchmarks in this chapter serve a dual purpose: they test the
+numerical stability and expressivity of the Slater--Jastrow PINN+backflow
+ansatz, and they provide a controlled setting in which to study Wigner-molecule
+formation and the internal representations learned by the network.
+
+On the \emph{energy} side, the results in Sec.~\ref{sec:energy-discussion}
+show that a single, trap-unit–normalized architecture with soft-core pair
+features and an explicit cusp achieves DMC-level accuracy for two-electron
+dots and maintains sub-$0.1\%$ relative errors for $N\in\{6,12\}$ across
+$\omega\in\{0.1,0.5,1.0\}$. The same setup extrapolates smoothly to
+ultra-weak traps at $\omega=10^{-3}$, where no DMC data are available, with
+internal consistency checks (scaling exponents, virial ratios and structural
+diagnostics) supporting the reliability of the resulting variational
+predictions. Crucially, these accuracies are obtained with a relatively
+modest SR tail on top of a residual-based pretraining stage, emphasizing that
+conditioning and inductive bias matter at least as much as raw sample count.
+
+On the \emph{structural} side, Sec.~\ref{sec:wigner-molecule} establishes that
+the weak-trap states are genuine Wigner molecules rather than vaguely
+``strongly correlated'' dots. As $\omega$ decreases, all three systems
+$(N=2,6,12)$ undergo a smooth crossover in which (i) radii and localization
+ratios evolve towards large, stiff configurations, (ii) the energy
+partitioning approaches the nearly classical virial form
+$V_{\rm int}\approx 2V_{\rm trap}$, and (iii) shell structures and bond
+orders emerge that match classical Coulomb-cluster topologies. For $N{=}6$,
+the dot forms a single rotating Wigner ring with a quantum mixture of
+$(1,5)$ and $(0,6)$ sectors; for $N{=}12$, a robust two-shell Wigner molecule
+with a commensurate $(3,9)$ split becomes modal. Shell-resolved
+reconstructions of $g(r)$ confirm that the full pair structure is explained
+by these topologies and their combinatorics, with cosine similarities
+$\approx 1$ between reconstructed and global $g(r)$.
+
+On the \emph{representation} side, Sec.~\ref{sec:repr-discussion} shows that
+this rich real-space physics is compressed into a remarkably simple latent
+geometry. The correlator $f_{\text{net}}$ lives on a low-dimensional manifold
+($r_{\rm eff}(Z)\sim 1\text{--}2$) whose leading PCs behave as collective
+coordinates for global size and radial fluctuations, while finer angular and
+topological information resides in conditional distributions on this manifold.
+Backflow, in contrast, realizes a high-dimensional displacement field
+$r_{\rm eff}(\Delta x)\sim 10\text{--}20$ whose energetic leverage is
+concentrated in near-field configurations at intermediate traps and becomes
+negligible deep in the Wigner regime. In the ultra-weak limit, the optimizer
+effectively switches off backflow: the static Slater--Jastrow correlator
+saturates the physics, and the model reduces to a low-rank Wigner-molecule
+ansatz.
+
+Taken together, these findings support a physically meaningful decomposition
+of the neural ansatz into (i) a compact, smooth correlator that plays the
+role of a learned set of collective coordinates, and (ii) a local,
+many-body backflow channel that only activates where nodal refinements are
+energetically relevant. The quantum-dot results thus provide both a stringent
+validation of the method and a template for applying the same architecture to
+more complex finite fermion systems, where similar trade-offs between global
+structure, local correlations and representation rank are expected to arise.

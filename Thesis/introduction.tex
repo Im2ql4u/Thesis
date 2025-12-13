@@ -1,23 +1,201 @@
 \chapter*{Introduction}
-Two-dimensional quantum dots offer a clean, tunable route from Fermi-liquid behavior to Wigner-molecule physics: as the trap frequency \(\omega\) decreases, the one-body level spacing collapses while Coulomb repulsion dominates, driving electrons to localize into ring/shell patterns whose lab-frame densities are rotationally smeared by zero-point motion. The many-body literature has mapped this crossover qualitatively and, in classical limits, identified preferred shellings (e.g.\ \((1,5)\), \((3,9)\)) \cite{Egger_1999,Kong_2002,schweigert1994spectralpropertieschargedparticles,manninen2007metalclustersquantumdots}. Yet, for fully quantum dots, \emph{quantitative}, topology-resolved diagnostics—occupancy fractions, bond-orientational order \(|\Phi_m|\), and ring “stiffness”—have remained sparse.
+
+Quantum mechanics is a central pillar of modern physics. It provides the
+framework in which we describe atoms, molecules, solids, and nanoscale
+structures, and it underlies much of today’s technology. At the same time, it
+leads directly to some of the most challenging computational problems we face.
+The main example is the \emph{many-body problem}: solving the Schrödinger
+equation for interacting particles and extracting physically meaningful
+quantities from the resulting wavefunction.
+
+In principle, the many-body wavefunction contains complete information about
+the system. In practice, its dimension grows exponentially with the number of
+particles and the size of the single-particle basis. The competition between
+kinetic energy, which tends to delocalize particles, and interaction and
+external potentials, which drive localization and correlations, takes place in
+a configuration space that is far too large to handle naively. Nevertheless,
+we need accurate results—energies, correlation functions, and phase
+boundaries—to understand real materials and model strongly correlated systems.
+
+A wide range of electronic-structure methods has been developed to address
+this. Mean-field approaches such as Hartree–Fock replace the full many-body
+problem with an effective single-particle picture, where each electron moves
+in an average field from the others. This captures Fermi statistics and some
+exchange effects but leaves most correlation physics untreated. More systematic
+methods such as Full Configuration Interaction (FCI) are, in principle, exact
+within a finite basis, but their cost grows combinatorially with system size.
+Coupled Cluster (CC) theory provides a more efficient and size-extensive
+hierarchy of approximations, but it remains computationally demanding and can
+struggle in strongly correlated regimes or near degeneracies.
+
+Quantum Monte Carlo (QMC) methods, including Variational Monte Carlo (VMC) and
+Diffusion Monte Carlo (DMC), take a different approach: they represent the
+wavefunction implicitly through stochastic sampling. For suitable trial
+states, they can produce highly accurate benchmark energies and correlations
+for continuum systems. However, QMC is not free of difficulties. The fermion
+sign problem limits direct simulations, fixed-node approximations inherit bias
+from the chosen trial nodes, and constructing high-quality trial wavefunctions
+is increasingly difficult as systems become more strongly correlated or
+inhomogeneous. In practice, a large part of the many-body problem becomes the
+problem of choosing an expressive, well-conditioned ansatz and optimizing it
+reliably.
+
+\paragraph{Machine learning and many-body wavefunctions.}
+In parallel with these developments, machine learning—especially deep
+learning—has become a standard tool for representing complex, high-dimensional
+functions and fitting them to data. Neural networks now play a central role in
+domains such as computer vision, language modelling and reinforcement learning.
+They combine flexible parametric families with inductive biases (e.g.\ symmetry
+and locality), normalization, and optimization procedures that scale well with
+dimension.
+
+In physics, this has led to two broad uses of neural networks. In the first,
+they act as \emph{surrogates}: they learn mappings from parameters or boundary
+conditions to observables, or approximate solution operators of partial
+differential equations. Physics-informed neural networks (PINNs) and
+operator-learning approaches fall into this category by embedding differential
+operators and constraints directly into the training objective. In the second,
+neural networks are used as \emph{variational ansätze} for quantum states
+(neural quantum states), where the network outputs amplitudes, phases or
+log-probabilities for many-body configurations and is trained by variational
+Monte Carlo.
+
+In principle, neural networks provide highly expressive ansätze for quantum
+problems. In practice, several issues arise. Objectives based on local
+energies involve second derivatives and can be numerically delicate.
+Coordinate parameterizations that do not respect known structure can lead to
+large gradients and Laplacian spikes near electron coalescence. Generic
+architectures can waste capacity on degrees of freedom that are irrelevant
+from a physical point of view. These challenges motivate hybrid approaches in
+which as much known structure as possible—antisymmetry, cusp conditions,
+scaling, and symmetries—is built into the ansatz and its coordinates, and the
+network is used to learn the remaining correlation corrections.
+
+\paragraph{Quantum dots as a controlled testbed.}
+Two-dimensional parabolic quantum dots provide a clean and tunable setting in
+which to explore such ideas. They offer a simple route from Fermi-liquid–like
+behaviour to Wigner-molecule physics. As the trap frequency $\omega$ decreases,
+the single-particle level spacing collapses while Coulomb repulsion becomes
+dominant. Electrons then tend to localize into ring or shell patterns. In the
+lab frame, rotational symmetry and quantum fluctuations smear these into smooth
+densities; in a co-rotating frame, one recovers crystalline-like structures
+whose topology depends on particle number. For $N{=}6$ and $N{=}12$, classical
+and semiclassical studies have identified preferred shellings such as $(1,5)$
+and $(3,9)$ and mapped parts of the crossover
+\cite{Egger_1999,Kong_2002,schweigert1994spectralpropertieschargedparticles,manninen2007metalclustersquantumdots}.
+
+From the perspective of this thesis, quantum dots are attractive for two
+reasons. First, they are genuinely non-trivial: Coulomb singularities, strong
+correlations and an actual Fermi-liquid–to–Wigner crossover appear already for
+moderate $N$. Second, they are still simple enough that accurate DMC
+references exist in many regimes and that detailed structural diagnostics
+(shell occupancies, bond order, virial ratios) are computationally feasible.
+For fully quantum dots, however, quantitative topology-resolved diagnostics
+(occupancy fractions, bond-orientational order, shell “stiffness”) and a
+systematic picture of the Wigner regime remain relatively sparse. In addition,
+it is not well understood how modern neural ansätze internally represent these
+states.
 
 \paragraph{Scope and questions.}
-We revisit these dots with a Slater–Jastrow(+Backflow) ansatz designed to be \emph{safe-by-design} for Laplacian-based estimators: coordinates are scaled to trap units (\(\tilde R=\sqrt{\omega}R\)), learned pair features are soft-core (no spurious \(1/r\) in derivatives), and the electron–electron cusp is enforced analytically. A compact backflow provides smooth nodal deformations. We ask:  
-(i) How much neural capacity is \emph{actually} needed once antisymmetry, cusp, and conditioning are explicit?  
-(ii) What additional structure does backflow learn?  
-(iii) Can we extract \emph{physics}—shell occupancies, orientational order, and stiffness—directly from \(|\Psi|^2\) with minimal modeling bias?
+In this thesis, we revisit two-dimensional harmonic quantum dots using a
+Slater–Jastrow(+Backflow) ansatz implemented as a physics-informed neural
+network. The design is intended to be \emph{safe by construction} for
+Laplacian-based objectives: coordinates are scaled to trap units
+($\tilde R=\sqrt{\omega}R$), learned pair features are soft-core (avoiding
+spurious $1/r$ behaviour in derivatives), and the electron–electron cusp is
+enforced analytically rather than learned. A compact backflow network provides
+smooth nodal deformations on top of a Slater determinant built from harmonic
+oscillator orbitals.
 
-\paragraph{Diagnostics and relation to prior work.}
-Alongside energies, we deploy automatic shell detection, a shell-resolved reconstruction test for \(g(r)\) (disentangling geometry from sampling artifacts), bond-orientational order parameters \(|\Phi_m|\) and angular Lindemann-like ratios \(\lambda_\phi\) (adapting ideas from bond-orientational order in classical Wigner/Yukawa layers \cite{Mazars_2008}), and the density parameter \(r_s\) from the first \(g(r)\) peak to anchor the Fermi-liquid \(\to\) Wigner crossover \cite{Egger_1999}. These tools quantify, in a single framework, the emergence of \emph{rotating Wigner molecules}—quantum mixtures of near-degenerate classical minima.
-
-\paragraph{Main contributions.}
+Within this setup, we focus on three questions:
 \begin{enumerate}
-\item \textbf{Compact, conditioned accuracy.} A small Slater–Jastrow(+Backflow) in trap units attains DMC-level energies for \(N{=}2\) and \(\sim10^{-2}\!\!-\!10^{-1}\%\) relative errors for \(N\in\{6,12\}\), indicating that \emph{conditioning} (trap units, cusp, safe features) rather than depth governs accuracy.
-\item \textbf{Topology-resolved Wigner diagnostics.} We report, across \(\omega\in[1,10^{-3}]\), (a) two-shell probabilities and inner-count histograms, (b) shell-mixture reconstructions of \(g(r)\) with cosine similarity \(0.989\!-\!1.000\), and (c) sector-wise \(|\Phi_m|\) and \(\lambda_\phi\). At \(\omega=10^{-3}\):  
-\(\;\)– \(N{=}6\): persistent single-ring molecule with a robust \((1,5)\!\leftrightarrow\!(0,6)\) near-degeneracy (fractions \(\approx 0.63\!-\!0.73\) vs.\ \(0.27\!-\!0.37\)); comparable \(|\Phi_5|\), \(|\Phi_6|\), and small \(\lambda_\phi\).  
-\(\;\)– \(N{=}12\): two-shell molecule with \((3,9)\) \emph{modal} under standard thresholds and substantial populations in \((2,10)\) and \((1,11)\); \(|\Phi_3|\!\sim\!0.67\), \(|\Phi_9|\!\sim\!0.50\), low \(\lambda_\phi\)—a rotating Wigner crystal consistent with, and extending, prior crossover and classical shell results \cite{Egger_1999,Kong_2002,schweigert1994spectralpropertieschargedparticles,Filinov_2001}.
-\item \textbf{Representation insight.} Correlator features live on a low-dimensional manifold (1–3 principal axes depending on regime), while backflow carries many local modes—providing node refinements rather than global rescalings.
+  \item How much neural capacity is actually required once antisymmetry, cusp
+        conditions and basic conditioning are implemented analytically?
+        In particular, can a relatively small, well-conditioned network match
+        DMC energies across particle numbers and trap strengths?
+  \item What additional structure does backflow learn on top of a good
+        Slater–Jastrow correlator? Does it mainly act as a local, many-body
+        correction near electron–electron encounters, or does it significantly
+        reshape the global structure of the dot?
+  \item Can we extract detailed Wigner physics—shell occupancies, bond
+        order, and stiffness—from $|\Psi|^2$ samples with minimal modelling
+        bias, and relate these to the latent representations learned by the
+        network?
 \end{enumerate}
 
-\paragraph{Outlook.}
-Because the diagnostics are model-agnostic post-processing of \(|\Psi|^2\), they offer a common language to compare neural, quantum-chemical, and QMC ansätze. The \(\omega=10^{-3}\) results in particular supply quantitative, sector-resolved benchmarks for Wigner-molecule structure in parabolic dots, complementing crossover criteria based on \(r_s\) and inviting direct comparison with future Pfaffian/geminal and multi-determinant studies.
+\paragraph{Diagnostics and relation to prior work.}
+To address these questions, we go beyond total energies. Alongside DMC
+benchmarks, we use:
+\begin{itemize}
+  \item automatic shell detection and shell-resolved reconstructions of the
+        pair distribution $g(r)$, testing whether the global $g(r)$ is
+        explained by shell geometry and combinatorics;
+  \item bond-orientational order parameters $|\Phi_m|$ and angular
+        Lindemann-like ratios, adapted from studies of classical Wigner and
+        Yukawa layers~\cite{Mazars_2008}, to quantify ring order and angular
+        stiffness;
+  \item the density parameter $r_s$, estimated from the first peak of $g(r)$
+        following Egger \emph{et al.}~\cite{Egger_1999}, to locate our dots
+        along the Fermi-liquid–to–Wigner scale;
+  \item representation-focused diagnostics for the neural ansatz: entropy
+        effective ranks of correlator and backflow features, principal
+        component ablations, and simple linear probes that relate latent axes
+        to physical observables (global size, radial variance, near-origin
+        mass).
+\end{itemize}
+All of these are applied as post-processing to $|\Psi|^2$ samples, so the same
+analysis could, in principle, be used to study classical, quantum-chemical, or
+other neural wavefunctions on the same footing.
+
+\paragraph{Main contributions.}
+The main contributions of this thesis are:
+\begin{enumerate}
+  \item \textbf{Compact, conditioned accuracy.}  
+        A small Slater–Jastrow(+Backflow) ansatz in trap units achieves
+        DMC-level energies for $N{=}2$ and maintains
+        $\sim 10^{-2}\text{--}10^{-1}\%$ relative errors for
+        $N\in\{6,12\}$ across $\omega\in\{0.1,0.5,1.0\}$, while extrapolating
+        smoothly to ultra-weak traps ($\omega=10^{-3}$). The results indicate
+        that conditioning (trap units, analytic cusp, safe pair features) is
+        at least as important as network size for stability and accuracy in
+        these dots.
+  \item \textbf{Topology-resolved Wigner diagnostics.}  
+        Across $\omega\in[1,10^{-3}]$ we quantify the Wigner crossover using
+        two-shell probabilities and inner-ring occupancy histograms,
+        shell-mixture reconstructions of $g(r)$ with cosine similarity
+        $0.989$–$1.000$ to global data, and sector-resolved bond order and
+        Lindemann indices. At $\omega=10^{-3}$ the $N{=}6$ dot forms a
+        persistent single-ring Wigner molecule with a clear
+        $(1,5)\leftrightarrow(0,6)$ near-degeneracy, while the $N{=}12$ dot
+        forms a two-shell molecule with a commensurate $(3,9)$ split as the
+        dominant topology. These results provide quantitative, sector-resolved
+        benchmarks that complement classical and quantum studies of parabolic
+        dots~\cite{Egger_1999,Kong_2002,schweigert1994spectralpropertieschargedparticles,Filinov_2001}.
+  \item \textbf{Representation insight.}  
+        We show that the correlator features live on a low-dimensional
+        manifold (typically one to three principal directions) whose leading
+        axes act as collective coordinates for global size and radial
+        fluctuations, while finer angular structure is encoded conditionally
+        on shell topology. Backflow, by contrast, spans many local modes: its
+        entropy rank is higher, linear probes to global observables are
+        essentially null, and its energetic effect is concentrated in
+        near-field configurations at intermediate traps. Deep in the Wigner
+        regime, the optimizer effectively switches backflow off, and the model
+        reduces to a low-rank Wigner-molecule ansatz dominated by the
+        Slater–Jastrow correlator.
+\end{enumerate}
+
+\paragraph{Thesis structure.}
+The remainder of the thesis is organised as follows. The next chapter
+introduces the theoretical background: the many-body Schrödinger equation in
+harmonic traps, basic properties of two-dimensional quantum dots, and the
+notion of Wigner molecules. A subsequent chapter reviews the machine-learning
+tools used here, with emphasis on neural function approximators,
+physics-informed training objectives and neural quantum states. We then
+present the concrete Slater–Jastrow(+Backflow) PINN ansatz, the optimization
+pipeline (residual-based pretraining followed by stochastic reconfiguration),
+and the numerical diagnostics used throughout. The central results chapter
+reports energy benchmarks, Wigner-molecule diagnostics and representation
+analyses for $N{=}2,6,12$ across trap strengths. Finally, the concluding
+chapter summarizes the main findings, discusses limitations, and outlines
+possible extensions to larger systems and more general many-body settings.

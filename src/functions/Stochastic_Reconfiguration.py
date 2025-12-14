@@ -607,8 +607,7 @@ def sr_step_energy_mb(
     # Drop weakly observed parameters (lowest ~10% variance)
     P_full = int(varO.numel())
     # thresh = float(torch.quantile(varO, 0.10).item()) if P_full > 10 else 0.0
-    # keep_mask = (varO > thresh) if P_full > 10 else
-    # torch.ones(P_full, dtype=torch.bool, device=store_device)
+    # keep_mask = (varO > thresh) if P_full > 10 else torch.ones(P_full, dtype=torch.bool, device=store_device)
     # keep_idx = keep_mask.nonzero(as_tuple=False).flatten()
     keep_idx = torch.arange(P_full, device=store_device)  # keep ALL params
     P_kept = int(keep_idx.numel())

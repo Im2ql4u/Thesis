@@ -29,7 +29,7 @@ def _select_best_gpu() -> str:
 
         if free_mem > best_free:
             best_idx, best_free = i, free_mem
-
+    print(best_idx)
     return f"cuda:{best_idx}"
 
 
@@ -64,8 +64,8 @@ _ACTIVATIONS = {
 # ---------------------------------------------------------------------
 DMC_ENERGIES: dict[int, dict[float, float]] = {
     2: {0.01: 0.07384, 0.1: 0.44079, 0.28: 1.02164, 0.5: 1.65977, 1.0: 3.00000},
-    6: {0.1: 3.55385, 0.28: 7.60019, 0.5: 11.78484, 1.0: 20.15932},
-    12: {0.1: 12.26984, 0.28: 25.63577, 0.5: 39.15960, 1.0: 65.70010},
+    6: {0.01: 0.8, 0.1: 3.55385, 0.28: 7.60019, 0.5: 11.78484, 1.0: 20.15932},
+    12: {0.01: 2.0, 0.1: 12.26984, 0.28: 25.63577, 0.5: 39.15960, 1.0: 65.70010},
     20: {0.1: 29.97790, 0.28: 61.92680, 0.5: 93.87520, 1.0: 155.88220},
 }
 _SUPPORTED_OMEGAS = sorted({w for table in DMC_ENERGIES.values() for w in table.keys()})
@@ -86,9 +86,39 @@ def _lookup_dmc_energy(n_particles: int, omega: float) -> float:
     return float(DMC_ENERGIES[n][w])
 
 
-# ---------------------------------------------------------------------
-# Config
-# ---------------------------------------------------------------------
+# ---- NEW: small helpers for the stratified sampler ----
+@dataclass(frozen=True)
+class SamplerMixWeights:
+    """Mixture weights for components [center, tails, mixed, ring, dimers].
+    Sum is normalized in train loop."""
+
+    center: float = 0.25
+    tails: float = 0.20
+    mixed: float = 0.25
+    ring: float = 0.20
+    dimers: float = 0.10
+
+
+@dataclass(frozen=True)
+class RingCfg:
+    """Ring/shell sampler config (2D). Radii jitter is in units of 1/sqrt(omega)."""
+
+    two_rings: bool = True
+    inner_frac: float = 0.33  # fraction of particles on inner ring (0..1)
+    r1_sigma: float = 0.08  # jitter of inner radius
+    r2_sigma: float = 0.08  # jitter of outer (or single) radius
+    jitter_sigma: float = 0.06  # per-particle Cartesian jitter around ring(s)
+
+
+@dataclass(frozen=True)
+class CuspCfg:
+    """Near-coalescence (dimer) sampling config."""
+
+    n_pairs: int = 2  # how many disjoint near-cusp pairs to force
+    eps_max_sigma: float = 0.08  # max pair separation in units of 1/sqrt(omega)
+
+
+# ===================== existing =====================
 @dataclass(frozen=True)
 class Config:
     # physics / model
@@ -133,6 +163,25 @@ class Config:
     n_grid: int = 30
     batch_size: int = int(1e3)
     n_samples: int = int(1e5)
+
+    # ---- NEW: equivariant stratified sampler options ----
+    sampler: Literal["normal", "stratified"] = "stratified"
+    sampler_mix_weights: SamplerMixWeights = field(default_factory=SamplerMixWeights)
+    # component scale parameters (units of 1/sqrt(omega))
+    sampler_sigma_center: float = 0.20
+    sampler_sigma_tails: float = 1.20
+    sampler_sigma_mixed_in: float = 0.25
+    sampler_sigma_mixed_out: float = 0.90
+    # geometry / cusp configs
+    sampler_ring_cfg: RingCfg = field(default_factory=RingCfg)
+    sampler_cusp_cfg: CuspCfg = field(default_factory=CuspCfg)
+    # symmetry augmentation
+    sampler_rot: bool = True  # random rotation (only meaningful for d==2)
+    sampler_perm: int = 1  # extra random permutations per sample
+    # optional adaptive reweighting of mixture components
+    sampler_adapt: bool = False
+    sampler_eta: float = 0.5
+    sampler_min_w: float = 1e-3  # floor to avoid collapsing a component to zero
 
     # paths
     data_dir: str | None = None

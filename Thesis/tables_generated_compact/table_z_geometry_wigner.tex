@@ -1,0 +1,23 @@
+%table_z_geometry_wigner.tex
+\begin{table}[t]
+\centering
+\small
+\setlength{\tabcolsep}{4.5pt}
+\renewcommand{\arraystretch}{1.05}
+\begin{tabular}{r r r r l}
+\toprule
+$N$ & $\omega$ & $r_{\mathrm{eff}}(Z)$ & $\rho(\text{head},\text{PC1})$ & \makecell{PC1 power\\$\phi/\psi/\mathrm{extras}$} \\
+\midrule
+\multirow{2}{*}{2} & $10^{-3}$ & \num{1.000109076499939} & \num{0.9975659847259521} & \powtrip{2.2638216705672676e-06}{0.9999754428863525}{2.231966755061876e-05} \\
+ & $10^{-2}$ & \num{1.002153754234314} & \num{0.9981261491775513} & \powtrip{3.2292762625729665e-05}{0.9993026852607727}{0.0006649706047028303} \\
+\midrule
+\multirow{2}{*}{6} & $10^{-3}$ & \num{1.5344276312355336} & \num{0.9677401841909734} & \powtrip{0.008845935132918757}{0.1256635664942807}{0.8654904983728006} \\
+ & $10^{-2}$ & \num{1.3809024530465976} & \num{0.987120881483588} & \powtrip{0.048846693764802315}{0.4481492961738133}{0.5030040100613844} \\
+\midrule
+\multirow{2}{*}{12} & $10^{-3}$ & \num{1.5486689304547137} & \num{0.9671884971206108} & \powtrip{0.5220731706087531}{0.12423242588450438}{0.3536944035067426} \\
+ & $10^{-2}$ & \num{1.8545435290470527} & \num{0.9559132325261951} & \powtrip{0.5305460824147924}{0.0600770038073888}{0.4093769137778188} \\
+\bottomrule
+\end{tabular}
+\caption{\textbf{Correlator geometry in Wigner-side regimes ($\omega\in\{10^{-2},10^{-3}\}$).} Same metrics as Table~\ref{tab:z-geom-tight}.}
+\label{tab:z-geom-wigner}
+\end{table}

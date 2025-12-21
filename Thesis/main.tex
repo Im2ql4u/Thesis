@@ -8,8 +8,11 @@
 \usepackage{amssymb} % For advanced mathematical symbols
 \usepackage{fancyhdr}
 \usepackage{graphicx}
-\usepackage[utf8]{inputenc}
 \usepackage{booktabs}
+\usepackage{multirow}
+\usepackage{makecell}
+\usepackage[utf8]{inputenc}
+\usepackage{adjustbox}
 \usepackage{bm}
 \usepackage[numbers,sort&compress]{natbib} % in the preamble
 %\usepackage{newpxtext,newpxmath} 
@@ -20,10 +23,15 @@
 \usepackage{physics}
 \usepackage{braket}
 \usepackage{tikz}
-
+\usepackage{siunitx}
+\usepackage{makecell} % for multi-line cells in tables
 \usetikzlibrary{calc}
 \usetikzlibrary{arrows.meta,positioning,fit}
 \usepackage[flushleft]{threeparttable}  % provides the threeparttable and tablenotes environments
+
+\usetikzlibrary{positioning, arrows.meta, shapes.geometric}
+
+
 
 \usetikzlibrary{positioning, arrows.meta, shapes.geometric}
 
@@ -49,6 +57,20 @@
 \colorlet{softteal}{mutedblueLight} % reuse light blue for pooling
 % ================================================================
 \definecolor{myaccent}{HTML}{a13333}
+% --- siunitx number formatting (decimals, not scientific notation) ---
+\sisetup{
+  scientific-notation = false, % disables 9.99×10^{-1} style
+  exponent-mode       = input, % don't auto-normalize exponents
+  round-mode          = places,
+  round-precision     = 5,     % choose: 3/4/5/etc.
+  round-pad           = false  % no forced trailing zeros
+}
+
+
+% helpers
+\newcommand{\pmnum}[2]{\num{#1}\,$\pm$\,\num{#2}}
+\newcommand{\powtrip}[3]{\num{#1}/\num{#2}/\num{#3}} % phi/psi/extras
+\newcommand{\nfshare}[2]{\num{#1}/\num{#2}}         % 5%/10% etc
 
 % put this in your preamble, after amsmath/amssymb
 \newcommand{\RR}{\mathbb{R}}        % expectation

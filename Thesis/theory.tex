@@ -1308,7 +1308,18 @@ In scientific applications, however, governing equations such as differential
 equations encode a wealth of prior information about the system. 
 \emph{Physics-Informed Neural Networks (PINNs)} integrate these constraints 
 directly into the learning process, combining data-driven approximation 
-with analytical structure.  
+with analytical structure.  Figure \ref{fig:activation_derivatives} illustrates how the behaviour of neural networks changes when working with higher order derivatives, as is common in PINNs. 
+%this is a plot of the different activation functions for first, second and third order derivative showing
+%how behaviour changes with PINNs, the file is runder all_activations_shared_legend.pdf
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=0.8\textwidth]{all_activations_shared_legend.pdf}
+  \caption{Comparison of common activation functions and their first, second, 
+  and third derivatives. Smooth activations (GELU, Mish) yield stable 
+  derivatives, while Tanh and Sigmoid have less stable higher derivatives.}
+  \label{fig:activation_derivatives}
+\end{figure}
 
 \subsection{Formulation of PINNs}
 Let $u:\Omega \subset \mathbb{R}^d \to \mathbb{R}$ denote the unknown solution 

@@ -8,7 +8,8 @@
 \label{app:laplacian:setup}
 
 We consider the stationary many-body Schr\"odinger equation on configuration space
-$\mathbf R=(\mathbf r_1,\ldots,\mathbf r_N)\in\Omega\subset\mathbb R^{D}$ with $D=dN$:
+$\mathbf R=(\mathbf r_1,\ldots,\mathbf r_N)\in\Omega\subset\mathbb R^{D}$ with $D=dN$
+(for our quantum dots, $d=2$):
 \begin{equation}
 \hat H\Psi(\mathbf R)=E\Psi(\mathbf R),
 \qquad
@@ -61,27 +62,30 @@ Applying the residual operator gives
 (L\Psi_0)(\mathbf R)+\sum_{j=1}^P (Lq_j)(\mathbf R)\,\delta\theta_j.
 \label{eq:lap:linRes}
 \end{equation}
-Introduce the weighted inner product
-\(
-\langle f,g\rangle_w := \int_\Omega f(\mathbf R)g(\mathbf R)w(\mathbf R)\,d\mathbf R
-\)
-and let the Jacobian $J$ be the linear map whose $j$th column is $Lq_j$.
+
+Introduce the weighted inner product (complex-valued wavefunctions allowed)
+\begin{equation}
+\langle f,g\rangle_w := \int_\Omega f(\mathbf R)^\ast\,g(\mathbf R)\,w(\mathbf R)\,d\mathbf R.
+\end{equation}
+Let the Jacobian $J$ be the linear map whose $j$th column is $Lq_j$.
 Then the loss \eqref{eq:lap:resloss} becomes (to second order in $\delta\theta$)
 \begin{equation}
 \mathcal L_{\mathrm{res}}(\theta_0+\delta\theta)
 \approx
 \frac12\|r_0 + J\,\delta\theta\|_w^2,
 \qquad
-r_0 := L\Psi_0,
+r_0 := L\Psi_0.
 \label{eq:lap:lsq}
 \end{equation}
 with normal-equation matrix
 \begin{equation}
-A := J^\top J,
+A := J^\ast J,
 \qquad
 A_{ij}=\langle Lq_i,\,Lq_j\rangle_w.
 \label{eq:lap:Adef}
 \end{equation}
+Here $A$ is Hermitian positive semidefinite; in practice it can be close to singular,
+so one often effectively works with a damped variant $A+\lambda I$ (implicit or explicit).
 
 Now consider gradient descent on the quadratic model \eqref{eq:lap:lsq}
 (with step size $\eta$). The error in parameter space evolves as
@@ -93,10 +97,11 @@ Now consider gradient descent on the quadratic model \eqref{eq:lap:lsq}
 \end{equation}
 so each eigen-direction of $A$ contracts by a factor $(1-\eta\lambda)$.
 Hence convergence speed is governed by the eigenvalue spread of $A$,
-typically summarized by the condition number
+typically summarized by the (effective) condition number
 \begin{equation}
-\kappa(A)=\frac{\lambda_{\max}(A)}{\lambda_{\min}(A)}.
+\kappa(A)=\frac{\lambda_{\max}(A)}{\lambda_{\min}(A)}
 \end{equation}
+(over the nonzero/regularized spectrum).
 Large $\kappa(A)$ implies stiffness: a step size small enough to be stable for
 $\lambda_{\max}$ yields slow progress along directions associated with
 $\lambda_{\min}$. This is precisely the conditioning bottleneck emphasized in
@@ -117,14 +122,20 @@ L \approx -\frac12\Delta_{\mathbf R}.
 The matrix $A$ in \eqref{eq:lap:Adef} is a Gram matrix in the feature space
 $\{Lq_j\}$.
 The corresponding operator-level object is the \emph{Hermitian square}
-$L^\ast L$, which is a central object in the operator-conditioning viewpoint
-\cite{De_Ryck_2024}.
-For $L=\Delta$, one obtains the \emph{bi-Laplacian}:
+$L^\ast L$ (with adjoint taken in the $L^2(\Omega;w)$ inner product)
+\cite{De_Ryck_2024}. For general non-constant $w$, the adjoint $L^\ast$ differs from the
+formal differential adjoint by weight-induced lower-order terms; the cleanest picture
+is obtained for constant $w$ and standard boundary conditions (periodic/Dirichlet),
+where the Laplacian is self-adjoint.
+
+In the Laplacian-dominant regime \eqref{eq:lap:Lapprox}, one has (up to a constant factor)
 \begin{equation}
-L=\Delta \quad\Rightarrow\quad L^\ast L=\Delta^2,
+L \approx -\tfrac12\Delta
+\quad\Rightarrow\quad
+L^\ast L \approx \tfrac14\,\Delta^2,
 \label{eq:lap:bilap}
 \end{equation}
-a case explicitly highlighted in the conditioning discussion \cite{De_Ryck_2024}.
+i.e.\ a bi-Laplacian scaling. The prefactor does not affect conditioning ratios.
 
 \paragraph{Fourier/eigenmode derivation of \(k^4\).}
 On a periodic domain (or, more generally, in a Laplacian eigenbasis)
@@ -209,7 +220,7 @@ updates are geometrically preconditioned.
 
 
 % =========================================================
-% APPENDIX B: Coulomb conditioning
+% APPENDIX B: Coulomb conditioning (2D, spin channels)
 % =========================================================
 \chapter{Coulomb conditioning}
 \label{app:coulomb}
@@ -217,7 +228,8 @@ updates are geometrically preconditioned.
 \section{Coulomb structure and singularity}
 \label{app:coulomb:setup}
 
-For electronic systems, the interaction typically contains Coulomb terms of the form
+For our two-dimensional electronic systems ($\mathbf r_i\in\mathbb R^2$), the interaction
+contains Coulomb terms of the form
 \begin{equation}
 \hat V_{\mathrm C}(\mathbf R)=\sum_{1\le i<j\le N}\frac{1}{r_{ij}},
 \qquad r_{ij}=|\mathbf r_i-\mathbf r_j|.
@@ -225,10 +237,10 @@ For electronic systems, the interaction typically contains Coulomb terms of the 
 \end{equation}
 This is a \emph{singular multiplication operator}: it diverges at particle
 coalescence $r_{ij}\to 0$.
-The true eigenfunction remains finite, but develops a non-smooth short-distance
-structure (cusp) so that the divergences in kinetic and potential contributions
-cancel in physically meaningful quantities such as the local energy
-\cite{BeccaSorella2017-QMCBook}.
+The exact eigenfunction remains finite (or vanishes by antisymmetry) but develops
+non-smooth short-distance structure (a cusp) so that divergences in kinetic and
+potential contributions cancel in physically meaningful quantities such as the
+local energy \cite{BeccaSorella2017-QMCBook}.
 
 The central point for learning is:
 
@@ -239,13 +251,23 @@ Laplacian. Strong residual objectives square these effects and become extremely
 sensitive to tiny cusp errors.
 \end{quote}
 
-\section{Cusp condition (derivation)}
+\section{2D cusp conditions: antiparallel vs parallel spins}
 \label{app:coulomb:cusp}
 
-We sketch the classical two-particle short-distance analysis (standard in QMC)
-to make the cancellation mechanism explicit \cite{BeccaSorella2017-QMCBook}.
+We present the 2D cusp logic in a way that separates the two spin channels.
+The cleanest statement (especially for practical ans\"atze) is in terms of the
+short-distance behavior of a \emph{Slater--Jastrow} factorization
+\begin{equation}
+\Psi(\mathbf R)=D(\mathbf R)\,J(\mathbf R),
+\qquad
+J(\mathbf R)=\exp\!\Big(\sum_{i<j} u(r_{ij})\Big),
+\label{eq:coulomb:slater-jastrow}
+\end{equation}
+because (i) the Slater part $D$ enforces antisymmetry and determines whether $\Psi$
+vanishes at coalescence, and (ii) the Jastrow slope $u'(0)$ is what cancels the
+$1/r$ Coulomb singularity in the local energy \cite{BeccaSorella2017-QMCBook}.
 
-Consider a pair $(i,j)$ and introduce center-of-mass and relative coordinates
+Fix a pair $(i,j)$ and introduce relative/center-of-mass coordinates in 2D:
 \begin{equation}
 \mathbf R_{ij} := \frac{\mathbf r_i+\mathbf r_j}{2},
 \qquad
@@ -253,111 +275,160 @@ Consider a pair $(i,j)$ and introduce center-of-mass and relative coordinates
 \qquad
 r:=|\mathbf r|.
 \end{equation}
-A direct computation gives the Laplacian decomposition
+A direct computation gives, in any dimension,
 \begin{equation}
-\Delta_i+\Delta_j = \frac12\,\Delta_{\mathbf R_{ij}} + 2\,\Delta_{\mathbf r}.
+\Delta_i+\Delta_j = \frac12\,\Delta_{\mathbf R_{ij}} + 2\,\Delta_{\mathbf r},
 \label{eq:coulomb:lap_decomp}
 \end{equation}
-Therefore the kinetic operator acting on this pair splits as
-\begin{equation}
--\frac12(\Delta_i+\Delta_j)
-=
--\frac14\,\Delta_{\mathbf R_{ij}} \;-\;\Delta_{\mathbf r}.
-\label{eq:coulomb:Trel}
-\end{equation}
-The singular behavior at coalescence is governed by the relative part
-$-\Delta_{\mathbf r}$ together with the singular potential $1/r$.
+hence the singular short-distance kinetic behavior is controlled by the relative term
+$-\Delta_{\mathbf r}$.
 
-Assume (for the relevant spin channel) that the wavefunction has the local form
+A key 2D identity is
 \begin{equation}
-\Psi(\mathbf r,\mathbf R_{ij},\ldots)
-=
-\Psi(0,\mathbf R_{ij},\ldots)\Big(1 + a\,r + \mathcal O(r^2)\Big),
-\qquad r\to 0,
-\label{eq:coulomb:expansion}
+\Delta_{\mathbf r} r = \frac{1}{r}\qquad (r>0,\ \mathbf r\in\mathbb R^2).
+\label{eq:coulomb:lap_r_2d}
 \end{equation}
-with cusp slope $a$.
-In three dimensions, $\Delta_{\mathbf r} r = 2/r$ for $r>0$, hence
+
+\paragraph{Antiparallel spins (distinguishable in the Slater part).}
+If the two electrons have opposite spin, they enter different determinants in $D$
+and generically $D$ does \emph{not} vanish at $\mathbf r\to 0$. Then $\Psi(0)\neq 0$ and
+a direct cusp expansion in 2D is legitimate:
 \begin{equation}
-\Delta_{\mathbf r}\Psi
-\approx
-\Psi(0)\,a\,\Delta_{\mathbf r}r
+\Psi(\mathbf r,\ldots)
 =
-\Psi(0)\,\frac{2a}{r},
+\Psi(0,\ldots)\Big(1 + a\,r + \mathcal O(r^2)\Big),
+\qquad r\to 0.
+\label{eq:coulomb:expansion_anti}
+\end{equation}
+Using \eqref{eq:coulomb:lap_r_2d}, the singular part of the relative Laplacian is
+\begin{equation}
+\Delta_{\mathbf r}\Psi \approx \Psi(0)\,a\,\Delta_{\mathbf r}r
+= \Psi(0)\,\frac{a}{r},
 \qquad
-\frac{\Delta_{\mathbf r}\Psi}{\Psi}
-\approx
-\frac{2a}{r}.
-\label{eq:coulomb:lap_sing}
+\frac{\Delta_{\mathbf r}\Psi}{\Psi}\approx \frac{a}{r}.
+\label{eq:coulomb:lap_sing_2d}
 \end{equation}
-Using \eqref{eq:coulomb:Trel}, the singular part of the local kinetic contribution
-from the pair is therefore
+Since the pair kinetic contribution contains $-\Delta_{\mathbf r}$, the singular part
+of the local energy is
 \begin{equation}
-\frac{\hat T\,\Psi}{\Psi}
-\supset
--\frac{\Delta_{\mathbf r}\Psi}{\Psi}
-\approx
--\frac{2a}{r}.
-\label{eq:coulomb:T_over_psi}
+E_L(\mathbf R)=\frac{\hat H\Psi}{\Psi}\supset \left(-\frac{a}{r}+\frac{1}{r}\right)
+=\frac{1-a}{r}.
+\label{eq:coulomb:EL_sing_2d_anti}
 \end{equation}
-Adding the Coulomb interaction $+1/r$ gives the singular part of the local energy:
+Thus finiteness of $E_L$ at coalescence requires
 \begin{equation}
-E_L(\mathbf R)
-=
-\frac{\hat H\Psi}{\Psi}
-\supset
-\left(-\frac{2a}{r} + \frac{1}{r}\right)
-=
-\frac{1-2a}{r}.
-\label{eq:coulomb:EL_sing}
+a=1,
+\qquad\text{i.e.}\qquad
+\left.\partial_r \log \Psi\right|_{r=0}=1
+\quad\text{(2D, antiparallel spins)}.
+\label{eq:coulomb:cusp_2d_anti}
 \end{equation}
-Hence the local energy remains finite at $r\to 0$ \emph{only if}
-\begin{equation}
-a = \frac12,
-\label{eq:coulomb:cusp}
-\end{equation}
-which is the electron--electron cusp condition (for the channel where $\Psi(0)\neq 0$)
-as discussed in QMC references \cite{BeccaSorella2017-QMCBook}.
-(Other spin channels can enforce $\Psi(0)=0$ by antisymmetry; the general message
-remains that short-range structure is constrained and non-smooth.)
+Equivalently, in a Slater--Jastrow form with $D(0)\neq 0$,
+this is the same as $\partial_r\log J|_{0}=1$ for the $ij$-pair.
 
-\section{Why Coulomb is ill-conditioned}
+\paragraph{Parallel spins (identical fermions, node at coalescence).}
+For same-spin electrons, antisymmetry forces $D$ (and hence $\Psi$) to vanish as
+$\mathbf r\to 0$. Generically one has a \emph{linear} zero:
+\begin{equation}
+D(\mathbf r,\ldots) \;=\; \bm\eta(\ldots)\cdot \mathbf r \;+\; \mathcal O(r^2),
+\qquad r\to 0,
+\label{eq:coulomb:D_linear_zero}
+\end{equation}
+with some nonzero vector $\bm\eta$ depending on the other coordinates.
+In this case, the cancellation of the Coulomb singularity is controlled by the
+Jastrow factor through cross terms in $-\Delta_{\mathbf r}(DJ)/(DJ)$.
+A standard short-distance analysis (carried out explicitly for 2D quantum dots)
+shows that the divergent kinetic contribution behaves like
+\begin{equation}
+-\frac{\Delta_{\mathbf r}(DJ)}{DJ}
+\supset
+-\frac{(2k+d-1)}{r}\,\partial_r\log J
+\qquad\text{with}\qquad
+d=2,\ \ k=1\ \text{(identical particles)},
+\label{eq:coulomb:jastrow_div}
+\end{equation}
+while the Coulomb potential contributes $+1/r$ to $E_L$ as before.
+Hence finiteness of the local energy requires
+\begin{equation}
+\left.\partial_r\log J\right|_{r=0}=\frac{1}{2k+d-1}=\frac{1}{3}
+\quad\text{(2D, parallel spins)}.
+\label{eq:coulomb:cusp_2d_par}
+\end{equation}
+This $1$ (antiparallel) versus $1/3$ (parallel) 2D cusp statement is the
+standard quantum-dot/Jastrow--Slater cusp condition \cite{Siljamaki2003-QD-Cusps}.
+
+\paragraph{What to remember.}
+In 2D:
+\begin{align}
+\text{antiparallel spins:}\quad & \left.\partial_r\log \Psi\right|_{0}=1
+\;\;\;\Longleftrightarrow\;\;\;
+\left.\partial_r\log J\right|_{0}=1,
+\label{eq:coulomb:summary_anti}
+\\
+\text{parallel spins:}\quad & \Psi(0)=0\ \text{(linear node)},\ \ 
+\left.\partial_r\log J\right|_{0}=\frac13.
+\label{eq:coulomb:summary_par}
+\end{align}
+
+\section{Why Coulomb is ill-conditioned (2D emphasis)}
 \label{app:coulomb:residual}
 
-The derivation above shows \emph{how} Coulomb creates stiffness: it forces
-$\hat T\Psi$ and $\hat V_{\mathrm C}\Psi$ to be individually large and singular,
-while their \emph{sum} is finite only under a cusp constraint.
+The cusp conditions above show \emph{how} Coulomb creates stiffness: it forces
+kinetic and potential contributions to be individually large and singular,
+while their \emph{sum} is finite only under a short-distance constraint.
 Strong residual minimization is therefore a \emph{cancellation problem}.
 
-\paragraph{Sensitivity amplification in the residual.}
-Let the learned wavefunction have cusp slope $a_\theta=\tfrac12+\delta a$.
-Then \eqref{eq:coulomb:EL_sing} implies a local-energy singularity
+\paragraph{Sensitivity amplification in the local energy.}
+If the learned antiparallel-spin cusp slope is $a_\theta = 1+\delta a$, then
+\eqref{eq:coulomb:EL_sing_2d_anti} implies
 \begin{equation}
-E_L(\mathbf R)\supset -\frac{2\delta a}{r},
-\label{eq:coulomb:EL_mismatch}
+E_L(\mathbf R)\supset -\frac{\delta a}{r},
+\label{eq:coulomb:EL_mismatch_2d_anti}
 \end{equation}
-i.e.\ an arbitrarily small cusp mismatch produces an \emph{arbitrarily large}
-local-energy spike as $r\to 0$.
-In strong residual training, the same mismatch shows up in the unnormalized
-residual $(\hat H-E)\Psi$ as a $1/r$-type defect that is concentrated in a tiny
-region of configuration space but can dominate the loss because it is squared.
+so an arbitrarily small cusp mismatch produces an arbitrarily large local-energy spike
+as $r\to 0$.
 
-More explicitly, write $L=\hat T+(\hat V-E)$ and expand the squared residual norm:
+For parallel spins, if the learned Jastrow slope is
+$\partial_r\log J|_{0}=\frac13+\delta b$, then the same short-distance analysis leading to
+\eqref{eq:coulomb:cusp_2d_par} implies
+\begin{equation}
+E_L(\mathbf R)\supset -\frac{3\,\delta b}{r}.
+\label{eq:coulomb:EL_mismatch_2d_par}
+\end{equation}
+Thus both channels generate $1/r$ spikes unless the cusp is satisfied.
+
+\paragraph{Why squaring is especially dangerous in 2D.}
+A $1/r$ defect in $E_L$ (or in $(\hat H-E)\Psi$) is concentrated near coalescence.
+But in 2D the squared singularity is only \emph{log-integrable}:
+\[
+\int_{r<\varepsilon}\Big(\frac{1}{r}\Big)^2\, d^2\mathbf r
+=
+\int_0^\varepsilon \frac{1}{r^2}\,(2\pi r\,dr)
+=
+2\pi\int_0^\varepsilon \frac{dr}{r}
+=+\infty.
+\]
+Therefore, without effectively resolving the cusp, \emph{strong} squared-residual
+objectives can be dominated (or even made ill-defined in the continuum limit) by the
+coalescence region. In Monte Carlo practice, this manifests as heavy-tailed fluctuations
+and extreme sensitivity to rare close-pair samples.
+
+\paragraph{Residual expansion and cancellation structure.}
+Writing $L=\hat T+(\hat V-E)$ and expanding the squared residual norm:
 \begin{equation}
 \|L\Psi\|_w^2
 =
 \|\hat T\Psi\|_w^2 + \|(\hat V-E)\Psi\|_w^2
-+2\,\Re\langle \hat T\Psi,\;(\hat V-E)\Psi\rangle_w.
++2\,\Re\langle \hat T\Psi,\;(\hat V-E)\Psi\rangle_w,
 \label{eq:coulomb:expand}
 \end{equation}
-Near coalescence, both $\hat T\Psi$ and $\hat V_{\mathrm C}\Psi$ are large.
+we see that near coalescence both $\hat T\Psi$ and $\hat V_{\mathrm C}\Psi$ are large.
 The exact solution relies on cancellation between these contributions
-(cf.\ \eqref{eq:coulomb:EL_sing}), which means \eqref{eq:coulomb:expand} demands
-high \emph{relative} accuracy in the cusp region: if either term is off by a small
-fraction, the net residual can be large in absolute magnitude.
-This is a classic recipe for ill-conditioning: the loss landscape contains
-directions where small parameter changes cause huge residual changes in a small
-region.
+(cf.\ \eqref{eq:coulomb:EL_sing_2d_anti} and \eqref{eq:coulomb:cusp_2d_par}), which means
+\eqref{eq:coulomb:expand} demands high \emph{relative} accuracy in the cusp region:
+if either term is off by a small fraction, the net residual can be large in absolute magnitude.
+This is a classic recipe for ill-conditioning: the loss landscape contains directions
+where small parameter changes cause huge residual changes in a small region.
 
 \paragraph{Operator-level picture (\(L^\ast L\)).}
 From the same viewpoint as Appendix~\ref{app:laplacian}, strong residual training
@@ -383,19 +454,15 @@ operator-conditioning viewpoint \cite{De_Ryck_2024}.
 \section{Barron/spectral perspective}
 \label{app:coulomb:barron}
 
-Your intuition is essentially correct, but the precise statement is:
-
-\begin{quote}
-Coulomb forces the \emph{true} solution to have cusp-like, non-smooth short-range
+Coulomb forces the \emph{true} 2D solution to have cusp-like, non-smooth short-range
 structure, so approximating the \emph{strong residual} requires representing
 high-frequency content that is not well captured by globally smooth/low-complexity
 function classes.
-\end{quote}
 
 In spectral/Barron-style approximation theories, approximation quality is governed
 by spectral decay and norms that weight the Fourier tail \cite{De_Ryck_2024}.
-A cusp is not $C^1$/$C^2$-smooth at coalescence, and this typically implies slower
-spectral decay compared to globally smooth functions.
+A cusp (or a linear node times a cusp in $J$) implies slower spectral decay than a globally
+smooth function.
 Strong residual training then \emph{further} amplifies the high-frequency tail
 because it applies $\Delta$ (and effectively $L^\ast L$), which multiplies Fourier
 modes by powers of $|\mathbf k|$ (Appendix~\ref{app:laplacian}).
@@ -408,7 +475,7 @@ the derivative order demanded of the approximation \cite{De_Ryck_2024}.
 Practically, QMC wavefunctions therefore incorporate explicit short-range
 correlation structure (e.g.\ cusp-enforcing Jastrow factors), precisely to remove
 these singular residual pathologies and reduce the variance of local quantities
-\cite{BeccaSorella2017-QMCBook}.
+\cite{BeccaSorella2017-QMCBook,Siljamaki2003-QD-Cusps}.
 
 \section{Implications for Stochastic Reconfiguration}
 \label{app:coulomb:sr}
@@ -426,7 +493,8 @@ S\,\delta\theta=-g,
 \end{equation}
 with $O_i=\partial_{\theta_i}\log\Psi_\theta$.
 
-Coulomb-induced cusp mismatch produces $E_L$ spikes of the form \eqref{eq:coulomb:EL_mismatch},
+Coulomb-induced cusp mismatch produces $E_L$ spikes of the form
+\eqref{eq:coulomb:EL_mismatch_2d_anti}--\eqref{eq:coulomb:EL_mismatch_2d_par},
 which has two consequences:
 \begin{enumerate}
 \item \textbf{Heavy-tailed Monte Carlo forces.}
@@ -438,13 +506,25 @@ the linear solve unless one uses damping/regularization, as standard in SR pract
 Even if SR corrects anisotropy in parameter space (natural gradient)
 \cite{Amari1998-NaturalGradient,ParkKastoryano2020-GeometryNQS}, it does not remove
 the underlying operator-driven stiffness: the spikes originate from imperfect
-kinetic--potential cancellation enforced by Coulomb physics.
+kinetic--potential cancellation enforced by Coulomb cusp physics.
 \end{enumerate}
 
 \paragraph{Bottom line.}
 Laplacian dominance creates stiffness through $k^4$-type amplification of curvature
-errors; Coulomb creates stiffness by enforcing cusp constraints and cancellation
-against the Laplacian.
+errors; Coulomb creates stiffness by enforcing cusp constraints (in 2D: $1$ vs $1/3$
+depending on spin channel) and cancellation against the Laplacian.
 Both mechanisms worsen conditioning of strong residual objectives and increase
 statistical difficulty of SR through heavy-tailed local-energy fluctuations
-\cite{De_Ryck_2024,BeccaSorella2017-QMCBook}.
+\cite{De_Ryck_2024,BeccaSorella2017-QMCBook,Siljamaki2003-QD-Cusps}.
+
+% ---------------------------------------------------------
+% Add this BibTeX entry (new) if you want the 2D 1 vs 1/3 cusp citation:
+% ---------------------------------------------------------
+% @phdthesis{Siljamaki2003-QD-Cusps,
+%   author = {Sami Siljam{\"a}ki},
+%   title  = {Wave Function Methods for Quantum Dots in Magnetic Field},
+%   school = {Helsinki University of Technology},
+%   year   = {2003},
+%   note   = {See Sec.~2.4 (Cusp conditions), Eq.~(2.27) and the 2D specialization giving
+%             $\partial_r J/J = C$ (antiparallel) and $\partial_r J/J = C/3$ (parallel).}
+% }

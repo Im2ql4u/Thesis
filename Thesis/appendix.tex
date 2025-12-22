@@ -1,0 +1,450 @@
+% =========================================================
+% APPENDIX A: Laplacian conditioning
+% =========================================================
+\chapter{Laplacian conditioning}
+\label{app:laplacian}
+
+\section{Residual training for Schr\"odinger}
+\label{app:laplacian:setup}
+
+We consider the stationary many-body Schr\"odinger equation on configuration space
+$\mathbf R=(\mathbf r_1,\ldots,\mathbf r_N)\in\Omega\subset\mathbb R^{D}$ with $D=dN$:
+\begin{equation}
+\hat H\Psi(\mathbf R)=E\Psi(\mathbf R),
+\qquad
+\hat H=\hat T+\hat V,
+\qquad
+\hat T=-\frac12\sum_{i=1}^N\Delta_i,
+\label{eq:lap:sch}
+\end{equation}
+where $\hat V$ collects external and interaction potentials.
+
+In \emph{strong residual minimization} one introduces
+\begin{equation}
+L := \hat H - E \quad\Rightarrow\quad L\Psi = 0,
+\end{equation}
+and minimizes a squared residual loss of the schematic form
+\begin{equation}
+\mathcal L_{\mathrm{res}}(\theta)
+= \frac12\|L\Psi_\theta\|_{L^2(\Omega;w)}^2
+= \frac12\int_\Omega |(L\Psi_\theta)(\mathbf R)|^2\,w(\mathbf R)\,d\mathbf R,
+\label{eq:lap:resloss}
+\end{equation}
+for a nonnegative weight $w$ induced by the sampling strategy.
+A key message of the numerical-analysis viewpoint is that strong residual losses
+can be \emph{severely ill-conditioned}, and training speed is tightly linked to
+spectral properties of an operator/matrix induced by $L$ \cite{De_Ryck_2024}.
+
+\section{Linearized geometry and the matrix \(A\)}
+\label{app:laplacian:A}
+
+To expose the mechanism, follow the standard linearization argument used in
+conditioning analyses \cite{De_Ryck_2024}.
+Fix an expansion point $\theta_0$ and define tangent (feature) functions
+\begin{equation}
+q_j(\mathbf R) := \partial_{\theta_j}\Psi_\theta(\mathbf R)\big|_{\theta=\theta_0},
+\qquad j=1,\ldots,P.
+\end{equation}
+For small parameter increments $\delta\theta$, we have the first-order model
+\begin{equation}
+\Psi_{\theta_0+\delta\theta}(\mathbf R)
+\approx
+\Psi_0(\mathbf R)+\sum_{j=1}^P q_j(\mathbf R)\,\delta\theta_j,
+\qquad
+\Psi_0:=\Psi_{\theta_0}.
+\label{eq:lap:linPsi}
+\end{equation}
+Applying the residual operator gives
+\begin{equation}
+(L\Psi_{\theta_0+\delta\theta})(\mathbf R)
+\approx
+(L\Psi_0)(\mathbf R)+\sum_{j=1}^P (Lq_j)(\mathbf R)\,\delta\theta_j.
+\label{eq:lap:linRes}
+\end{equation}
+Introduce the weighted inner product
+\(
+\langle f,g\rangle_w := \int_\Omega f(\mathbf R)g(\mathbf R)w(\mathbf R)\,d\mathbf R
+\)
+and let the Jacobian $J$ be the linear map whose $j$th column is $Lq_j$.
+Then the loss \eqref{eq:lap:resloss} becomes (to second order in $\delta\theta$)
+\begin{equation}
+\mathcal L_{\mathrm{res}}(\theta_0+\delta\theta)
+\approx
+\frac12\|r_0 + J\,\delta\theta\|_w^2,
+\qquad
+r_0 := L\Psi_0,
+\label{eq:lap:lsq}
+\end{equation}
+with normal-equation matrix
+\begin{equation}
+A := J^\top J,
+\qquad
+A_{ij}=\langle Lq_i,\,Lq_j\rangle_w.
+\label{eq:lap:Adef}
+\end{equation}
+
+Now consider gradient descent on the quadratic model \eqref{eq:lap:lsq}
+(with step size $\eta$). The error in parameter space evolves as
+\begin{equation}
+\delta\theta^{(t+1)}-\delta\theta^\star
+=
+\left(I-\eta A\right)\left(\delta\theta^{(t)}-\delta\theta^\star\right),
+\label{eq:lap:GD}
+\end{equation}
+so each eigen-direction of $A$ contracts by a factor $(1-\eta\lambda)$.
+Hence convergence speed is governed by the eigenvalue spread of $A$,
+typically summarized by the condition number
+\begin{equation}
+\kappa(A)=\frac{\lambda_{\max}(A)}{\lambda_{\min}(A)}.
+\end{equation}
+Large $\kappa(A)$ implies stiffness: a step size small enough to be stable for
+$\lambda_{\max}$ yields slow progress along directions associated with
+$\lambda_{\min}$. This is precisely the conditioning bottleneck emphasized in
+physics-informed training analyses \cite{De_Ryck_2024}.
+
+\section{Bi-Laplacian scaling}
+\label{app:laplacian:bilap}
+
+The defining feature of Schr\"odinger is that $L$ contains a second-order
+differential operator. To isolate the kinetic contribution, consider the regime
+where the residual is dominated by the Laplacian part,
+\begin{equation}
+L \approx -\frac12\Delta_{\mathbf R}.
+\label{eq:lap:Lapprox}
+\end{equation}
+
+\paragraph{From \(L\) to \(L^\ast L\).}
+The matrix $A$ in \eqref{eq:lap:Adef} is a Gram matrix in the feature space
+$\{Lq_j\}$.
+The corresponding operator-level object is the \emph{Hermitian square}
+$L^\ast L$, which is a central object in the operator-conditioning viewpoint
+\cite{De_Ryck_2024}.
+For $L=\Delta$, one obtains the \emph{bi-Laplacian}:
+\begin{equation}
+L=\Delta \quad\Rightarrow\quad L^\ast L=\Delta^2,
+\label{eq:lap:bilap}
+\end{equation}
+a case explicitly highlighted in the conditioning discussion \cite{De_Ryck_2024}.
+
+\paragraph{Fourier/eigenmode derivation of \(k^4\).}
+On a periodic domain (or, more generally, in a Laplacian eigenbasis)
+\(
+-\Delta \phi_{\mathbf k} = |\mathbf k|^2\phi_{\mathbf k},
+\)
+so
+\(
+\Delta^2\phi_{\mathbf k} = |\mathbf k|^4\phi_{\mathbf k}.
+\)
+If an error $\delta\Psi$ expands as $\delta\Psi=\sum_{\mathbf k}c_{\mathbf k}\phi_{\mathbf k}$
+and $L\approx -\tfrac12\Delta$, then
+\begin{equation}
+\|L\,\delta\Psi\|_{L^2}^2
+\approx
+\frac14\sum_{\mathbf k} |\mathbf k|^4|c_{\mathbf k}|^2.
+\label{eq:lap:k4}
+\end{equation}
+Thus the squared residual penalizes high-frequency components with a \emph{quartic}
+weight $|\mathbf k|^4$.
+If the relevant spectrum spans $|\mathbf k|\in[k_{\min},k_{\max}]$, the induced
+eigenvalue ratio scales like
+\begin{equation}
+\kappa \sim \left(\frac{k_{\max}}{k_{\min}}\right)^4,
+\label{eq:lap:kappa}
+\end{equation}
+which is a sharp mathematical expression of ``Laplacian-driven stiffness''.
+This quartic growth is consistent with the Laplacian/Poisson toy examples and
+frequency-dependent conditioning effects emphasized in \cite{De_Ryck_2024}.
+
+\paragraph{Length-scale interpretation.}
+Let $\ell$ denote the smallest length scale that must be represented.
+Then $k_{\max}\sim 1/\ell$ and \eqref{eq:lap:kappa} implies
+\begin{equation}
+\kappa \ \text{grows rapidly as}\ \ell\downarrow 0.
+\end{equation}
+In many-body Schr\"odinger problems, small $\ell$ arises from nodal structure,
+strong localization, and short-range correlation features; in all such regimes,
+the Laplacian makes the strong residual extremely curvature-sensitive.
+
+\section{Barron/spectral perspective}
+\label{app:laplacian:barron}
+
+The conditioning story above can be rephrased in approximation terms.
+In spectral Barron-type viewpoints, function classes are controlled by norms that
+weight the Fourier transform by powers of frequency (or related spectral weights).
+A key implication is that applying derivatives systematically increases the
+importance of high-frequency tails \cite{De_Ryck_2024}.
+Since $\Delta$ multiplies a Fourier mode by $|\mathbf k|^2$, and the squared
+residual effectively involves $L^\ast L$ (hence $\Delta^2$ in Laplacian-dominant
+regimes), the residual can require substantially more ``spectral budget'' than
+the wavefunction itself.
+In practical terms: even if $\Psi$ is approximable in a given network class,
+\emph{approximating its strong residual} can be much harder, because the loss
+implicitly demands accurate high-frequency curvature (cf.\ \eqref{eq:lap:k4}).
+This is one of the motivations, in numerical analysis of PINNs, for considering
+weak/variational formulations that reduce derivative order when the strong form
+is too stiff \cite{De_Ryck_2024}.
+
+\section{Implications for Stochastic Reconfiguration}
+\label{app:laplacian:sr}
+
+Stochastic reconfiguration (SR) updates parameters using a natural-gradient-like
+preconditioner \cite{BeccaSorella2017-QMCBook,Amari1998-NaturalGradient,ParkKastoryano2020-GeometryNQS}.
+Writing $O_i=\partial_{\theta_i}\log\Psi_\theta$, one common SR update is
+\begin{equation}
+S(\theta)\,\delta\theta = -g(\theta),
+\qquad
+S_{ij}=\mathrm{Cov}_{p_\theta}[O_i,O_j],
+\qquad
+g_i=\mathrm{Cov}_{p_\theta}[E_L,O_i],
+\label{eq:lap:sr}
+\end{equation}
+where $p_\theta\propto|\Psi_\theta|^2$ and $E_L=(\hat H\Psi_\theta)/\Psi_\theta$.
+SR improves conditioning in parameter space by using the (quantum) information
+geometry of the variational family \cite{Amari1998-NaturalGradient,ParkKastoryano2020-GeometryNQS}.
+However, the Laplacian-induced stiffness described above is an \emph{operator-level}
+phenomenon: strong residuals magnify curvature errors via $\Delta$ and $\Delta^2$
+(cf.\ \eqref{eq:lap:k4}), which remains a fundamental challenge even when parameter
+updates are geometrically preconditioned.
+
+
+
+% =========================================================
+% APPENDIX B: Coulomb conditioning
+% =========================================================
+\chapter{Coulomb conditioning}
+\label{app:coulomb}
+
+\section{Coulomb structure and singularity}
+\label{app:coulomb:setup}
+
+For electronic systems, the interaction typically contains Coulomb terms of the form
+\begin{equation}
+\hat V_{\mathrm C}(\mathbf R)=\sum_{1\le i<j\le N}\frac{1}{r_{ij}},
+\qquad r_{ij}=|\mathbf r_i-\mathbf r_j|.
+\label{eq:coulomb:V}
+\end{equation}
+This is a \emph{singular multiplication operator}: it diverges at particle
+coalescence $r_{ij}\to 0$.
+The true eigenfunction remains finite, but develops a non-smooth short-distance
+structure (cusp) so that the divergences in kinetic and potential contributions
+cancel in physically meaningful quantities such as the local energy
+\cite{BeccaSorella2017-QMCBook}.
+
+The central point for learning is:
+
+\begin{quote}
+Coulomb does not merely add ``another term'' to the residual; it introduces
+\emph{singular short-range physics} that forces delicate cancellations with the
+Laplacian. Strong residual objectives square these effects and become extremely
+sensitive to tiny cusp errors.
+\end{quote}
+
+\section{Cusp condition (derivation)}
+\label{app:coulomb:cusp}
+
+We sketch the classical two-particle short-distance analysis (standard in QMC)
+to make the cancellation mechanism explicit \cite{BeccaSorella2017-QMCBook}.
+
+Consider a pair $(i,j)$ and introduce center-of-mass and relative coordinates
+\begin{equation}
+\mathbf R_{ij} := \frac{\mathbf r_i+\mathbf r_j}{2},
+\qquad
+\mathbf r := \mathbf r_i-\mathbf r_j,
+\qquad
+r:=|\mathbf r|.
+\end{equation}
+A direct computation gives the Laplacian decomposition
+\begin{equation}
+\Delta_i+\Delta_j = \frac12\,\Delta_{\mathbf R_{ij}} + 2\,\Delta_{\mathbf r}.
+\label{eq:coulomb:lap_decomp}
+\end{equation}
+Therefore the kinetic operator acting on this pair splits as
+\begin{equation}
+-\frac12(\Delta_i+\Delta_j)
+=
+-\frac14\,\Delta_{\mathbf R_{ij}} \;-\;\Delta_{\mathbf r}.
+\label{eq:coulomb:Trel}
+\end{equation}
+The singular behavior at coalescence is governed by the relative part
+$-\Delta_{\mathbf r}$ together with the singular potential $1/r$.
+
+Assume (for the relevant spin channel) that the wavefunction has the local form
+\begin{equation}
+\Psi(\mathbf r,\mathbf R_{ij},\ldots)
+=
+\Psi(0,\mathbf R_{ij},\ldots)\Big(1 + a\,r + \mathcal O(r^2)\Big),
+\qquad r\to 0,
+\label{eq:coulomb:expansion}
+\end{equation}
+with cusp slope $a$.
+In three dimensions, $\Delta_{\mathbf r} r = 2/r$ for $r>0$, hence
+\begin{equation}
+\Delta_{\mathbf r}\Psi
+\approx
+\Psi(0)\,a\,\Delta_{\mathbf r}r
+=
+\Psi(0)\,\frac{2a}{r},
+\qquad
+\frac{\Delta_{\mathbf r}\Psi}{\Psi}
+\approx
+\frac{2a}{r}.
+\label{eq:coulomb:lap_sing}
+\end{equation}
+Using \eqref{eq:coulomb:Trel}, the singular part of the local kinetic contribution
+from the pair is therefore
+\begin{equation}
+\frac{\hat T\,\Psi}{\Psi}
+\supset
+-\frac{\Delta_{\mathbf r}\Psi}{\Psi}
+\approx
+-\frac{2a}{r}.
+\label{eq:coulomb:T_over_psi}
+\end{equation}
+Adding the Coulomb interaction $+1/r$ gives the singular part of the local energy:
+\begin{equation}
+E_L(\mathbf R)
+=
+\frac{\hat H\Psi}{\Psi}
+\supset
+\left(-\frac{2a}{r} + \frac{1}{r}\right)
+=
+\frac{1-2a}{r}.
+\label{eq:coulomb:EL_sing}
+\end{equation}
+Hence the local energy remains finite at $r\to 0$ \emph{only if}
+\begin{equation}
+a = \frac12,
+\label{eq:coulomb:cusp}
+\end{equation}
+which is the electron--electron cusp condition (for the channel where $\Psi(0)\neq 0$)
+as discussed in QMC references \cite{BeccaSorella2017-QMCBook}.
+(Other spin channels can enforce $\Psi(0)=0$ by antisymmetry; the general message
+remains that short-range structure is constrained and non-smooth.)
+
+\section{Why Coulomb is ill-conditioned}
+\label{app:coulomb:residual}
+
+The derivation above shows \emph{how} Coulomb creates stiffness: it forces
+$\hat T\Psi$ and $\hat V_{\mathrm C}\Psi$ to be individually large and singular,
+while their \emph{sum} is finite only under a cusp constraint.
+Strong residual minimization is therefore a \emph{cancellation problem}.
+
+\paragraph{Sensitivity amplification in the residual.}
+Let the learned wavefunction have cusp slope $a_\theta=\tfrac12+\delta a$.
+Then \eqref{eq:coulomb:EL_sing} implies a local-energy singularity
+\begin{equation}
+E_L(\mathbf R)\supset -\frac{2\delta a}{r},
+\label{eq:coulomb:EL_mismatch}
+\end{equation}
+i.e.\ an arbitrarily small cusp mismatch produces an \emph{arbitrarily large}
+local-energy spike as $r\to 0$.
+In strong residual training, the same mismatch shows up in the unnormalized
+residual $(\hat H-E)\Psi$ as a $1/r$-type defect that is concentrated in a tiny
+region of configuration space but can dominate the loss because it is squared.
+
+More explicitly, write $L=\hat T+(\hat V-E)$ and expand the squared residual norm:
+\begin{equation}
+\|L\Psi\|_w^2
+=
+\|\hat T\Psi\|_w^2 + \|(\hat V-E)\Psi\|_w^2
++2\,\Re\langle \hat T\Psi,\;(\hat V-E)\Psi\rangle_w.
+\label{eq:coulomb:expand}
+\end{equation}
+Near coalescence, both $\hat T\Psi$ and $\hat V_{\mathrm C}\Psi$ are large.
+The exact solution relies on cancellation between these contributions
+(cf.\ \eqref{eq:coulomb:EL_sing}), which means \eqref{eq:coulomb:expand} demands
+high \emph{relative} accuracy in the cusp region: if either term is off by a small
+fraction, the net residual can be large in absolute magnitude.
+This is a classic recipe for ill-conditioning: the loss landscape contains
+directions where small parameter changes cause huge residual changes in a small
+region.
+
+\paragraph{Operator-level picture (\(L^\ast L\)).}
+From the same viewpoint as Appendix~\ref{app:laplacian}, strong residual training
+induces matrices/operators tied to $L^\ast L$ \cite{De_Ryck_2024}.
+For $L=\hat T+(\hat V-E)$, one has (formally)
+\begin{equation}
+L^\ast L
+=
+\hat T^2 + (\hat V-E)^2 + \hat T(\hat V-E) + (\hat V-E)\hat T.
+\label{eq:coulomb:LstarL}
+\end{equation}
+Coulomb enters here in two destabilizing ways:
+\begin{enumerate}
+\item the positive term $(\hat V-E)^2$ involves a $1/r^2$-type singular weight;
+\item the mixed terms contain derivatives of $V$ through product rules, e.g.
+$\hat T(V\Psi)$ generates $\nabla V\cdot\nabla\Psi$ and $\Delta V$ contributions,
+which are even more singular/distributional at coalescence.
+\end{enumerate}
+This formal expansion explains why the Coulomb singularity can severely inflate
+the effective spectral spread of the training operator, aligning with the
+operator-conditioning viewpoint \cite{De_Ryck_2024}.
+
+\section{Barron/spectral perspective}
+\label{app:coulomb:barron}
+
+Your intuition is essentially correct, but the precise statement is:
+
+\begin{quote}
+Coulomb forces the \emph{true} solution to have cusp-like, non-smooth short-range
+structure, so approximating the \emph{strong residual} requires representing
+high-frequency content that is not well captured by globally smooth/low-complexity
+function classes.
+\end{quote}
+
+In spectral/Barron-style approximation theories, approximation quality is governed
+by spectral decay and norms that weight the Fourier tail \cite{De_Ryck_2024}.
+A cusp is not $C^1$/$C^2$-smooth at coalescence, and this typically implies slower
+spectral decay compared to globally smooth functions.
+Strong residual training then \emph{further} amplifies the high-frequency tail
+because it applies $\Delta$ (and effectively $L^\ast L$), which multiplies Fourier
+modes by powers of $|\mathbf k|$ (Appendix~\ref{app:laplacian}).
+Hence, even if $\Psi$ can be approximated reasonably in function value, the strong
+residual can remain large unless the cusp structure is represented accurately.
+This is exactly the type of regularity mismatch that motivates weak/variational
+formulations in numerical analysis of PINN-type methods, since weak forms reduce
+the derivative order demanded of the approximation \cite{De_Ryck_2024}.
+
+Practically, QMC wavefunctions therefore incorporate explicit short-range
+correlation structure (e.g.\ cusp-enforcing Jastrow factors), precisely to remove
+these singular residual pathologies and reduce the variance of local quantities
+\cite{BeccaSorella2017-QMCBook}.
+
+\section{Implications for Stochastic Reconfiguration}
+\label{app:coulomb:sr}
+
+SR performs a natural-gradient step using a (quantum) Fisher/metric matrix
+\cite{BeccaSorella2017-QMCBook,Amari1998-NaturalGradient,ParkKastoryano2020-GeometryNQS}.
+In one common formulation,
+\begin{equation}
+S_{ij}=\mathrm{Cov}_{p_\theta}[O_i,O_j],
+\qquad
+g_i=\mathrm{Cov}_{p_\theta}[E_L,O_i],
+\qquad
+S\,\delta\theta=-g,
+\label{eq:coulomb:sr}
+\end{equation}
+with $O_i=\partial_{\theta_i}\log\Psi_\theta$.
+
+Coulomb-induced cusp mismatch produces $E_L$ spikes of the form \eqref{eq:coulomb:EL_mismatch},
+which has two consequences:
+\begin{enumerate}
+\item \textbf{Heavy-tailed Monte Carlo forces.}
+The estimator of $g_i=\mathrm{Cov}[E_L,O_i]$ becomes noisy when $E_L$ has rare but
+extreme spikes (short-range events). This increases variance and can destabilize
+the linear solve unless one uses damping/regularization, as standard in SR practice
+\cite{BeccaSorella2017-QMCBook}.
+\item \textbf{Coupling to curvature sensitivity.}
+Even if SR corrects anisotropy in parameter space (natural gradient)
+\cite{Amari1998-NaturalGradient,ParkKastoryano2020-GeometryNQS}, it does not remove
+the underlying operator-driven stiffness: the spikes originate from imperfect
+kinetic--potential cancellation enforced by Coulomb physics.
+\end{enumerate}
+
+\paragraph{Bottom line.}
+Laplacian dominance creates stiffness through $k^4$-type amplification of curvature
+errors; Coulomb creates stiffness by enforcing cusp constraints and cancellation
+against the Laplacian.
+Both mechanisms worsen conditioning of strong residual objectives and increase
+statistical difficulty of SR through heavy-tailed local-energy fluctuations
+\cite{De_Ryck_2024,BeccaSorella2017-QMCBook}.

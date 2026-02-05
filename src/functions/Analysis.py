@@ -714,12 +714,17 @@ def linear_probe_pcs(
 
     R2 = []
     for t in range(Y.shape[1]):
-        y = Y[:, t : t + 1]
-        W, *_ = torch.linalg.lstsq(Sb, y)  # (k+1, 1)
-        yhat = Sb @ W
-        ss_res = ((y - yhat) ** 2).sum()
-        ss_tot = ((y - y.mean()) ** 2).sum() + 1e-12
-        R2.append(1.0 - (ss_res / ss_tot).item())
+        perm = torch.randperm(Sb.shape[0], device=Sb.device)
+        ntr = int(0.8 * Sb.shape[0])
+        tr, te = perm[:ntr], perm[ntr:]
+
+        W, *_ = torch.linalg.lstsq(Sb[tr], y[tr])
+        yhat = Sb[te] @ W
+
+        ss_res = ((y[te] - yhat) ** 2).sum()
+        ss_tot = ((y[te] - y[te].mean()) ** 2).sum() + 1e-12
+        R2 = 1.0 - (ss_res / ss_tot).item()
+
     return dict(
         R2=torch.tensor(R2, device=Z.device, dtype=Z.dtype), target_names=phys["names"], U_topk=Uk
     )
@@ -954,7 +959,7 @@ def run_compact_analysis(
 
             # free ASAP
             del logpsi, g, g_flat, hj, lap, V_trap, V_int, E, xb
-            torch.cuda.empty_cache()
+            # torch.cuda.empty_cache()
 
         return torch.cat(out_chunks, dim=0)  # (B_tot, 1)
 
@@ -1215,14 +1220,8 @@ def run_compact_analysis(
         return dict(rows=rows)
 
     @torch.no_grad()
-    def _bf_linear_probes_on_disp(
-        backflow_net: nn.Module,
-        X: torch.Tensor,
-        omega: float,
-        spin: torch.Tensor | None = None,
-        top_k: int = 3,
-    ):
-        # reuse basic physical summaries from coords (local, minimal)
+    def _bf_linear_probes_on_disp(backflow_net, X, omega: float, spin=None, top_k: int = 3):
+        # ... keep your _phys_summ exactly as you have it ...
         def _phys_summ(X, omega, r0=0.25, nbins=24):
             B, N, d = X.shape
             a = math.sqrt(omega)
@@ -1251,6 +1250,55 @@ def run_compact_analysis(
             Y = torch.cat([r_mean, r_var, frac_close, shell_contrast], dim=1)
             names = ["r_mean", "r_var", f"Pr(r<{r0:.2f})", "shell_contrast"]
             return dict(features=Y, names=names)
+
+        taps = _bf_forward_taps(backflow_net, X, spin, track_grad=False)
+        D = taps["dx"].reshape(X.shape[0], -1)
+
+        pca = _bf_pca_on_disp(backflow_net, X, spin)
+        U, mu = pca["U"], pca["mu"]
+
+        # do regression in float64 for stability
+        D = D.double()
+        U = U.double()
+        mu = mu.double()
+
+        Dc = D - mu
+        Uk = U[:, :top_k]
+        S = Dc @ Uk
+
+        phys = _phys_summ(X, omega)
+        Y = phys["features"].double()
+
+        # add bias
+        Sb = torch.cat([S, torch.ones(S.shape[0], 1, device=S.device, dtype=S.dtype)], dim=1)
+
+        # precompute pseudo-inverse once
+        Sb_pinv = torch.linalg.pinv(Sb)
+
+        R2 = []
+        eps = 1e-12
+        for t in range(Y.shape[1]):
+            y = Y[:, t : t + 1]
+            # guard constant/near-constant targets
+            ss_tot = ((y - y.mean()) ** 2).sum()
+            if not torch.isfinite(ss_tot) or ss_tot.item() < eps:
+                R2.append(0.0)
+                continue
+
+            W = Sb_pinv @ y
+            yhat = Sb @ W
+            ss_res = ((y - yhat) ** 2).sum()
+
+            r2 = 1.0 - (ss_res / (ss_tot + eps)).item()
+            if not math.isfinite(r2):
+                r2 = 0.0
+            R2.append(r2)
+
+        return dict(
+            R2=torch.tensor(R2, device=X.device, dtype=torch.float64),
+            target_names=phys["names"],
+            U_topk=Uk,
+        )
 
         taps = _bf_forward_taps(backflow_net, X, spin, track_grad=False)
         D = taps["dx"].reshape(X.shape[0], -1)
@@ -1326,7 +1374,7 @@ def run_compact_analysis(
         print(f"[MCMC | with BF] accept ~ burn {acc_burn_bf:.2f}, mix {acc_mix_bf:.2f}  (B={B})")
     else:
         X_bf = None
-    torch.cuda.empty_cache()
+    # torch.cuda.empty_cache()
 
     # =========================== ENERGIES ===========================
 
@@ -1430,7 +1478,8 @@ def run_compact_analysis(
                 / (Uk1_nb.squeeze().norm() * Uk1_bf.squeeze().norm() + 1e-12)
             ).item()
         )
-
+        cos = torch.dot(u1_nb, u1_bf) / (u1_nb.norm() * u1_bf.norm() + 1e-12)
+        cos_pc1 = cos.abs()
         # energy deltas ON BF samples
         E_L_nb_on_bf = _exact_local_energy(psi_log_fn_nb, X_bf)
         delta_E_on_bf = (E_L_bf.view(-1) - E_L_nb_on_bf.view(-1)).detach()

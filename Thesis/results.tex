@@ -19,53 +19,125 @@ and an explicit analytic cusp remains stable and accurate in practice.
 In addition, we provide a detailed analysis of the learned representations,
 focusing on the correlator manifold and the backflow field.
 
-\section{Training protocol and energy overview}
-Unless otherwise stated, we first apply residual-based pretraining to obtain a
-well-conditioned initializer, and then run a Stochastic Reconfiguration (SR)
-tail to refine the last digits of the energy. In the residual phase, the
-network initially chooses its own target energy as a stabilizer, before we
-switch to the DMC reference energy (and optionally add a variance penalty).
-The SR phase then uses on the order of $10^3$--$3\times10^3$ iterations with
-batches of $\sim 3{\times}10^3$ samples per iteration.
 
-\subsection{Energies}
+\section{Energy calculations}v
+\label{sec:energy}
 
-Table~\ref{tab:Residual} reports two-electron energies from
-\emph{residual-only} training (PINN and PINN+BF). For $N{=}2$, backflow is not
-required to reach DMC accuracy, but it slightly reduces the variance and
-smooths convergence.
+Table~\ref{tab:energies} reports ground-state energies obtained with residual-based pretraining followed by a
+stochastic reconfiguration (SR) tail, for both PINN+BF and PINN+CTNN trial states.
+Where available, we compare directly to diffusion Monte Carlo (DMC) reference values, and list the relative
+deviation (\%\,err) from DMC.
 
-\begin{table}[h!]
-\centering
-\caption{Ground-state energies (Hartree) for two electrons in a harmonic trap
-using \emph{residual-only} training. DMC references as in [Ref.]. Parentheses
-denote $1\sigma$ on the last digits.}
-\label{tab:Residual}
-\begin{tabular}{c c c c}
-\hline
-$\omega$ & PINN+BF & PINN & DMC (Ref.) \\
-\hline
-1.00  & 2.99998(3)   & 2.999940(5)  & 3.00000(1) \\
-0.50  & 1.65975(2)   & 1.65979(3)   & 1.65977(1) \\
-0.10  & 0.440795(3)  & 0.440833(1)  & 0.44079(1) \\
-0.01  & 0.0740724(6) & 0.0741679(6) & 0.073839(2) \\
-\hline
-\end{tabular}
-\end{table}
+For $N=2$, both ans\"atze reproduce the DMC benchmarks essentially at the level of the reported uncertainties
+across the full confinement range $\omega\in[0.01,1]$. This indicates that, for the two-electron problem,
+the optimization pipeline is able to find a near-optimal nodal/shape representation for the ground state in
+all regimes considered.
 
-Table~\ref{tab:energies} compares diffusion Monte Carlo (DMC) references with
-our \emph{final} PINN+BF energies after residual pretraining and an SR tail.
-From the ultra–shallow two-electron case ($\omega{=}0.01$) to the many-electron
-systems, absolute deviations are small; for $N{=}2$ they lie within DMC
-uncertainties, and for $N\!\in\!\{6,12\}$ the relative deviations are 
-typically in the range $0.01$–$0.08\%$ (see also
-Fig.~\ref{fig:rel_error_vs_omega}).
+For larger particle numbers, the comparison highlights a consistent performance difference between the two
+ans\"atze in the externally benchmarked subset. For $N=6$ and $N=12$, PINN+CTNN agrees more closely with DMC
+at moderate and strong confinement (e.g.\ $\omega=0.1,0.5,1.0$), while PINN+BF exhibits small but systematic
+positive biases in several cases. For $N=20$, DMC comparisons at $\omega\in\{0.1,0.5,1.0\}$ show that the CTNN
+ansatz remains accurate at scale, with the largest deviation appearing at $\omega=0.1$ and substantially smaller
+deviations at $\omega=0.5$ and $\omega=1.0$.
 
-\begin{table}[htbp]
+For the weakest confinements ($\omega\in\{10^{-3},10^{-2}\}$) DMC references are not listed in Table~\ref{tab:energies}
+for several $N$, and these energies should therefore be interpreted as internally consistent variational results
+supporting the structural analysis below, rather than as externally benchmarked error statements.
+To quantify this internal consistency, we additionally analyze the energy partitioning
+\begin{equation}
+E \;=\; \langle T\rangle + \langle V_{\rm int}\rangle + \langle V_{\rm trap}\rangle,
+\qquad
+V_{\rm trap}=\tfrac12 \omega^2 \sum_{i=1}^N \langle r_i^2\rangle,
+\end{equation}
+together with two diagnostics that directly probe the approach to the interaction-dominated (Wigner) regime:
+\begin{equation}
+\Gamma(\omega) \;=\;\frac{\langle V_{\rm int}\rangle}{\langle T\rangle},
+\qquad
+\mathcal C(\omega)\;=\;\frac{2\langle V_{\rm trap}\rangle}{\langle V_{\rm int}\rangle}.
+\label{eq:gamma-classical}
+\end{equation}
+
+Across all reported $(N,\omega)$ the component estimators satisfy energy closure
+$E-(T+V_{\rm int}+V_{\rm trap})\approx 0$ (typically $10^{-11}$--$10^{-7}$ in absolute units), and the
+harmonic-plus-Coulomb virial identity
+\begin{equation}
+2\langle T\rangle \;=\; 2\langle V_{\rm trap}\rangle - \langle V_{\rm int}\rangle
+\end{equation}
+is satisfied to sub-percent relative accuracy (worst case $\lesssim 0.4\%$ in our dataset), providing a strong
+physics-based validation of the low-$\omega$ variational estimates.
+
+
+
+The ratio trends are summarized in Table~\ref{tab:energy_partitions} and Fig.~\ref{fig:energy_ratios}.
+As $\omega$ decreases, $\Gamma$ increases sharply, e.g.\ from
+$\Gamma\simeq 0.93\to 8.64$ for $N=2$ and $\Gamma\simeq 4.66\to 57.3$ for $N=20$ when going from $\omega=1$ to $\omega=10^{-3}$,
+confirming a systematic crossover towards interaction-dominated states.
+Simultaneously, $\mathcal C(\omega)$ approaches unity at weak confinement, improving markedly with particle number:
+at $\omega=10^{-3}$ we find $\mathcal C\simeq 1.226$ ($N=2$), $1.074$ ($N=6$), $1.049$ ($N=12$), and $1.038$ ($N=20$),
+so that already at $N\ge 12$ the dot obeys $V_{\rm int}\approx 2V_{\rm trap}$ to within $\sim 5\%$ at $\omega=10^{-3}$.
+
+From $\langle V_{\rm trap}\rangle$ we also extract a root-mean-square radius per particle,
+\begin{equation}
+r_{\rm rms} \;=\; \sqrt{\frac{2\langle V_{\rm trap}\rangle}{N\omega^2}},
+\label{eq:rrms}
+\end{equation}
+which expands rapidly as confinement weakens (Fig.~\ref{fig:energy_ratios}c).
+For $\omega=1$ we obtain $r_{\rm rms}\approx 1.14,\,1.62,\,2.04,\,2.40$ for $N=2,6,12,20$, respectively,
+whereas at $\omega=10^{-3}$ the corresponding values are $\approx 70,\,126,\,171,\,209$,
+consistent with strong interaction-driven swelling in the Wigner regime.
+
+\begin{table*}[t]
   \centering
-  \caption{Residual-based pretraining + SR tail. Reference DMC and our PINN+BF
+  \caption{Energy-partition diagnostics for the CTNN variational states used in the structural analysis.
+  We list the interaction-to-kinetic ratio $\Gamma=\langle V_{\rm int}\rangle/\langle T\rangle$,
+  the quasi-classical balance probe $\mathcal C=2\langle V_{\rm trap}\rangle/\langle V_{\rm int}\rangle$,
+  and the RMS radius $r_{\rm rms}$ extracted from $\langle V_{\rm trap}\rangle$ via Eq.~\eqref{eq:rrms}, at the endpoints
+  $\omega=1$ and (where available) $\omega=10^{-3}$.}
+  \label{tab:energy_partitions}
+  \begin{threeparttable}
+    \begin{tabular}{c|c|ccc|ccc}
+      \toprule
+      $N$ &
+      &
+      \multicolumn{3}{c|}{$\omega=1$} &
+      \multicolumn{3}{c}{$\omega=10^{-3}$} \\
+      \cmidrule(lr){3-5}\cmidrule(lr){6-8}
+      &
+      &
+      $\Gamma$ & $\mathcal C$ & $r_{\rm rms}$ &
+      $\Gamma$ & $\mathcal C$ & $r_{\rm rms}$ \\
+      \midrule
+      2  & & $0.931$ & $3.135$ & $1.136$ & $8.64$  & $1.226$ & $69.9$ \\
+      6  & & $2.41$  & $1.828$ & $1.624$ & $24.55$ & $1.074$ & $126$ \\
+      12 & & $3.61$  & $1.555$ & $2.035$ & $41.11$ & $1.049$ & $171$ \\
+      20 & & $4.66$  & $1.430$ & $2.403$ & $57.26$ & $1.038$ & $209$ \\
+      \bottomrule
+    \end{tabular}
+  \end{threeparttable}
+\end{table*}
+
+\begin{figure*}[t]
+  \centering
+  \subfloat[$\Gamma(\omega)=\langle V_{\rm int}\rangle/\langle T\rangle$ (log--log).]
+  {\includegraphics[width=0.48\textwidth]{ratios_allN_Gamma.png}}
+  \hfill
+  \subfloat[$\mathcal C(\omega)=2\langle V_{\rm trap}\rangle/\langle V_{\rm int}\rangle$ (horizontal line: $\mathcal C=1$).]
+  {\includegraphics[width=0.48\textwidth]{ratios_allN_classical.png}}\\
+
+  \caption{Energy-partition probes for the CTNN variational states.
+  (a) Interaction dominance increases as confinement weakens.
+  (b) The trap--Coulomb balance approaches the quasi-classical limit $\mathcal C\to 1$ at weak confinement, especially for larger $N$.
+  (c) The cloud radius grows rapidly as $\omega\to 0$.
+  (d) Component energies exhibit clean power-law scaling in $\omega$ on the studied grid.}
+  \label{fig:energy_ratios}
+\end{figure*}
+
+% --- Table~\ref{tab:energies} (update only the N=12, omega=1 CTNN entry) ---
+\begin{table*}[t]
+  \centering
+  \caption{Residual-based pretraining + SR tail. Reference DMC, PINN+BF and PINN+CTNN
   ground-state energies (Hartree) for selected $(N,\omega)$. Parentheses denote
-  $1\sigma$ on the last digit(s). The final column is the relative deviation
+  $1\sigma$ on the last digit(s). The \%\,err columns are the relative deviations
   from DMC (\%).}
   \label{tab:energies}
   \begin{threeparttable}
@@ -79,564 +151,1284 @@ Fig.~\ref{fig:rel_error_vs_omega}).
         & 0.50 & $1.65977(1)$  & $1.65976(2)$  & $-0.0006$  & $1.65976(1)$ & $-0.0006$ \\
         & 1.00 & $3.00000$     & $2.99999(1)$  & $-0.0003$  & $3.00000(2)$ & $-0.0000$  \\
       \midrule
-      6 & 0.001 & ---           & $0.140913(1)$ & --- & $\mathbf{0.140832(1)}$ & --- \\
+      6 & 0.001 & ---           & $0.140913(1)$ & --- & $\mathbf{0.1408172(7)}$ & --- \\
         & 0.01 & ---            & $0.69125(2)$  & --- & $\mathbf{0.69036(1)}$ & --- \\
         & 0.10 & $3.55385(5)$   & $3.5549(1)$   & $+0.0295$ & $\mathbf{3.55388(5)}$ & $+0.0008$ \\
         & 0.50 & $11.78484(6)$  & $11.7895(4)$  & $+0.0395$  & $\mathbf{11.7847(2)}$ & $-0.0000$ \\
         & 1.00 & $20.15932(8)$  & $20.1610(6)$  & $+0.0083$  & $\mathbf{20.1585(3)}$ & $-0.0041$ \\
       \midrule
-      12 & 0.001 & ---          & $0.515823(3)$ & --- & $\mathbf{0.515412(3)}$ & --- \\
+      12 & 0.001 & ---          & $0.515823(3)$ & --- & $\mathbf{0.515365(4)}$ & --- \\
          & 0.01 & ---           & $2.48620(5)$  & --- & $\mathbf{2.47363(4)}$ & --- \\
-         & 0.10 & $12.26984(8)$ & $12.2731(2)$  & $+0.0266$ & --- & --- \\
+         & 0.10 & $12.26984(8)$ & $12.2731(2)$  & $+0.0160$ & $\mathbf{12.2718(1)}$ & --- \\
          & 0.50 & $39.1596(1)$  & $39.1786(8)$  & $+0.0485$ & $\mathbf{39.1604(3)}$ & $+0.0018$ \\
-         & 1.00 & $65.7001(1)$  & $65.717(1)$   & $+0.0257$ & $\mathbf{65.6985(5)}$ & $-0.0024$ \\
+         & 1.00 & $65.7001(1)$  & $65.717(1)$   & $+0.0257$ & $\mathbf{65.69556(5)}$ & $-0.0069$ \\
+      \midrule
+      20 & 0.001 & ---          & --- & --- & $\mathbf{1.293033(6)}$ & --- \\
+         & 0.01 & ---           & ---  & --- & $\mathbf{6.14645(5)}$ & --- \\
+         & 0.10 & $29.9779(1)$ & ---  & --- & $29.9888(2)$ & $+0.0364$ \\
+         & 0.50 & $93.8752(1)$  & ---  & --- & $\mathbf{93.8789(5)}$ & $+0.0040$ \\
+         & 1.00 & $155.8822(1)$  & ---   & --- & $\mathbf{155.8738(7)}$ & $-0.0024$ \\
+      \bottomrule
+    \end{tabular}
+  \end{threeparttable}
+\end{table*}
+% ============================================================
+% RESULTS: REPRESENTATION GEOMETRY + BACKFLOW DIAGNOSTICS
+% Requires: \usepackage{booktabs}, \usepackage{adjustbox}
+% ============================================================
+
+\chapter{Representation Geometry and Backflow Diagnostics}
+\label{ch:repgeom}
+
+\section{What we measure and why}
+\label{sec:repgeom_metrics}
+
+Having established that both the PINN and CTNN-backflow ans\"atze achieve accurate ground-state energies
+(Table~\ref{tab:energies}), we now ask a deeper question: \emph{what structure do the learned representations
+encode, and how does this structure change across confinement regimes?} This analysis serves two purposes.
+First, it provides interpretability---connecting the abstract neural network features to physical quantities
+like pair correlations, angular order, and cusp behavior. Second, it validates that the model learns physically
+meaningful representations rather than exploiting spurious correlations.
+
+We organize our analysis around three complementary perspectives:
+\begin{enumerate}
+\item \textbf{Dimensionality}: How many effective degrees of freedom does the representation use?
+\item \textbf{Geometry}: What is the structure of the backflow displacement field---radial vs.\ tangential,
+near-field vs.\ far-field?
+\item \textbf{Feature importance}: Which input features (coordinates, angles, pair distances) drive the
+learned corrections, and how does this change with $\omega$?
+\end{enumerate}
+
+\subsection{Dimensionality metrics}
+
+We employ several complementary notions of ``dimensionality'' that capture different aspects of the representation.
+These are not redundant: some measure \emph{variance dispersion} in an ambient feature space, while others attempt
+to estimate the \emph{intrinsic manifold dimension} actually explored across sampled configurations.
+
+\paragraph{Effective rank (variance dispersion).}
+Given a feature matrix $X \in \mathbb{R}^{B \times F}$ (batch of $B$ configurations, feature dimension $F$),
+let $\sigma_i$ be its singular values and $p_i = \sigma_i / \sum_j \sigma_j$.
+The \emph{effective rank} is the exponential of the Shannon entropy:
+\begin{equation}
+\mathrm{erank}(X) = \exp\!\Big(-\sum_i p_i \log p_i\Big).
+\end{equation}
+It measures variance dispersion: $\mathrm{erank} \approx 1$ when variance concentrates in one direction,
+and $\mathrm{erank} \approx F$ when variance spreads uniformly.
+
+\paragraph{Intrinsic dimension (local manifold estimate).}
+We estimate the intrinsic manifold dimension $\mathrm{idim}$ using local neighborhood statistics, which
+reflects how many degrees of freedom the representation actually explores (as opposed to the ambient dimension).
+For $N=2$, this estimator can be ill-conditioned due to the small ambient space, so we focus on $N \geq 6$.
+
+\paragraph{PCA variance concentration.}
+We report $\mathrm{PC1Var}$, the variance explained by the first principal component, and $k_{95}$, the number
+of components needed to capture 95\% of variance. Large $\mathrm{PC1Var}$ indicates a strong dominant mode;
+small values indicate more isotropic/complex variation.
+
+\paragraph{Two kinds of ``dimensionality'' can disagree on purpose.}
+It is normal (and physically meaningful) to see $\mathrm{idim}$ remain small while PCA-based measures (erank,
+$k_{95}$, PR-dimension) are large: a low-dimensional manifold can curve through many ambient directions and thus require
+many PCA modes to capture its variance. We exploit this distinction below rather than treating it as a contradiction.
+
+\subsection{Backflow geometry metrics}
+
+\paragraph{Near-field amplification.}
+To test whether the backflow correction emphasizes close electron encounters (cusp physics), we define:
+\begin{equation}
+A_{\rm nf}(q)=
+\frac{\mathbb{E}\big[\|\Delta x\|^2 \mid r_{ij} \le Q_q(r)\big]}
+{\mathbb{E}\big[\|\Delta x\|^2\big]},
+\end{equation}
+where $Q_q(r)$ is the $q$-quantile of pair distances. Values $A_{\rm nf} > 1$ indicate that the backflow
+displacement is amplified during close encounters.
+
+\paragraph{Radial vs.\ tangential decomposition.}
+For each particle, we decompose the relative (center-of-mass-free) backflow displacement into components
+parallel to local pair directions (radial, $f_{\rm rad}$) and orthogonal to them (tangential, $f_{\rm tan}$).
+A radial-dominated correction ($f_{\rm rad} \gg f_{\rm tan}$) indicates ``push-apart'' physics responding
+to Coulomb repulsion. A tangential-dominated correction indicates collective angular/shear rearrangements.
+
+\paragraph{Center-of-mass content.}
+We verify that the center-of-mass (COM) component of the leading backflow mode is negligible
+($\mathrm{PC1}_{\rm COM} \approx 0$), confirming that the learned correction is purely \emph{relative}
+motion---a physics-consistent sanity check, since the Hamiltonian is translationally invariant.
+
+\paragraph{Linear CKA alignment.}
+We compute a linear centered kernel alignment score between the PINN intermediate representation $\rho_{\rm in}$
+and the backflow field $\Delta x$, denoted $\mathrm{CKA}(\rho_{\rm in},\Delta x)$. Values near zero indicate
+little \emph{linear} correspondence; this does \emph{not} rule out nonlinear dependence.
+
+
+\section{Global trends across $N$ and $\omega$}
+\label{sec:repgeom_global_trends}
+
+Table~\ref{tab:repgeom_casegrid} summarizes the main diagnostics across all $(N, \omega)$ combinations.
+Several robust patterns emerge.
+
+\subsection{The PINN output collapses; the backflow field is high-dimensional}
+
+\paragraph{(i) The PINN output representation collapses to an effectively 1D object.}
+Across all cases we find the \emph{final} PINN output representation ($\rho_{\rm out}$, not shown in the table to save
+space) to be essentially rank-one: $\mathrm{erank}(\rho_{\rm out}) \approx 1$, $\mathrm{idim}(\rho_{\rm out}) \approx 1$,
+and $\mathrm{PC1Var}(\rho_{\rm out}) \approx 1$.
+This is expected if the last stage is a scalar head (energy/residual channel) and is a useful sanity check: the last map
+compresses the representation to a nearly one-dimensional decision variable.
+
+\paragraph{(ii) The backflow field is genuinely high-dimensional and scales strongly with $N$.}
+In contrast, the learned displacement field $\Delta x\in\mathbb{R}^{2N}$ has large effective rank that grows with $N$
+(Table~\ref{tab:repgeom_Navg}). For $N=20$, $\mathrm{erank}(\Delta x)$ reaches the mid-30s (out of an ambient $2N=40$),
+and $\mathrm{idim}(\Delta x)$ is in the low 20s, indicating a highly structured but still strongly constrained vector field.
+
+This scaling has an important interpretation: the learned backflow field is \emph{not} a simple low-mode
+correction (e.g., a uniform breathing mode or rigid rotation). Instead, it encodes a genuinely high-dimensional
+correlated displacement field that grows in complexity with the number of electrons. The ratio
+$\mathrm{idim}(\Delta x) / 2N \approx 0.55$--$0.75$ suggests that roughly half to three-quarters of the
+configuration-space degrees of freedom are actively modulated by the backflow.
+
+\subsection{Regime dependence: the intermediate-$\omega$ ``competition regime''}
+
+Averaging over $N \geq 6$ (Table~\ref{tab:repgeom_omegaavg}), the intermediate confinement regime
+$\omega \approx 0.1$ stands out as geometrically richest:
+\begin{itemize}
+\item The PINN input representation shows elevated complexity: $\langle\mathrm{erank}(\rho_{\rm in})\rangle = 2.78$
+and $\langle\mathrm{idim}(\rho_{\rm in})\rangle = 5.09$, compared to $\sim 2.4$ and $\sim 4.5$ at $\omega = 1$.
+\item The tangential fraction peaks: $\langle f_{\rm tan}\rangle = 0.55$ at $\omega = 0.1$, versus
+$\langle f_{\rm tan}\rangle = 0.42$ at $\omega = 1$.
+\item Near-field amplification is largest: $\langle A_{\rm nf}\rangle = 1.73$ at $\omega = 0.1$.
+\end{itemize}
+
+This pattern is physically intuitive. At strong confinement ($\omega \gtrsim 1$), kinetic energy dominates
+and the system resembles a weakly-correlated Fermi gas; backflow corrections are modest. At very weak
+confinement ($\omega \lesssim 0.01$), the system approaches the Wigner limit with strong localization;
+correlations are intense but geometrically ``simple'' (rigid shell structures). The intermediate regime
+is where neither picture applies cleanly, and the network must learn complex angular correlations and
+collective modes that interpolate between these limits.
+
+\subsection{Radial vs.\ tangential content}
+
+The decomposition of backflow into radial and tangential components reveals a clear physical story
+(Table~\ref{tab:repgeom_casegrid}, column $f_{\rm tan}$).
+
+For $N = 2$, the tangential fraction is essentially zero ($f_{\rm tan} \approx 0$). This is expected:
+with only two electrons, there is no meaningful ``tangential'' direction---any correlation correction
+must be along the inter-particle axis.
+
+For $N \geq 6$, substantial tangential content emerges. The $\omega$-averaged values are
+$\langle f_{\rm tan}\rangle = 0.62$ for $N=6$, $0.50$ for $N=12$, and $0.35$ for $N=20$.
+The decrease with $N$ likely reflects the increasing importance of radial shell structure in larger
+systems, but even at $N=20$ more than one-third of the backflow energy is tangential.
+
+The regime dependence is equally informative. For $N=6$, the tangential fraction peaks at
+$f_{\rm tan} = 0.70$ for $\omega = 0.01$---precisely the regime where the system transitions
+between compact and extended configurations. This indicates that angular/shear rearrangements
+are most important in the crossover region.
+
+\subsection{Near-field amplification and cusp physics}
+
+The near-field amplification $A_{\rm nf}$ (evaluated at the 5th percentile of pair distances)
+tests whether the backflow correction emphasizes close electron encounters.
+
+For $N \geq 6$, we consistently find $A_{\rm nf} > 1$, with the strongest amplification at
+intermediate confinement: $A_{\rm nf} = 2.72$ for $(N=6, \omega=0.1)$ and $A_{\rm nf} = 2.68$
+for $(N=6, \omega=0.01)$. This confirms that the learned backflow systematically responds to
+close-encounter events, consistent with the need to handle Coulomb cusp physics.
+
+Interestingly, $A_{\rm nf}$ decreases for larger $N$ at fixed $\omega$: the $\omega$-averaged
+values are $\langle A_{\rm nf}\rangle = 1.92$ for $N=6$, $1.25$ for $N=12$, and $0.78$ for $N=20$.
+This likely reflects the decreasing probability of close encounters in larger, more extended systems,
+rather than reduced importance of cusp corrections per se.
+
+\subsection{Alignment between $\rho_{\rm in}$ and $\Delta x$ is weakly linear}
+
+The linear CKA alignment between $\rho_{\rm in}$ and $\Delta x$ remains small (order $10^{-2}$),
+confirming that the backflow is not a trivial linear readout of the PINN features. The relationship
+is fundamentally nonlinear.
+
+More interesting is the \emph{input} representation $\rho_{\rm in}$, which feeds into the CTNN
+backflow network. Its effective rank remains modest ($\mathrm{erank}(\rho_{\rm in}) \approx 2$--$3$)
+despite the much higher dimensionality of the backflow it helps generate. This suggests that the
+CTNN performs substantial nonlinear expansion from the PINN features.
+
+
+% ------------------------------------------------------------
+% TABLE 1: Per-case grid
+% ------------------------------------------------------------
+\begin{table}[t]
+\centering
+\small
+\setlength{\tabcolsep}{4pt}
+\renewcommand{\arraystretch}{1.15}
+\caption{Per-case representation and backflow diagnostics across \(N\) and \(\omega\).
+We report effective rank (erank), intrinsic dimension (idim), first-PC variance \(\mathrm{PC1Var}\),
+tangential relative fraction \(f_{\rm tan}\), near-field amplification \(A_{\rm nf}=A_{\rm nf}(q{=}0.05)\),
+and linear CKA alignment. For \(N=2\), \(\mathrm{idim}(\Delta x)\) can be ill-conditioned and is omitted.}
+\label{tab:repgeom_casegrid}
+\begin{adjustbox}{max width=\textwidth}
+\begin{tabular}{lllllllllll}
+\toprule
+N & $\omega$ & $\mathrm{erank}(\rho_{\rm in})$ & $\mathrm{idim}(\rho_{\rm in})$ & $\mathrm{erank}(\Delta x)$ & $\mathrm{idim}(\Delta x)$ & $\mathrm{PC1Var}(\Delta x)$ & $f_{\rm tan}$ & $A_{\rm nf}$ & $\mathrm{CKA}(\rho_{\rm in},\Delta x)$ \\
+\midrule
+2 & 0.001 & 3.818 & 5.688 & 3.631 &  & 0.364 & -0.000 & 0.767 & 2.04e-03 \\
+2 & 0.01 & 3.830 & 5.680 & 3.631 &  & 0.364 & 0.000 & 0.767 & 2.05e-03 \\
+2 & 0.1 & 3.886 & 5.753 & 3.631 &  & 0.364 & 0.000 & 0.767 & 2.09e-03 \\
+2 & 0.5 & 3.849 & 5.706 & 3.631 &  & 0.364 & -0.000 & 0.767 & 2.06e-03 \\
+2 & 1 & 3.843 & 5.699 & 3.631 &  & 0.364 & -0.000 & 0.767 & 2.06e-03 \\
+6 & 0.001 & 2.191 & 4.088 & 11.722 & 9.034 & 0.037 & 0.523 & 1.453 & 1.31e-02 \\
+6 & 0.01 & 2.018 & 3.834 & 11.832 & 9.349 & 0.036 & 0.700 & 2.675 & 1.25e-02 \\
+6 & 0.1 & 2.104 & 3.953 & 11.834 & 9.471 & 0.035 & 0.625 & 2.716 & 1.07e-02 \\
+6 & 0.5 & 2.443 & 4.458 & 11.829 & 9.557 & 0.035 & 0.645 & 1.568 & 1.13e-02 \\
+6 & 1 & 2.346 & 4.288 & 11.840 & 9.392 & 0.035 & 0.618 & 1.190 & 1.11e-02 \\
+12 & 0.001 & 2.051 & 4.230 & 22.899 & 17.909 & 0.029 & 0.462 & 1.151 & 3.05e-03 \\
+12 & 0.01 & 2.152 & 4.468 & 23.076 & 18.106 & 0.028 & 0.554 & 1.370 & 3.19e-03 \\
+12 & 0.1 & 2.867 & 6.062 & 23.600 & 18.554 & 0.027 & 0.544 & 1.548 & 2.49e-03 \\
+12 & 0.5 & 2.321 & 4.785 & 23.279 & 18.265 & 0.028 & 0.504 & 1.145 & 2.34e-03 \\
+12 & 1 & 2.377 & 4.895 & 23.424 & 18.347 & 0.028 & 0.410 & 1.009 & 2.34e-03 \\
+20 & 0.001 & 3.308 & 5.051 & 37.227 & 22.696 & 0.037 & 0.387 & 0.865 & 6.42e-03 \\
+20 & 0.01 & 2.448 & 4.099 & 37.044 & 22.475 & 0.038 & 0.233 & 0.657 & 7.56e-03 \\
+20 & 0.1 & 3.380 & 6.263 & 37.047 & 22.742 & 0.037 & 0.516 & 0.928 & 2.52e-02 \\
+20 & 0.5 & 3.043 & 5.489 & 37.040 & 22.897 & 0.037 & 0.373 & 0.812 & 9.18e-03 \\
+20 & 1 & 2.431 & 4.446 & 37.043 & 22.797 & 0.037 & 0.235 & 0.637 & 8.52e-03 \\
+\bottomrule
+\end{tabular}
+\end{adjustbox}
+\end{table}
+
+
+% ------------------------------------------------------------
+% TABLE 2: Scaling with N (omega-averaged)
+% ------------------------------------------------------------
+\begin{table}[t]
+\centering
+\small
+\setlength{\tabcolsep}{4pt}
+\renewcommand{\arraystretch}{1.15}
+\caption{Omega-averaged trends versus particle number \(N\).
+The growth of \(\mathrm{erank}(\Delta x)\) and \(\mathrm{idim}(\Delta x)\) with \(N\) is the clearest and most robust
+dimensionality trend in the dataset.}
+\label{tab:repgeom_Navg}
+\begin{adjustbox}{max width=\textwidth}
+\begin{tabular}{llllllll}
+\toprule
+N & $\langle \mathrm{erank}(\rho_{\rm in})\rangle$ & $\langle \mathrm{idim}(\rho_{\rm in})\rangle$ & $\langle \mathrm{erank}(\Delta x)\rangle$ & $\langle \mathrm{idim}(\Delta x)\rangle$ & $\langle f_{\rm tan}\rangle$ & $\langle A_{\rm nf}\rangle$ & $\langle \mathrm{CKA}\rangle$ \\
+\midrule
+2 & 3.845 & 5.705 & 3.631 &  & -0.000 & 0.767 & 2.06e-03 \\
+6 & 2.220 & 4.124 & 11.811 & 9.361 & 0.622 & 1.920 & 1.17e-02 \\
+12 & 2.354 & 4.888 & 23.256 & 18.236 & 0.495 & 1.245 & 2.68e-03 \\
+20 & 2.922 & 5.070 & 37.080 & 22.721 & 0.349 & 0.780 & 1.15e-02 \\
+\bottomrule
+\end{tabular}
+\end{adjustbox}
+\end{table}
+
+
+% ------------------------------------------------------------
+% TABLE 3: Regime dependence with omega (averaged over N>=6)
+% ------------------------------------------------------------
+\begin{table}[t]
+\centering
+\small
+\setlength{\tabcolsep}{4pt}
+\renewcommand{\arraystretch}{1.15}
+\caption{Regime dependence versus confinement \(\omega\), averaged over \(N\ge 6\).
+The intermediate regime \(\omega\approx 0.1\) shows the largest \(\mathrm{erank}(\rho_{\rm in})\), largest \(\mathrm{idim}(\rho_{\rm in})\),
+and elevated tangential fraction \(f_{\rm tan}\), consistent with a structurally ``hard'' regime where angular correlations
+and collective modes are prominent.}
+\label{tab:repgeom_omegaavg}
+\begin{adjustbox}{max width=\textwidth}
+\begin{tabular}{llllllll}
+\toprule
+$\omega$ & $\langle \mathrm{erank}(\rho_{\rm in})\rangle$ & $\langle \mathrm{idim}(\rho_{\rm in})\rangle$ & $\langle \mathrm{erank}(\Delta x)\rangle$ & $\langle \mathrm{idim}(\Delta x)\rangle$ & $\langle f_{\rm tan}\rangle$ & $\langle A_{\rm nf}\rangle$ & $\langle \mathrm{CKA}\rangle$ \\
+\midrule
+0.001 & 2.517 & 4.456 & 23.949 & 16.546 & 0.457 & 1.156 & 7.20e-03 \\
+0.01 & 2.206 & 4.134 & 23.984 & 16.643 & 0.496 & 1.567 & 7.76e-03 \\
+0.1 & 2.784 & 5.093 & 24.160 & 17.216 & 0.549 & 1.731 & 1.25e-02 \\
+0.5 & 2.602 & 4.911 & 24.049 & 17.573 & 0.507 & 1.175 & 7.62e-03 \\
+1 & 2.385 & 4.543 & 24.102 & 16.845 & 0.421 & 0.945 & 7.33e-03 \\
+\bottomrule
+\end{tabular}
+\end{adjustbox}
+\end{table}
+
+
+% ------------------------------------------------------------
+% TABLE: Backflow PC1 radial/tangential decomposition
+% ------------------------------------------------------------
+\begin{table}[t]
+\centering
+\small
+\setlength{\tabcolsep}{5pt}
+\renewcommand{\arraystretch}{1.12}
+\caption{Radial vs.\ tangential content of the leading backflow mode (PC1). Values show the fraction of
+PC1 displacement energy in radial ($\mathrm{PC1}_{\rm rad}$) and tangential ($\mathrm{PC1}_{\rm tan}$) directions.
+For $N=2$, all displacement is along the inter-particle axis. For larger $N$, the tangential component
+reflects angular/collective rearrangements.}
+\label{tab:pc1_radtan}
+\begin{tabular}{ccccc}
+\toprule
+$N$ & $\omega$ & $\mathrm{PC1}_{\rm rad}$ & $\mathrm{PC1}_{\rm tan}$ & Character \\
+\midrule
+2  & 0.1   & 0.59 & 0.41 & radial \\
+2  & 1     & 0.50 & 0.50 & mixed \\
+\midrule
+6  & 0.001 & 0.21 & 0.79 & tangential \\
+6  & 0.1   & 0.60 & 0.40 & radial \\
+6  & 1     & 0.61 & 0.39 & radial \\
+\midrule
+12 & 0.001 & 0.75 & 0.25 & radial \\
+12 & 0.1   & 0.60 & 0.40 & radial \\
+12 & 0.5   & 0.19 & 0.81 & tangential \\
+12 & 1     & 0.34 & 0.66 & tangential \\
+\midrule
+20 & 0.001 & 0.33 & 0.67 & tangential \\
+20 & 0.01  & 0.61 & 0.39 & radial \\
+20 & 1     & 0.31 & 0.69 & tangential \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+
+% ------------------------------------------------------------
+% TABLE: Near-field amplification across quantiles
+% ------------------------------------------------------------
+\begin{table}[t]
+\centering
+\small
+\setlength{\tabcolsep}{5pt}
+\renewcommand{\arraystretch}{1.12}
+\caption{Near-field amplification $A_{\rm nf}$ at different quantiles $q$ of pair distance.
+Values $>1$ indicate backflow amplification during close encounters. The effect is strongest
+at intermediate $\omega$ for small systems.}
+\label{tab:nearfield_quantiles}
+\begin{tabular}{cccccc}
+\toprule
+$N$ & $\omega$ & $A_{\rm nf}(q{=}0.01)$ & $A_{\rm nf}(q{=}0.05)$ & $A_{\rm nf}(q{=}0.10)$ \\
+\midrule
+2  & 0.1   & 5.08 & 3.81 & 3.04 \\
+2  & 1     & 0.16 & 0.44 & 0.65 \\
+\midrule
+6  & 0.01  & 1.26 & 1.21 & 1.15 \\
+6  & 0.1   & 1.53 & 1.54 & 1.45 \\
+6  & 0.5   & 1.00 & 1.01 & 1.06 \\
+\midrule
+12 & 0.01  & 1.07 & 1.08 & 1.07 \\
+12 & 0.1   & 1.05 & 1.06 & 1.09 \\
+12 & 1     & 0.99 & 1.01 & 1.00 \\
+\midrule
+20 & 0.001 & 1.02 & 1.03 & 1.01 \\
+20 & 0.5   & 1.04 & 1.06 & 1.05 \\
+20 & 1     & 1.00 & 1.02 & 1.00 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+
+\subsection{Is the leading backflow mode collective or localized?}
+
+The leading backflow principal component (PC1) can be interpreted as the dominant correlated displacement pattern.
+To quantify whether this mode is spread over many particles or concentrated on a few, we consider the per-particle
+energy shares $p_i$ of PC1 (from Table~\ref{tab:pc1_radtan}'s PC1) and report:
+the maximum share $p_{\max}=\max_i p_i$ (a localization proxy) and an effective number of participating particles
+$n_{\rm eff}=\exp\!\big(-\sum_i p_i\log p_i\big)$ (equal to $N$ for a perfectly uniform mode).
+Table~\ref{tab:pc1_participation} shows that for $N\ge 6$ the dominant mode is typically collective
+($n_{\rm eff}$ is close to $N$), with mild regime dependence.
+
+% ------------------------------------------------------------
+% TABLE: PC1 participation across particles
+% ------------------------------------------------------------
+\begin{table}[t]
+\centering
+\small
+\setlength{\tabcolsep}{5pt}
+\renewcommand{\arraystretch}{1.12}
+\caption{Participation of the leading backflow mode (PC1) across particles, quantified by the largest per-particle
+PC1 energy share $p_{\max}$ and an effective number of participating particles $n_{\rm eff}$.
+Values near $n_{\rm eff}\approx N$ indicate a collective mode, while smaller $n_{\rm eff}$ indicates partial localization.
+Entries are computed from per-particle PC1 shares in \texttt{dx\_pc1\_per\_particle\_long.csv}.}
+\label{tab:pc1_participation}
+\begin{tabular}{cccc}
+\toprule
+$N$ & $\omega$ & $p_{\max}$ & $n_{\rm eff}$ \\
+\midrule
+2  & 0.001 & 0.500 & 2.000 \\
+2  & 0.01  & 1.000 & 1.000 \\
+2  & 0.1   & 0.500 & 2.000 \\
+2  & 1     & 0.500 & 2.000 \\
+\midrule
+6  & 0.001 & 0.188 & 5.974 \\
+6  & 0.01  & 0.194 & 5.952 \\
+6  & 0.1   & 0.207 & 5.904 \\
+6  & 1     & 0.400 & 4.931 \\
+\midrule
+12 & 0.001 & 0.243 & 8.283 \\
+12 & 0.01  & 0.185 & 10.713 \\
+12 & 0.1   & 0.190 & 9.791 \\
+12 & 1     & 0.236 & 7.770 \\
+\midrule
+20 & 0.001 & 0.166 & 13.949 \\
+20 & 0.01  & 0.117 & 17.714 \\
+20 & 1     & 0.153 & 13.873 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+
+\section{Feature-level interpretability}
+\label{sec:feature_importance}
+
+Beyond dimensionality and geometry, we can ask: \emph{which input features drive the learned representations?}
+We address this through ablation studies and correlation analysis, revealing how the network allocates
+capacity across different physical quantities.
+
+\subsection{Feature ablation importance}
+
+We measure feature importance by computing the increase in reconstruction error when specific feature
+groups are ablated (zeroed out). Table~\ref{tab:feature_ablation} summarizes the ablation importance
+for three feature categories: angular features ($\phi$), pair-angle features ($\psi$), and coordinate
+features ($x$).
+
+The regime dependence is striking:
+\begin{itemize}
+\item \textbf{Weak confinement} ($\omega \leq 0.01$): Angular and pair-angle features dominate with large
+ablation scores. For $(N=12, \omega=0.001)$, we find $\mathrm{abl}_\phi = 99.2$, $\mathrm{abl}_\psi = 39.9$,
+and $\mathrm{abl}_x = 39.8$. For $(N=20, \omega=0.001)$, the pair-angle importance explodes to
+$\mathrm{abl}_\psi = 1222$.
+\item \textbf{Intermediate confinement} ($\omega \approx 0.1$): Pair-angle features become dominant.
+For $(N=12, \omega=0.1)$, $\mathrm{abl}_\psi = 182.6$ dominates, with $\mathrm{abl}_\phi = 1.3$ and
+$\mathrm{abl}_x = 11.8$. This indicates that \emph{relative} angular correlations between electron pairs
+are most important in the competition regime.
+\item \textbf{Strong confinement} ($\omega \geq 0.5$): All ablation importances decrease substantially.
+For $(N=12, \omega=1)$, $\mathrm{abl}_\psi = 32.5$, $\mathrm{abl}_\phi = 0.8$, $\mathrm{abl}_x = 1.6$.
+\end{itemize}
+
+This pattern connects directly to the physics. In the Wigner regime, electrons localize at well-defined
+angular positions on shells, making absolute angles $\phi$ critical for larger systems. The pair-angle
+features $\psi$ capture \emph{relative} angular correlations between electron pairs, which are most
+important in the crossover and intermediate regimes. At strong confinement, the compact, delocalized
+wavefunction requires less angular structure overall.
+
+\subsection{Energy--feature correlations}
+
+We compute Pearson correlations between individual PINN features and the local energy estimator.
+The maximum absolute correlation $|\mathrm{corr}|_{\max}$ across features provides a measure of
+how directly the representation encodes energy-relevant information (Table~\ref{tab:energy_corr}).
+
+The regime dependence reveals different representational strategies:
+\begin{itemize}
+\item At strong confinement ($\omega = 1$): Individual features can directly encode energy-relevant
+quantities. For $N=2$, $|\mathrm{corr}|_{\max} = 0.88$---a remarkably direct encoding. For larger
+systems the correlation is weaker but still substantial ($0.21$--$0.41$).
+\item At weak confinement ($\omega = 0.001$): The mapping from features to energy becomes more
+distributed. For $N=2$, $|\mathrm{corr}|_{\max} = 0.17$. Interestingly, this increases with $N$
+($0.67$ for $N=20$), suggesting that certain collective features become energy-predictive in the
+Wigner regime.
+\item At intermediate $\omega$: Correlations are generally weaker, consistent with the ``competition
+regime'' requiring complex, distributed representations.
+\end{itemize}
+
+To make these correlations more interpretable, recall that the pooled PINN feature vector used here is
+$\rho_{\rm in}=[\bar\phi_0,\ldots,\bar\phi_4\;|\;\bar\psi_0,\ldots,\bar\psi_4\;|\;\langle r^2\rangle,\langle s_1\rangle]$,
+where $\bar\phi_k$ are pooled single-particle features, $\bar\psi_k$ are pooled pair features,
+$\langle r^2\rangle$ is the mean squared (scaled) radius, and $\langle s_1\rangle$ is a smooth short-range
+radial summary (see \texttt{\_safe\_pair\_features} in the code).
+Table~\ref{tab:energy_corr_topfeat} lists the single most energy-correlated channel per case.
+
+% ------------------------------------------------------------
+% TABLE: Top energy-correlated pooled feature channel
+% ------------------------------------------------------------
+\begin{table}[t]
+\centering
+\small
+\setlength{\tabcolsep}{5pt}
+\renewcommand{\arraystretch}{1.12}
+\caption{Most energy-correlated pooled PINN channel for representative $(N,\omega)$.
+Channels are reported as $\phi_k$ (pooled single-particle), $\psi_k$ (pooled pair), and $\mathrm{extra}_0=\langle r^2\rangle$,
+$\mathrm{extra}_1=\langle s_1\rangle$.
+Correlations are Pearson correlations with the local energy estimator, computed from
+\texttt{energy\_feature\_corr\_long.csv}.}
+\label{tab:energy_corr_topfeat}
+\begin{tabular}{cccc}
+\toprule
+$N$ & $\omega$ & Top channel & $\mathrm{corr}$ \\
+\midrule
+2  & 0.001 & $\psi_0$ & $-0.173$ \\
+2  & 0.01  & $\psi_3$ & $\phantom{-}0.066$ \\
+2  & 0.1   & $\psi_2$ & $-0.173$ \\
+2  & 1     & $\psi_1$ & $-0.877$ \\
+\midrule
+6  & 0.001 & $\phi_3$ & $\phantom{-}0.180$ \\
+6  & 0.01  & $\psi_1$ & $\phantom{-}0.066$ \\
+6  & 0.1   & $\psi_3$ & $-0.300$ \\
+6  & 1     & $\mathrm{extra}_0$ & $-0.309$ \\
+\midrule
+12 & 0.001 & $\psi_4$ & $-0.256$ \\
+12 & 0.01  & $\phi_1$ & $\phantom{-}0.083$ \\
+12 & 0.1   & $\psi_4$ & $\phantom{-}0.154$ \\
+12 & 1     & $\psi_0$ & $-0.208$ \\
+\midrule
+20 & 0.001 & $\mathrm{extra}_0$ & $\phantom{-}0.668$ \\
+20 & 0.01  & $\mathrm{extra}_1$ & $\phantom{-}0.129$ \\
+20 & 1     & $\psi_1$ & $\phantom{-}0.407$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The identity of the top-correlated channel shifts with regime and system size.
+For example, $N=2$ at strong confinement is dominated by a single pair channel ($\psi_1$), whereas at $N=20$ in the Wigner
+limit the dominant correlates are the pooled ``global'' summaries (here $\langle r^2\rangle$), consistent with the energy
+being strongly controlled by collective size/shelling degrees of freedom.
+
+\subsection{Gradient-based channel usage in the PINN readout}
+
+Correlations ask which pooled channel is linearly predictive of the energy. A complementary diagnostic is to ask which
+channels the learned readout $\rho(\rho_{\rm in})$ is most sensitive to.
+We therefore compute gradient-based importances $\langle|\partial\rho/\partial Z_k|\rangle$ scaled by the standard deviation
+of each pooled channel $Z_k$.
+Table~\ref{tab:rho_weight_share} reports the fraction of this importance carried by each channel family (\(\phi\), \(\psi\), extras).
+
+% ------------------------------------------------------------
+% TABLE: Rho readout importance share by feature family
+% ------------------------------------------------------------
+\begin{table}[t]
+\centering
+\small
+\setlength{\tabcolsep}{5pt}
+\renewcommand{\arraystretch}{1.12}
+\caption{Share of gradient-based importance in the PINN readout attributed to the pooled feature families
+($\phi$, $\psi$, and extras $=\{\langle r^2\rangle,\langle s_1\rangle\}$).
+Values sum to 1 per row and are computed from \texttt{rho\_weights\_long.csv}.}
+\label{tab:rho_weight_share}
+\begin{tabular}{ccccc}
+\toprule
+$N$ & $\omega$ & Share($\psi$) & Share($\phi$) & Share(extras) \\
+\midrule
+2  & 0.001 & 0.995 & 0.004 & 0.001 \\
+2  & 0.1   & 0.308 & 0.030 & 0.661 \\
+2  & 1     & 0.365 & 0.019 & 0.616 \\
+\midrule
+6  & 0.001 & 0.656 & 0.263 & 0.081 \\
+6  & 0.1   & 0.627 & 0.063 & 0.310 \\
+6  & 1     & 0.682 & 0.121 & 0.197 \\
+\midrule
+12 & 0.001 & 0.619 & 0.244 & 0.138 \\
+12 & 0.1   & 0.824 & 0.040 & 0.136 \\
+12 & 1     & 0.900 & 0.069 & 0.031 \\
+\midrule
+20 & 0.001 & 0.485 & 0.374 & 0.141 \\
+20 & 0.01  & 0.671 & 0.200 & 0.129 \\
+20 & 1     & 0.900 & 0.043 & 0.056 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Explained variance in physical quantities}
+
+To connect the learned representation to physical observables, we compute $R^2$ values for linear
+regressions predicting various quantities from the PINN features:
+\begin{itemize}
+\item $R^2(\bar{r})$: mean radius prediction---consistently $> 0.94$ across all cases.
+\item $R^2(\mathrm{var}(r))$: radius variance prediction---$> 0.4$ for $N \geq 6$.
+\item $R^2(r_{\min})$: minimum pair distance prediction---more variable, stronger at intermediate $\omega$.
+\end{itemize}
+
+These high $R^2$ values confirm that the PINN features encode physically meaningful information about
+the configuration geometry, not arbitrary correlates.
+
+\subsection{Does backflow measurably lower the energy? (MCMC probe)}
+
+Finally, we connect the interpretability diagnostics back to a concrete energetic question: when we add backflow
+to a fixed PINN state, does it reduce the variational energy estimate?
+Using simple random-walk MCMC estimators, \texttt{system\_energy\_mcmc.csv} reports the energy with and without backflow
+for the same underlying PINN, together with $\Delta E=E_{\rm BF}-E_{\rm noBF}$.
+Table~\ref{tab:bf_energy_delta_mcmc} shows that for $N\ge 6$ and moderate/strong confinement, backflow tends to lower the energy
+(negative $\Delta E$), with the largest relative gains in the strongly confined cases where cusp and kinetic terms are most delicate.
+
+% ------------------------------------------------------------
+% TABLE: Energy delta with vs without backflow (MCMC probe)
+% ------------------------------------------------------------
+\begin{table}[t]
+\centering
+\small
+\setlength{\tabcolsep}{5pt}
+\renewcommand{\arraystretch}{1.12}
+\caption{Energy change when adding backflow on top of a fixed PINN state, estimated by random-walk MCMC.
+We report $\Delta E=E_{\rm BF}-E_{\rm noBF}$ and the relative change $\Delta E/E$.
+Negative values indicate that backflow improves the variational energy.
+These estimates are noisier than the SR-optimized energies in Table~\ref{tab:energies}, but provide a useful
+``direct effect'' probe linking the learned backflow to energy improvements.}
+\label{tab:bf_energy_delta_mcmc}
+\begin{tabular}{cccc}
+\toprule
+$N$ & $\omega$ & $\Delta E$ & $100\,\Delta E/E$ (\%) \\
+\midrule
+2  & 0.001 & $\phantom{-}2.04\times 10^{-5}$ & $\phantom{-}0.15$ \\
+2  & 0.01  & $-2.02\times 10^{-4}$ & $-0.27$ \\
+2  & 0.1   & $\phantom{-}7.60\times 10^{-7}$ & $\phantom{-}0.00$ \\
+2  & 1     & $-1.92\times 10^{-4}$ & $-0.01$ \\
+\midrule
+6  & 0.001 & $\phantom{-}1.94\times 10^{-5}$ & $\phantom{-}0.01$ \\
+6  & 0.01  & $-1.93\times 10^{-3}$ & $-0.28$ \\
+6  & 0.1   & $-1.51\times 10^{-2}$ & $-0.42$ \\
+6  & 1     & $-1.67\times 10^{-1}$ & $-0.82$ \\
+\midrule
+12 & 0.001 & $-2.19\times 10^{-3}$ & $-0.42$ \\
+12 & 0.01  & $\phantom{-}2.61\times 10^{-4}$ & $\phantom{-}0.01$ \\
+12 & 0.1   & $-6.44\times 10^{-2}$ & $-0.52$ \\
+12 & 1     & $-6.50\times 10^{-1}$ & $-0.98$ \\
+\midrule
+20 & 0.001 & $-1.27\times 10^{-2}$ & $-2.12$ \\
+20 & 0.01  & $-2.24\times 10^{-1}$ & $-3.66$ \\
+20 & 1     & $-1.65\times 10^{-1}$ & $-0.11$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+
+\section{Low-rank structure and efficient compression}
+\label{sec:pc_ablation}
+
+A key question for neural network wavefunctions is whether the learned representations admit efficient
+low-rank approximations. We address this through principal component ablation studies, measuring how
+reconstruction error decreases as we retain more PCA modes. Crucially, we compare against random
+projection baselines to test whether the low-rank structure is meaningful or merely reflects low variance.
+
+\subsection{Backflow field compression}
+
+Table~\ref{tab:pc_ablation_dx} shows the relative reconstruction error for the backflow field $\Delta x$
+as a function of retained principal components $k$, compared to random projections.
+
+The results reveal remarkably efficient compression:
+\begin{itemize}
+\item For $N = 2$: Just 2 principal components capture the full backflow field to machine precision
+($< 10^{-10}$). The effective rank $\mathrm{erank}(\Delta x) \approx 3.6$ confirms this low-dimensional structure.
+\item For $N = 6$: The error drops from $\sim 92\%$ (1~PC) to $\sim 72\%$ (4~PCs) to essentially zero (12~PCs).
+This matches the ambient dimension $2N = 12$, but the rapid decay shows that most variance
+concentrates in fewer modes.
+\item For $N = 12$: Similar decay pattern, reaching $\sim 61\%$ error at 12~PCs (out of ambient $2N = 24$).
+\end{itemize}
+
+Crucially, the PCA-based compression substantially outperforms random projections across all cases.
+For $N=6$ at $\omega=0.1$, 4~PCs achieve $72\%$ relative error, while 4~random directions achieve $82\%$ error.
+The gap persists and often widens at higher $k$. This confirms that the backflow field has genuine
+low-rank structure aligned with meaningful physical modes, not just low variance.
+
+\subsection{PINN representation compression}
+
+Table~\ref{tab:pc_ablation_pinn} shows the analogous analysis for the PINN feature representation.
+The compression is even more dramatic:
+\begin{itemize}
+\item The first principal component typically achieves mean absolute error (MAE) $< 0.5$, while
+random projections give MAE $\sim 1$--$20$ depending on $(N, \omega)$.
+\item By $k = 4$--$6$ PCs, the MAE drops to $< 0.1$ in most cases, while random projections remain
+at MAE $\sim 0.3$--$5$.
+\item The gap between PCA and random is enormous: for $(N=12, \omega=0.001)$, 4~PCs give MAE $= 0.5$
+while 4~random directions give MAE $= 17.7$.
+\end{itemize}
+
+This confirms that the PINN learns a low-dimensional ``summary'' of the configuration that the CTNN
+then expands into the high-dimensional backflow field. The compression efficiency also suggests that
+reduced-rank approximations could provide computational savings without sacrificing accuracy.
+
+% ------------------------------------------------------------
+% TABLE: Feature ablation importance
+% ------------------------------------------------------------
+\begin{table}[t]
+\centering
+\small
+\setlength{\tabcolsep}{4pt}
+\renewcommand{\arraystretch}{1.12}
+\caption{Feature ablation importance across regimes. We report the increase in representation error when
+angular ($\mathrm{abl}_\phi$), pair-angle ($\mathrm{abl}_\psi$), and coordinate ($\mathrm{abl}_x$) features
+are ablated. Larger values indicate greater importance. Note the dramatic increase in $\mathrm{abl}_\psi$
+for $N=20$ at weak confinement.}
+\label{tab:feature_ablation}
+\begin{adjustbox}{max width=\textwidth}
+\begin{tabular}{cccccc}
+\toprule
+$N$ & $\omega$ & $\mathrm{abl}_\phi$ & $\mathrm{abl}_\psi$ & $\mathrm{abl}_x$ & Dominant \\
+\midrule
+6  & 0.001 & 56.5 & 125.4 & 8.0 & $\psi$ \\
+6  & 0.01  & 16.3 & 113.5 & 7.9 & $\psi$ \\
+6  & 0.1   & 25.6 & 21.3  & 9.1 & $\phi$ \\
+6  & 1     & 0.3  & 3.9   & 2.9 & $\psi$ \\
+\midrule
+12 & 0.001 & 99.2 & 39.9  & 39.8 & $\phi$ \\
+12 & 0.01  & 54.4 & 101.1 & 14.8 & $\psi$ \\
+12 & 0.1   & 1.3  & 182.6 & 11.8 & $\psi$ \\
+12 & 1     & 0.8  & 32.5  & 1.6  & $\psi$ \\
+\midrule
+20 & 0.001 & 193.8 & 1221.9 & 136.8 & $\psi$ \\
+20 & 0.01  & 78.9  & 1222.0 & 18.4  & $\psi$ \\
+20 & 0.5   & 0.6   & 223.5  & 4.3   & $\psi$ \\
+20 & 1     & 0.1   & 139.1  & 3.5   & $\psi$ \\
+\bottomrule
+\end{tabular}
+\end{adjustbox}
+\end{table}
+
+
+% ------------------------------------------------------------
+% TABLE: Energy--feature correlations
+% ------------------------------------------------------------
+\begin{table}[t]
+\centering
+\small
+\setlength{\tabcolsep}{5pt}
+\renewcommand{\arraystretch}{1.12}
+\caption{Maximum absolute correlation between PINN features and local energy across regimes.
+Strong correlations at high $\omega$ indicate direct energy encoding; weak correlations at low $\omega$
+suggest distributed, nonlinear representations. The increase at low $\omega$ for $N=20$ reflects
+collective features becoming energy-predictive in the Wigner regime.}
+\label{tab:energy_corr}
+\begin{tabular}{ccccc}
+\toprule
+$\omega$ & $N=2$ & $N=6$ & $N=12$ & $N=20$ \\
+\midrule
+0.001 & 0.17 & 0.18 & 0.26 & 0.67 \\
+0.01  & 0.07 & 0.07 & 0.08 & 0.13 \\
+0.1   & 0.17 & 0.30 & 0.15 & --- \\
+0.5   & 0.44 & 0.47 & 0.09 & 0.28 \\
+1     & 0.88 & 0.31 & 0.21 & 0.41 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+
+% ------------------------------------------------------------
+% TABLE: PC ablation for backflow
+% ------------------------------------------------------------
+\begin{table}[t]
+\centering
+\small
+\setlength{\tabcolsep}{4pt}
+\renewcommand{\arraystretch}{1.12}
+\caption{Relative reconstruction error for the backflow field $\Delta x$ as a function of retained
+principal components $k$, compared to random projections (rand). PCA substantially outperforms random projections,
+confirming genuine low-rank structure. Data shown for $\omega = 0.1$.}
+\label{tab:pc_ablation_dx}
+\begin{adjustbox}{max width=\textwidth}
+\begin{tabular}{lcccccc}
+\toprule
+& $k=1$ & $k=2$ & $k=4$ & $k=6$ & $k=8$ & $k=12$ \\
+\midrule
+$N=2$ (PCA)  & 0.01 & $<10^{-10}$ & $<10^{-15}$ & --- & --- & --- \\
+$N=2$ (rand) & 0.78 & 0.76 & $<10^{-15}$ & --- & --- & --- \\
+\midrule
+$N=6$ (PCA)  & 0.93 & 0.85 & 0.72 & 0.58 & 0.40 & $<10^{-15}$ \\
+$N=6$ (rand) & 0.96 & 0.91 & 0.82 & 0.72 & 0.58 & $<10^{-15}$ \\
+\midrule
+$N=12$ (PCA)  & 0.96 & 0.91 & 0.83 & 0.74 & 0.64 & 0.46 \\
+$N=12$ (rand) & 0.98 & 0.96 & 0.91 & 0.86 & 0.81 & 0.70 \\
+\bottomrule
+\end{tabular}
+\end{adjustbox}
+\end{table}
+
+
+% ------------------------------------------------------------
+% TABLE: PC ablation for PINN representation
+% ------------------------------------------------------------
+\begin{table}[t]
+\centering
+\small
+\setlength{\tabcolsep}{4pt}
+\renewcommand{\arraystretch}{1.12}
+\caption{Mean absolute error (MAE) for PINN representation reconstruction as a function of retained
+principal components $k$, compared to random projections. The enormous gap between PCA and random
+confirms that the PINN learns a genuinely low-dimensional representation. Data shown for $\omega = 0.1$.}
+\label{tab:pc_ablation_pinn}
+\begin{adjustbox}{max width=\textwidth}
+\begin{tabular}{lcccccc}
+\toprule
+& $k=1$ & $k=2$ & $k=4$ & $k=6$ & $k=8$ & $k=12$ \\
+\midrule
+$N=2$ (PCA)  & 0.056 & 0.005 & 0.005 & 0.001 & $<10^{-4}$ & $<10^{-15}$ \\
+$N=2$ (rand) & 0.45  & 0.43  & 0.35  & 0.30  & 0.21 & $<10^{-15}$ \\
+\midrule
+$N=6$ (PCA)  & 0.48 & 0.45 & 0.25 & 0.08 & 0.07 & $<10^{-14}$ \\
+$N=6$ (rand) & 1.75 & 1.40 & 1.43 & 1.41 & 0.88 & $<10^{-14}$ \\
+\midrule
+$N=12$ (PCA)  & 0.77 & 0.77 & 0.60 & 0.16 & 0.05 & $<10^{-14}$ \\
+$N=12$ (rand) & 4.65 & 4.19 & 3.90 & 3.39 & 2.16 & $<10^{-14}$ \\
+\bottomrule
+\end{tabular}
+\end{adjustbox}
+\end{table}
+
+
+% ------------------------------------------------------------
+% TABLE: CTNN intrinsic dimension summaries
+% ------------------------------------------------------------
+\begin{table}[t]
+\centering
+\small
+\setlength{\tabcolsep}{4pt}
+\renewcommand{\arraystretch}{1.15}
+\caption{Intrinsic-dimension summaries of key CTNN blocks (pooled views).
+Update blocks (\texttt{edge\_update}, \texttt{node\_update}) show the largest intrinsic dimension, with mild regime dependence.
+The very small $\mathrm{idim}$ of \texttt{dx\_head} is consistent with configuration-level pooling and/or strong architectural constraints.}
+\label{tab:ctnn_idim_case}
+\begin{adjustbox}{max width=\textwidth}
+\begin{tabular}{lllllll}
+\toprule
+N & $\omega$ & $\mathrm{idim}(\texttt{node\_embed})$ & $\mathrm{idim}(\texttt{edge\_embed})$ & $\mathrm{idim}(\texttt{edge\_update})$ & $\mathrm{idim}(\texttt{node\_update})$ & $\mathrm{idim}(\texttt{dx\_head})$ \\
+\midrule
+2 & 0.001 & 1.29 & 1.86 & 2.91 & 2.83 & 1.00 \\
+2 & 0.1 & 1.29 & 1.86 & 2.91 & 2.83 & 1.00 \\
+2 & 1 & 1.29 & 1.86 & 2.91 & 2.83 & 1.00 \\
+\midrule
+6 & 0.001 & 1.44 & 2.35 & 4.35 & 4.33 & 1.74 \\
+6 & 0.1 & 1.46 & 2.47 & 4.65 & 4.74 & 1.74 \\
+6 & 1 & 1.44 & 2.30 & 4.19 & 4.19 & 1.74 \\
+\midrule
+12 & 0.001 & 1.43 & 2.13 & 3.72 & 3.72 & 1.62 \\
+12 & 0.1 & 1.46 & 2.35 & 4.24 & 4.53 & 1.62 \\
+12 & 1 & 1.44 & 2.15 & 3.75 & 3.82 & 1.62 \\
+\midrule
+20 & 0.001 & 1.45 & 2.24 & 3.71 & 3.71 & 1.56 \\
+20 & 0.1 & 1.49 & 2.38 & 3.95 & 4.34 & 1.56 \\
+20 & 1 & 1.44 & 2.11 & 3.57 & 3.56 & 1.56 \\
+\bottomrule
+\end{tabular}
+\end{adjustbox}
+\end{table}
+
+
+% ------------------------------------------------------------
+% TABLE: PCA/variance-style dimensionality proxies (omega-averaged, N>=6)
+% ------------------------------------------------------------
+\begin{table}[t]
+\centering
+\scriptsize
+\setlength{\tabcolsep}{3pt}
+\renewcommand{\arraystretch}{1.15}
+\caption{Variance-based dimension proxies (averaged over $N\ge 6$) showing that large ambient variance support
+($d_{\rm PR}$, $k_{95}$) can coexist with small intrinsic dimension (Table~\ref{tab:ctnn_idim_case}).
+Here $d_{\rm PR}$ is a PR-based effective dimension and $k_{95}$ is the number of PCA components needed for 95\% variance.}
+\label{tab:dimproxy_omegaavg}
+\begin{adjustbox}{max width=\textwidth}
+\begin{tabular}{lllllllllll}
+\toprule
+$\omega$ & $d_{\rm PR}(\rho)$ & $k_{95}(\rho)$ & $d_{\rm PR}(\mathrm{PINN\ out})$ & $k_{95}(\mathrm{PINN\ out})$ & $d_{\rm PR}(\texttt{edge\_update})$ & $k_{95}(\texttt{edge\_update})$ & $d_{\rm PR}(\texttt{node\_update})$ & $k_{95}(\texttt{node\_update})$ & $d_{\rm PR}(\Delta x)$ & $k_{95}(\Delta x)$ \\
+\midrule
+0.001 & 1.00 & 1.00 & 1.00 & 1.00 & 51.91 & 152.30 & 21.46 & 66.52 & 24.31 & 69.58 \\
+0.01 & 1.00 & 1.00 & 1.00 & 1.00 & 47.19 & 139.49 & 20.83 & 64.11 & 24.32 & 69.83 \\
+0.1 & 1.00 & 1.00 & 1.00 & 1.00 & 50.17 & 150.21 & 22.83 & 70.20 & 24.43 & 70.07 \\
+0.5 & 1.00 & 1.00 & 1.00 & 1.00 & 50.39 & 150.17 & 22.51 & 69.01 & 24.34 & 69.95 \\
+1 & 1.00 & 1.00 & 1.00 & 1.00 & 50.61 & 150.76 & 22.03 & 67.59 & 24.37 & 69.99 \\
+\bottomrule
+\end{tabular}
+\end{adjustbox}
+\end{table}
+
+
+\section{CTNN internal geometry: low intrinsic dimension but broad variance support}
+\label{sec:ctnn_internal}
+
+We now examine the internal structure of the CTNN backflow network itself. Table~\ref{tab:ctnn_idim_case}
+reports intrinsic-dimension estimates for key network blocks: node embeddings, edge embeddings, edge updates,
+node updates, and the final displacement head.
+
+\subsection{Low intrinsic dimension in early layers}
+
+The earliest CTNN blocks show remarkably low intrinsic dimension:
+$\mathrm{idim}(\texttt{node\_embed}) \approx 1.3$--$1.5$ and
+$\mathrm{idim}(\texttt{edge\_embed}) \approx 1.9$--$2.5$ across all $(N, \omega)$.
+
+This reflects a fundamental constraint: the CTNN ingests low-dimensional geometric primitives
+(2D coordinates, pairwise relative vectors), so its early representations cannot explore
+more degrees of freedom than the input provides. The slight increase with $N$ reflects the
+richer combinatorics of larger systems.
+
+\subsection{Expansion in update layers}
+
+The message-passing update layers show larger intrinsic dimensions:
+$\mathrm{idim}(\texttt{edge\_update}) \approx 3.5$--$4.7$ and
+$\mathrm{idim}(\texttt{node\_update}) \approx 3.5$--$4.7$.
+
+The regime dependence is mild but consistent: intrinsic dimension peaks at $\omega \approx 0.1$
+(the competition regime identified earlier), suggesting that the intermediate confinement regime
+requires the most expressive internal representations.
+
+\subsection{Low intrinsic dimension vs.\ high variance support}
+
+A key interpretability finding is that low intrinsic dimension can coexist with high-dimensional
+variance support. Table~\ref{tab:dimproxy_omegaavg} shows that while $\mathrm{idim}$ remains
+$\mathcal{O}(1$--$5)$, the PCA-based metrics $d_{\rm PR}$ and $k_{95}$ are much larger:
+$k_{95}(\texttt{edge\_update}) \approx 150$ and $k_{95}(\texttt{node\_update}) \approx 65$--$70$.
+
+This is not a contradiction. A low-dimensional manifold can curve through many ambient dimensions,
+requiring many PCA modes to capture its variance even though only a few intrinsic degrees of freedom
+are active. The CTNN appears to exploit this: it learns representations that evolve along
+low-dimensional trajectories in a high-dimensional ambient space, achieving expressivity
+through nonlinear structure rather than high-dimensional spreading.
+
+
+\section{Summary: what the network learns}
+\label{sec:repgeom_summary}
+
+Our analysis reveals a coherent picture of how neural network wavefunctions encode correlation physics:
+
+\begin{enumerate}
+\item \textbf{Scaling with system size:} $\mathrm{erank}(\Delta x)$ and $\mathrm{idim}(\Delta x)$ grow strongly with $N$
+(Table~\ref{tab:repgeom_Navg}), demonstrating that the learned backflow field is not a low-mode correction but a genuinely
+high-dimensional correlated displacement field using $\sim 50$--$75\%$ of available degrees of freedom.
+
+\item \textbf{Regime dependence:} The intermediate confinement $\omega\approx 0.1$ exhibits simultaneously increased
+representation complexity in $\rho_{\rm in}$, elevated tangential fraction $f_{\rm tan}$, and larger near-field
+amplification $A_{\rm nf}$ (Table~\ref{tab:repgeom_omegaavg}), consistent with a ``competition regime'' where neither
+Fermi-liquid nor Wigner-molecule pictures suffice.
+
+\item \textbf{Feature importance shifts with regime:} Pair-angle features ($\psi$) dominate at intermediate and strong
+confinement, while absolute angular features ($\phi$) become important in the Wigner limit for larger systems
+(Table~\ref{tab:feature_ablation}). This connects learned representations to physical intuition about correlation structure.
+
+\item \textbf{Which pooled channels ``matter'' is measurable:} Energy correlations and gradient-based importances identify
+which pooled feature families drive the readout in different regimes.
+Strong confinement can be dominated by a single $\psi_k$ channel (Table~\ref{tab:energy_corr_topfeat}), while the overall
+readout sensitivity often concentrates on the pair-feature family in larger systems (Table~\ref{tab:rho_weight_share}).
+
+\item \textbf{Near-field emphasis:} $A_{\rm nf}>1$ over broad regimes indicates systematic amplification of backflow
+corrections during close encounters (Table~\ref{tab:repgeom_casegrid}), consistent with correlation/cusp physics.
+
+\item \textbf{Dominant backflow mode is typically collective:} PC1 participation metrics indicate that the leading backflow
+pattern is spread across many particles for $N\ge 6$, with only mild localization in some strongly confined cases
+(Table~\ref{tab:pc1_participation}).
+
+\item \textbf{Low-rank structure enables compression:} Both the PINN representation and the backflow field admit efficient
+PCA compression, substantially outperforming random projections (Tables~\ref{tab:pc_ablation_dx}--\ref{tab:pc_ablation_pinn}).
+This suggests that the learned corrections, while high-dimensional, lie on structured low-dimensional manifolds.
+
+\item \textbf{The CTNN performs nonlinear expansion:} The small linear CKA between $\rho_{\rm in}$ and $\Delta x$,
+combined with the low intrinsic dimension but high variance support in CTNN layers, indicates that the backflow network
+performs substantial nonlinear processing rather than linear readout.
+
+\item \textbf{Backflow can directly improve energy:} A direct MCMC probe on fixed PINNs shows that adding backflow tends to
+lower the energy for $N\ge 6$ at moderate/strong confinement, linking the geometric and feature-based diagnostics to a concrete
+variational benefit (Table~\ref{tab:bf_energy_delta_mcmc}).
+\end{enumerate}
+
+These findings support the view that neural network wavefunctions learn physically meaningful
+representations of electron correlation, with interpretable structure that adapts to the
+correlation regime.
+
+
+\chapter{Wigner regime: real-space ordering and mode-based validation}
+\label{subsec:Wigner}
+
+Having established energetic accuracy in the benchmarked regimes (Table~\ref{tab:energies}), we now turn to a
+structural question: \emph{what configuration do the electrons adopt in real space as confinement weakens and Coulomb
+repulsion dominates?}  In a finite, rotationally symmetric trap the appropriate object is a \emph{Wigner molecule}:
+electrons localize in \emph{relative} coordinates (rings/shells with polygon-like angular correlations), while the
+entire pattern may rotate. Consequently, lab-frame angles can appear nearly uniform even when strong internal order
+is present. We therefore combine: (i) one-body density visualization, (ii) a label-invariant shell topology, (iii)
+rotation-registered bond-orientational order (internal order disentangled from lab-frame pinning), (iv) shell radii
+and separation gaps, (v) a pair-statistics validation isolating angular correlations beyond shelling, and (vi) a
+mode-alignment diagnostic testing whether the sampled fluctuations are consistent with structured small oscillations
+around a localized configuration.
+
+\paragraph{One-body densities (visual crossover).}
+Figures~\ref{fig:onebody_w1} and~\ref{fig:onebody_w0001} compare one-body densities at strong confinement
+$\omega=1.0$ and weak confinement $\omega=0.001$ for $N=2,6,12,20$. At $\omega=1.0$ the density remains compact and
+the dominant change with $N$ is shell filling under the harmonic trap. At $\omega=0.001$ the density broadens
+dramatically and develops pronounced radial structure for all $N$, indicating enhanced spatial separation and the
+onset of Coulomb-dominated localization.
+
+\begin{figure*}[t]
+  \centering
+  \subfloat[$N{=}2,\;\omega=1.0$]{%
+    \densimgtwo{one_body_density_2_omega_1.00000_20251029_231309.pdf}%
+  }\hspace{\figgutter}%
+  \subfloat[$N{=}6,\;\omega=1.0$]{%
+    \densimgtwo{one_body_density_6_omega_1.00000_20251030_093439.pdf}%
+  }
+
+  \vspace{0.35em}
+
+  \subfloat[$N{=}12,\;\omega=1.0$]{%
+    \densimgtwo{one_body_density_12_omega_1.00000_20251104_194000.pdf}%
+  }\hspace{\figgutter}%
+  \subfloat[$N{=}20,\;\omega=1.0$]{%
+    \densimgtwo{one_body_density_20_omega_1.00000_20251228_180301.pdf}%
+  }
+
+  \caption{One-body densities at strong confinement $\omega=1.0$ for $N=2,6,12,20$. Increasing $N$ primarily fills
+  the trap while the overall extent remains compact due to the strong harmonic confinement.}
+  \label{fig:onebody_w1}
+\end{figure*}
+
+\begin{figure*}[t]
+  \centering
+  \subfloat[$N{=}2,\;\omega=0.001$]{%
+    \densimgtwo{one_body_density_2_omega_0.00100_20251106_160757.pdf}%
+  }\hspace{\figgutter}%
+  \subfloat[$N{=}6,\;\omega=0.001$]{%
+    \densimgtwo{one_body_density_6_omega_0.00100_20251230_143725.pdf}%
+  }
+
+  \vspace{0.35em}
+
+  \subfloat[$N{=}12,\;\omega=0.001$]{%
+    \densimgtwo{one_body_density_12_omega_0.00100_20260105_112435.pdf}%
+  }\hspace{\figgutter}%
+  \subfloat[$N{=}20,\;\omega=0.001$]{%
+    \densimgtwo{one_body_density_20_omega_0.00100_20260105_175705.pdf}%
+  }
+
+  \caption{One-body densities at weak confinement $\omega=0.001$ for $N=2,6,12,20$. The densities broaden and show
+  strong radial structure, consistent with enhanced spatial separation and Wigner-molecule ordering in a
+  Coulomb-dominated, low-density regime.}
+  \label{fig:onebody_w0001}
+\end{figure*}
+
+\paragraph{Shell topology (discrete ring structure and where it collapses).}
+To quantify radial ordering without relying on particle labels, we assign shells using a rank-based construction:
+at each frame, particles are sorted by radius $r_i(t)=\|\mathbf r_i(t)\|$ and grouped into shells by fixed rank cuts.
+The key qualitative information is the \emph{occupancy pattern} and where it changes. Table~\ref{tab:shell_topology_key}
+summarizes only the regimes that matter structurally: the deepest Wigner case $\omega=10^{-3}$, the first post-Wigner
+step $\omega=10^{-2}$ (where topology collapses for $N=12$ and $N=20$), and a representative strong-confinement point
+$\omega=1$. At $\omega=10^{-3}$ we recover the expected finite-$N$ Wigner patterns: $(1,5)$ for $N=6$, $(3,9)$ for
+$N=12$, and a clear three-shell structure $(1,7,12)$ for $N=20$. At $\omega=10^{-2}$, $N=12$ and $N=20$ already
+collapse to $(1,11)$ and $(1,19)$, respectively, indicating a rapid loss of multi-shell localization as density
+increases. For $N=6$ the two-ring pattern persists to $\omega\le 0.1$ but is no longer robust at $\omega\ge 0.5$,
+where the rank-based boundary is not consistently separating and a single shell is detected.
+
+% ============================================================
+% TABLE: Shell topology (KEY regimes only)
+% ============================================================
+\begin{table}[t]
+  \centering
+  \caption{Key shell topologies (label-invariant). We report the occupancy pattern at the Wigner point
+  $\omega=10^{-3}$, the first post-Wigner step $\omega=10^{-2}$, and strong confinement $\omega=1$.
+  The full $\omega$ grid is consistent with these transitions.}
+  \label{tab:shell_topology_key}
+
+  \begin{threeparttable}
+    \setlength{\tabcolsep}{6.2pt}
+    \renewcommand{\arraystretch}{1.12}
+    \begin{tabular}{c c c c}
+      \toprule
+      $N$ & $\omega=10^{-3}$ & $\omega=10^{-2}$ & $\omega=1$ \\
+      \midrule
+      2  & (2)      & (2)      & (2) \\
+      6  & (1,5)    & (1,5)    & (6) \\
+      12 & (3,9)    & (1,11)   & (1,11) \\
+      20 & (1,7,12) & (1,19)   & (1,19) \\
       \bottomrule
     \end{tabular}
   \end{threeparttable}
 \end{table}
 
-\begin{figure}[htbp]
+\paragraph{Shell radii and separation gaps (quantitative localization).}
+Topology tells \emph{who sits on which ring}, but the Wigner regime is also characterized by large radii and
+well-separated shells. Table~\ref{tab:radii_gaps_key} reports the mean radii of the populated shells and the
+inter-shell separation gaps at the same key points. In the Wigner regime ($\omega=10^{-3}$) the shell radii become
+macroscopic on our scale: for $N=12$ we find $r_0\simeq 77.1$ and $r_1\simeq 189.4$ with a large separation
+$\mathrm{gap}_{01}\simeq 112.3$, while $N=20$ exhibits three shells at $r_0\simeq 38.0$, $r_1\simeq 132.0$,
+$r_2\simeq 247.2$ with gaps $\mathrm{gap}_{01}\simeq 94.0$ and $\mathrm{gap}_{12}\simeq 115.2$.
+At $\omega=10^{-2}$ the multi-shell structures for $N=12$ and $N=20$ have already collapsed into $(1,N{-}1)$,
+and the (single) separation $\mathrm{gap}_{01}$ drops accordingly, matching the topology change in
+Table~\ref{tab:shell_topology_key}.
+
+% ============================================================
+% TABLE: Shell radii + gaps (KEY regimes only)
+% ============================================================
+\begin{table*}[t]
   \centering
-  \includegraphics[width=0.8\textwidth]{rel_error_vs_omega_allN}
-  \caption{Relative deviation of PINN+BF ground-state energies from DMC
-  references as a function of trap frequency $\omega$ for the cases where
-  DMC data are available. For $N{=}2$ the deviations are at or below the DMC
-  error bars ($\sim 10^{-3}\,\%$), while for $N{=}6$ and $N{=}12$ the errors
-  remain in the range $2.5\times 10^{-2}$–$5\times 10^{-2}\,\%$ across
-  $\omega$, with no sign of deterioration in the shallow- or tight-trap
-  limits.}
-  \label{fig:rel_error_vs_omega}
-\end{figure}
+  \caption{Shell radii and separation gaps at key confinement strengths (mean $\pm$ standard error over frames).
+  Radii $r_s$ are reported for populated shells; $\mathrm{gap}_{01}=\langle r_1-r_0\rangle$ and
+  $\mathrm{gap}_{12}=\langle r_2-r_1\rangle$. Dashes indicate non-applicable shells/gaps.}
+  \label{tab:radii_gaps_key}
 
-\paragraph{Summary.}
-A compact Slater--Jastrow PINN with soft-core pair features and an explicit
-analytic cusp achieves DMC-level accuracy for $N{=}2$ across all $\omega$, and for
-$N\!\in\!\{6,12\}$ reaches small, systematic relative deviations (roughly
-$0.01$–$0.08\%$ across the grid; Fig.~\ref{fig:rel_error_vs_omega}). In terms
-of sample efficiency, the SR tail uses on the order of $10^3$–$3\times10^3$
-iterations with $\sim 3{\times}10^3$ samples each; this is \emph{orders of
-magnitude fewer} training samples than some earlier neural approaches to
-quantum dots (see \S\ref{sec:related} for a quantitative comparison).
-We attribute the stability to conditioning choices (trap-unit scaling,
-soft-core features with $ds/dr\!\to\!0$ at coalescence, and an explicit cusp),
-which keep both gradients and Laplacians numerically tame from shallow to tight
-traps. Convergence traces and ablations (activation, initialization, SR
-settings, backflow on/off) are reported in Appendix~X.
+  \begin{threeparttable}
+    \setlength{\tabcolsep}{4.2pt}
+    \renewcommand{\arraystretch}{1.10}
+    \begin{adjustbox}{max width=\textwidth}
+    \begin{tabular}{c c c c c c c c}
+      \toprule
+      $N$ & $\omega$ & occ. &
+      $r_0$ & $r_1$ & $r_2$ &
+      $\mathrm{gap}_{01}$ & $\mathrm{gap}_{12}$ \\
+      \midrule
+      6  & $10^{-3}$ & (1,5)    & $35.56\pm0.21$ & $135.69\pm0.06$ & -- &
+      $100.13\pm0.23$ & -- \\
+      6  & $10^{-2}$ & (1,5)    & $13.348\pm0.047$ & $29.649\pm0.026$ & -- &
+      $16.301\pm0.049$ & -- \\
+      6  & $1$       & (6)      & $1.4996\pm0.0023$ & -- & -- &
+      -- & -- \\
+      \midrule
+      12 & $10^{-3}$ & (3,9)    & $77.085\pm0.074$ & $189.420\pm0.047$ & -- &
+      $112.335\pm0.092$ & -- \\
+      12 & $10^{-2}$ & (1,11)   & $10.338\pm0.031$ & $37.662\pm0.012$ & -- &
+      $27.324\pm0.028$ & -- \\
+      12 & $1$       & (1,11)   & $0.5470\pm0.0022$ & $2.0020\pm0.0015$ & -- &
+      $1.4550\pm0.0024$ & -- \\
+      \midrule
+      20 & $10^{-3}$ & (1,7,12) & $38.04\pm0.19$ & $132.033\pm0.038$ & $247.226\pm0.051$ &
+      $93.99\pm0.18$ & $115.193\pm0.050$ \\
+      20 & $10^{-2}$ & (1,19)   & $10.315\pm0.050$ & $44.609\pm0.012$ & -- &
+      $34.294\pm0.048$ & -- \\
+      20 & $1$       & (1,19)   & $0.5547\pm0.0022$ & $2.3193\pm0.0011$ & -- &
+      $1.7646\pm0.0021$ & -- \\
+      \bottomrule
+    \end{tabular}
+    \end{adjustbox}
+  \end{threeparttable}
+\end{table*}
 
+\paragraph{Rotation-registered angular order (internal order vs.\ lab-frame pinning).}
+Shell occupancies capture \emph{radial} localization but not whether particles on a ring exhibit polygon-like
+\emph{relative} angular correlations. Because the Hamiltonian is rotationally symmetric, the correct diagnostic is
+a registered (co-rotating) frame: strong internal order may coexist with a diffusing global orientation. For shell
+$s$ with $n_s$ particles we compute
+\begin{equation}
+\psi_{n_s}^{\mathrm{reg}}(t)
+=
+\left|
+\frac{1}{n_s}\sum_{j\in s} e^{i n_s \theta^{\mathrm{reg}}_j(t)}
+\right|,
+\qquad
+\Phi_{s,\mathrm{reg}}=\langle \psi_{n_s}^{\mathrm{reg}} \rangle_t,
+\end{equation}
+and summarize internal order by
+$C_{\tilde{}}\_{\mathrm{global}}=\sum_s \Phi_{s,\mathrm{reg}}$ (which can exceed unity when multiple shells are ordered).
+We additionally report a lab-frame analogue $C_{\mathrm{global}}=\sum_s P_{s,\mathrm{lab}}$, which should be interpreted
+as a \emph{pinning/rotation-timescale} diagnostic on the sampled time window.
 
-\section{What the networks learn}
-\label{sec:repr-analysis}
+Table~\ref{tab:ang_order_key} shows that internal polygonal order is strongest in the Wigner regime and collapses
+rapidly when topology collapses.
+For $N=12$, the Wigner case $\omega=10^{-3}$ exhibits \emph{two simultaneously ordered shells} and reaches
+$C_{\tilde{}}\_{\mathrm{global}}=1.0684\pm0.0043$, while already at $\omega=10^{-2}$ (after the transition to $(1,11)$)
+the internal order drops to $0.2755\pm0.0012$ and remains $\approx 0.268$ at $\omega=1$.
+For $N=20$, $\omega=10^{-3}$ again shows multi-shell internal order with $C_{\tilde{}}\_{\mathrm{global}}=0.7909\pm0.0027$,
+whereas the collapsed $(1,19)$ states have $C_{\tilde{}}\_{\mathrm{global}}\simeq 0.203$ at $\omega\ge 10^{-2}$.
+In all cases, $C_{\mathrm{global}}$ is much smaller than $C_{\tilde{}}\_{\mathrm{global}}$, consistent with weak
+lab-frame pinning and substantial global rotation over the sampled trajectories.
 
-We probe the internal representations learned by (i) the residual \emph{correlator head}
-$f_{\text{net}}$, fed by the concatenated branches $\overline{\phi}\,\|\,\overline{\psi}\,\|\,\mathbf g$,
-and (ii) the \emph{BackflowNet} displacement field $\Delta x$.
-All diagnostics are evaluated on Monte Carlo samples drawn from $|\Psi|^2$ for each $(N,\omega)$.
-Our goal is not to improve energies further, but to clarify \emph{what information the networks compress} and
-\emph{how} that compression changes from tight quantum dots to the Wigner-side regime.
-
-\paragraph{Diagnostics (common across all systems).}
-We summarize representation structure using:
-(i) an entropy \emph{effective rank} $r_{\mathrm{eff}}$ as a variance-weighted dimensionality;
-(ii) principal-component (PC) \emph{ablation} curves, where we project onto the top-$k$ PCs and re-evaluate the
-network to quantify how many directions matter;
-(iii) \emph{PC1 block power}, which decomposes the leading axis across branches
-$\{\phi,\psi,\text{extras}\}$ and reveals which part of the architecture supplies the dominant direction;
-(iv) simple linear \emph{probes} from leading PCs to coarse physical summaries (cloud size and fluctuations);
-and (v) \emph{near-field conditioning}, where we focus on the lowest-$q\%$ of the minimum pair distance
-$r_{\min}$ to test whether energetic leverage is localized at short distances.
-
-\paragraph{Executive summary.}
-Across all $(N,\omega)$ studied, the correlator manifold is strongly compressed: a small number of latent
-directions dominate the head output and many diagnostics are nearly saturated by PC1.
-The key regime dependence is not a growth of dimensionality, but a \emph{recomposition} of the leading axis
-across architectural branches.
-Backflow, when active, tends to be a \emph{local} correction: it can be geometrically complex as a field
-($\Delta x$ may be high-rank and poorly reconstructible by a few PCs), yet it typically alters the correlator
-only along very few directions.
-Energetically, backflow is most effective in the tighter, more quantum regimes, while in Wigner-side regimes
-its gains are smaller and may concentrate on rare near-field events.
-
-\paragraph{Practical note on reliability.}
-Two sanity checks are important when interpreting the automated summaries.
-First, entries with $\mathrm{SE}=0$ or near-field shares reported as exactly $0$ indicate missing/invalid
-statistics rather than genuine physical zeros, and should be treated as ``not available''.
-Second, if a displacement ``rank'' proxy and a PC-ablation error appear mutually inconsistent, this typically
-means the two quantities were computed from different objects (e.g.\ a covariance-based spectrum versus a
-field-based reconstruction) or different normalizations. The qualitative conclusions below rely on patterns
-that are stable across multiple metrics (alignment, probeability, near-field shares), rather than on any
-single number.
-
-\subsection{Correlator geometry: a compact manifold across regimes}
-\label{sec:repr-geom}
-
-Table~\ref{tab:z-geom-tight} summarizes correlator geometry in tight-to-moderate traps
-$\omega\in\{1.0,0.5,0.1\}$, while Table~\ref{tab:z-geom-wigner} covers the Wigner-side regimes
-$\omega\in\{10^{-2},10^{-3}\}$.
-For each system we report the effective rank $r_{\mathrm{eff}}(Z)$, alignment between the head output and its
-PC1-only reconstruction, and the PC1 block power written compactly as $\phi/\psi/\mathrm{extras}$.
-
-%\input{tables_generated_compact/table_z_geometry_tight.tex}
-\input{../results/tables/new/summary_tables/summary_tables.tex}
-
-%\input{tables_generated_compact/table_z_geometry_wigner.tex}
-
-\paragraph{Interpretation: compression is stable, content reorganizes.}
-Two stable patterns appear across the full grid.
-First, the correlator head is \emph{nearly one-dimensional} in most regimes:
-$r_{\mathrm{eff}}(Z)$ remains close to unity and $\rho(\text{head},\text{PC1})$ is consistently high.
-This remains true even on the Wigner side, where the real-space density exhibits pronounced shell structure.
-Second, the \emph{content} of PC1 reorganizes with $(N,\omega)$:
-in some regimes the leading axis is pair-dominated ($\psi$-heavy), while in others it shifts towards
-global/extras-like structure.
-Crucially, the network expresses regime changes primarily as a \emph{rotation and redistribution} of a low-dimensional
-latent axis across branches, not as an explosion of latent dimensionality.
-
-A helpful way to read the block power is as an ``architectural attribution'' of the dominant latent direction.
-For example, in the two-electron dot the Wigner-side PC1 is almost purely pair-like ($\psi\simeq 1$),
-consistent with the idea that a single collective pair coordinate largely controls the energy and density.
-For larger systems, PC1 can become more global/extras-heavy in the deepest Wigner regimes, suggesting that once
-crystalline order emerges the network summarizes the configuration primarily through a single global coordinate
-(e.g.\ an overall size/shape mode) rather than through many distinct pair channels.
-
-PC ablations (not shown in tables) are consistent with this picture: across $(N,\omega)$ only a small handful of PCs
-are required to recover the head output to high accuracy, with most of the error reduction occurring by $k\sim 4$--$8$.
-Thus, even when real-space structure becomes complex, the correlator head remains organized around a compact set of
-latent directions.
-
-\subsection{What the correlator PCs represent: size and fluctuations}
-\label{sec:repr-probes}
-
-To connect latent axes to physics, we fit linear probes from the leading PCs to coarse observables:
-the mean radius $r_{\mathrm{mean}}$, radial variance $r_{\mathrm{var}}$, and a short-distance mass
-$\Pr(r<r_0)$ (here using the same $r_0$ as in the JSON probes).
-The results are summarized in Table~\ref{tab:probe-summary}, comparing probes on correlator features $Z$
-(no backflow) to probes on backflow displacement features $\Delta x$ (when available).
-
-\input{tables_generated_compact/table_probe_summary.tex}
-
-\paragraph{Interpretation: $Z$ primarily tracks global size, not near-field events.}
-Across essentially all $(N,\omega)$, the correlator features are highly predictive of global size:
-$R^2_Z(r_{\mathrm{mean}})$ is near unity for $N=2,6,12$.
-This supports a simple structural interpretation of the compressed manifold:
-the leading correlator direction acts as a \emph{global size coordinate} of the electron cloud.
-Radial variance $r_{\mathrm{var}}$ is captured moderately well for $N\ge 6$, consistent with variance being a
-mixture of size and shape/fluctuation effects that require more than one linear direction.
-
-In contrast, $\Pr(r<r_0)$ is generally \emph{not} linearly encoded in $Z$ for $N\ge 6$:
-$R^2_Z(\Pr(r<r_0))$ remains small compared to the size probes.
-This indicates that the correlator PCs are not behaving like a simple ``collision detector'' in larger systems.
-Instead, near-field physics appears to enter the energy through non-linear couplings and/or through the backflow
-mechanism, rather than being explicitly linearized in the main correlator manifold.
-
-\subsection{Backflow: energetics, locality, and stability of the correlator}
-\label{sec:repr-backflow}
-
-Backflow augments the base model with a learned displacement field $\Delta x$.
-We analyze it from two angles: (i) its \emph{energetic contribution} (does it lower the variational energy?),
-and (ii) its \emph{geometric footprint} (does it substantially alter the correlator manifold or only nudge it?).
-
-\paragraph{Energetic impact and near-field leverage.}
-Table~\ref{tab:bf-energy} reports $E_{\mathrm{noBF}}$ and the matched per-configuration difference
-$\Delta E = E_{\mathrm{BF}}-E_{\mathrm{noBF}}$ together with near-field enrichment factors
-for the lowest $5\%$ and $10\%$ of $r_{\min}$ (values $>1$ indicate disproportionate contribution from close pairs).
-This separates ``global'' energy improvements from gains driven by rare near-collision configurations.
-
-\input{tables_generated_compact/table_bf_energy.tex}
-
-\paragraph{Interpretation: backflow is strongest in dense regimes and often near-field driven.}
-In the tight-to-moderate traps ($\omega\gtrsim 0.1$), backflow yields substantial energy reductions for
-$N=6$ and $N=12$ and the near-field enrichment is consistently above unity, indicating that close-pair
-configurations contribute disproportionately to the energy gain.
-In these denser regimes, backflow behaves like a short-range corrector that refines local structure (and therefore
-local kinetic/interaction balance) beyond what the base correlator captures.
-
-On the Wigner side ($\omega\in\{10^{-2},10^{-3}\}$), the picture changes.
-Energy gains become smaller and, when present, may be dominated by rare near-field events rather than by broad
-improvements across typical configurations. Large near-field enrichment factors alongside noisy or small mean
-$\Delta E$ are consistent with ``rare-event leverage'': the displacement field matters primarily when atypically
-close pairs occur, which may be infrequent in strongly ordered Wigner configurations.
-
-\paragraph{Displacement complexity and correlator stability.}
-Table~\ref{tab:bf-geom} summarizes: an effective-rank proxy for $\Delta x$, a compact PC-ablation score for
-$\Delta x$ (top-2 PC reconstruction error), the PC1 alignment between correlator axes (noBF vs BF),
-an effective rank for the correlator change $\Delta Z$, and near-field concentration of $\|\Delta x\|^2$.
-Together these metrics separate \emph{high-rank local fields} from \emph{low-rank manifold shifts}.
-
-\input{tables_generated_compact/table_bf_geometry.tex}
-
-\paragraph{Interpretation: a complex field with a low-rank footprint.}
-For $N\ge 6$, the displacement field typically appears geometrically rich: $\Delta x$ has a high effective-rank
-proxy and is not well reconstructed by only a couple of PCs (large $k{=}2$ ablation errors in several regimes).
-Yet, the correlator manifold remains remarkably stable under backflow:
-the PC1 alignment between noBF and BF correlator axes is almost always extremely close to unity (up to the
-irrelevant sign ambiguity of principal directions), and $r_{\mathrm{eff}}(\Delta Z)$ remains small.
-This is a strong separation-of-concerns statement: backflow can be a complicated local field without rewriting
-the correlator representation. Instead, it typically nudges the correlator along a few directions while injecting
-local, configuration-dependent corrections through $\Delta x$ itself.
-
-Near-field concentration of $\|\Delta x\|^2$ varies across regimes.
-Values near unity indicate that displacement magnitude is broadly distributed across configurations,
-while values significantly above unity indicate stronger displacements in near-collision events.
-Importantly, near-field concentration of displacement energy does not need to match near-field concentration of
-$\Delta E$: a field can be distributed in magnitude yet have its \emph{energetic} leverage concentrated in the
-near field, because energy sensitivity to $\Delta x$ is itself configuration-dependent.
-
-\subsection{Synthesis: how the architecture partitions the physics}
-\label{sec:repr-synthesis}
-
-Taken together, Tables~\ref{tab:z-geom-tight}--\ref{tab:bf-geom} support a coherent representation picture:
-the correlator head $Z$ forms a compact, globally organized manifold whose leading directions track coarse
-cloud-level coordinates (size and fluctuations), while backflow—when it matters—acts as a local corrector that
-targets configuration-dependent refinements, often with disproportionate leverage in near-field events.
-Even when the displacement field is high-rank, its effect on the correlator manifold is typically low-rank,
-appearing as a small deformation rather than a wholesale change of representation.
-
-From a modeling perspective, this partition is desirable.
-It suggests that the base correlator learns the dominant collective coordinates robustly across regimes, while
-backflow provides an optional refinement channel that improves energy primarily when local corrections are needed
-(tight/dense traps) and becomes less important when the system is already well described by a compact set of
-collective modes (deep Wigner-side ordering).
-
-
-\section{Wigner–molecule crossover}
-\label{sec:wigner-molecule}
-
-
-\begin{figure*}[htbp]
+% ============================================================
+% TABLE: Angular order (KEY regimes only)
+% ============================================================
+\begin{table}[t]
   \centering
-  \captionsetup[subfigure]{justification=centering,font=small}
+  \caption{Rotation-registered (internal) vs.\ lab-frame (pinning) angular order at key confinement strengths.
+  $C_{\tilde{}}\_{\mathrm{global}}$ measures internal polygonal order in the registered frame, while $C_{\mathrm{global}}$
+  quantifies residual lab-frame pinning on the sampled time window. Uncertainties are standard errors over frames.}
+  \label{tab:ang_order_key}
 
-  % ---------- Row 1: ω = 1.0 ----------
-  \begin{subfigure}[t]{\threecolw}
-    \centering
-    \includegraphics[width=\linewidth]{one_body_density_2_omega_1.00000_20251029_231309.pdf}
-    \caption{$N{=}2,\;\omega=1.0$}
-  \end{subfigure}\hspace{\figgutter}%
-  \begin{subfigure}[t]{\threecolw}
-    \centering
-    \includegraphics[width=\linewidth]{one_body_density_6_omega_1.00000_20251030_093439.pdf}
-    \caption{$N{=}6,\;\omega=1.0$}
-  \end{subfigure}\hspace{\figgutter}%
-  \begin{subfigure}[t]{\threecolw}
-    \centering
-    \includegraphics[width=\linewidth]{one_body_density_12_omega_1.00000_20251104_194000.pdf}
-    \caption{$N{=}12,\;\omega=1.0$}
-  \end{subfigure}
-
-  \vspace{0.5em}
-
-  % ---------- Row 2: ω = 0.001 ----------
-  \begin{subfigure}[t]{\threecolw}
-    \centering
-    \includegraphics[width=\linewidth]{one_body_density_2_omega_0.00100_20251106_160757.pdf}
-    \caption{$N{=}2,\;\omega=0.001$}
-  \end{subfigure}\hspace{\figgutter}%
-  \begin{subfigure}[t]{\threecolw}
-    \centering
-    \includegraphics[width=\linewidth]{one_body_density_6_omega_0.00100_20251106_214930.pdf}
-    \caption{$N{=}6,\;\omega=0.001$}
-  \end{subfigure}\hspace{\figgutter}%
-  \begin{subfigure}[t]{\threecolw}
-    \centering
-    \includegraphics[width=\linewidth]{one_body_density_12_omega_0.00100_20251109_110913.pdf}
-    \caption{$N{=}12,\;\omega=0.001$}
-  \end{subfigure}
-
-  \caption{One-body densities for 2, 6 and 12 particles for confinements
-  $\omega=1.0$ (top row) and $\omega=0.001$ (bottom row). As the confinement
-  weakens, the densities broaden and develop pronounced shell structures
-  characteristic of Wigner molecules.}
-  \label{fig:onebody_grid}
-\end{figure*}
-
-
-\subsection{What we measure}
-For each $(N,\omega)$ we draw $\mathbf X\!\sim|\Psi|^2$ and report
-(i) the pair distribution $g(r)$,
-(ii) the single-particle radial law $P(r)\!\propto\!r^{d-1}g(r)$ ($d=2$),
-and scalars from $P(r)$: $r_{\rm mode}$, $\langle r\rangle$, $\sigma_r$, FWHM, $q_{10},q_{50},q_{90}$.
-We condense localization via
-\[
-\gamma \;=\; \sigma_r/r_{\rm mode},
-\]
-(smaller $\gamma$ $\Rightarrow$ stiffer localization).
-For $N>2$ we also monitor ring bond–orientational order $|\Phi_m|$ on resolved shells 
-and a dimensionless Lindemann-type ratio for nearest-neighbour angular spacings 
-(see also bond-orientational diagnostics in classical Wigner-like systems~\cite{Mazars_2008}).
-
-\paragraph{Density parameter $r_s$.}
-Following Egger \textit{et al.}~\cite{Egger_1999}, we estimate $r_s$ from the first maximum $r^\ast$ of the (spin-summed) pair correlation,
-\(
-r_s \equiv r^\ast/a_B^\ast.
-\)
-The Fermi–liquid $\to$ Wigner–molecule crossover occurs already near $r_s\!\simeq\!4$ in parabolic dots; 
-our weak–trap cases lie well beyond this threshold and should display clear Wigner signatures~\cite{Egger_1999,Filinov_2001}.
-
-\begin{figure*}[htbp]
-  \centering
-  \captionsetup[subfigure]{justification=centering}
-
-  \begin{subfigure}[t]{0.48\textwidth}
-    \includegraphics[width=\linewidth]{ratio_T_over_Vint_desc_allN}
-    \caption{$T/V_{\rm int}$ vs.\ $\omega$ for $N{=}2,6,12$. The horizontal line marks $T/V_{\rm int}{=}0.1$.}
-  \end{subfigure}
-  \hfill
-  \begin{subfigure}[t]{0.48\textwidth}
-    \includegraphics[width=\linewidth]{ratio_2Vtrap_over_Vint_desc_allN}
-    \caption{$2V_{\rm trap}/V_{\rm int}$ vs.\ $\omega$ for $N{=}2,6,12$. The horizontal line marks the classical virial ratio $2V_{\rm trap}=V_{\rm int}$.}
-  \end{subfigure}
-
-  \caption{Energy-based Wigner diagnostics as functions of trap frequency.  
-  As $\omega$ decreases the dots become interaction dominated ($T/V_{\rm int}\!\ll1$) and the trap--interaction partition approaches the classical virial form, most clearly for $N{=}12$.}
-  \label{fig:wigner_ratios}
-\end{figure*}
-
-\paragraph{Energy-based crossover diagnostics.}
-As a complementary probe we analyze the expectation values of the kinetic energy $T$,
-the Coulomb energy $V_{\rm int}$, and the trap energy $V_{\rm trap}$ as functions of $\omega$.
-Log–log fits of the form $E(\omega)\propto\omega^{\alpha}$ on the grid
-$\omega\in\{10^{-3},10^{-2},10^{-1},0.5,1\}$ give
-\[
-\alpha_T \simeq 1.00,\qquad
-\alpha_{V_{\rm int}} \simeq 0.66,\qquad
-\alpha_{V_{\rm trap}} \simeq 0.81,\,0.73,\,0.72
-\]
-for $N=2,6,12$, respectively. Thus $T$ scales essentially linearly with $\omega$, while both
-$V_{\rm int}$ and $V_{\rm trap}$ grow sublinearly with exponents that are nearly $N$-independent.
-The ratios
-\[
-\frac{T}{V_{\rm int}} \;\propto\; \omega^{\alpha_T-\alpha_{V_{\rm int}}}
-\quad \text{and} \quad
-\frac{T}{V_{\rm trap}} \;\propto\; \omega^{\alpha_T-\alpha_{V_{\rm trap}}}
-\]
-therefore decrease as power laws with exponents $\alpha_T-\alpha_{V_{\rm int}}\!\approx\!0.32\text{--}0.35$
-and $\alpha_T-\alpha_{V_{\rm trap}}\!\approx\!0.19\text{--}0.28$.
-Across $\omega\in[1,10^{-3}]$ the interaction-to-kinetic ratio
-$\Gamma= \langle V_{\rm int}\rangle/\langle T\rangle$ increases from
-$\Gamma\simeq0.9\!\to\!8.7$ ($N=2$), $2.4\!\to\!25.4$ ($N=6$), and $3.6\!\to\!39.9$ ($N=12$),
-while $T/V_{\rm int}$ falls correspondingly (Fig.~\ref{fig:wigner_ratios}a), e.g.\
-$T/V_{\rm int}$ decreases from $\approx 0.28$ to $\approx 0.025$ for $N=12$.
-
-The partitioning between trap and interaction energies becomes quasi-classical at weak confinement.
-At $\omega=10^{-3}$ we find
-\[
-\frac{2\langle V_{\rm trap}\rangle}{\langle V_{\rm int}\rangle}
-\simeq 1.25,\;1.12,\;1.02 \quad\text{for}\quad N=2,6,12,
-\]
-so that the $N=12$ dot satisfies $V_{\rm int}\!\approx\!2V_{\rm trap}$ to within $2\%$,
-as expected for nearly classical charges in a harmonic trap (Fig.~\ref{fig:wigner_ratios}b).
-Using $V_{\rm trap} = \tfrac12 \omega^2 \sum_i \langle r_i^2\rangle$ we can extract
-a root-mean-square radius
-$r_{\rm rms} = \sqrt{2V_{\rm trap}/(N\omega^2)}$.
-For $(N,\omega)=(2,6,12;1)$ we obtain
-$r_{\rm rms}\!\approx\!1.14,1.62,2.03\,a_B^\ast$, which expands to
-$\approx 70,128,169\,a_B^\ast$ at $\omega=10^{-3}$.
-Fitting $r_{\rm rms}\propto\omega^{\alpha_r}$ yields
-$\alpha_r\simeq-0.60,-0.63,-0.64$ for $N=2,6,12$,
-i.e.\ $\langle r^2\rangle\propto\omega^{-\beta}$ with
-$\beta\simeq1.19,1.27,1.28$.
-The cloud thus expands \emph{faster} than the non-interacting
-$\omega^{-1}$ expectation, in line with interaction-driven swelling and
-shell formation in the Wigner regime.
-
-% ------------------------- N=2 -------------------------
-\subsection{Two electrons ($N=2$): monotone approach to the Wigner side}
-As $\omega$ decreases, $r_{\rm mode}$ grows and $\gamma=\sigma_r/r_{\rm mode}$ shrinks
-(Table~\ref{tab:two_e_summary}),
-with a power-law $r_{\rm mode}\!\sim C\,\omega^{\alpha}$ giving $\alpha\simeq-0.62$ over
-$\omega\in\{1,0.5,0.1,0.01\}$, close to the classical two-body scaling $-2/3$.  
-
-At the weakest trap, $\omega=10^{-3}$, the radial diagnostics read
-$r_{\rm mode}\approx64.3$, $\langle r\rangle\approx64.0$,
-$\sigma_r\approx18.5$, FWHM$\approx44.0$ and
-$\gamma\approx0.29$, with only
-$\sim 4.6\times 10^{-3}$ of the single-particle mass inside
-$r\le 0.25\,r_{\rm mode}$.
-The pair distance distribution has mode $r_{12}\approx122$ and
-Lindemann $\gamma_{r_{12}}\approx0.20$, while the relative angle
-is sharply peaked near $\pi$ with
-$\sigma(\pi-\Delta\phi)\approx0.35$ and a tiny near-origin mass
-$p(r_{12}\le0.25\,r_{12}^{\rm mode})\approx2.6\times 10^{-3}$.
-Together these show a very dilute, strongly anti-aligned Wigner dimer.
-
-\begin{figure}[htp]
-  \centering
-  \includegraphics[width=0.8\textwidth]{N2_all_densities}
-  \caption{Two-electron radial densities $P(r)$ across $\omega$.}
-  \label{fig:2N_radial_densities}
-\end{figure}
-
-\begin{table}[H]
-\centering
-\caption{$N=2$ summary across $\omega$ (Bohr).}
-\label{tab:two_e_summary}
-\begin{tabular}{lcccccccc}
-\toprule
-$\omega$ 
-& $r_{\rm mode}$ 
-& $\langle r\rangle$ 
-& $\sigma_r$ 
-& FWHM 
-& $q_{10}$ 
-& $q_{50}$ 
-& $q_{90}$ 
-& $\gamma$ \\
-\midrule
-1.00 & 1.435 & 1.632 & 0.705 & 1.743 & 0.735 & 1.581 & 2.581 & 0.491 \\
-0.50 & 2.303 & 2.475 & 1.007 & 2.466 & 1.209 & 2.409 & 3.829 & 0.437 \\
-0.10 & 3.601 & 3.830 & 1.728 & 4.449 & 1.640 & 3.714 & 6.127 & 0.480 \\
-0.01 & 14.191 & 14.593 & 5.615 & 13.602 & 7.390 & 14.322 & 22.038 & 0.396 \\
-0.001 & 64.292 & 63.953 & 18.479 & 43.977 & 40.392 & 63.814 & 87.714 & 0.287 \\
-\bottomrule
-\end{tabular}
+  \begin{threeparttable}
+    \setlength{\tabcolsep}{5.8pt}
+    \renewcommand{\arraystretch}{1.12}
+    \begin{tabular}{c c c c c}
+      \toprule
+      $N$ & $\omega$ & occ. & $C_{\tilde{}}\_{\mathrm{global}}$ & $C_{\mathrm{global}}$ \\
+      \midrule
+      2  & $10^{-3}$ & (2)      & $0.8746\pm0.0012$ & $0.0066\pm0.0041$ \\
+      2  & $10^{-2}$ & (2)      & $0.7576\pm0.0024$ & $0.0066\pm0.0034$ \\
+      2  & $1$       & (2)      & $0.6283\pm0.0028$ & $0.0034\pm0.0020$ \\
+      \midrule
+      6  & $10^{-3}$ & (1,5)    & $0.6520\pm0.0020$ & $0.0095\pm0.0033$ \\
+      6  & $10^{-2}$ & (1,5)    & $0.4340\pm0.0017$ & $0.0041\pm0.0022$ \\
+      6  & $1$       & (6)      & $0.3656\pm0.0013$ & $0.0042\pm0.0018$ \\
+      \midrule
+      12 & $10^{-3}$ & (3,9)    & $1.0684\pm0.0043$ & $0.0206\pm0.0048$ \\
+      12 & $10^{-2}$ & (1,11)   & $0.2755\pm0.0012$ & $0.0046\pm0.0015$ \\
+      12 & $1$       & (1,11)   & $0.2678\pm0.0014$ & $0.0032\pm0.0013$ \\
+      \midrule
+      20 & $10^{-3}$ & (1,7,12) & $0.7909\pm0.0027$ & $0.0560\pm0.0040$ \\
+      20 & $10^{-2}$ & (1,19)   & $0.2032\pm0.0008$ & $0.0004\pm0.0007$ \\
+      20 & $1$       & (1,19)   & $0.2027\pm0.0010$ & $0.0030\pm0.0010$ \\
+      \bottomrule
+    \end{tabular}
+  \end{threeparttable}
 \end{table}
 
-\paragraph{Takeaway.}
-All observables—growth of $r_{\rm mode}$, shrinking $\gamma$, sharper anti-alignment,
-and suppressed near-origin mass—evolve smoothly with decreasing $\omega$,
-consistent with the expected two-site Wigner dimer limit.
+\paragraph{Lindemann-type disorder (progressive melting with confinement).}
+To complement angular order parameters we track a registered Lindemann-type measure $L_{s,\mathrm{reg}}$ per shell,
+which quantifies the size of relative positional fluctuations compared to the shell scale (larger means more disordered).
+Table~\ref{tab:lindemann_key} shows a consistent monotonic melting trend: weak confinement produces stiff rings, while
+strong confinement produces substantially larger relative fluctuations. For $N=12$ and $N=20$ the Wigner point
+$\omega=10^{-3}$ exhibits \emph{simultaneously stiff multiple shells} (e.g.\ $N=12$: $L_{\mathrm{in,reg}}=0.2736\pm0.0013$,
+$L_{\mathrm{out,reg}}=0.2547\pm0.0010$; $N=20$: $L_{7,\mathrm{reg}}=0.3514\pm0.0008$, $L_{12,\mathrm{reg}}=0.2696\pm0.0007$),
+while after collapse to $(1,N{-}1)$ the outer shell becomes increasingly disordered, reaching $0.6178\pm0.0010$ for
+$N=12$ and $0.6920\pm0.0010$ for $N=20$ at $\omega=1$.
 
-% ------------------------- N=6 -------------------------
-\subsection{Six electrons ($N=6$): one ring persists, correlations stiffen}
-Across $\omega\in[1,10^{-3}]$, $N=6$ retains a single pronounced shell; 
-localization ratios and Lindemann indices decrease steadily (Table~\ref{tab:N6}).  
-This is precisely the ``rotating Wigner molecule'' (RWM) scenario—lab-frame densities are ring-like, 
-while crystalline order is recovered after angular registration~\cite{Egger_1999,manninen2007metalclustersquantumdots}.
+% ============================================================
+% TABLE: Lindemann disorder (KEY regimes only)
+% ============================================================
+\begin{table}[t]
+  \centering
+  \caption{Registered Lindemann-type disorder at key confinement strengths (mean $\pm$ standard error over frames).
+  For multi-shell Wigner states, both inner and outer shells are shown. Dashes indicate non-applicable shells.}
+  \label{tab:lindemann_key}
 
-\begin{table}[H]
-\centering
-\caption{$N=6$ diagnostics vs.\ $\omega$ (Bohr; angles in radians).}
-\label{tab:N6}
-\begin{tabular}{c|ccccc}
-\toprule
-$\omega$ & $r_{\rm mode}$ & $\sigma_r$ & $\gamma$ & $\sigma(\text{ring angles})$ & $\gamma_{r_{ij}}$ \\
-\midrule
-1.00  & 2.0907 & 0.9249  & 0.4424 & 0.7046 & 0.3538 \\
-0.50  & 3.0702 & 1.3648  & 0.4445 & 0.6943 & 0.3397 \\
-0.10  & 8.1686 & 3.5025  & 0.4288 & 0.6842 & 0.3149 \\
-0.01  & 33.1538 & 13.9094 & 0.4195 & 0.6497 & 0.2889 \\
-0.001 & 113.5542 & 47.8076 & 0.4210 & 0.6368 & 0.2664 \\
-\bottomrule
-\end{tabular}
+  \begin{threeparttable}
+    \setlength{\tabcolsep}{6.2pt}
+    \renewcommand{\arraystretch}{1.12}
+    \begin{tabular}{c c c c c}
+      \toprule
+      $N$ & $\omega$ & occ. & $L_{\mathrm{in,reg}}$ & $L_{\mathrm{out,reg}}$ \\
+      \midrule
+      2  & $10^{-3}$ & (2)      & --                & $0.1325\pm0.0007$ \\
+      2  & $10^{-2}$ & (2)      & --                & $0.2046\pm0.0014$ \\
+      2  & $1$       & (2)      & --                & $0.4004\pm0.0022$ \\
+      \midrule
+      6  & $10^{-3}$ & (1,5)    & --                & $0.2049\pm0.0008$ \\
+      6  & $10^{-2}$ & (1,5)    & --                & $0.3443\pm0.0011$ \\
+      6  & $1$       & (6)      & --                & $0.5607\pm0.0011$ \\
+      \midrule
+      12 & $10^{-3}$ & (3,9)    & $0.2736\pm0.0013$ & $0.2547\pm0.0010$ \\
+      12 & $10^{-2}$ & (1,11)   & --                & $0.4500\pm0.0010$ \\
+      12 & $1$       & (1,11)   & --                & $0.6178\pm0.0010$ \\
+      \midrule
+      20 & $10^{-3}$ & (1,7,12) & $0.3514\pm0.0008$ & $0.2696\pm0.0007$ \\
+      20 & $10^{-2}$ & (1,19)   & --                & $0.5716\pm0.0011$ \\
+      20 & $1$       & (1,19)   & --                & $0.6920\pm0.0010$ \\
+      \bottomrule
+    \end{tabular}
+  \end{threeparttable}
 \end{table}
 
-\paragraph{Weak confinement at $\omega=0.01$.}
-A near-degeneracy between the $(1,5)$ and $(0,6)$ sectors is observed, with
-\[
-(1,5)\ \text{fraction}\approx 0.692,\qquad (0,6)\approx 0.308,
-\]
-and phase–aligned ring order
-\[
-|\Phi_5|=0.453\!\pm\!0.214,\ \ \text{Lind}=0.329;\qquad
-|\Phi_6|=0.466\!\pm\!0.206,\ \ \text{Lind}=0.315.
-\]
-The global $g(r)$ is exactly reproduced by the expected inner–inner (II),
-inner–outer (IO) and outer–outer (OO) mixture (cosine similarity~$=1.000$).
+\paragraph{Mode-alignment diagnostic (are the fluctuations ``molecule-like''?).}
+A Wigner molecule is not merely a static ring pattern: if electrons are localized around a classical equilibrium,
+their residual motion should resemble structured small oscillations (collective distortions) rather than featureless
+fluid-like wandering. We test this by comparing the empirical covariance $C$ (center-of-mass removed) to the Hessian
+$H$ of the corresponding classical equilibrium configuration (trap + Coulomb, scaled to the same $\omega$). If
+fluctuations are organized by classical normal modes, $C$ and $H$ should be approximately compatible (near joint
+diagonalization) and a nontrivial fraction of variance should lie in the span of the softest modes. The diagnostics
+in Table~\ref{tab:classical_mode_alignment} support this interpretation: for $N=6$ the commutator norm is smallest at
+$\omega=10^{-3}$ and increases with confinement, while for $N=12$ and $N=20$ the commutator norms remain small and
+overlap weights show a reproducible concentration of variance into a soft-mode subspace even though the fluctuation
+space is high-dimensional.
 
-\begin{figure}[htp]
-  \centering
-  \includegraphics[width=0.8\textwidth]{N6_all_densities}
-  \caption{Six-electron radial densities $P(r)$ across $\omega$.}
-  \label{fig:6N_radial_densities}
-\end{figure}
+% ============================================================
+% TABLE: Classical-mode alignment + concentration
+% (insert your existing Table~\ref{tab:classical_mode_alignment} here unchanged)
+% ============================================================
 
-\paragraph{Pushing to $\omega=10^{-3}$.}
-The ring stiffens further and both symmetry classes persist with high-quality order.
-From $K=300{,}000$ frames we obtain
-\[
-(1,5)\ \text{fraction}\approx 0.801,\qquad (0,6)\approx 0.199,
-\]
-with phase-aligned ring order
-\[
-|\Phi_5| = 0.597\!\pm\!0.224,\ \ \text{Lind}\approx0.225;\qquad
-|\Phi_6| = 0.663\!\pm\!0.183,\ \ \text{Lind}\approx0.205.
-\]
-Thus the shell is always present; lab-frame symmetry is restored by rotation,
-but in the co-rotating frame the six electrons form a stiff Wigner ring,
-predominantly in the $(1,5)$ sector with a significant $(0,6)$ minority.
-Classically, $(1,5)$ is favored and $(0,6)$ a proximate competitor; the quantum
-mixture at large $r_s$ mirrors this~\cite{schweigert1994spectralpropertieschargedparticles,Kong_2002}.
-(In both weak-trap cases the global $g(r)$ is reproduced to numerical precision
-by the appropriate II/IO/OO mixtures.)
+\paragraph{Pair-statistics validation (angular order beyond shelling).}
+Shell topology captures the dominant radial organization, but it does not by itself guarantee polygon-like angular
+correlations. We therefore compare the empirical global pair-distance histogram to two shell-based generative models
+sharing the \emph{same} shell assignment: (i) a polygon model (regular $n_s$-gons per shell with optimal phase alignment)
+and (ii) a uniform-angle model (same shell radii but no angular order). Table~\ref{tab:shell_pair_model_validation}
+shows that the polygon model systematically outperforms the uniform-angle baseline, and that the gain
+$\Delta\cos=\cos_{\mathrm{poly}}-\cos_{\mathrm{uni}}$ is strongest in the weakest trap and decreases with $\omega$,
+isolating a genuine angular-correlation signal beyond radial shelling alone.
 
-% ------------------------- N=12 -------------------------
+% ============================================================
+% TABLE: Pair-distance model validation (polygon vs uniform)
+% (insert your existing Table~\ref{tab:shell_pair_model_validation} here unchanged)
+% ============================================================
 
-\subsection{Twelve electrons ($N=12$): two shells and commensurability at \boldmath{$\omega=10^{-3}$}}
-
-Already at $\omega=0.01$ the system is well on the Wigner side, with two-shell formation frequent.  
-Using a conservative radial-gap threshold $\tau{=}3.0$ we find a two-shell fraction of $0.761$, with inner–ring occupancies
-\[
-(1,11)=32.639\%,\quad (2,10)=25.688\%,\quad (3,9)=13.716\%,
-\]
-and bond order / angular fluctuations
-\[
-\begin{aligned}
-&(1,11):\quad |\Phi_{\rm out}|=0.276,\ \ \text{Lind}_{\rm out}=0.495,\\
-&(2,10):\quad |\Phi_{\rm in}|=0.661,\ \ \text{Lind}_{\rm in}=0.315;\ \ |\Phi_{\rm out}|=0.300,\ \ \text{Lind}_{\rm out}=0.432,\\
-&(3,9):\quad |\Phi_{\rm in}|=0.565,\ \ \text{Lind}_{\rm in}=0.342;\ \ |\Phi_{\rm out}|=0.322,\ \ \text{Lind}_{\rm out}=0.408.
-\end{aligned}
-\]
-
-Upon lowering the trap to $\omega=10^{-3}$, shelling becomes ubiquitous and a \emph{commensurate} split emerges as modal.
-For the full $500{,}000$-frame ensemble the two-shell fraction is
-\[
-f_{\rm 2shell}(\tau) \approx 0.991,\ 0.966,\ 0.923
-\quad\text{for}\quad \tau=2.0,2.5,3.0,
-\]
-with inner–ring occupancy histograms that are very stable under~$\tau$.
-At $\tau{=}3.0$ we also consider a stricter two-shell subset, obtained by combining the
-radial gap criterion with additional quality cuts (see Appendix~Y); this subset constitutes
-$46.15\%$ of all frames and has
-\[
-(3,9)=43.29\%,\quad (2,10)=19.89\%,\quad (1,11)=12.54\%,
-\]
-with the remaining weight spread over $(4,8)$, $(5,7)$ and rarer configurations.
-The median outer radius in trap units is ${\approx}7.02$, consistent with the
-energy-based estimate of a strongly swollen cloud.
-
-On $(3,9)$ frames the rings show strong bond order with small angular Lindemann:
-\[
-|\Phi_3|=0.687\!\pm\!0.229,\ \ \text{Lind}_{\rm in}=0.223;\qquad
-|\Phi_9|=0.526\!\pm\!0.194,\ \ \text{Lind}_{\rm out}=0.224.
-\]
-Using a reduced bundle with $K\approx2.5\times 10^5$ frames that satisfy the
-two-shell criterion, we construct II/IO/OO histograms and weight them by the
-combinatorial mixture $(0.045{:}0.409{:}0.545)$.
-The resulting synthetic $g(r)$ has cosine similarity $0.9982$ to the global
-$g(r)$, i.e.\ is indistinguishable at our statistical resolution
-(see Fig.~\ref{fig:N12_w0001_decomposition}).
-
-\begin{figure}[htbp]
-  \centering
-  \includegraphics[width=0.85\textwidth]{mixfit_N12_w0.001_nin3.pdf}
-  \caption{Shell-resolved reconstruction of $g(r)$ at $\omega=10^{-3}$ for $N{=}12$.  
-  The global pair distribution is reproduced by a convex mixture of inner--inner (II),
-  inner--outer (IO) and outer--outer (OO) histograms with weights set by the observed
-  $(n_{\rm in},n_{\rm out})$ statistics, confirming that the structure is geometric
-  rather than a sampling artifact.}
-  \label{fig:N12_w0001_decomposition}
-\end{figure}
-
-This is exactly the Wigner-molecule regime: the \emph{radial} structure freezes
-into concentric shells, while residual \emph{azimuthal} dynamics mixes a few
-low-lying ring occupancies.
-The $(3,9)$ commensurate split at the weakest trap aligns with classical
-ground-state analyses for parabolic Coulomb clusters~\cite{schweigert1994spectralpropertieschargedparticles,Kong_2002}; 
-the finite weight of $(1,11)$ and $(2,10)$ reflects near-degeneracies and
-quantum rotational mixing~\cite{manninen2007metalclustersquantumdots,Filinov_2001}.
-
-\begin{figure}[htp]
-  \centering
-  \includegraphics[width=0.8\textwidth]{N12_all_densities}
-  \caption{Twelve-electron radial densities $P(r)$ across $\omega$.}
-  \label{fig:12N_radial_densities}
-\end{figure}
-
-\paragraph{Significance.}
-Taken together, the $\omega=10^{-3}$ results provide a sharp, quantitative realization of the Wigner-molecule picture in parabolic dots:
-(i) shell-resolved reconstruction of $g(r)$ at numerical precision,
-(ii) strong, commensurate bond order on rings with small angular Lindemann ratios,
-(iii) shell-occupancy (``topology'') fractions that smoothly approach the classical ordering as confinement weakens,
-all consistent with~\cite{Egger_1999,Filinov_2001,schweigert1994spectralpropertieschargedparticles,Kong_2002}.
-Our sector-resolved $|\Phi_m|$ are extracted \emph{within} a fully variational quantum ansatz and measured conditionally on shell occupancy, 
-which (to our knowledge) has not been reported before for $N=12$ parabolic dots.
+\paragraph{Discussion (what the combined diagnostics establish).}
+Across $N=2,6,12,20$ we observe a consistent and internally validated Wigner-to-denser structural crossover as $\omega$
+decreases. The one-body densities show dramatic spatial expansion and ring formation at $\omega=10^{-3}$.
+The shell topology reveals \emph{discrete} finite-$N$ Wigner patterns at $\omega=10^{-3}$ and sharp collapses at
+$\omega=10^{-2}$ for $N=12$ and $N=20$. The shell radii and separation gaps provide a quantitative real-space
+counterpart: in the Wigner regime the shells are widely separated and stable, while their radii and gaps shrink
+rapidly as confinement strengthens. Rotation-registered bond-orientational order demonstrates strong polygon-like
+internal angular localization in the Wigner regime (including multi-shell ordering for $N=12$ and $N=20$), while the
+lab-frame measures remain comparatively small and should be interpreted as pinning/rotation-timescale diagnostics
+rather than internal order. The Lindemann measures rise strongly with confinement, giving an independent signature of
+progressive melting. Finally, the pair-distance validation confirms that angular correlations contribute explanatory
+power beyond shelling, with the largest gains at weak confinement, and the mode-alignment analysis adds mechanistic
+support: in the low-$\omega$ regime the fluctuations retain structured, collective content compatible with
+small-oscillation physics around localized configurations, as expected for Wigner molecules in a finite trap.

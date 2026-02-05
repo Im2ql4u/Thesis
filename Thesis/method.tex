@@ -249,6 +249,206 @@ To enforce~\eqref{eq:bf-com} in practice, subtract the batchwise mean of the pre
 \paragraph{Summary.}
 Backflow provides a compact, symmetry-respecting way to move the Slater nodes toward the true correlated nodes. With mollified distances, optional short-range gates/attention, zero-mean projection, and bounded outputs, it integrates cleanly with the analytic cusp and smooth NQS correlator, reducing fixed-node error without inflating local-energy variance.
 
+\section{Copresheaf backflow network (CTNN)}
+\label{subsec:backflow-ctnn}
+
+As an alternative to the baseline BackflowNet in~\S\ref{subsec:backflow-method}, we also use a
+\emph{copresheaf-style} message-passing backflow network, implemented as
+\texttt{CTNNBackflowNet}. The key difference is that we maintain \emph{explicit node and edge
+features} and learn two linear \emph{transport maps} between the node and edge feature spaces.
+This yields a stable, parameter-sharing architecture that is naturally compatible with variable
+particle number $N$.
+
+\paragraph{Graph and feature spaces.}
+Given scaled coordinates $\tilde R=(\tilde{\mathbf x}_1,\ldots,\tilde{\mathbf x}_N)$ with
+$\tilde{\mathbf x}_i=\sqrt{\omega}\,\mathbf r_i$ (trap units), we consider the complete directed
+interaction graph on $N$ particles (all ordered pairs $(i,j)$), with self-edges removed.
+We associate
+\[
+  F(v)\cong \mathbb R^{H_v}
+  \quad \text{(node/vertex features)},\qquad
+  F(e)\cong \mathbb R^{H_e}
+  \quad \text{(edge features)},
+\]
+with widths $H_v=\texttt{hidden}$ and $H_e=\texttt{msg\_hidden}$.
+Transport between these spaces is learned by two linear maps
+\begin{equation}
+  \rho_{v\to e}:F(v)\to F(e),
+  \qquad
+  \rho_{e\to v}:F(e)\to F(v),
+  \label{eq:ctnn-transport}
+\end{equation}
+implemented as bias-free linear layers \texttt{rho\_v\_to\_e} and \texttt{rho\_e\_to\_v}.
+These maps are shared across all nodes/edges, so the model applies unchanged for different $N$.
+
+\subsection*{Node and edge initialization}
+\paragraph{Node input features.}
+The node input is the scaled position, optionally concatenated with a spin indicator
+$s_i\in\{0,1\}$:
+\begin{equation}
+  \mathbf z_i
+  =
+  \begin{cases}
+    [\,\tilde{\mathbf x}_i\ \|\ s_i\,]\in\mathbb R^{d+1}, & \text{if spin is used},\\
+    \tilde{\mathbf x}_i\in\mathbb R^{d}, & \text{otherwise}.
+  \end{cases}
+\end{equation}
+A linear embedding produces the initial node features
+\begin{equation}
+  \mathbf h_i^{(0)} = \mathrm{NodeEmbed}(\mathbf z_i)\in\mathbb R^{H_v}.
+  \label{eq:ctnn-node-embed}
+\end{equation}
+
+\paragraph{Edge geometry features.}
+For each ordered pair $(i,j)$ we form relative geometry in trap units,
+\[
+  \mathbf r_{ij}=\tilde{\mathbf x}_i-\tilde{\mathbf x}_j,\qquad
+  \tilde r_{ij}^2=\|\mathbf r_{ij}\|^2,\qquad
+  \tilde r_{ij}=\sqrt{\tilde r_{ij}^2+\varepsilon_{\rm num}},
+\]
+with a small numerical $\varepsilon_{\rm num}$ to avoid singular square roots in derivatives.
+The edge input is then
+\begin{equation}
+  \mathbf g_{ij} = [\,\mathbf r_{ij}\ \|\ \tilde r_{ij}\ \|\ \tilde r_{ij}^2\,]\in\mathbb R^{d+2},
+\end{equation}
+and an MLP \texttt{edge\_embed} yields initial edge features
+\begin{equation}
+  \mathbf h_{ij}^{(0)} = \mathrm{EdgeEmbed}(\mathbf g_{ij})\in\mathbb R^{H_e}.
+  \label{eq:ctnn-edge-embed}
+\end{equation}
+
+\subsection*{Copresheaf-style message passing (one round)}
+The network performs one message-passing round consisting of:
+(i) node$\to$edge transport; (ii) edge update; (iii) edge$\to$node transport; (iv) aggregation;
+(v) node residual update. (The depth of this architecture in the message-passing sense is one;
+the internal MLP depths are controlled by \texttt{msg\_layers} and \texttt{layers}.)
+
+\paragraph{Node$\to$edge transport.}
+We transport endpoint node features to the edge feature space via~\eqref{eq:ctnn-transport}:
+\begin{equation}
+  \mathbf v_{i\to e} = \rho_{v\to e}(\mathbf h_i^{(0)})\in\mathbb R^{H_e},
+  \qquad
+  \mathbf v_{j\to e} = \rho_{v\to e}(\mathbf h_j^{(0)})\in\mathbb R^{H_e}.
+  \label{eq:ctnn-v-to-e}
+\end{equation}
+
+\paragraph{Edge update.}
+The updated edge features are produced by an MLP \texttt{edge\_update} acting pointwise on edges:
+\begin{equation}
+  \mathbf h_{ij}^{(1)}
+  =
+  \mathrm{EdgeUpdate}\!\Big(
+    \mathbf h_{ij}^{(0)}
+    \ \|\ 
+    \mathbf v_{i\to e}
+    \ \|\ 
+    \mathbf v_{j\to e}
+  \Big)
+  \in\mathbb R^{H_e}.
+  \label{eq:ctnn-edge-update}
+\end{equation}
+
+\paragraph{Edge$\to$node messages and spin masking.}
+Each directed edge $(i,j)$ produces a node-space message by transporting the updated edge feature back:
+\begin{equation}
+  \mathbf m_{i\leftarrow j} = \rho_{e\to v}(\mathbf h_{ij}^{(1)})\in\mathbb R^{H_v}.
+  \label{eq:ctnn-e-to-v}
+\end{equation}
+We apply (a) a self-edge mask $(1-\delta_{ij})$ and (b) an optional spin mask
+$w^{\rm spin}_{ij}\in\{0,1\}$ (all pairs allowed, or same-spin only):
+\begin{equation}
+  \tilde{\mathbf m}_{i\leftarrow j}
+  = (1-\delta_{ij})\,w^{\rm spin}_{ij}\,\mathbf m_{i\leftarrow j}.
+  \label{eq:ctnn-mask}
+\end{equation}
+
+\paragraph{Permutation-invariant aggregation.}
+Incoming messages are aggregated per node with a selectable reduction
+(\texttt{sum}, \texttt{mean}, or \texttt{max}):
+\begin{equation}
+  \mathbf m_i
+  = \mathrm{Agg}_{j}\,\tilde{\mathbf m}_{i\leftarrow j}
+  \in\mathbb R^{H_v}.
+  \label{eq:ctnn-agg}
+\end{equation}
+Because the aggregation is permutation-invariant and edges are defined pairwise, the construction
+is symmetric under particle relabeling.
+
+\paragraph{Node residual update.}
+A node update MLP \texttt{node\_update} produces a residual correction $\Delta \mathbf h_i$:
+\begin{equation}
+  \Delta \mathbf h_i
+  =
+  \mathrm{NodeUpdate}\!\Big(
+    \mathbf h_i^{(0)}\ \|\ \mathbf m_i
+  \Big)\in\mathbb R^{H_v},
+  \qquad
+  \mathbf h_i^{(1)} = \mathbf h_i^{(0)} + \Delta \mathbf h_i.
+  \label{eq:ctnn-node-update}
+\end{equation}
+The residual form improves stability and makes the update behave as an incremental refinement.
+
+\subsection*{Displacement head, bounds, and COM neutrality}
+\paragraph{Backflow displacement.}
+A linear head maps updated node features to a displacement in coordinate space:
+\begin{equation}
+  \delta\tilde{\mathbf x}_i
+  = \mathrm{DxHead}(\mathbf h_i^{(1)})\in\mathbb R^{d}.
+  \label{eq:ctnn-dx-head}
+\end{equation}
+To keep displacements bounded we apply an output nonlinearity (default \texttt{tanh}):
+\begin{equation}
+  \delta\tilde{\mathbf x}_i \leftarrow \tanh(\delta\tilde{\mathbf x}_i),
+  \label{eq:ctnn-bound}
+\end{equation}
+and enforce center-of-mass (COM) neutrality by subtracting the mean displacement,
+\begin{equation}
+  \delta\tilde{\mathbf x}_i
+  \leftarrow
+  \delta\tilde{\mathbf x}_i
+  -
+  \frac{1}{N}\sum_{k=1}^{N}\delta\tilde{\mathbf x}_k.
+  \label{eq:ctnn-com}
+\end{equation}
+
+\paragraph{Near-identity initialization and positive scale.}
+We multiply by a positive, learnable scalar
+\begin{equation}
+  s_\beta = \mathrm{softplus}(s_\beta^{\rm raw})>0,
+  \qquad
+  \Delta_\beta(\tilde R)_i = s_\beta\,\delta\tilde{\mathbf x}_i,
+  \label{eq:ctnn-scale}
+\end{equation}
+and zero-initialize the final displacement head to start from $\Delta_\beta\simeq 0$ (identity backflow).
+This makes early-stage SR and Laplacian estimates significantly more robust.
+
+\subsection*{Complexity and scaling with $N$}
+The CTNN backflow constructs dense pairwise edge features $\mathbf h_{ij}$, so compute and memory scale as
+\begin{equation}
+  O\!\big(BN^2(H_e+H_v+d)\big),
+\end{equation}
+for batch size $B$. This is the same asymptotic scaling as dense message passing, but with improved
+expressivity from explicitly learning in both node and edge feature spaces via the transports
+in~\eqref{eq:ctnn-transport}.
+
+\subsection*{Mapping to implementation}
+The correspondence to \texttt{CTNNBackflowNet} is direct:
+(i)~\eqref{eq:ctnn-node-embed} is \texttt{node\_embed};
+(ii)~\eqref{eq:ctnn-edge-embed} is \texttt{edge\_embed} on $[\mathbf r_{ij},\tilde r_{ij},\tilde r_{ij}^2]$;
+(iii) transports~\eqref{eq:ctnn-transport} are \texttt{rho\_v\_to\_e} and \texttt{rho\_e\_to\_v};
+(iv) edge update~\eqref{eq:ctnn-edge-update} is \texttt{edge\_update};
+(v) aggregation~\eqref{eq:ctnn-agg} is \texttt{\_aggregate} with \texttt{sum|mean|max};
+(vi) node residual update~\eqref{eq:ctnn-node-update} is \texttt{node\_update} plus a skip connection;
+(vii) displacement head and controls~\eqref{eq:ctnn-dx-head}--\eqref{eq:ctnn-scale} are
+\texttt{dx\_head}, \texttt{out\_bound="tanh"}, the COM projection, and
+$s_\beta=\mathrm{softplus}(\texttt{bf\_scale\_raw})$.
+
+\paragraph{Summary.}
+The CTNN backflow replaces direct pairwise coordinate messages with a two-level node/edge feature
+system and learned transports between them. It remains permutation-symmetric, supports optional
+spin masking, enforces COM neutrality, and stays close to identity at initialization while providing
+a flexible mechanism for nodal deformation through $\tilde R'=\tilde R+\Delta_\beta(\tilde R)$.
+
 
 \chapter{Optimization}
 \label{ch:optimization}

@@ -1,810 +1,776 @@
+# functions/Slater_Determinant.py
+# ---------------------------------------------------------------
+# Clean, basis-agnostic engines for 2D HO (Cartesian + Fock–Darwin)
+# ---------------------------------------------------------------
 from __future__ import annotations
 
 import math
+from math import factorial
 
+import numpy as np
 import torch
-from torch import nn
-from torch.nn.utils import parameters_to_vector, vector_to_parameters
+from scipy.linalg import eigh as eigh_generalized  # solves A v = S v w
 
-# ======================================================================================
-# 0) Utilities
-# ======================================================================================
+from utils import inject_params
 
-
-def _gather_params(mods: list[nn.Module | None]) -> tuple[list[torch.Tensor], torch.Tensor]:
-    """Collect trainable parameters from a list of modules and return (list, flat_vector)."""
-    ps: list[torch.Tensor] = []
-    for m in mods:
-        if m is None:
-            continue
-        ps += [p for p in m.parameters() if p.requires_grad]
-    flat = parameters_to_vector(ps) if ps else torch.tensor([], device="cpu")
-    return ps, flat
+# ===============================================================
+# Utilities: grids, Simpson weights, centered FFT convolution
+# ===============================================================
 
 
-@torch.no_grad()
-def _persistent_rw(
-    psi_log_fn,
-    x: torch.Tensor,
-    steps: int,
-    sigma: float,
+def simpson_weights(x: np.ndarray) -> np.ndarray:
+    """Classic Simpson weights on a uniform 1D grid x."""
+    n = len(x)
+    if n < 2:
+        raise ValueError("Need at least 2 points for Simpson integration.")
+    h = (x[-1] - x[0]) / (n - 1)
+    w = np.ones(n)
+    if n >= 3:
+        w[1:-1:2] = 4
+        w[2:-1:2] = 2
+    return w * (h / 3.0)
+
+
+def mesh_xy(L: float, n_grid: int) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    x = np.linspace(-L, L, n_grid)
+    y = np.linspace(-L, L, n_grid)
+    X, Y = np.meshgrid(x, y, indexing="ij")
+    return x, y, X, Y
+
+
+def _zero_pad_center(
+    f: np.ndarray, pad_factor: int = 2
+) -> tuple[np.ndarray, tuple[int, int], tuple[int, int]]:
+    """Center f into a larger complex array for linear convolution."""
+    nx, ny = f.shape
+    Nx, Ny = pad_factor * nx, pad_factor * ny
+    F = np.zeros((Nx, Ny), dtype=np.complex128)
+    i0 = (Nx - nx) // 2
+    j0 = (Ny - ny) // 2
+    F[i0 : i0 + nx, j0 : j0 + ny] = f.astype(np.complex128, copy=False)
+    return F, (i0, j0), (Nx, Ny)
+
+
+def _crop_center(h: np.ndarray, out_shape: tuple[int, int], origin: tuple[int, int]) -> np.ndarray:
+    """Crop the centered physical region after linear convolution."""
+    i0, j0 = origin
+    nx, ny = out_shape
+    return h[i0 : i0 + nx, j0 : j0 + ny]
+
+
+@inject_params
+def coulomb_kernel_fft(
+    x: np.ndarray,
+    y: np.ndarray,
+    pad_factor: int = 2,
+    eps: float = 1e-9,
+    kappa: float = 1.0,
     *,
-    adapt: bool,
-    target: float,
-    adapt_lr: float,
-) -> tuple[torch.Tensor, float, int, int]:
+    params=None,
+) -> np.ndarray:
     """
-    Random-walk Metropolis on |ψ|^2 with optional Robbins–Monro adaptation (only when adapt=True).
-    x: (B, N, d), sigma: proposal std (scalar, same units as x)
-    Returns: (new_x, new_sigma, accepted_count, proposed_count)
+    FFT of the *centered* 1/(kappa*r) kernel for linear convolution.
+    We build V with its singularity at the center pixel and then ifftshift
+    so that np.fft.fftn sees the origin at index (0,0).
     """
-    lp = psi_log_fn(x) * 2.0  # log |ψ|^2
-    acc_cnt = 0
-    prop_cnt = 0
-    sig = float(sigma)
+    if params is not None:
+        if kappa is None:
+            kappa = params.get("kappa", 1.0)
+        if pad_factor is None:
+            pad_factor = params.get("pad_factor", 2)
 
-    for _ in range(int(steps)):
-        prop = x + torch.randn_like(x) * sig
-        lp_prop = psi_log_fn(prop) * 2.0
-        logu = torch.log(torch.rand_like(lp_prop))
-        acc = logu < (lp_prop - lp)  # (B,)
-        x = torch.where(acc.view(-1, 1, 1), prop, x)
-        lp = torch.where(acc, lp_prop, lp)
-        a_hat = float(acc.float().mean().item())
-        acc_cnt += int(acc.sum().item())
-        prop_cnt += acc.numel()
+    nx, ny = len(x), len(y)
+    dx, dy = x[1] - x[0], y[1] - y[0]
+    Nx, Ny = pad_factor * nx, pad_factor * ny
 
-        if adapt:
-            sig *= math.exp(adapt_lr * (a_hat - target))
-            sig = float(min(max(sig, 1e-4), 2.0))
+    ix = np.arange(Nx) - (Nx // 2)
+    iy = np.arange(Ny) - (Ny // 2)
+    RX, RY = np.meshgrid(ix * dx, iy * dy, indexing="ij")
+    R = np.hypot(RX, RY)
 
-    return x, sig, acc_cnt, prop_cnt
+    V = 1.0 / (kappa * np.maximum(R, eps))
+    V[Nx // 2, Ny // 2] = 0.0  # remove self term
+
+    V0 = np.fft.ifftshift(V.astype(np.complex128))
+    return np.fft.fftn(V0)  # g_fft
 
 
-@torch.no_grad()
-def _persistent_rw_mixture(
-    psi_log_fn,
-    x: torch.Tensor,
-    steps: int,
-    sigma_small: float,
-    *,
-    p_big: float = 0.15,
-    sigma_big: float | None = None,  # if None → 3 * sigma_small (updated live)
-    use_cauchy_jumps: bool = False,  # symmetric heavy-tail jumps
-    cauchy_scale: float = 0.05,  # in same units as x (use ℓ-scaled)
-    adapt: bool = False,
-    target: float = 0.45,
-    adapt_lr: float = 0.05,
-) -> tuple[torch.Tensor, float, int, int]:
+# ===============================================================
+# Cartesian HO basis (numpy grids + torch evaluators)
+# ===============================================================
+
+
+def hermite_polynomial(n: int, x: np.ndarray) -> np.ndarray:
+    """Physicists' Hermite polynomial H_n(x)."""
+    coeffs = [0] * n + [1]
+    return np.polynomial.hermite.hermval(x, coeffs)
+
+
+@inject_params
+def harmonic_oscillator_wavefunction_1d(n: int, x: np.ndarray, *, params=None) -> np.ndarray:
+    r"""
+    1D HO eigenfunction ψ_n(x) with frequency ω from params:
+      ψ_n(x) = (ω/π)^(1/4) / sqrt(2^n n!) * exp(-ω x²/2) * H_n(√ω x)
     """
-    RW Metropolis targeting |ψ|^2 with a *mixture* of proposal kernels:
-      - small Gaussian step (σ = sigma_small)
-      - big Gaussian step (σ = sigma_big, used with prob p_big)
-      - optional symmetric Cauchy step (scale = cauchy_scale) on the same grid
-    Symmetric proposals ⇒ standard Metropolis ratio π(x')/π(x).
-    Only sigma_small is adapted (Robbins–Monro) when adapt=True.
+    omega = float(params["omega"])
+    xi = np.sqrt(omega) * x
+    Hn = hermite_polynomial(n, xi)
+    norm = (omega / np.pi) ** 0.25 / np.sqrt((2.0**n) * factorial(n))
+    return norm * np.exp(-0.5 * omega * x**2) * Hn
+
+
+@inject_params
+def harmonic_oscillator_wavefunction_2d(
+    n_x: int, n_y: int, X: np.ndarray, Y: np.ndarray, *, params=None
+) -> np.ndarray:
+    """Separable 2D HO eigenfunction ψ_{n_x}(x) ψ_{n_y}(y), ω via params."""
+    psi_x = harmonic_oscillator_wavefunction_1d(n_x, X)
+    psi_y = harmonic_oscillator_wavefunction_1d(n_y, Y)
+    return psi_x * psi_y
+
+
+@inject_params
+def initialize_harmonic_basis_2d(
+    n_x_max: int, n_y_max: int, xgrid: np.ndarray, ygrid: np.ndarray, *, params=None
+) -> np.ndarray:
     """
-    lp = psi_log_fn(x) * 2.0
-    acc_cnt = 0
-    prop_cnt = 0
-    sig_s = float(sigma_small)
-    sig_b = float(3.0 * sig_s) if sigma_big is None else float(sigma_big)
+    Cartesian product basis: 0 <= n_x < n_x_max, 0 <= n_y < n_y_max.
+    Each basis function normalized on the (xgrid, ygrid) box with Simpson.
+    Returns (n_points, n_basis) with basis as columns.
+    """
+    X, Y = np.meshgrid(xgrid, ygrid, indexing="ij")  # (nx, ny)
+    nx, ny = len(xgrid), len(ygrid)
+    wx = simpson_weights(xgrid)[:, None]
+    wy = simpson_weights(ygrid)[None, :]
 
-    for _ in range(int(steps)):
-        B = x.shape[0]
-        # choose which kernel per walker
-        use_big = torch.rand(B, device=x.device) < p_big
-        use_cauchy = torch.zeros(B, dtype=torch.bool, device=x.device)
-        if use_cauchy_jumps:
-            # ~half of the big jumps are Cauchy by default
-            mask = (torch.rand(B, device=x.device) < 0.5) & use_big
-            use_cauchy = mask
+    cols = []
+    for nx_ho in range(n_x_max):
+        for ny_ho in range(n_y_max):
+            psi2d = harmonic_oscillator_wavefunction_2d(nx_ho, ny_ho, X, Y)
+            dens = psi2d**2
+            norm2 = float(np.sum(wx * dens * wy))
+            if norm2 <= 0.0:
+                raise RuntimeError("Normalization failed: non-positive norm.")
+            psi2d /= np.sqrt(norm2)
+            cols.append(psi2d.reshape(nx * ny))
 
-        # draw noise
-        noise = torch.randn_like(x)
-        scale = torch.full((B, 1, 1), sig_s, device=x.device, dtype=x.dtype)
-        scale[use_big & ~use_cauchy] = sig_b
-
-        if use_cauchy.any():
-            # symmetric heavy-tail increments (no drift)
-            cauchy = torch.distributions.Cauchy(
-                torch.zeros_like(x[use_cauchy]),
-                torch.full_like(x[use_cauchy], cauchy_scale),
-            ).rsample()
-            prop = x.clone()
-            prop[use_cauchy] = prop[use_cauchy] + cauchy
-            prop[~use_cauchy] = prop[~use_cauchy] + noise[~use_cauchy] * scale[~use_cauchy]
-        else:
-            prop = x + noise * scale
-
-        lp_prop = psi_log_fn(prop) * 2.0
-        logu = torch.log(torch.rand_like(lp_prop))
-        acc = logu < (lp_prop - lp)
-        x = torch.where(acc.view(-1, 1, 1), prop, x)
-        lp = torch.where(acc, lp_prop, lp)
-
-        a_hat = float(acc.float().mean().item())
-        acc_cnt += int(acc.sum().item())
-        prop_cnt += acc.numel()
-
-        if adapt:
-            sig_s *= math.exp(adapt_lr * (a_hat - target))
-            sig_s = float(min(max(sig_s, 1e-4), 2.0))
-            # keep big step anchored to small step unless user fixed it
-            if sigma_big is None:
-                sig_b = 3.0 * sig_s
-
-    return x, sig_s, acc_cnt, prop_cnt
+    return np.column_stack(cols)  # (nx*ny, n_basis)
 
 
-# ======================================================================================
-# 1) Laplacian backends and Local Energy (multi-mode)
-# ======================================================================================
-
-
-def _lap_log_fd_hutch(psi_log_fn, x, probes=16, eps=1e-3):
-    """Hutchinson on ∆logψ via forward finite differences of ∇logψ."""
-    x = x.detach()
-    B = x.shape[0]
-    acc = torch.zeros(B, device=x.device, dtype=x.dtype)
-    eps_t = torch.as_tensor(eps, device=x.device, dtype=x.dtype)
-
-    for _ in range(max(1, int(probes))):
-        v = torch.empty_like(x).bernoulli_(0.5).mul_(2).add_(-1)
-        xp = (x + eps_t * v).requires_grad_(True)
-        xm = (x - eps_t * v).requires_grad_(True)
-        with torch.set_grad_enabled(True):
-            gp = torch.autograd.grad(
-                psi_log_fn(xp).sum(), xp, create_graph=False, retain_graph=False
-            )[0]
-            gm = torch.autograd.grad(
-                psi_log_fn(xm).sum(), xm, create_graph=False, retain_graph=False
-            )[0]
-        acc += ((gp - gm) * v).sum(dim=(1, 2)) / (2.0 * eps_t)
-    return acc / float(max(1, int(probes)))
-
-
-def _lap_log_fd_central_hutch(psi_log_fn, x, probes=16, eps=1e-3):
-    """Hutchinson on ∆logψ using central second-difference of ∇logψ (uses one extra ∇ at x)."""
-    x0 = x.detach().requires_grad_(True)
-    with torch.set_grad_enabled(True):
-        g0 = torch.autograd.grad(psi_log_fn(x0).sum(), x0, create_graph=False, retain_graph=False)[
-            0
-        ]
-    x = x0.detach()
-    B = x.shape[0]
-    acc = torch.zeros(B, device=x.device, dtype=x.dtype)
-    eps_t = torch.as_tensor(eps, device=x.device, dtype=x.dtype)
-
-    for _ in range(max(1, int(probes))):
-        v = torch.empty_like(x).bernoulli_(0.5).mul_(2).add_(-1)
-        xp = (x + eps_t * v).requires_grad_(True)
-        xm = (x - eps_t * v).requires_grad_(True)
-        with torch.set_grad_enabled(True):
-            gp = torch.autograd.grad(
-                psi_log_fn(xp).sum(), xp, create_graph=False, retain_graph=False
-            )[0]
-            gm = torch.autograd.grad(
-                psi_log_fn(xm).sum(), xm, create_graph=False, retain_graph=False
-            )[0]
-        acc += ((gp - 2.0 * g0 + gm) * v).sum(dim=(1, 2)) / (eps_t * eps_t)
-    return acc / float(max(1, int(probes)))
-
-
-def _lap_log_hvp_hutch(psi_log_fn, x, probes=16):
-    """Hutchinson on ∆logψ via exact HVPs of ∇logψ."""
-    x = x.detach().requires_grad_(True)
-    with torch.set_grad_enabled(True):
-        g = torch.autograd.grad(psi_log_fn(x).sum(), x, create_graph=True, retain_graph=True)[0]
-    B = x.shape[0]
-    acc = torch.zeros(B, device=x.device, dtype=x.dtype)
-
-    for _ in range(max(1, int(probes))):
-        v = torch.empty_like(x).bernoulli_(0.5).mul_(2).add_(-1)
-        s = (g * v).sum()
-        Hv = torch.autograd.grad(s, x, create_graph=False, retain_graph=True)[0]
-        acc += (Hv * v).sum(dim=(1, 2))
-    return acc / float(max(1, int(probes)))
-
-
-def _lap_log_exact(psi_log_fn, x):
-    x = x.detach().requires_grad_(True)
-    with torch.set_grad_enabled(True):
-        l = psi_log_fn(x)  # (B,)
-        g = torch.autograd.grad(
-            l, x, grad_outputs=torch.ones_like(l), create_graph=True, retain_graph=True
-        )[
-            0
-        ]  # (B,N,d)
-        B, N, d = x.shape
-        lap = torch.zeros(B, device=x.device, dtype=x.dtype)
-        for i in range(N):
-            for k in range(d):
-                gi = g[:, i, k]  # (B,)
-                Hiik = torch.autograd.grad(
-                    gi, x, grad_outputs=torch.ones_like(gi), retain_graph=True, create_graph=False
-                )[0][
-                    :, i, k
-                ]  # (B,)
-                lap += Hiik
+def laplacian_2d2(phi2d: np.ndarray, dx: float, dy: float) -> np.ndarray:
+    """Five-point FD Laplacian on a regular 2D grid."""
+    lap = np.zeros_like(phi2d)
+    lap[1:-1, :] += (phi2d[:-2, :] - 2.0 * phi2d[1:-1, :] + phi2d[2:, :]) / (dx * dx)
+    lap[:, 1:-1] += (phi2d[:, :-2] - 2.0 * phi2d[:, 1:-1] + phi2d[:, 2:]) / (dy * dy)
     return lap
 
 
-def _local_energy_multi(
-    psi_log_fn,
-    x: torch.Tensor,
-    compute_coulomb_interaction,
-    omega: float,
-    *,
-    lap_mode: str = "hvp-hutch",
-    lap_probes: int = 16,
-    fd_eps: float = 1e-3,
-):
-    """
-    E_L = -1/2 * (∆ logψ + ||∇ logψ||^2) + V(x), with selectable Laplacian:
-    lap_mode ∈ {"fd-hutch", "fd-central-hutch", "hvp-hutch", "exact"}.
-    Returns (E_L (B,), logψ (B,))
-    """
-    x = x.detach().requires_grad_(True)
-    with torch.set_grad_enabled(True):
-        logpsi = psi_log_fn(x)  # (B,)
-        need_graph = lap_mode in ("hvp-hutch", "exact")
-        g = torch.autograd.grad(
-            logpsi,
-            x,
-            grad_outputs=torch.ones_like(logpsi),
-            create_graph=need_graph,
-            retain_graph=True,
-        )[0]
-    g2 = (g * g).sum(dim=(1, 2))
-
-    if lap_mode == "fd-hutch":
-        lap = _lap_log_fd_hutch(psi_log_fn, x, probes=lap_probes, eps=fd_eps)
-    elif lap_mode == "fd-central-hutch":
-        lap = _lap_log_fd_central_hutch(psi_log_fn, x, probes=lap_probes, eps=fd_eps)
-    elif lap_mode == "hvp-hutch":
-        lap = _lap_log_hvp_hutch(psi_log_fn, x, probes=lap_probes)
-    elif lap_mode == "exact":
-        lap = _lap_log_exact(psi_log_fn, x)
-    else:
-        raise ValueError(f"Unknown lap_mode: {lap_mode}")
-
-    V_harm = 0.5 * (omega**2) * (x * x).sum(dim=(1, 2))
-    V_int = compute_coulomb_interaction(x)
-    V_int = V_int.view(-1) if V_int.ndim > 1 else V_int
-
-    E_L = -0.5 * (lap + g2) + (V_harm + V_int)
-    return E_L.detach(), logpsi.detach()
+def laplacian_2d(phi2d: np.ndarray, dx: float, dy: float) -> np.ndarray:
+    # reflect pad by 1 on all sides
+    G = np.pad(phi2d, ((1, 1), (1, 1)), mode="reflect")
+    lap = (G[2:, 1:-1] - 2.0 * G[1:-1, 1:-1] + G[:-2, 1:-1]) / (dx * dx)
+    lap += (G[1:-1, 2:] - 2.0 * G[1:-1, 1:-1] + G[1:-1, :-2]) / (dy * dy)
+    return lap
 
 
-# ======================================================================================
-# 2) Score matrix per-sample (robust, fast, no vmap/jvp required)
-# ======================================================================================
-
-
-def _score_rows(
-    psi_log_fn,
-    x: torch.Tensor,
-    modules: list[nn.Module | None],
-    *,
-    chunk_size: int = 2048,
-):
-    """
-    Build per-sample score matrix O: (B, P) where P = #params(modules).
-    Reuses one forward graph per chunk, then cheap backprops (retain_graph=True) per row.
-    """
-    params_list, flat = _gather_params(modules)
-    P = flat.numel()
-    B = x.shape[0]
-
-    if P == 0:
-        dev = x.device
-        dtype = x.dtype
-        return torch.zeros(B, 0, device=dev, dtype=dtype), params_list
-
-    dev = flat.device
-    dtype = flat.dtype
-    O = torch.empty(B, P, device=dev, dtype=dtype)
-
-    for s in range(0, B, chunk_size):
-        xb = x[s : s + chunk_size].detach().requires_grad_(True)
-        with torch.set_grad_enabled(True):
-            lb = psi_log_fn(xb)  # (K,)
-            K = lb.shape[0]
-            for j in range(K):
-                gj = torch.autograd.grad(
-                    lb[j], params_list, retain_graph=True, allow_unused=True, create_graph=False
-                )
-                # robust to None grads
-                gj = [
-                    (g if g is not None else torch.zeros_like(p))
-                    for g, p in zip(gj, params_list, strict=False)
-                ]
-                O[s + j].copy_(parameters_to_vector(gj))
-        del xb, lb  # free graph
-
-    return O, params_list
-
-
-# ======================================================================================
-# 3) Microbatched SR step with multi-Laplacian + ω-invariant controls
-# ======================================================================================
-
-
-def sr_step_energy_mb(
-    f_net: nn.Module,
-    C_occ: torch.Tensor,
-    *,
-    psi_fn,
-    compute_coulomb_interaction,
-    backflow_net: nn.Module | None = None,
-    spin=None,
-    params: dict,
-    # sampling / chunks
-    micro_batch: int = 1200,
-    total_rows: int = 9000,
-    sampler_steps: int = 90,
-    sampler_step_sigma: float = 0.10,  # initial σ in units of ℓ
-    sampler_sigma_bounds: tuple[float, float] | None = None,  # (lo, hi) in units of ℓ
-    # Laplacian controls
-    lap_mode: str = "hvp-hutch",  # "fd-hutch" | "fd-central-hutch" | "hvp-hutch" | "exact"
-    fd_probes: int = 12,  # probes for FD/HVP Hutchinson (ignored for "exact")
-    fd_eps_scale: float = 1e-3,  # ε in units of ℓ for FD modes
-    # SR / solver / trust region
-    center_O: bool = True,
-    damping: float = 1e-2,
-    cg_tol: float = 1e-6,
-    cg_iters: int = 150,
-    restart_every: int = 60,
-    step_size: float = 0.010,
-    max_param_step: float = 0.010,
-    max_damping: float = 5e-1,
-    # storage (kept ON DEVICE by default per request)
-    store_device: str | torch.device | None = None,
-    store_dtype: torch.dtype = torch.float64,
-    # safety
-    do_backtrack: bool = True,
-    # score chunking
-    score_chunk_size: int = 2048,
-):
-    device = params["device"]
-    net_dtype = params.get("torch_dtype", torch.float64)
+# Torch evaluators (Cartesian)
+@inject_params
+def evaluate_basis_functions_torch(x: torch.Tensor, n_basis: int, *, params=None) -> torch.Tensor:
+    """1D HO basis in torch with ω from params, returns (B,N,n_basis)."""
     omega = float(params["omega"])
-    N = int(params["n_particles"])
-    d = int(params["d"])
-    ell = 1.0 / math.sqrt(max(omega, 1e-12))  # oscillator length
+    dtype = x.dtype
+    sqrt_omega = math.sqrt(omega)
+    gauss = torch.exp(-0.5 * omega * x * x)
 
-    if store_device is None:
-        store_device = device  # keep ALL accumulators on the same device
+    norm0 = (omega / math.pi) ** 0.25
+    cols = [torch.as_tensor(norm0, dtype=dtype, device=x.device) * gauss]
 
-    # spin default
-    if spin is None:
-        up = N // 2
-        spin = torch.cat(
-            [torch.zeros(up, dtype=torch.long), torch.ones(N - up, dtype=torch.long)]
-        ).to(device)
+    if n_basis > 1:
+        norm1 = norm0 / math.sqrt(2.0)
+        cols.append(norm1 * (2.0 * sqrt_omega * x) * gauss)
 
-    # Nets to device/dtype
-    f_net.to(device).to(net_dtype).train()
-    if backflow_net is not None:
-        backflow_net.to(device).to(net_dtype).train()
+    if n_basis > 2:
+        H_nm1 = 2.0 * sqrt_omega * x
+        H_nm2 = torch.ones_like(x)
+        for n in range(1, n_basis - 1):
+            H_n = 2.0 * sqrt_omega * x * H_nm1 - 2.0 * n * H_nm2
+            norm = norm0 / math.sqrt((2.0 ** (n + 1)) * math.factorial(n + 1))
+            cols.append(norm * H_n * gauss)
+            H_nm2, H_nm1 = H_nm1, H_n
 
-    # try compiling only the psi closure (safe fallback)
-    psi_forward = psi_fn
-    #    if hasattr(torch, "compile"):
-    #        try:
-    #            psi_forward = torch.compile(psi_fn, dynamic=False, fullgraph=False)  # type: ignore
-    #        except Exception:
-    #            psi_forward = psi_fn
+    return torch.stack(cols, dim=-1)
 
-    # logψ closure
-    def psi_log_fn(x: torch.Tensor) -> torch.Tensor:
-        if not x.requires_grad:
-            x = x.detach().requires_grad_(True)
-        logpsi, _ = psi_forward(
-            f_net, x, C_occ, backflow_net=backflow_net, spin=spin, params=params
-        )
-        return logpsi.view(-1)
 
-    # ---------- persistent sampler state (kept on DEVICE) ----------
-    key = (N, d, float(omega), str(device), str(net_dtype))
-    S = getattr(sr_step_energy_mb, "_state", None)
-    if (S is None) or (S.get("key") != key):
-        S = {
-            "key": key,
-            "prev_x": None,  # will hold tensor on `device`
-            "sigma": float(sampler_step_sigma * ell),
-            "did_burn": False,
-        }
-        sr_step_energy_mb._state = S
+@inject_params
+def evaluate_basis_functions_torch_batch_2d(
+    x: torch.Tensor, n_basis_x: int, n_basis_y: int, *, params=None
+) -> torch.Tensor:
+    """Separable 2D HO basis in torch (Cartesian). Returns (B,N,n_basis_x*n_basis_y)."""
+    if x.shape[-1] < 2:
+        raise ValueError("x must have at least 2 spatial dims (x,y).")
+    xcoord = x[..., 0]
+    ycoord = x[..., 1]
+    phi_x = evaluate_basis_functions_torch(xcoord, n_basis_x)
+    phi_y = evaluate_basis_functions_torch(ycoord, n_basis_y)
+    prod = phi_x.unsqueeze(-1) * phi_y.unsqueeze(-2)  # (B,N,nx,ny)
+    return prod.reshape(x.shape[0], x.shape[1], n_basis_x * n_basis_y)
 
-    # Eval mode for sampling (avoid dropout/bn randomness during MCMC)
-    was_train = f_net.training
-    f_net.eval()
-    bf_was_train = False
-    if backflow_net is not None:
-        bf_was_train = backflow_net.training
-        backflow_net.eval()
 
-    # Initialize or reuse chain state
-    B0 = int(micro_batch)
-    init_std = ell
-    if S["prev_x"] is None:
-        x = torch.randn(B0, N, d, device=device, dtype=net_dtype) * init_std
-    else:
-        px = S["prev_x"]
-        if px.shape[0] >= B0:
-            x = px[:B0].to(device=device, dtype=net_dtype)
+# ===============================================================
+# FD (Fock–Darwin) basis: numpy grid builder + torch evaluator
+# ===============================================================
+
+
+def _fd_indices(emax: int) -> list[tuple[int, int]]:
+    """List of (n,m) with 2n+|m| <= emax, ordered by shell then m."""
+    out = []
+    for e in range(emax + 1):
+        for m in range(-e, e + 1):
+            if (e - abs(m)) % 2 == 0:
+                out.append(((e - abs(m)) // 2, m))
+    return out
+
+
+def _genlaguerre_torch(n: int, alpha: int, z: torch.Tensor) -> torch.Tensor:
+    """Differentiable generalized Laguerre L_n^{(alpha)}(z) via series."""
+    k = torch.arange(n + 1, device=z.device, dtype=z.dtype)
+    log_num = (
+        torch.lgamma(torch.tensor(n + alpha + 1.0, dtype=z.dtype, device=z.device))
+        - torch.lgamma((n - k) + 1.0)
+        - torch.lgamma((alpha + k) + 1.0)
+    )
+    log_den = torch.lgamma(k + 1.0)
+    coeff = torch.exp(log_num - log_den).view(*([1] * z.ndim), -1)
+    zpow = ((-z)[..., None]) ** k
+    return (coeff * zpow).sum(dim=-1)
+
+
+def _fd_orbital_torch(
+    n: int, m: int, x: torch.Tensor, y: torch.Tensor, omega: float, make_real: bool
+) -> torch.Tensor:
+    """FD orbital (torch); real cos/sin combos if make_real=True, else complex e^{imθ}."""
+    l0 = 1.0 / math.sqrt(omega)
+    rho2 = (x * x + y * y) / (l0 * l0)
+    rho = torch.sqrt(rho2 + 1e-40)
+    theta = torch.atan2(y, x)
+    am = abs(m)
+    # log normalization constant to avoid overflow
+    logN = -math.log(l0) + 0.5 * (
+        torch.lgamma(torch.tensor(float(n) + 1, dtype=x.dtype, device=x.device))
+        - torch.lgamma(torch.tensor(float(n + am) + 1, dtype=x.dtype, device=x.device))
+        - math.log(math.pi)
+    )
+    N = torch.exp(logN)
+    radial = (rho**am) * torch.exp(-0.5 * rho2) * _genlaguerre_torch(n, am, rho2)
+    if make_real:
+        if m == 0:
+            ang = torch.ones_like(theta)
+        elif m > 0:
+            ang = math.sqrt(2.0) * torch.cos(m * theta)
         else:
-            # grow the batch with fresh noise for the extra rows
-            extra = torch.randn(B0 - px.shape[0], N, d, device=device, dtype=net_dtype) * init_std
-            x = torch.cat([px.to(device=device, dtype=net_dtype), extra], dim=0)
-
-    # Burn-in & thinning params
-    target_accept = 0.4
-    adapt_lr = 0.05
-    burn_in0 = max(400, 20 * sampler_steps)
-    thin = max(10, min(20, sampler_steps))
-    keep_per = 2
-
-    acc_t, prop_t = 0, 0
-
-    if not S["did_burn"]:
-        x, sig, a1, p1 = _persistent_rw(
-            psi_log_fn, x, burn_in0, S["sigma"], adapt=True, target=target_accept, adapt_lr=adapt_lr
-        )
-        acc_t += a1
-        prop_t += p1
-        S["sigma"] = sig
-        S["did_burn"] = True
+            ang = math.sqrt(2.0) * torch.sin(abs(m) * theta)
+        return N * radial * ang
     else:
-        x, sig, a1, p1 = _persistent_rw(
-            psi_log_fn, x, thin, S["sigma"], adapt=False, target=target_accept, adapt_lr=adapt_lr
-        )
-        acc_t += a1
-        prop_t += p1
-        S["sigma"] = sig
+        # complex e^{imθ}
+        ang = torch.complex(torch.cos(m * theta), torch.sin(m * theta))
+        return torch.complex(N * radial, torch.zeros_like(radial)) * ang
 
-    # Clamp σ to ω-invariant bounds
-    if sampler_sigma_bounds is None:
-        lo_hi = (0.06 * ell, 0.14 * ell) if omega >= 0.5 else (0.10 * ell, 0.18 * ell)
-    else:
-        lo, hi = sampler_sigma_bounds
-        lo_hi = (lo * ell, hi * ell)
-    S["sigma"] = float(min(max(S["sigma"], lo_hi[0]), lo_hi[1]))
 
-    # Persist the current chain head (on DEVICE)
+# Global FD index order, set after compute_integrals() so Slater matches HF exactly.
+_fd_idx_global: list[tuple[int, int]] | None = None
 
-    # Restore train modes
-    if was_train:
-        f_net.train()
-    if backflow_net is not None and bf_was_train:
-        backflow_net.train()
 
-    # Accumulators (ON DEVICE)
-    O_blocks: list[torch.Tensor] = []
-    E_blocks: list[torch.Tensor] = []
-    sumE = torch.zeros((), dtype=torch.float64, device=store_device)
-    sumE2 = torch.zeros((), dtype=torch.float64, device=store_device)
-    sumO = None
-    sumO2 = None
-    total = 0
-    filtered = 0
+def set_fd_idx(idx_list: list[tuple[int, int]]) -> None:
+    """Set the global FD (n,m) order to the integrals' order."""
+    global _fd_idx_global
+    _fd_idx_global = list(idx_list)
 
-    # ε for FD modes (ω-invariant → physical)
-    eps_phys = fd_eps_scale * ell
 
-    # Sampling + chunk accumulation
-    while total < int(total_rows):
-        keeps = []
-        with torch.no_grad():
-            for _ in range(keep_per):
-                x, _, a2, p2 = _persistent_rw(
-                    psi_log_fn,
-                    x,
-                    thin,
-                    S["sigma"],
-                    adapt=False,
-                    target=target_accept,
-                    adapt_lr=adapt_lr,
-                )
-                acc_t += a2
-                prop_t += p2
-                keeps.append(x.clone())
+@inject_params
+def _evaluate_fd_basis_torch_batch(
+    x: torch.Tensor,
+    emax: int = 3,
+    omega: float = 1.0,
+    make_real: bool = True,
+    *,
+    params=None,
+) -> torch.Tensor:
+    """
+    Evaluate FD basis on a batch x: (B,N,2). Uses the exact (n,m) order set by set_fd_idx(...)
+    if available; otherwise rebuilds via _fd_indices(emax).
+    """
+    if params is not None:
+        if emax is None:
+            emax = params["emax"]
+        if omega is None:
+            omega = params["omega"]
+        if make_real is None:
+            make_real = params.get("fd_make_real", True)
 
-        for xk in keeps:
-            xk = xk[:B0].detach().to(device=device, dtype=net_dtype).requires_grad_(True)
+    idx = _fd_idx_global if _fd_idx_global is not None else _fd_indices(emax)
+    cols = [
+        _fd_orbital_torch(n, m, x[..., 0], x[..., 1], float(omega), bool(make_real))
+        for (n, m) in idx
+    ]
+    return torch.stack(cols, dim=-1)  # (B, N, n_basis_fd)
 
-            # Local energy
-            with torch.set_grad_enabled(True):
-                E_L, _ = _local_energy_multi(
-                    psi_log_fn,
-                    xk,
-                    compute_coulomb_interaction,
-                    omega,
-                    lap_mode=lap_mode,
-                    lap_probes=fd_probes,
-                    fd_eps=eps_phys,
-                )
 
-            # Filter non-finite
-            good = torch.isfinite(E_L)
-            if not good.all():
-                filtered += int((~good).sum().item())
-                xk = xk[good]
-                E_L = E_L[good]
-            if xk.numel() == 0:
-                continue
+@inject_params
+def fd_wavefunctions_on_grid(
+    e_max: int, omega: float, x: np.ndarray, y: np.ndarray, *, params=None
+) -> tuple[np.ndarray, list[tuple[int, int]]]:
+    """
+    Fock–Darwin orbitals on a Cartesian grid (NumPy).
+    If params['fd_make_real'] is True (default)-> REAL cos/sin combos:
+      - m = 0:             φ_{n,0}(r)                           (1 column)
+      - m > 0:             √2 φ_{n,|m|}(r) cos(mθ)  -> index (n, +m)
+      - m < 0:             √2 φ_{n,|m|}(r) sin(|m|θ) -> index (n, -|m|)
+    If False, returns complex e^{imθ} (then keep fd_make_real=False in Torch too).
+    Returns: Phi (nx*ny, nb), idx list [(n,m)].
+    """
+    if params is not None:
+        if omega is None:
+            omega = params["omega"]
+        if e_max is None:
+            e_max = params.get("emax", e_max)
+    make_real = True if params is None else params.get("fd_make_real", True)
 
-            # MAD outlier clamp (very permissive)
-            with torch.no_grad():
-                med = E_L.median()
-                mad = (E_L - med).abs().median().clamp_min(1e-12)
-                mask = (E_L - med).abs() <= 60.0 * mad
-            if not mask.all():
-                filtered += int((~mask).sum().item())
-                xk = xk[mask]
-                E_L = E_L[mask]
-            if xk.numel() == 0:
-                continue
+    X, Y = np.meshgrid(x, y, indexing="ij")
+    nx, ny = len(x), len(y)
+    r = np.hypot(X, Y)
+    theta = np.arctan2(Y, X)
+    l0 = 1.0 / math.sqrt(omega)
+    rho = r / l0
 
-            # Score rows (per-sample ∂logψ/∂θ)
-            modules = [f_net] if backflow_net is None else [f_net, backflow_net]
-            O_chunk, params_list = _score_rows(psi_log_fn, xk, modules, chunk_size=score_chunk_size)
-            P = O_chunk.shape[1]
+    idx_raw = _fd_indices(e_max)  # pairs (n,m) with 2n+|m|<=emax
+    cols: list[np.ndarray] = []
+    idx: list[tuple[int, int]] = []
 
-            # Accumulate (keep on device)
-            O_dev = O_chunk.detach().to(device=store_device, dtype=torch.float64)
-            E_dev = E_L.detach().to(device=store_device, dtype=torch.float64)
+    # Use generalized Laguerre with α=|m|
+    try:
+        from scipy.special import eval_genlaguerre as Lgen
 
-            if sumO is None:
-                sumO = torch.zeros(P, dtype=torch.float64, device=store_device)
-                sumO2 = torch.zeros(P, dtype=torch.float64, device=store_device)
+        def Rnm(n, mabs, rho2):
+            return (rho**mabs) * np.exp(-0.5 * rho2) * Lgen(n, mabs, rho2)
 
-            sumE += E_dev.sum()
-            sumE2 += (E_dev * E_dev).sum()
-            sumO += O_dev.sum(dim=0)
-            sumO2 += (O_dev * O_dev).sum(dim=0)
+    except Exception:
 
-            O_blocks.append(
-                O_dev
-            )  # could cast to float32 to save VRAM, but keep 64-bit for stability
-            E_blocks.append(E_dev)
-            total += int(E_dev.numel())
-            if total >= int(total_rows):
-                break
-    S["prev_x"] = x.detach()
-    if total == 0:
-        return {
-            "E_mean": float("nan"),
-            "E_std": float("nan"),
-            "step_norm": 0.0,
-            "cg_iters": 0,
-            "g_norm": 0.0,
-            "kept_params": 0,
-            "damping": float(damping),
-            "B_eff": 0,
-            "filtered": filtered,
-            "sigma": float(S["sigma"]),
-            "acc_rate": 0.0,
-        }
-
-    B_eff = float(total)
-    mu_E = float((sumE / B_eff).item())
-    var_E = max(0.0, float((sumE2 / B_eff - (sumE / B_eff) ** 2).item()))
-    E_std = var_E**0.5
-
-    # Variance of O columns (for whitening + pruning)
-    meanO = sumO / B_eff
-    varO = (sumO2 / B_eff) - (meanO * meanO)
-    varO = varO.clamp_min(1e-12)
-    v10 = float(torch.quantile(varO, 0.01).item())
-    v99 = float(torch.quantile(varO, 0.999).item())
-    v_floor = max(v10, 1e-8)
-    v_ceil = max(v99, v_floor)
-    varO = varO.clamp(min=v_floor, max=v_ceil)
-
-    # Drop weakly observed parameters (lowest ~10% variance)
-    P_full = int(varO.numel())
-    # thresh = float(torch.quantile(varO, 0.10).item()) if P_full > 10 else 0.0
-    # keep_mask = (varO > thresh) if P_full > 10 else torch.ones(P_full, dtype=torch.bool, device=store_device)
-    # keep_idx = keep_mask.nonzero(as_tuple=False).flatten()
-    keep_idx = torch.arange(P_full, device=store_device)  # keep ALL params
-    P_kept = int(keep_idx.numel())
-
-    if P_kept == 0:
-        return {
-            "E_mean": mu_E,
-            "E_std": E_std,
-            "step_norm": 0.0,
-            "cg_iters": 0,
-            "g_norm": 0.0,
-            "kept_params": 0,
-            "damping": float(damping),
-            "B_eff": int(B_eff),
-            "filtered": filtered,
-            "sigma": float(S["sigma"]),
-            "acc_rate": float(acc_t) / float(max(prop_t, 1)),
-        }
-
-    meanO_k = meanO[keep_idx]
-    D_inv_sqrt = varO[keep_idx].rsqrt()
-
-    # Whitened blocks
-    Ow_blocks: list[torch.Tensor] = []
-    for Oc in O_blocks:
-        Ok = Oc[:, keep_idx].to(dtype=torch.float64, device=store_device)
-        if center_O:
-            Ok = Ok - meanO_k
-        Ow_blocks.append(Ok * D_inv_sqrt)
-
-    # Gradient in whitened coords: g_w = 2/B Σ Ow * (E - μ)
-    g_w = torch.zeros(P_kept, dtype=torch.float64, device=store_device)
-    for Ow, E in zip(Ow_blocks, E_blocks, strict=False):
-        g_w += (Ow * (E.view(-1, 1) - mu_E)).sum(dim=0)
-    g_w = 2.0 * (g_w / B_eff)
-
-    # Matvec in whitened coords
-    def A_mv_w(v: torch.Tensor) -> torch.Tensor:
-        out = torch.zeros_like(v, dtype=torch.float64, device=store_device)
-        for Ow in Ow_blocks:
-            out += Ow.T @ (Ow @ v)
-        return out / B_eff
-
-    # Conjugate Gradients: (A + λI) x = -g
-    lam = float(damping)
-    b = -g_w.clone()
-    xk = torch.zeros_like(b)
-    r = b - (A_mv_w(xk) + lam * xk)
-    r0 = float(torch.linalg.norm(r))
-    rel_floor = max(float(cg_tol), 2.0 / (B_eff**0.5))
-    p = r.clone()
-    its = 0
-    while its < cg_iters:
-        Ap = A_mv_w(p) + lam * p
-        alpha = float((r @ r) / (p @ Ap + 1e-20))
-        xk = xk + alpha * p
-        r_new = r - alpha * Ap
-        its += 1
-        if float(torch.linalg.norm(r_new)) <= rel_floor * r0:
-            r = r_new
-            break
-        if (its % restart_every) == 0:
-            r = r_new
-            p = r.clone()
-        else:
-            beta = float((r_new @ r_new) / (r @ r + 1e-20))
-            p = r_new + beta * p
-            r = r_new
-
-    # Trust region scaling in whitened coords
-    quad_w = float((xk @ (A_mv_w(xk) + lam * xk)).item())
-    quad_w = max(quad_w, 1e-12)
-    scale_tr = step_size / (quad_w**0.5)
-    norm_dk = float(torch.linalg.norm(xk))
-    scale_cap = max_param_step / (norm_dk + 1e-12)
-    scale = min(scale_tr, scale_cap)
-    step_kept = scale * xk
-    step_norm = float(torch.linalg.norm(step_kept))
-
-    # Optional backtracking on quadratic model in whitened coords
-    if do_backtrack:
-        mr = float((g_w @ step_kept) + 0.5 * (step_kept @ (A_mv_w(step_kept) + lam * step_kept)))
-        if (not math.isfinite(mr)) or (mr > 0.0):
-            lam = min(max_damping, max(1.5 * lam, 1.5e-3))
-            step_kept *= 0.5
-            step_norm = float(torch.linalg.norm(step_kept))
-            mr = float(
-                (g_w @ step_kept) + 0.5 * (step_kept @ (A_mv_w(step_kept) + lam * step_kept))
+        def Rnm(n, mabs, rho2):
+            # Fallback: L_n^{(α)} ~ lagval with α=0 (rough fallback); prefer SciPy when available
+            return (
+                (rho**mabs)
+                * np.exp(-0.5 * rho2)
+                * np.polynomial.laguerre.lagval(rho2, [0] * n + [1])
             )
-            if mr > 0.0:
-                step_kept *= 0.5
-                step_norm = float(torch.linalg.norm(step_kept))
 
-    # Expand to full vector and apply to parameters
-    step_full_cpu = torch.zeros(P_full, dtype=torch.float64, device=store_device)
-    step_full_cpu[keep_idx] = D_inv_sqrt * step_kept  # invert whitening
-    step_full = step_full_cpu.to(dtype=net_dtype, device=device)
+    rho2 = rho**2
 
-    params_list = _gather_params([f_net] if backflow_net is None else [f_net, backflow_net])[0]
-    theta0 = parameters_to_vector(params_list)
-    vector_to_parameters(theta0 + step_full, params_list)
+    for n, m in idx_raw:
+        am = abs(m)
+        # analytic normalization
+        N = (1.0 / l0) * math.sqrt(math.factorial(n) / (math.pi * math.factorial(n + am)))
+        radial = Rnm(n, am, rho2)
 
-    acc_rate = float(acc_t) / float(max(prop_t, 1))
-    return {
-        "E_mean": mu_E,
-        "E_std": E_std,
-        "g_norm": float(torch.linalg.norm(g_w).item()),
-        "step_norm": step_norm,
-        "filtered": int(filtered),
-        "cg_iters": int(its),
-        "kept_params": int(P_kept),
-        "damping": float(lam),
-        "B_eff": int(B_eff),
-        "sigma": float(S["sigma"]),
-        "acc_rate": acc_rate,
+        if not make_real:
+            ang = np.exp(1j * m * theta)
+            phi = (N * radial * ang).reshape(nx * ny)
+            cols.append(phi.astype(np.complex128))
+            idx.append((n, m))
+            continue
+
+        # REAL basis:
+        if m == 0:
+            ang = np.ones_like(theta)
+            phi = (N * radial * ang).reshape(nx * ny)
+            cols.append(phi.astype(np.float64))
+            idx.append((n, 0))
+        elif m > 0:
+            # cos(mθ) column -> (n, +m)
+            ang_c = math.sqrt(2.0) * np.cos(m * theta)
+            phi_c = (N * radial * ang_c).reshape(nx * ny)
+            cols.append(phi_c.astype(np.float64))
+            idx.append((n, +m))
+            # sin(mθ) column -> (n, -m)
+            ang_s = math.sqrt(2.0) * np.sin(m * theta)
+            phi_s = (N * radial * ang_s).reshape(nx * ny)
+            cols.append(phi_s.astype(np.float64))
+            idx.append((n, -m))
+        else:
+            # We handle negative m via the m>0 branch, so skip here
+            pass
+
+    Phi = np.column_stack(cols)
+    return Phi, idx
+
+
+# ===============================================================
+# Integrals builder (basis-agnostic)
+# ===============================================================
+@inject_params
+def compute_integrals(
+    *,
+    params=None,
+):
+    """
+    Build basis on a grid, compute one-electron core and two-electron Dirac integrals.
+    Returns:
+      Hcore (nb,nb), two_dirac (nb,nb,nb,nb), basis_info dict with:
+        name ('fd' or 'cart'), idx (list), grid (x,y), Phi (npts,nb), S (nb,nb)
+    """
+    # ---- defaults from params
+    if params is not None:
+        basis_type = params.get("basis", "cart")
+        omega = params["omega"]
+        L = params["L"]
+        n_grid = params["n_grid"]
+        kappa = params.get("kappa", 1.0)
+        pad_factor = params.get("pad_factor", 2)
+        e_max = params.get("emax")
+        n_x_max = params.get("nx")
+        n_y_max = params.get("ny")
+
+    # ---- grids and weights
+    x, y, X, Y = mesh_xy(L, n_grid)
+    nx, ny = len(x), len(y)
+    dx, dy = x[1] - x[0], y[1] - y[0]
+    wx = simpson_weights(x)[:, None]
+    wy = simpson_weights(y)[None, :]
+    W = (wx * wy).reshape(-1)  # (npts,)
+
+    # ---- build basis matrix Phi, index list, and flags
+    basis_type_l = basis_type.lower()
+    if basis_type_l.startswith("fd"):
+        Phi, idx = fd_wavefunctions_on_grid(
+            e_max, omega, x, y
+        )  # (npts, nb), real if fd_make_real=True
+        nb = Phi.shape[1]
+        basis_name = "fd"
+        # disable m-selection when using real combos
+        if params is not None and params.get("fd_make_real", True):
+            mvals = None
+        else:
+            mvals = [m for (n, m) in idx]
+    elif basis_type_l.startswith("cart"):
+        Phi_real = initialize_harmonic_basis_2d(n_x_max, n_y_max, x, y)  # (npts, nb), real
+        Phi = Phi_real.astype(np.complex128)
+        nb = Phi.shape[1]
+        basis_name = "cart"
+        idx = [(ix, iy) for ix in range(n_x_max) for iy in range(n_y_max)]
+        mvals = None
+    else:
+        raise ValueError("basis_type must be 'fd' or 'cart'.")
+
+    # ---- overlap S (MUST be defined before return)
+    S = (Phi.conj().T * W) @ Phi  # (nb, nb) Hermitian
+
+    # ---- one-electron core Hcore
+    if basis_name == "fd":
+        # analytic diagonal FD core: E_{n,m} = (2n + |m| + 1) * ω
+        Hcore = np.zeros((nb, nb), dtype=float)
+        for p, (n, m) in enumerate(idx):
+            Hcore[p, p] = (2 * n + abs(m) + 1) * omega
+        # we still reuse phi_grid below for Coulomb
+        phi_grid = [Phi[:, k].reshape(nx, ny) for k in range(nb)]
+    else:
+        # numeric (Cartesian) core via Laplacian + trap
+        Vtrap = 0.5 * (omega**2) * (X * X + Y * Y)
+        phi_grid = [Phi[:, k].reshape(nx, ny) for k in range(nb)]
+        Hcore = np.zeros((nb, nb), dtype=float)
+        lap_list = [-0.5 * laplacian_2d(phi_grid[p].real, dx, dy) for p in range(nb)]
+        for p in range(nb):
+            Tp = lap_list[p]  # (nx,ny)
+            for q in range(p, nb):
+                Tpq = np.real(np.sum(wx * (phi_grid[q].real * Tp) * wy))
+                Vpq = np.real(np.sum(wx * (phi_grid[p] * (Vtrap * phi_grid[q])).real * wy))
+                Hcore[p, q] = Tpq + Vpq
+                Hcore[q, p] = Hcore[p, q]
+
+        # ---- two-electron Dirac via centered FFT convolution (correct formulation)
+    V_fft = coulomb_kernel_fft(x, y, pad_factor=pad_factor, kappa=kappa)
+    rho = [[(phi_grid[p] * np.conjugate(phi_grid[r])) for r in range(nb)] for p in range(nb)]
+
+    def allow(p, r, q, s) -> bool:
+        if mvals is None:
+            return True
+        return (mvals[p] - mvals[r]) == (mvals[q] - mvals[s])
+
+    two_dirac = np.zeros((nb, nb, nb, nb), dtype=float)
+
+    # Precompute FFT(ρ_pr) and the convolved G_pr once, reuse across (q,s)
+    for p in range(nb):
+        for r in range(nb):
+            rho_pr = rho[p][r]  # (nx,ny)
+            rho_pr_pad, origin_pr, (Nx, Ny) = _zero_pad_center(rho_pr, pad_factor)
+            F_pr = np.fft.fftn(rho_pr_pad)  # FFT(ρ_pr)
+            # G_pr = V * ρ_pr  (linear convolution)
+            G_pad = np.fft.ifftn(F_pr * V_fft).real  # (Nx,Ny)
+            G_phys = _crop_center(G_pad, (nx, ny), origin_pr)  # back to (nx,ny)
+            # scale by dr1 = dx*dy to approximate the inner integral
+            G_phys *= dx * dy
+
+            # Now (pr|qs) = ∫ ρ_qs(r2) * G_pr(r2) dr2
+            for q in range(nb):
+                for s in range(nb):
+                    if not allow(p, r, q, s):
+                        continue
+                    rho_qs = rho[q][s]  # (nx,ny)
+                    val = float(np.sum(wx * (G_phys * rho_qs).real * wy))
+                    two_dirac[p, r, q, s] = val
+
+    basis_info = {
+        "name": basis_name,
+        "idx": idx,
+        "grid": (x, y),
+        "Phi": Phi,
+        "S": S,
     }
+    return Hcore, two_dirac, basis_info
 
 
-# ======================================================================================
-# 4) Trainer loop wrapper (microbatch SR; multi-laplacian)
-# ======================================================================================
+# ===============================================================
+# RHF (closed shell) with generalized eigensolver
+# ===============================================================
 
 
-def train_model_sr_energy(
-    f_net: nn.Module,
+def _eigh_generalized_or_lowdin(A: np.ndarray, S: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+    """Solve A v = S v w for Hermitian A,S, (scipy or Löwdin fallback)."""
+    if eigh_generalized is not None:
+        eps, C = eigh_generalized(A, S)
+        if np.isrealobj(A) and np.isrealobj(S):
+            return eps.real, C.real
+        else:
+            return eps, C
+
+    # Löwdin orthogonalization fallback
+    evals, U = np.linalg.eigh(S)
+    evals[evals < 1e-14] = 1e-14
+    Sinvhalf = U @ (np.diag(1.0 / np.sqrt(evals)) @ U.T)
+    A_ortho = Sinvhalf.T @ A @ Sinvhalf
+    eps, Ctil = np.linalg.eigh(A_ortho)
+    C = Sinvhalf @ Ctil
+    return eps, C
+
+
+@inject_params
+def hartree_fock_closed_shell(
+    Hcore: np.ndarray,
+    two_dirac: np.ndarray,  # (pr|qs)
+    *,
+    S: np.ndarray | None = None,
+    params=None,
+) -> tuple[np.ndarray, np.ndarray, float]:
+    """
+    Basis-agnostic closed-shell RHF (Roothaan):
+      F C = S C ε,  with C^T S C = I  (or Löwdin fallback).
+    Returns: C_occ (nb,n_occ), eps_occ (n_occ,), E_HF
+    """
+    if params is not None:
+        n_electrons = params["n_particles"]
+        max_iter = params.get("hf_max_iter", 100)
+        tol = params.get("hf_tol", 1e-8)
+        damping = params.get("hf_damping", 0.0)
+        verbose = params.get("hf_verbose", True)
+
+    nb = Hcore.shape[0]
+    n_occ = n_electrons // 2
+    if S is None:
+        S = np.eye(nb)
+
+    # Initial generalized eig from Hcore
+    eps, C = _eigh_generalized_or_lowdin(Hcore, S)
+    C_occ = C[:, :n_occ].copy()
+
+    def density(Cocc: np.ndarray) -> np.ndarray:
+        # With C^T S C = I, the usual D = 2 C_occ C_occ^T holds
+        return 2.0 * (Cocc @ Cocc.T)
+
+    D = density(C_occ)
+
+    for it in range(1, max_iter + 1):
+        J = np.einsum("rs,prqs->pq", D, two_dirac, optimize=True)
+        K = np.einsum("rs,prsq->pq", D, two_dirac, optimize=True)
+        F = Hcore + J - 0.5 * K
+
+        eps_new, C_new = _eigh_generalized_or_lowdin(F, S)
+        C_occ_new = C_new[:, :n_occ]
+        D_new = density(C_occ_new)
+
+        D_mix = (1 - damping) * D_new + damping * D if damping and damping > 0 else D_new
+        dD = np.linalg.norm(D_mix - D)
+        if verbose:
+            print(f"HF iter {it:3d}: ||ΔD|| = {dD:.3e}")
+
+        D, C_occ, eps = D_mix, C_occ_new, eps_new
+        if dD < tol:
+            break
+
+    # Final RHF energy
+    E_HF = 0.5 * np.sum(D * (Hcore + F))
+
+    # Enforce S-orthonormality on occupied block
+    S_occ = C_occ.T @ S @ C_occ
+    # Robust symmetric normalization
+    U, svals, _ = np.linalg.svd(S_occ)
+    S_occ_inv_sqrt = U @ (np.diag(1.0 / np.sqrt(np.maximum(svals, 1e-15))) @ U.T)
+    C_occ = C_occ @ S_occ_inv_sqrt
+
+    return C_occ, eps[:n_occ], float(E_HF)
+
+
+# ===============================================================
+# Slater determinant (torch), basis-agnostic front-end
+# ===============================================================
+
+
+def _slogdet_batched(M: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
+    """Safe slogdet on batch; falls back to CPU if needed."""
+    try:
+        return torch.linalg.slogdet(M)
+    except RuntimeError:
+        S, L = torch.linalg.slogdet(M.cpu())
+        return S.to(M.device), L.to(M.device)
+
+
+@inject_params
+def slater_determinant_closed_shell(
+    x_config: torch.Tensor,
     C_occ: torch.Tensor,
     *,
-    psi_fn,
-    compute_coulomb_interaction,
-    backflow_net: nn.Module | None = None,
-    spin=None,
-    params: dict,
-    n_sr_steps: int = 30000,
-    log_every: int = 5,
-    # sampling / chunks
-    micro_batch: int = 1200,
-    total_rows: int = 9000,
-    sampler_steps: int = 90,
-    sampler_step_sigma: float = 0.10,  # in units of ℓ
-    sampler_sigma_bounds: tuple[float, float] | None = None,  # in units of ℓ
-    # Laplacian controls
-    lap_mode: str = "hvp-hutch",  # "fd-hutch" | "fd-central-hutch" | "hvp-hutch" | "exact"
-    fd_probes: int = 12,
-    fd_eps_scale: float = 1e-3,
-    # SR solver / trust region
-    step_size: float = 0.010,
-    max_param_step: float = 0.010,
-    damping: float = 1e-2,
-    cg_tol: float = 1e-6,
-    cg_iters: int = 150,
-    restart_every: int = 60,
-    # storage (stay ON DEVICE by default)
-    store_device: str | torch.device | None = None,
-    store_dtype: torch.dtype = torch.float64,
-    # score chunking
-    score_chunk_size: int = 2048,
-):
-    if store_device is None:
-        store_device = params["device"]
+    params=None,
+    spin: torch.Tensor | None = None,  # (N,) or (B,N) with identical rows
+    normalize: bool = True,
+) -> tuple[torch.Tensor, torch.Tensor]:
+    """
+    Closed-shell Slater determinant with explicit spin row selection.
+    Returns (sign, logabs), both shape (B,).
+    Assumes a full shell: N even and N_up=N_down=N/2.
+    """
+    device = x_config.device
+    B, N, d = x_config.shape
+    if d < 2:
+        raise ValueError("x_config must contain (x,y) coordinates.")
+    if (N % 2) != 0:
+        raise ValueError("Closed-shell requires even N.")
+    n_spin = N // 2
 
-    lap_tag = lap_mode
-    for t in range(n_sr_steps):
-        info = sr_step_energy_mb(
-            f_net,
-            C_occ,
-            psi_fn=psi_fn,
-            compute_coulomb_interaction=compute_coulomb_interaction,
-            backflow_net=backflow_net,
-            spin=spin,
-            params=params,
-            micro_batch=micro_batch,
-            total_rows=total_rows,
-            sampler_steps=sampler_steps,
-            sampler_step_sigma=sampler_step_sigma,
-            sampler_sigma_bounds=sampler_sigma_bounds,
-            lap_mode=lap_mode,
-            fd_probes=fd_probes,
-            fd_eps_scale=fd_eps_scale,
-            step_size=step_size,
-            max_param_step=max_param_step,
-            damping=damping,
-            cg_tol=cg_tol,
-            cg_iters=cg_iters,
-            restart_every=restart_every,
-            center_O=True,
-            do_backtrack=True,
-            store_device=store_device,
-            store_dtype=store_dtype,
-            score_chunk_size=score_chunk_size,
+    basis = params.get("basis", "cart").lower()
+    omega = params["omega"]
+    n_basis_x = params["nx"]
+    n_basis_y = params["ny"]
+
+    if basis.startswith("fd"):
+        emax = params["emax"]
+        make_real = params.get("fd_make_real", True)
+        Phi = _evaluate_fd_basis_torch_batch(
+            x_config, emax=emax, omega=omega, make_real=make_real
+        )  # (B,N,n_basis)
+    else:
+        Phi = evaluate_basis_functions_torch_batch_2d(
+            x_config, n_basis_x, n_basis_y
+        )  # (B,N,n_basis)
+
+    # orbitals for occupied columns
+    C_occ = C_occ.to(device=device, dtype=Phi.dtype)  # (n_basis, n_occ)
+    if Phi.shape[-1] != C_occ.shape[0]:
+        raise RuntimeError(
+            f"Basis size mismatch: Phi has {Phi.shape[-1]}, C_occ has {C_occ.shape[0]}."
         )
+    Psi = torch.matmul(Phi, C_occ)  # (B, N, n_occ)
 
-        if (t % log_every) == 0:
-            print(
-                f"[SR {t:04d}]  E={info['E_mean']:.8f}  σ(E)={info['E_std']:.6f}  "
-                f"‖g‖={info.get('g_norm', 0.0):.3e}  ‖Δθ‖={info['step_norm']:.3e}  "
-                f"B_eff={info['B_eff']}  damp={info['damping']:.3e}  σ_prop={info['sigma']:.4f}  "
-                f"acc={info.get('acc_rate', 0.0):.3f}  [lap={lap_tag}]"
-            )
+    # --- select electron rows by spin ---
+    if spin is None:
+        spin_vec = torch.cat(
+            [
+                torch.zeros(n_spin, dtype=torch.long, device=device),
+                torch.ones(n_spin, dtype=torch.long, device=device),
+            ],
+            dim=0,
+        )  # (N,)
+    else:
+        s = spin.to(device)
+        if s.dim() == 1:
+            if s.numel() != N:
+                raise ValueError(f"spin has {s.numel()} entries but N={N}.")
+            spin_vec = s.long()
+        elif s.dim() == 2:
+            if s.shape != (B, N):
+                raise ValueError(f"spin shape {tuple(s.shape)} != (B,N)=({B},{N}).")
+            # For closed-shell MC we expect the same spin pattern across the batch.
+            if not torch.all(s == s[0:1]).item():
+                raise ValueError("For batched closed-shell, spin must be identical across batch.")
+            spin_vec = s[0].long()  # use the shared pattern
+        else:
+            raise ValueError("spin must be (N,) or (B,N).")
 
-    return f_net, backflow_net
+    idx_up = torch.nonzero(spin_vec == 0, as_tuple=False).squeeze(-1)
+    idx_down = torch.nonzero(spin_vec == 1, as_tuple=False).squeeze(-1)
+    if idx_up.numel() != n_spin or idx_down.numel() != n_spin:
+        raise ValueError("Closed-shell requires exactly N/2 up and N/2 down electrons.")
+
+    Psi_up = Psi.index_select(dim=1, index=idx_up)  # (B, n_spin, n_occ_up)
+    Psi_down = Psi.index_select(dim=1, index=idx_down)  # (B, n_spin, n_occ_down)
+
+    # robust slogdet
+    sign_u, log_u = torch.linalg.slogdet(Psi_up)
+    sign_d, log_d = torch.linalg.slogdet(Psi_down)
+
+    sign = sign_d * sign_u  # (B,)
+    logabs = log_u + log_d
+
+    # Optional normalization by n_spin! (unchanged from your version)
+    if normalize:
+        logabs = logabs - math.lgamma(n_spin + 1)
+
+    return sign, logabs
+
+
+# ===============================================================
+# Backward-compatible simple RHF (orthonormal assumption)
+# ===============================================================
+
+
+def hartree_fock_2d(
+    n_electrons: int,
+    basis: np.ndarray,
+    xgrid: np.ndarray,
+    ygrid: np.ndarray,
+    Hcore: np.ndarray,
+    two_body: np.ndarray,
+    max_iter: int = 100,
+    tol: float = 1e-6,
+) -> tuple[np.ndarray, np.ndarray]:
+    """
+    Legacy RHF assuming orthonormal basis. Kept for compatibility.
+    Prefer hartree_fock_closed_shell with S from compute_integrals().
+    """
+    n_occ = n_electrons // 2
+
+    eigvals, C = np.linalg.eigh(Hcore)
+    C_occ = C[:, :n_occ].copy()
+
+    def density_matrix(Cocc: np.ndarray) -> np.ndarray:
+        return 2.0 * (Cocc @ Cocc.T)
+
+    D = density_matrix(C_occ)
+
+    for iteration in range(max_iter):
+        F = Hcore.copy()
+        J = np.einsum("rs,prqs->pq", D, two_body, optimize=True)
+        K = np.einsum("rs,prsq->pq", D, two_body, optimize=True)
+        F += J - 0.5 * K
+
+        eigvals_new, C_new = np.linalg.eigh(F)
+        C_occ_new = C_new[:, :n_occ]
+        D_new = density_matrix(C_occ_new)
+
+        delta = np.linalg.norm(D_new - D)
+        print(f"Iteration {iteration:3d}: ΔD = {delta:.3e}")
+        if delta < tol:
+            break
+        C_occ = C_occ_new
+        D = D_new
+
+    orbital_energies = eigvals_new[:n_occ]
+    E_hf = 0.5 * np.sum(D * (Hcore + F))
+    print(f"Final HF Energy = {E_hf:.6f}")
+    return C_occ, orbital_energies

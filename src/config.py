@@ -63,10 +63,18 @@ _ACTIVATIONS = {
 # Reference DMC energies
 # ---------------------------------------------------------------------
 DMC_ENERGIES: dict[int, dict[float, float]] = {
-    2: {0.01: 0.07384, 0.1: 0.44079, 0.28: 1.02164, 0.5: 1.65977, 1.0: 3.00000},
-    6: {0.01: 0.8, 0.1: 3.55385, 0.28: 7.60019, 0.5: 11.78484, 1.0: 20.15932},
-    12: {0.01: 2.0, 0.1: 12.26984, 0.28: 25.63577, 0.5: 39.15960, 1.0: 65.70010},
-    20: {0.1: 29.97790, 0.28: 61.92680, 0.5: 93.87520, 1.0: 155.88220},
+    2: {0.001: 1, 0.01: 0.07384, 0.1: 0.44079, 0.28: 1.02164, 0.5: 1.65977, 1.0: 3.00000},
+    6: {0.001: 1, 0.01: 0.8, 0.1: 3.55385, 0.28: 7.60019, 0.5: 11.78484, 1.0: 20.15932},
+    12: {0.001: 1, 0.01: 2.0, 0.1: 12.26984, 0.28: 25.63577, 0.5: 39.15960, 1.0: 65.70010},
+    20: {
+        0.0001: 1,
+        0.001: 1,
+        0.01: 5,
+        0.1: 29.97790,
+        0.28: 61.92680,
+        0.5: 93.87520,
+        1.0: 155.88220,
+    },
 }
 _SUPPORTED_OMEGAS = sorted({w for table in DMC_ENERGIES.values() for w in table.keys()})
 
@@ -86,11 +94,13 @@ def _lookup_dmc_energy(n_particles: int, omega: float) -> float:
     return float(DMC_ENERGIES[n][w])
 
 
+import torch
+
+
 # ---- NEW: small helpers for the stratified sampler ----
 @dataclass(frozen=True)
 class SamplerMixWeights:
-    """Mixture weights for components [center, tails, mixed, ring, dimers].
-    Sum is normalized in train loop."""
+    """Mixture weights for components [center, tails, mixed, ring, dimers]. Sum is normalized in train loop."""
 
     center: float = 0.25
     tails: float = 0.20
@@ -195,6 +205,7 @@ class Config:
 
     # --- helpers ---
     def as_dict(self) -> dict[str, Any]:
+        # dataclasses.asdict() will recursively turn SamplerMixWeights/RingCfg/CuspCfg into plain dicts
         return asdict(self)
 
     @property

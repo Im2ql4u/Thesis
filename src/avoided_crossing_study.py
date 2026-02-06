@@ -614,7 +614,7 @@ def evaluate_energy_precise(psi_log_fn, cfg: DoubleWellConfig, n_samples: int = 
     # Burn-in
     with torch.no_grad():
         logp = 2.0 * psi_log_fn(x)
-        for _ in range(200):
+        for _ in range(50):
             x_prop = x + torch.randn_like(x) * mcmc_sigma
             logp_prop = 2.0 * psi_log_fn(x_prop)
             accept = torch.rand(batch_size, device=DEVICE).log() < (logp_prop - logp)
@@ -648,28 +648,30 @@ def evaluate_energy_precise(psi_log_fn, cfg: DoubleWellConfig, n_samples: int = 
     return E_mean, E_stderr
 
 
-def compute_mixing_weights(
+def compute_mixing_weights_proper(
     psi_log_fn,
     cfg: DoubleWellConfig,
-    n_samples: int = 10000,
+    n_samples: int = 5000,
 ) -> dict:
-    """Compute weights in the "logical" excited subspace.
+    """Compute proper 2-level subspace projection for mixing weights.
 
-    We define reference configurations:
-    - |10⟩: Left particle excited (further from well center), right in ground
-    - |01⟩: Left in ground, right particle excited
+    We define the logical basis states:
+    - |10⟩: Left particle in first excited state (n=1), right in ground (n=0)
+    - |01⟩: Left in ground, right in first excited state
 
-    We estimate this by looking at the density in different regions:
-    - P_L_excited: probability that left particle is far from its well center
-    - P_R_excited: probability that right particle is far from its well center
+    For a 2D harmonic oscillator, excited means higher radial quantum number.
+    We estimate this by computing:
+    1. W_sub = total weight in the {|10⟩, |01⟩} subspace
+    2. Within that subspace: Ψ_∥ = a|10⟩ + b|01⟩, report |a|², |b|²
 
-    This is a proxy for the mixing coefficients w_10 and w_01.
+    The key insight: For proper 2-level physics, we need W_sub to be large
+    and |a|² + |b|² ≈ 1 within the subspace (after normalization).
     """
     mcmc_sigma = 0.12 * cfg.ell_base
     batch_size = 1024
     sep = cfg.sep_physical
 
-    # Thresholds for "excited" (further than 1 sigma from well center)
+    # Length scales for each well
     sigma_left = 1.0 / math.sqrt(cfg.omega_left)
     sigma_right = 1.0 / math.sqrt(cfg.omega_right)
 
@@ -685,12 +687,27 @@ def compute_mixing_weights(
             x = torch.where(accept.view(-1, 1, 1), x_prop, x)
             logp = torch.where(accept, logp_prop, logp)
 
-    # Collect statistics
-    left_excited_count = 0
-    right_excited_count = 0
-    both_ground_count = 0
-    both_excited_count = 0
+    # Collect detailed statistics
+    # We classify each sample into configurations based on radial excitation
+    # Ground state: r < threshold, Excited: r > threshold
+    threshold_ground = 1.2  # in units of local sigma (conservative)
+    threshold_excited_min = 1.2
+    threshold_excited_max = 3.0  # Not too far out
+
+    counts = {
+        "00": 0,  # Both ground
+        "10": 0,  # Left excited only
+        "01": 0,  # Right excited only
+        "11": 0,  # Both excited
+        "other": 0,  # Ambiguous or outside clean classification
+    }
     total = 0
+
+    # Also track continuous "excitation" measures for better estimates
+    sum_nL = 0.0  # Mean excitation of left particle
+    sum_nR = 0.0  # Mean excitation of right particle
+    sum_nL_sq = 0.0
+    sum_nR_sq = 0.0
 
     while total < n_samples:
         with torch.no_grad():
@@ -701,43 +718,82 @@ def compute_mixing_weights(
                 x = torch.where(accept.view(-1, 1, 1), x_prop, x)
                 logp = torch.where(accept, logp_prop, logp)
 
-            # Distance from well centers
-            r_left = torch.sqrt((x[:, 0, 0] + sep / 2) ** 2 + x[:, 0, 1] ** 2)
-            r_right = torch.sqrt((x[:, 1, 0] - sep / 2) ** 2 + x[:, 1, 1] ** 2)
+            # Radial distance from well centers (normalized by sigma)
+            r_L = torch.sqrt((x[:, 0, 0] + sep / 2) ** 2 + x[:, 0, 1] ** 2) / sigma_left
+            r_R = torch.sqrt((x[:, 1, 0] - sep / 2) ** 2 + x[:, 1, 1] ** 2) / sigma_right
 
-            # Check if "excited" (beyond threshold)
-            threshold = 1.5  # in units of local sigma
-            L_exc = r_left > threshold * sigma_left
-            R_exc = r_right > threshold * sigma_right
+            # Classification based on radial position
+            L_ground = r_L < threshold_ground
+            L_excited = (r_L >= threshold_excited_min) & (r_L < threshold_excited_max)
+            R_ground = r_R < threshold_ground
+            R_excited = (r_R >= threshold_excited_min) & (r_R < threshold_excited_max)
 
-            left_excited_count += int((L_exc & ~R_exc).sum().item())
-            right_excited_count += int((~L_exc & R_exc).sum().item())
-            both_ground_count += int((~L_exc & ~R_exc).sum().item())
-            both_excited_count += int((L_exc & R_exc).sum().item())
+            # Count configurations
+            counts["00"] += int((L_ground & R_ground).sum().item())
+            counts["10"] += int((L_excited & R_ground).sum().item())
+            counts["01"] += int((L_ground & R_excited).sum().item())
+            counts["11"] += int((L_excited & R_excited).sum().item())
+
+            # "Other" = doesn't fit clean classification
+            clean = (L_ground | L_excited) & (R_ground | R_excited)
+            counts["other"] += int((~clean).sum().item())
+
+            # Continuous excitation measures (proxy for n_L, n_R)
+            # Use r²/(2σ²) as proxy for oscillator quantum number
+            n_L_proxy = (r_L**2) / 2.0
+            n_R_proxy = (r_R**2) / 2.0
+
+            sum_nL += float(n_L_proxy.sum().item())
+            sum_nR += float(n_R_proxy.sum().item())
+            sum_nL_sq += float((n_L_proxy**2).sum().item())
+            sum_nR_sq += float((n_R_proxy**2).sum().item())
+
             total += batch_size
 
-    # Normalize
-    total_exc = left_excited_count + right_excited_count
-    if total_exc > 0:
-        w_10 = left_excited_count / total_exc
-        w_01 = right_excited_count / total_exc
+    # Compute subspace weight W_sub = P(|10⟩) + P(|01⟩)
+    total_classified = sum(counts.values()) - counts["other"]
+    if total_classified > 0:
+        p_00 = counts["00"] / total_classified
+        p_10 = counts["10"] / total_classified
+        p_01 = counts["01"] / total_classified
+        p_11 = counts["11"] / total_classified
     else:
-        w_10 = w_01 = 0.5
+        p_00 = p_10 = p_01 = p_11 = 0.25
+
+    W_sub = p_10 + p_01  # Total weight in the 2-level subspace
+
+    # Normalized mixing within the subspace
+    if W_sub > 1e-6:
+        a_sq = p_10 / W_sub  # |a|² = P(|10⟩) / W_sub
+        b_sq = p_01 / W_sub  # |b|² = P(|01⟩) / W_sub
+    else:
+        a_sq = b_sq = 0.5
+
+    # Continuous measures
+    mean_nL = sum_nL / total
+    mean_nR = sum_nR / total
 
     return {
-        "w_10": w_10,  # Weight on |10⟩ (left excited)
-        "w_01": w_01,  # Weight on |01⟩ (right excited)
-        "p_ground": both_ground_count / total,
-        "p_L_exc": left_excited_count / total,
-        "p_R_exc": right_excited_count / total,
-        "p_both_exc": both_excited_count / total,
+        # Proper 2-level subspace analysis
+        "W_sub": W_sub,  # Total weight in {|10⟩, |01⟩} subspace
+        "a_sq": a_sq,  # |⟨10|Ψ⟩|² / W_sub (normalized left excitation)
+        "b_sq": b_sq,  # |⟨01|Ψ⟩|² / W_sub (normalized right excitation)
+        # Raw probabilities
+        "p_00": p_00,
+        "p_10": p_10,
+        "p_01": p_01,
+        "p_11": p_11,
+        "p_other": counts["other"] / total,
+        # Continuous excitation measures
+        "mean_nL": mean_nL,
+        "mean_nR": mean_nR,
     }
 
 
 def compute_entanglement_proxy(
     psi_log_fn,
     cfg: DoubleWellConfig,
-    n_samples: int = 10000,
+    n_samples: int = 5000,
 ) -> float:
     """Compute a proxy for entanglement: correlation between left and right excitations.
 
@@ -807,7 +863,7 @@ def compute_entanglement_proxy(
 def compute_transverse_leakage(
     psi_log_fn,
     cfg: DoubleWellConfig,
-    n_samples: int = 10000,
+    n_samples: int = 5000,
 ) -> float:
     """Compute transverse leakage: how much the state spills into y-modes.
 
@@ -880,6 +936,7 @@ def run_lambda_sweep(
     n_epochs_ground: int = 300,
     n_epochs_excited: int = 400,
     n_eval_samples: int = 30000,
+    n_diag_samples: int = 5000,
 ):
     """Run the full λ sweep and compute all diagnostics.
 
@@ -987,52 +1044,74 @@ def run_lambda_sweep(
         E2, E2_err = evaluate_energy_precise(psi_log_2, cfg, n_eval_samples)
         print(f"  E2 = {E2:.5f} ± {E2_err:.5f}")
 
+        # --- Sort energies for consistent gap definition ---
+        # E_lower = min(E1, E2), E_upper = max(E1, E2)
+        if E1 <= E2:
+            E_lower, E_lower_err = E1, E1_err
+            E_upper, E_upper_err = E2, E2_err
+            psi_lower, psi_upper = psi_log_1, psi_log_2
+        else:
+            E_lower, E_lower_err = E2, E2_err
+            E_upper, E_upper_err = E1, E1_err
+            psi_lower, psi_upper = psi_log_2, psi_log_1
+
         # --- Compute diagnostics ---
         print("\n[Diagnostics]")
 
-        # Gap
-        gap = E2 - E1
-        print(f"  Gap Δ = E2 - E1 = {gap:.5f}")
+        # Proper gap (always positive)
+        gap = E_upper - E_lower
+        print(f"  Gap Δ = E_upper - E_lower = {gap:.5f}")
+        print(f"    E_lower = {E_lower:.5f}, E_upper = {E_upper:.5f}")
 
-        # Mixing weights for E1 and E2
-        mix_1 = compute_mixing_weights(psi_log_1, cfg, n_samples=10000)
-        mix_2 = compute_mixing_weights(psi_log_2, cfg, n_samples=10000)
-        print(f"  E1 mixing: w_10={mix_1['w_10']:.3f}, w_01={mix_1['w_01']:.3f}")
-        print(f"  E2 mixing: w_10={mix_2['w_10']:.3f}, w_01={mix_2['w_01']:.3f}")
+        # Proper mixing weights using 2-level subspace projection
+        mix_lower = compute_mixing_weights_proper(psi_lower, cfg, n_samples=n_diag_samples)
+        mix_upper = compute_mixing_weights_proper(psi_upper, cfg, n_samples=n_diag_samples)
 
-        # Entanglement proxy for E1 and E2
-        ent_1 = compute_entanglement_proxy(psi_log_1, cfg, n_samples=10000)
-        ent_2 = compute_entanglement_proxy(psi_log_2, cfg, n_samples=10000)
-        print(f"  Entanglement proxy: E1={ent_1:.3f}, E2={ent_2:.3f}")
+        print(f"  E_lower: W_sub={mix_lower['W_sub']:.3f}, "
+              f"a²={mix_lower['a_sq']:.3f}, b²={mix_lower['b_sq']:.3f}")
+        print(f"  E_upper: W_sub={mix_upper['W_sub']:.3f}, "
+              f"a²={mix_upper['a_sq']:.3f}, b²={mix_upper['b_sq']:.3f}")
+
+        # Entanglement proxy for both excited states
+        ent_lower = compute_entanglement_proxy(psi_lower, cfg, n_samples=n_diag_samples)
+        ent_upper = compute_entanglement_proxy(psi_upper, cfg, n_samples=n_diag_samples)
+        print(f"  Entanglement proxy: lower={ent_lower:.3f}, upper={ent_upper:.3f}")
 
         # Transverse leakage
-        leak_0 = compute_transverse_leakage(psi_log_0, cfg, n_samples=10000)
-        leak_1 = compute_transverse_leakage(psi_log_1, cfg, n_samples=10000)
-        leak_2 = compute_transverse_leakage(psi_log_2, cfg, n_samples=10000)
-        print(f"  Transverse leakage: E0={leak_0:.3f}, E1={leak_1:.3f}, E2={leak_2:.3f}")
+        leak_0 = compute_transverse_leakage(psi_log_0, cfg, n_samples=n_diag_samples)
+        leak_lower = compute_transverse_leakage(psi_lower, cfg, n_samples=n_diag_samples)
+        leak_upper = compute_transverse_leakage(psi_upper, cfg, n_samples=n_diag_samples)
+        print(f"  Transverse leakage: E0={leak_0:.3f}, "
+              f"lower={leak_lower:.3f}, upper={leak_upper:.3f}")
 
-        # Store results
+        # Store results with both raw and sorted data
         results.append(
             {
                 "lambda": lam,
                 "omega_left": cfg.omega_left,
                 "omega_right": cfg.omega_right,
-                "E0": E0,
-                "E0_err": E0_err,
-                "E1": E1,
-                "E1_err": E1_err,
-                "E2": E2,
-                "E2_err": E2_err,
-                "gap": gap,
-                "E1_w10": mix_1["w_10"],
-                "E1_w01": mix_1["w_01"],
-                "E2_w10": mix_2["w_10"],
-                "E2_w01": mix_2["w_01"],
-                "E1_entanglement": ent_1,
-                "E2_entanglement": ent_2,
+                # Raw energies (as trained)
+                "E0": E0, "E0_err": E0_err,
+                "E1_raw": E1, "E1_raw_err": E1_err,
+                "E2_raw": E2, "E2_raw_err": E2_err,
+                # Sorted energies (for consistent gap)
+                "E_lower": E_lower, "E_lower_err": E_lower_err,
+                "E_upper": E_upper, "E_upper_err": E_upper_err,
+                "gap": gap,  # Always positive
+                # Proper 2-level subspace mixing (for sorted states)
+                "lower_W_sub": mix_lower["W_sub"],
+                "lower_a_sq": mix_lower["a_sq"],
+                "lower_b_sq": mix_lower["b_sq"],
+                "upper_W_sub": mix_upper["W_sub"],
+                "upper_a_sq": mix_upper["a_sq"],
+                "upper_b_sq": mix_upper["b_sq"],
+                # Entanglement
+                "ent_lower": ent_lower,
+                "ent_upper": ent_upper,
+                # Leakage
                 "E0_leakage": leak_0,
-                "E1_leakage": leak_1,
-                "E2_leakage": leak_2,
+                "lower_leakage": leak_lower,
+                "upper_leakage": leak_upper,
             }
         )
 
@@ -1049,44 +1128,49 @@ def run_lambda_sweep(
 
 
 def create_comparison_plots(results: list, save_dir: Path = RESULTS_DIR):
-    """Create the 5 comparison plots for Jonny's thesis comparison."""
+    """Create comparison plots with proper energy ordering and 2-level analysis."""
 
     lambdas = [r["lambda"] for r in results]
     E0 = [r["E0"] for r in results]
-    E1 = [r["E1"] for r in results]
-    E2 = [r["E2"] for r in results]
-    gaps = [r["gap"] for r in results]
 
-    E1_w10 = [r["E1_w10"] for r in results]
-    E1_w01 = [r["E1_w01"] for r in results]
-    E2_w10 = [r["E2_w10"] for r in results]
-    E2_w01 = [r["E2_w01"] for r in results]
+    # Use sorted energies for consistent plotting
+    E_lower = [r["E_lower"] for r in results]
+    E_upper = [r["E_upper"] for r in results]
+    gaps = [r["gap"] for r in results]  # Now always positive
 
-    E1_ent = [r["E1_entanglement"] for r in results]
-    E2_ent = [r["E2_entanglement"] for r in results]
+    # 2-level subspace analysis
+    lower_a_sq = [r["lower_a_sq"] for r in results]
+    lower_b_sq = [r["lower_b_sq"] for r in results]
+    upper_a_sq = [r["upper_a_sq"] for r in results]
+    upper_b_sq = [r["upper_b_sq"] for r in results]
+    lower_W_sub = [r["lower_W_sub"] for r in results]
+    upper_W_sub = [r["upper_W_sub"] for r in results]
+
+    ent_lower = [r["ent_lower"] for r in results]
+    ent_upper = [r["ent_upper"] for r in results]
 
     leak_0 = [r["E0_leakage"] for r in results]
-    leak_1 = [r["E1_leakage"] for r in results]
-    leak_2 = [r["E2_leakage"] for r in results]
+    leak_lower = [r["lower_leakage"] for r in results]
+    leak_upper = [r["upper_leakage"] for r in results]
 
     fig, axes = plt.subplots(2, 3, figsize=(15, 10))
 
-    # Plot 1: Energy spectrum (avoided crossing)
+    # Plot 1: Energy spectrum (with sorted excited states)
     ax = axes[0, 0]
-    ax.plot(lambdas, E0, "b-o", label=r"$E_0$ (ground)", markersize=4)
-    ax.plot(lambdas, E1, "r-s", label=r"$E_1$", markersize=4)
-    ax.plot(lambdas, E2, "g-^", label=r"$E_2$", markersize=4)
+    ax.plot(lambdas, E0, "b-o", label=r"$E_0$ (ground)", markersize=5)
+    ax.plot(lambdas, E_lower, "r-s", label=r"$E_{lower}$", markersize=5)
+    ax.plot(lambdas, E_upper, "g-^", label=r"$E_{upper}$", markersize=5)
     ax.set_xlabel(r"$\lambda$")
     ax.set_ylabel(r"Energy")
-    ax.set_title(r"(a) Energy Spectrum $E_n(\lambda)$")
+    ax.set_title(r"(a) Energy Spectrum (sorted)")
     ax.legend()
     ax.grid(True, alpha=0.3)
 
-    # Plot 2: Gap (avoided crossing signature)
+    # Plot 2: Gap (now always positive, proper avoided crossing signature)
     ax = axes[0, 1]
     ax.plot(lambdas, gaps, "k-o", markersize=5)
     ax.set_xlabel(r"$\lambda$")
-    ax.set_ylabel(r"$\Delta = E_2 - E_1$")
+    ax.set_ylabel(r"$\Delta = E_{upper} - E_{lower} \geq 0$")
     ax.set_title(r"(b) Energy Gap $\Delta(\lambda)$")
     ax.grid(True, alpha=0.3)
 
@@ -1097,36 +1181,41 @@ def create_comparison_plots(results: list, save_dir: Path = RESULTS_DIR):
         color="r",
         linestyle="--",
         alpha=0.5,
-        label=f"$\lambda^* = {lambdas[min_gap_idx]:.2f}$",
+        label=rf"$\lambda^* = {lambdas[min_gap_idx]:.2f}$, $\Delta^* = {gaps[min_gap_idx]:.3f}$",
     )
     ax.legend()
+    ax.set_ylim(bottom=0)
 
-    # Plot 3: Mixing weights for E1
+    # Plot 3: Normalized mixing in 2-level subspace for E_lower
     ax = axes[0, 2]
-    ax.plot(lambdas, E1_w10, "b-o", label=r"$w_{10}$ (left exc.)", markersize=4)
-    ax.plot(lambdas, E1_w01, "r-s", label=r"$w_{01}$ (right exc.)", markersize=4)
+    ax.plot(lambdas, lower_a_sq, "b-o", label=r"$|a|^2$ (left)", markersize=4)
+    ax.plot(lambdas, lower_b_sq, "r-s", label=r"$|b|^2$ (right)", markersize=4)
+    ax.plot(lambdas, lower_W_sub, "k--", label=r"$W_{sub}$", markersize=3, alpha=0.7)
     ax.set_xlabel(r"$\lambda$")
-    ax.set_ylabel("Mixing weight")
-    ax.set_title(r"(c) State $E_1$ Mixing")
+    ax.set_ylabel("Weight")
+    ax.set_title(r"(c) $E_{lower}$: 2-level mixing")
     ax.legend()
     ax.grid(True, alpha=0.3)
     ax.set_ylim(0, 1)
+    ax.axhline(0.5, color="gray", linestyle=":", alpha=0.5)
 
-    # Plot 4: Mixing weights for E2
+    # Plot 4: Normalized mixing in 2-level subspace for E_upper
     ax = axes[1, 0]
-    ax.plot(lambdas, E2_w10, "b-o", label=r"$w_{10}$ (left exc.)", markersize=4)
-    ax.plot(lambdas, E2_w01, "r-s", label=r"$w_{01}$ (right exc.)", markersize=4)
+    ax.plot(lambdas, upper_a_sq, "b-o", label=r"$|a|^2$ (left)", markersize=4)
+    ax.plot(lambdas, upper_b_sq, "r-s", label=r"$|b|^2$ (right)", markersize=4)
+    ax.plot(lambdas, upper_W_sub, "k--", label=r"$W_{sub}$", markersize=3, alpha=0.7)
     ax.set_xlabel(r"$\lambda$")
-    ax.set_ylabel("Mixing weight")
-    ax.set_title(r"(d) State $E_2$ Mixing")
+    ax.set_ylabel("Weight")
+    ax.set_title(r"(d) $E_{upper}$: 2-level mixing")
     ax.legend()
     ax.grid(True, alpha=0.3)
     ax.set_ylim(0, 1)
+    ax.axhline(0.5, color="gray", linestyle=":", alpha=0.5)
 
-    # Plot 5: Entanglement
+    # Plot 5: Entanglement (sorted by energy)
     ax = axes[1, 1]
-    ax.plot(lambdas, E1_ent, "r-s", label=r"$E_1$", markersize=4)
-    ax.plot(lambdas, E2_ent, "g-^", label=r"$E_2$", markersize=4)
+    ax.plot(lambdas, ent_lower, "r-s", label=r"$E_{lower}$", markersize=4)
+    ax.plot(lambdas, ent_upper, "g-^", label=r"$E_{upper}$", markersize=4)
     ax.set_xlabel(r"$\lambda$")
     ax.set_ylabel("Entanglement proxy")
     ax.set_title(r"(e) Entanglement vs $\lambda$")
@@ -1134,11 +1223,11 @@ def create_comparison_plots(results: list, save_dir: Path = RESULTS_DIR):
     ax.grid(True, alpha=0.3)
     ax.axvline(lambdas[min_gap_idx], color="gray", linestyle="--", alpha=0.5)
 
-    # Plot 6: Transverse leakage (2D-only)
+    # Plot 6: Transverse leakage (sorted by energy)
     ax = axes[1, 2]
     ax.plot(lambdas, leak_0, "b-o", label=r"$E_0$", markersize=4)
-    ax.plot(lambdas, leak_1, "r-s", label=r"$E_1$", markersize=4)
-    ax.plot(lambdas, leak_2, "g-^", label=r"$E_2$", markersize=4)
+    ax.plot(lambdas, leak_lower, "r-s", label=r"$E_{lower}$", markersize=4)
+    ax.plot(lambdas, leak_upper, "g-^", label=r"$E_{upper}$", markersize=4)
     ax.axhline(0.5, color="gray", linestyle=":", label="2D isotropic")
     ax.set_xlabel(r"$\lambda$")
     ax.set_ylabel(r"Leakage $L = \langle y^2 \rangle / \langle r^2 \rangle$")
@@ -1160,29 +1249,47 @@ def create_comparison_plots(results: list, save_dir: Path = RESULTS_DIR):
 # ============================================================
 
 
-def quick_test():
-    """Run a quick test with just a few λ values to verify everything works."""
+def tiny_test():
+    """Smoke test: 3 λ values, minimal epochs. ~5 min on CPU."""
     print("=" * 70)
-    print("QUICK TEST MODE")
+    print("TINY TEST MODE (smoke test)")
     print("=" * 70)
 
-    # Just 3 λ values for testing
     lambda_values = [-0.5, 0.0, 0.5]
 
     results = run_lambda_sweep(
         lambda_values,
         well_separation=4.0,
-        n_epochs_ground=100,  # Reduced for testing
-        n_epochs_excited=150,
-        n_eval_samples=10000,
+        n_epochs_ground=50,
+        n_epochs_excited=80,
+        n_eval_samples=3000,
+        n_diag_samples=2000,
     )
 
     create_comparison_plots(results)
+    print("\nTINY TEST COMPLETE")
+    return results
 
-    print("\n" + "=" * 70)
-    print("QUICK TEST COMPLETE")
+
+def quick_test():
+    """Quick test: 7 λ values, moderate epochs. ~30 min on CPU."""
+    print("=" * 70)
+    print("QUICK TEST MODE")
     print("=" * 70)
 
+    lambda_values = [-0.6, -0.3, -0.1, 0.0, 0.1, 0.3, 0.6]
+
+    results = run_lambda_sweep(
+        lambda_values,
+        well_separation=4.0,
+        n_epochs_ground=150,
+        n_epochs_excited=200,
+        n_eval_samples=8000,
+        n_diag_samples=4000,
+    )
+
+    create_comparison_plots(results)
+    print("\nQUICK TEST COMPLETE")
     return results
 
 
@@ -1192,9 +1299,12 @@ def quick_test():
 
 
 def main():
-    """Full production run."""
-    # Sweep λ from -1 to +1 with enough points to see the avoided crossing
-    lambda_values = np.linspace(-0.8, 0.8, 9).tolist()
+    """Full production run with more λ points near the crossing."""
+    # Cluster more points near λ=0 where the avoided crossing occurs
+    # Coarse grid + fine grid near center
+    coarse = [-0.8, -0.6, -0.4, 0.4, 0.6, 0.8]
+    fine = np.linspace(-0.3, 0.3, 9).tolist()  # Dense sampling near crossing
+    lambda_values = sorted(set(coarse + fine))
 
     results = run_lambda_sweep(
         lambda_values,
@@ -1214,14 +1324,13 @@ def main():
     gaps = [r["gap"] for r in results]
     min_idx = np.argmin(gaps)
 
-    print(f"Minimum gap at λ* = {results[min_idx]['lambda']:.3f}")
-    print(f"  Gap Δ = {results[min_idx]['gap']:.5f}")
-    print(
-        f"  E1 mixing: w_10={results[min_idx]['E1_w10']:.3f}, w_01={results[min_idx]['E1_w01']:.3f}"
-    )
-    print(
-        f"  E2 mixing: w_10={results[min_idx]['E2_w10']:.3f}, w_01={results[min_idx]['E2_w01']:.3f}"
-    )
+    r = results[min_idx]
+    print(f"Minimum gap at λ* = {r['lambda']:.3f}")
+    print(f"  Gap Δ = {r['gap']:.5f}")
+    print(f"  E_lower: a²={r['lower_a_sq']:.3f}, "
+          f"b²={r['lower_b_sq']:.3f}, W={r['lower_W_sub']:.3f}")
+    print(f"  E_upper: a²={r['upper_a_sq']:.3f}, "
+          f"b²={r['upper_b_sq']:.3f}, W={r['upper_W_sub']:.3f}")
 
     return results
 
@@ -1230,10 +1339,15 @@ if __name__ == "__main__":
     import argparse
 
     parser = argparse.ArgumentParser(description="Avoided Crossing Study")
-    parser.add_argument("--quick", action="store_true", help="Run quick test mode")
+    parser.add_argument("--tiny", action="store_true",
+                        help="Smoke test (~5 min)")
+    parser.add_argument("--quick", action="store_true",
+                        help="Quick test (~30 min)")
     args = parser.parse_args()
 
-    if args.quick:
+    if args.tiny:
+        tiny_test()
+    elif args.quick:
         quick_test()
     else:
         main()

@@ -1,22 +1,25 @@
 #!/usr/bin/env python
 """
-Avoided Crossing Study - Comparison with Jonny's Thesis
+Avoided Crossing Study v2 — Comparison with Jonny's Thesis
 
-This script implements a sweep over a configuration parameter λ to study:
-1. Avoided crossings in the energy spectrum (E0, E1, E2 vs λ)
-2. State mixing in the "logical" excited subspace (|10⟩ vs |01⟩)
-3. Entanglement behavior near the avoided crossing
-4. Transverse leakage in 2D (deviation from effective 1D behavior)
+Improvements over v1:
+1. Dense λ grid near resonance (11 points in [-0.10, 0.10])
+2. Warm-starting from adjacent λ to stabilise branch tracking
+3. Branch-overlap hop detection with automatic flagging
+4. Multi-seed error bars on Δ(λ) near resonance
+5. Quasi-1D confinement option (ω_y >> ω_x) to push W_sub ≳ 0.8
+6. Proper 2-level entanglement: S_sub = -a² ln(a²) - b² ln(b²)
+7. Ablation study: SD / SD+Jastrow / SD+BF+Jastrow near resonance
 
-The system: Two electrons in a double-well potential with tunable asymmetry.
-
-Key insight: λ controls the relative depth/frequency of left vs right wells,
-causing the single-particle excitation energies to become degenerate at some λ*,
-leading to an avoided crossing in the two-particle spectrum.
-
-Author: Comparison study for thesis
+Usage:
+    python avoided_crossing_study.py --dense             # Dense sweep (~2h)
+    python avoided_crossing_study.py --dense --quasi1d   # Quasi-1D regime
+    python avoided_crossing_study.py --ablation          # Ablation (~1h)
+    python avoided_crossing_study.py --quick             # Quick 7-pt (~40m)
+    python avoided_crossing_study.py --tiny              # Smoke test (~5m)
 """
 
+import copy
 import json
 import math
 import os
@@ -24,12 +27,12 @@ import sys
 from dataclasses import dataclass
 from pathlib import Path
 
-# Set GPU before importing torch
 os.environ["CUDA_MANUAL_DEVICE"] = "0"
 
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
+import torch.nn as nn
 import torch.optim as optim
 
 sys.path.insert(0, "/Users/aleksandersekkelsten/thesis/src")
@@ -41,184 +44,147 @@ from PINN import PINN, CTNNBackflowNet
 torch.set_num_threads(4)
 
 # ============================================================
-# Configuration
+# Constants
 # ============================================================
 
 DEVICE = "cuda:0" if torch.cuda.is_available() else "cpu"
 DTYPE = torch.float64
-OMEGA_BASE = 1.0  # Base trap frequency
+OMEGA_BASE = 1.0
 N_PARTICLES = 2
-D = 2  # 2D system (can compare leakage vs 1D)
+D = 2
 
-# Results directory
 RESULTS_DIR = Path("/Users/aleksandersekkelsten/thesis/results/avoided_crossing")
 RESULTS_DIR.mkdir(parents=True, exist_ok=True)
 
 
 # ============================================================
-# Asymmetric Double-Well Potential with λ knob
+# Double-Well Configuration
 # ============================================================
 
 
 @dataclass
 class DoubleWellConfig:
-    """Configuration for asymmetric double-well potential.
+    """Asymmetric double-well with optional quasi-1D confinement.
 
-    The potential is:
-        V(x) = V_left(x) for particle 0 + V_right(x) for particle 1 + Coulomb
+    ω_left  = ω_base × (1 + λ α)
+    ω_right = ω_base × (1 − λ α)
 
-    where:
-        V_left(r) = 0.5 * ω_left² * |r - r_left|²
-        V_right(r) = 0.5 * ω_right² * |r - r_right|²
-
-    The asymmetry parameter λ controls:
-        ω_left = ω_base * (1 + λ * asymmetry_strength)
-        ω_right = ω_base * (1 - λ * asymmetry_strength)
-
-    So λ=0 gives symmetric wells, λ>0 makes left well tighter (higher ground state),
-    and λ<0 makes right well tighter.
+    When quasi_1d=True the transverse (y) confinement is tightened:
+        ω_y = ω_base × omega_y_factor   (λ-independent, same for both wells)
+    This freezes out y-modes and pushes W_sub toward 1.
     """
 
-    well_separation: float = 4.0  # Distance between wells in units of l_ho
-    omega_base: float = 1.0  # Base trap frequency
-    asymmetry_strength: float = 0.3  # How much λ affects relative frequencies
-    lam: float = 0.0  # The sweep parameter λ ∈ [-1, 1]
-    softening: float = 1e-6  # Coulomb softening to prevent divergence
+    well_separation: float = 4.0
+    omega_base: float = 1.0
+    asymmetry_strength: float = 0.3
+    lam: float = 0.0
+    softening: float = 1e-6
+    quasi_1d: bool = False
+    omega_y_factor: float = 5.0  # only used when quasi_1d=True
 
     @property
     def omega_left(self) -> float:
-        """Frequency of left well."""
         return self.omega_base * (1.0 + self.lam * self.asymmetry_strength)
 
     @property
     def omega_right(self) -> float:
-        """Frequency of right well."""
         return self.omega_base * (1.0 - self.lam * self.asymmetry_strength)
 
     @property
+    def omega_y(self) -> float:
+        if self.quasi_1d:
+            return self.omega_base * self.omega_y_factor
+        return self.omega_base  # not actually used in isotropic mode
+
+    @property
     def ell_base(self) -> float:
-        """Characteristic length scale (base harmonic oscillator length)."""
         return 1.0 / math.sqrt(self.omega_base)
 
     @property
     def sep_physical(self) -> float:
-        """Physical well separation."""
         return self.well_separation * self.ell_base
 
-    def single_particle_ground_energy(self, which: str) -> float:
-        """Ground state energy of single particle in one well (2D HO)."""
-        omega = self.omega_left if which == "left" else self.omega_right
-        return omega * D / 2  # E = (d/2) * ℏω in 2D
-
     def expected_E_asymptotic(self) -> tuple[float, float, float]:
-        """Expected energies in the non-interacting limit (large separation).
-
-        Returns (E_00, E_10, E_01) where:
-        - E_00: both particles in ground state of their wells
-        - E_10: left particle excited, right in ground
-        - E_01: left in ground, right particle excited
-        """
-        E_L0 = self.single_particle_ground_energy("left")
-        E_R0 = self.single_particle_ground_energy("right")
-        E_L1 = E_L0 + self.omega_left  # First excited in left
-        E_R1 = E_R0 + self.omega_right  # First excited in right
-
-        E_00 = E_L0 + E_R0
-        E_10 = E_L1 + E_R0
-        E_01 = E_L0 + E_R1
-
-        return E_00, E_10, E_01
+        """Non-interacting energies (E_00, E_10, E_01)."""
+        if self.quasi_1d:
+            ey = 0.5 * self.omega_y
+            E_L0 = 0.5 * self.omega_left + ey
+            E_R0 = 0.5 * self.omega_right + ey
+        else:
+            E_L0 = self.omega_left  # d/2 * ω  with d=2
+            E_R0 = self.omega_right
+        E_L1 = E_L0 + self.omega_left
+        E_R1 = E_R0 + self.omega_right
+        return E_L0 + E_R0, E_L1 + E_R0, E_L0 + E_R1
 
 
-def asymmetric_double_well_potential(x: torch.Tensor, cfg: DoubleWellConfig) -> torch.Tensor:
-    """
-    Compute asymmetric double-well potential energy.
+# ============================================================
+# Potential
+# ============================================================
 
-    Particle 0 → left well at (-d/2, 0) with frequency ω_left
-    Particle 1 → right well at (+d/2, 0) with frequency ω_right
 
-    Args:
-        x: Positions (B, N, d) where N=2, d=2
-        cfg: DoubleWellConfig with asymmetry settings
-
-    Returns:
-        V_trap: (B,) trap potential energy
-    """
-    B, N, d = x.shape
+def asymmetric_double_well_potential(
+    x: torch.Tensor, cfg: DoubleWellConfig,
+) -> torch.Tensor:
+    """V_trap for asymmetric double-well.  Supports isotropic and quasi-1D."""
     sep = cfg.sep_physical
-
-    # Displacements from well centers
     r0 = x[:, 0, :].clone()
-    r0[:, 0] = r0[:, 0] + sep / 2  # Particle 0 from left well center
-
+    r0[:, 0] += sep / 2
     r1 = x[:, 1, :].clone()
-    r1[:, 0] = r1[:, 0] - sep / 2  # Particle 1 from right well center
+    r1[:, 0] -= sep / 2
 
-    # Harmonic potential for each particle in its well
-    V_left = 0.5 * (cfg.omega_left**2) * (r0**2).sum(dim=-1)
-    V_right = 0.5 * (cfg.omega_right**2) * (r1**2).sum(dim=-1)
+    if cfg.quasi_1d:
+        oy2 = (cfg.omega_base * cfg.omega_y_factor) ** 2
+        V_left = (
+            0.5 * cfg.omega_left ** 2 * r0[:, 0] ** 2
+            + 0.5 * oy2 * r0[:, 1] ** 2
+        )
+        V_right = (
+            0.5 * cfg.omega_right ** 2 * r1[:, 0] ** 2
+            + 0.5 * oy2 * r1[:, 1] ** 2
+        )
+    else:
+        V_left = 0.5 * cfg.omega_left ** 2 * (r0 ** 2).sum(dim=-1)
+        V_right = 0.5 * cfg.omega_right ** 2 * (r1 ** 2).sum(dim=-1)
 
-    return V_left + V_right  # (B,)
+    return V_left + V_right
 
 
 def softened_coulomb(x: torch.Tensor, eps: float = 1e-6) -> torch.Tensor:
-    """Softened Coulomb repulsion between electrons.
-
-    V = 1 / sqrt(r² + ε²)
-
-    This prevents the 1/r divergence while preserving long-range behavior.
-    """
-    B, N, d = x.shape
-    if N < 2:
-        return torch.zeros(B, device=x.device, dtype=x.dtype)
-
     r2 = ((x[:, 0, :] - x[:, 1, :]) ** 2).sum(dim=-1)
-    r_soft = torch.sqrt(r2 + eps**2)
-    return 1.0 / r_soft  # (B,)
-
-
-def total_potential(x: torch.Tensor, cfg: DoubleWellConfig) -> torch.Tensor:
-    """Total potential energy = trap + Coulomb."""
-    V_trap = asymmetric_double_well_potential(x, cfg)
-    V_coul = softened_coulomb(x, cfg.softening)
-    return V_trap + V_coul
+    return 1.0 / torch.sqrt(r2 + eps ** 2)
 
 
 # ============================================================
-# Sampling for Asymmetric Wells
+# Sampling
 # ============================================================
 
 
-def sample_asymmetric_positions(
-    B: int, cfg: DoubleWellConfig, device=DEVICE, dtype=DTYPE
-) -> torch.Tensor:
-    """Sample initial positions adapted to asymmetric wells."""
+def sample_asymmetric_positions(B, cfg, device=DEVICE, dtype=DTYPE):
     sep = cfg.sep_physical
-
-    # Widths scaled by local frequency
-    sigma_left = 0.5 / math.sqrt(cfg.omega_left)
-    sigma_right = 0.5 / math.sqrt(cfg.omega_right)
+    sig_L = 0.5 / math.sqrt(cfg.omega_left)
+    sig_R = 0.5 / math.sqrt(cfg.omega_right)
 
     x = torch.zeros(B, N_PARTICLES, D, device=device, dtype=dtype)
-
-    # Particle 0 in left well
-    x[:, 0, :] = torch.randn(B, D, device=device, dtype=dtype) * sigma_left
+    x[:, 0, :] = torch.randn(B, D, device=device, dtype=dtype) * sig_L
     x[:, 0, 0] -= sep / 2
-
-    # Particle 1 in right well
-    x[:, 1, :] = torch.randn(B, D, device=device, dtype=dtype) * sigma_right
+    x[:, 1, :] = torch.randn(B, D, device=device, dtype=dtype) * sig_R
     x[:, 1, 0] += sep / 2
+
+    if cfg.quasi_1d:
+        sig_y = 0.5 / math.sqrt(cfg.omega_base * cfg.omega_y_factor)
+        x[:, 0, 1] = torch.randn(B, device=device, dtype=dtype) * sig_y
+        x[:, 1, 1] = torch.randn(B, device=device, dtype=dtype) * sig_y
 
     return x
 
 
 # ============================================================
-# Model Building (reuse existing architecture)
+# Model Building
 # ============================================================
 
 
 def make_cartesian_C_occ(nx, ny, n_occ, device=DEVICE, dtype=DTYPE):
-    """Create occupation matrix for Cartesian HO basis."""
     pairs = [(ix, iy) for ix in range(nx) for iy in range(ny)]
     pairs.sort(key=lambda t: (t[0] + t[1], t[0]))
     sel = pairs[:n_occ]
@@ -229,54 +195,62 @@ def make_cartesian_C_occ(nx, ny, n_occ, device=DEVICE, dtype=DTYPE):
     return C
 
 
-def build_model(omega=OMEGA_BASE):
-    """Build the CTNN + PINN model."""
-    f_net = PINN(
-        n_particles=N_PARTICLES,
-        d=D,
-        omega=omega,
-        dL=5,
-        hidden_dim=128,
-        n_layers=2,
-        act="gelu",
-        init="xavier",
-        use_gate=True,
-    ).to(DEVICE, DTYPE)
+class _ZeroJastrow(nn.Module):
+    """f(x) ≡ 0  — gives bare Slater determinant.  Accepts spin kwarg."""
 
-    backflow_net = CTNNBackflowNet(
-        d=D,
-        msg_hidden=128,
-        msg_layers=2,
-        hidden=128,
-        layers=3,
-        act="gelu",
-        aggregation="mean",
-        use_spin=True,
-        same_spin_only=False,
-        out_bound="tanh",
-        bf_scale_init=0.3,
-        zero_init_last=True,
-        omega=omega,
-    ).to(DEVICE, DTYPE)
+    def forward(self, x, spin=None):
+        return torch.zeros(x.shape[0], 1, device=x.device, dtype=x.dtype)
+
+
+def build_model(omega=OMEGA_BASE, mode="full"):
+    """Build model.
+
+    Modes
+    -----
+    "full"       : SD + Backflow + Jastrow  (CTNN + PINN)
+    "sd_jastrow" : SD + Jastrow             (PINN only, no backflow)
+    "sd_only"    : SD only                  (no learnable Jastrow or backflow)
+    """
+    if mode == "sd_only":
+        f_net = _ZeroJastrow().to(DEVICE, DTYPE)
+        backflow_net = None
+    else:
+        f_net = PINN(
+            n_particles=N_PARTICLES, d=D, omega=omega,
+            dL=5, hidden_dim=128, n_layers=2,
+            act="gelu", init="xavier", use_gate=True,
+        ).to(DEVICE, DTYPE)
+        backflow_net = None
+
+    if mode == "full":
+        backflow_net = CTNNBackflowNet(
+            d=D, msg_hidden=128, msg_layers=2, hidden=128, layers=3,
+            act="gelu", aggregation="mean", use_spin=True,
+            same_spin_only=False, out_bound="tanh",
+            bf_scale_init=0.3, zero_init_last=True, omega=omega,
+        ).to(DEVICE, DTYPE)
 
     return f_net, backflow_net
 
 
-def make_psi_log_fn(f_net, C_occ, backflow_net, spin, params, cfg: DoubleWellConfig):
-    """Create log(ψ) closure with coordinate transform for asymmetric double-well."""
+def _learnable_params(f_net, backflow_net):
+    """Collect learnable parameters from both nets."""
+    ps = [p for p in f_net.parameters() if p.requires_grad]
+    if backflow_net is not None:
+        ps += [p for p in backflow_net.parameters() if p.requires_grad]
+    return ps
+
+
+def make_psi_log_fn(f_net, C_occ, backflow_net, spin, params, cfg):
     sep = cfg.sep_physical
 
     def psi_log_fn(x):
-        # Transform: shift each particle to its well center
-        x_shifted = x.clone()
-        x_shifted[:, 0, 0] = x[:, 0, 0] + sep / 2
-        x_shifted[:, 1, 0] = x[:, 1, 0] - sep / 2
-
-        # Scale by effective length (helps the Slater basis)
-        # x_scaled = x_shifted * math.sqrt(omega_eff)  # Optional scaling
-
+        xs = x.clone()
+        xs[:, 0, 0] = x[:, 0, 0] + sep / 2
+        xs[:, 1, 0] = x[:, 1, 0] - sep / 2
         logpsi, _ = psi_fn(
-            f_net, x_shifted, C_occ, backflow_net=backflow_net, spin=spin, params=params
+            f_net, xs, C_occ,
+            backflow_net=backflow_net, spin=spin, params=params,
         )
         return logpsi
 
@@ -289,311 +263,207 @@ def make_psi_log_fn(f_net, C_occ, backflow_net, spin, params, cfg: DoubleWellCon
 
 
 def compute_laplacian_logpsi(psi_log_fn, x):
-    """Compute Laplacian of log(psi) exactly."""
     x = x.requires_grad_(True)
     lp = psi_log_fn(x)
-    g = torch.autograd.grad(lp.sum(), x, create_graph=True, retain_graph=True)[0]
-
+    g = torch.autograd.grad(
+        lp.sum(), x, create_graph=True, retain_graph=True,
+    )[0]
     B, N, d = x.shape
     lap = torch.zeros(B, device=x.device, dtype=x.dtype)
-
     for i in range(N):
         for j in range(d):
-            gij = g[:, i, j]
-            sec = torch.autograd.grad(gij.sum(), x, create_graph=True, retain_graph=True)[0]
+            sec = torch.autograd.grad(
+                g[:, i, j].sum(), x, create_graph=True, retain_graph=True,
+            )[0]
             lap += sec[:, i, j]
-
-    g2 = (g**2).sum(dim=(1, 2))
-    return lap, g2, g
+    return lap, (g ** 2).sum(dim=(1, 2)), g
 
 
-def local_energy(psi_log_fn, x, cfg: DoubleWellConfig):
-    """Compute local energy E_L = T + V for asymmetric double-well."""
-    lap_logpsi, grad2_logpsi, _ = compute_laplacian_logpsi(psi_log_fn, x)
-
-    # Kinetic energy: T = -0.5 * (Δlog ψ + |∇log ψ|²)
-    T = -0.5 * (lap_logpsi + grad2_logpsi)
-
-    # Potential energies
+def local_energy(psi_log_fn, x, cfg):
+    lap, g2, _ = compute_laplacian_logpsi(psi_log_fn, x)
+    T = -0.5 * (lap + g2)
     V_trap = asymmetric_double_well_potential(x, cfg)
     V_coul = softened_coulomb(x, cfg.softening)
-
-    E_L = T + V_trap + V_coul
-
-    return E_L, T, V_trap, V_coul
+    return T + V_trap + V_coul, T, V_trap, V_coul
 
 
 # ============================================================
-# Ground State Training (standard VMC)
+# Training — Ground State
 # ============================================================
 
 
 def train_ground_state(
-    f_net,
-    backflow_net,
-    C_occ,
-    cfg: DoubleWellConfig,
-    params,
-    n_epochs: int = 300,
-    n_collocation: int = 256,
-    lr: float = 5e-4,
-    print_every: int = 100,
+    f_net, backflow_net, C_occ, cfg, params, *,
+    n_epochs=300, n_collocation=256, lr=5e-4, print_every=100,
 ):
-    """Train wavefunction for ground state using VMC."""
     spin = torch.tensor([0, 1], dtype=torch.long, device=DEVICE)
+    all_p = _learnable_params(f_net, backflow_net)
+    has_params = len(all_p) > 0
 
-    optimizer = optim.Adam(
-        list(f_net.parameters()) + list(backflow_net.parameters()),
-        lr=lr,
-    )
-    scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=n_epochs, eta_min=lr / 10)
+    if has_params:
+        optimizer = optim.Adam(all_p, lr=lr)
+        scheduler = optim.lr_scheduler.CosineAnnealingLR(
+            optimizer, T_max=n_epochs, eta_min=lr / 10,
+        )
 
     psi_log_fn = make_psi_log_fn(f_net, C_occ, backflow_net, spin, params, cfg)
-
     mcmc_sigma = 0.15 * cfg.ell_base
+    best_energy, best_state = float("inf"), None
+    x = sample_asymmetric_positions(n_collocation, cfg)
 
-    history = []
-    best_energy = float("inf")
-    best_state = None
+    n_run = n_epochs if has_params else min(n_epochs, 30)
 
-    # Initialize MCMC chain
+    for epoch in range(n_run):
+        f_net.train()
+        if backflow_net is not None:
+            backflow_net.train()
+
+        with torch.no_grad():
+            logp = 2.0 * psi_log_fn(x)
+            for _ in range(20):
+                xp = x + torch.randn_like(x) * mcmc_sigma
+                lp = 2.0 * psi_log_fn(xp)
+                acc = torch.rand(n_collocation, device=DEVICE).log() < (lp - logp)
+                x = torch.where(acc.view(-1, 1, 1), xp, x)
+                logp = torch.where(acc, lp, logp)
+
+        if has_params:
+            optimizer.zero_grad()
+            xb = x.detach().requires_grad_(True)
+            E_L, _, _, _ = local_energy(psi_log_fn, xb, cfg)
+            E_mean = E_L.mean().detach()
+            loss = ((E_L - E_mean) ** 2).mean()
+            loss.backward()
+            torch.nn.utils.clip_grad_norm_(all_p, 1.0)
+            optimizer.step()
+            scheduler.step()
+        else:
+            with torch.set_grad_enabled(True):
+                xb = x.detach().requires_grad_(True)
+                E_L, _, _, _ = local_energy(psi_log_fn, xb, cfg)
+            E_mean = E_L.mean().detach()
+
+        ev = float(E_mean.item())
+        if ev < best_energy:
+            best_energy = ev
+            best_state = {
+                "f_net": copy.deepcopy(f_net.state_dict()),
+                "bf_net": (
+                    copy.deepcopy(backflow_net.state_dict())
+                    if backflow_net
+                    else None
+                ),
+            }
+
+        if epoch % print_every == 0:
+            print(
+                f"    Ep {epoch:4d} | E = {ev:.5f}"
+                f" ± {float(E_L.std()):.4f}"
+            )
+
+    if best_state:
+        f_net.load_state_dict(best_state["f_net"])
+        if backflow_net and best_state["bf_net"]:
+            backflow_net.load_state_dict(best_state["bf_net"])
+
+    return best_energy, best_state
+
+
+# ============================================================
+# Training — Excited State
+# ============================================================
+
+
+def compute_overlap_penalty_differentiable(psi_exc, psi_lower, x):
+    log_exc = psi_exc(x)
+    with torch.no_grad():
+        log_low = psi_lower(x)
+    log_ratio_sq = torch.clamp(2.0 * (log_low - log_exc), -40, 40)
+    return torch.exp(log_ratio_sq).mean()
+
+
+def compute_overlap(psi1, psi2, x):
+    """Non-differentiable overlap ratio for monitoring / hop detection."""
+    with torch.no_grad():
+        lr = torch.clamp(psi2(x) - psi1(x), -20, 20)
+        return torch.exp(lr).mean()
+
+
+def train_excited_state(
+    f_net, backflow_net, C_occ, cfg, params, lower_states, *,
+    n_epochs=400, n_collocation=256, lr=3e-4,
+    orthog_penalty=50.0, print_every=100,
+):
+    spin = torch.tensor([0, 1], dtype=torch.long, device=DEVICE)
+    all_p = _learnable_params(f_net, backflow_net)
+    if not all_p:
+        # SD-only — can't optimise excited states
+        return float("inf"), None
+
+    optimizer = optim.Adam(all_p, lr=lr)
+    scheduler = optim.lr_scheduler.CosineAnnealingLR(
+        optimizer, T_max=n_epochs, eta_min=lr / 10,
+    )
+    psi_exc = make_psi_log_fn(f_net, C_occ, backflow_net, spin, params, cfg)
+    mcmc_sigma = 0.15 * cfg.ell_base
+    best_energy, best_state = float("inf"), None
     x = sample_asymmetric_positions(n_collocation, cfg)
 
     for epoch in range(n_epochs):
         f_net.train()
-        backflow_net.train()
+        if backflow_net is not None:
+            backflow_net.train()
 
-        # MCMC sampling
         with torch.no_grad():
-            logp = 2.0 * psi_log_fn(x)
+            logp = 2.0 * psi_exc(x)
             for _ in range(20):
-                x_prop = x + torch.randn_like(x) * mcmc_sigma
-                logp_prop = 2.0 * psi_log_fn(x_prop)
-                accept = torch.rand(n_collocation, device=DEVICE).log() < (logp_prop - logp)
-                x = torch.where(accept.view(-1, 1, 1), x_prop, x)
-                logp = torch.where(accept, logp_prop, logp)
-
-        # Compute loss
-        optimizer.zero_grad()
-        x_batch = x.detach().requires_grad_(True)
-        E_L, T, V_trap, V_coul = local_energy(psi_log_fn, x_batch, cfg)
-
-        E_mean = E_L.mean().detach()
-        loss = ((E_L - E_mean) ** 2).mean()
-        loss.backward()
-
-        torch.nn.utils.clip_grad_norm_(f_net.parameters(), 1.0)
-        torch.nn.utils.clip_grad_norm_(backflow_net.parameters(), 1.0)
-
-        optimizer.step()
-        scheduler.step()
-
-        E_mean_val = float(E_mean.item())
-        E_std = float(E_L.std().item())
-
-        history.append({"epoch": epoch, "E_mean": E_mean_val, "E_std": E_std})
-
-        if E_mean_val < best_energy:
-            best_energy = E_mean_val
-            best_state = {
-                "f_net": {k: v.clone() for k, v in f_net.state_dict().items()},
-                "backflow_net": {k: v.clone() for k, v in backflow_net.state_dict().items()},
-            }
-
-        if epoch % print_every == 0:
-            print(f"  Epoch {epoch:4d} | E = {E_mean_val:.5f} ± {E_std:.4f}")
-
-    # Restore best
-    if best_state:
-        f_net.load_state_dict(best_state["f_net"])
-        backflow_net.load_state_dict(best_state["backflow_net"])
-
-    return history, best_energy
-
-
-# ============================================================
-# Excited State Training (with orthogonality penalty)
-# ============================================================
-
-
-def compute_overlap(psi1_log_fn, psi2_log_fn, x: torch.Tensor) -> torch.Tensor:
-    """Estimate |⟨ψ₁|ψ₂⟩|² using importance sampling.
-
-    Using the identity:
-        ⟨ψ₁|ψ₂⟩ = E_{|ψ₁|²}[ψ₂/ψ₁]
-
-    For monitoring (no grad needed).
-    """
-    with torch.no_grad():
-        log1 = psi1_log_fn(x)
-        log2 = psi2_log_fn(x)
-
-        # Stabilized ratio computation
-        log_ratio = log2 - log1
-        # Clip to prevent overflow
-        log_ratio = torch.clamp(log_ratio, -20, 20)
-        ratio = torch.exp(log_ratio)
-        overlap = ratio.mean()
-
-    return overlap
-
-
-def compute_overlap_penalty_differentiable(
-    psi_log_fn_exc,
-    psi_log_fn_lower,
-    x: torch.Tensor,
-) -> torch.Tensor:
-    """Compute differentiable overlap penalty for excited state training.
-
-    Uses the "penalty method": minimize ⟨ψ_exc|P_lower|ψ_exc⟩ where P_lower
-    projects onto the lower state subspace.
-
-    Approximation: |⟨ψ_exc|ψ_lower⟩|² ≈ E_{|ψ_exc|²}[(ψ_lower/ψ_exc)²]
-
-    This is computed with gradients flowing through ψ_exc.
-    """
-    # Get log values
-    log_exc = psi_log_fn_exc(x)  # With gradients
-    with torch.no_grad():
-        log_lower = psi_log_fn_lower(x)  # Frozen lower state
-
-    # Compute log(ψ_lower²/ψ_exc²) = 2*(log_lower - log_exc)
-    log_ratio_sq = 2.0 * (log_lower - log_exc)
-    # Stabilize
-    log_ratio_sq = torch.clamp(log_ratio_sq, -40, 40)
-
-    # ⟨ψ_lower|ψ_exc⟩² ≈ E_{|ψ_exc|²}[|ψ_lower/ψ_exc|²]
-    overlap_sq = torch.exp(log_ratio_sq).mean()
-
-    return overlap_sq
-
-
-def train_excited_state(
-    f_net_excited,
-    backflow_net_excited,
-    C_occ,
-    cfg: DoubleWellConfig,
-    params,
-    lower_states: list,  # List of (f_net, backflow_net, psi_log_fn) for orthogonality
-    n_epochs: int = 400,
-    n_collocation: int = 256,
-    lr: float = 3e-4,
-    orthog_penalty: float = 50.0,  # Increased penalty
-    print_every: int = 100,
-):
-    """Train excited state with orthogonality penalty to lower states.
-
-    Uses "penalty method" for excited states:
-        Loss = Var(E_L) + λ * Σ_i |⟨ψ_i|ψ_exc⟩|²
-
-    The penalty forces orthogonality while variance minimization finds
-    the lowest energy state orthogonal to lower states.
-    """
-    spin = torch.tensor([0, 1], dtype=torch.long, device=DEVICE)
-
-    optimizer = optim.Adam(
-        list(f_net_excited.parameters()) + list(backflow_net_excited.parameters()),
-        lr=lr,
-    )
-    scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=n_epochs, eta_min=lr / 10)
-
-    psi_log_fn_exc = make_psi_log_fn(f_net_excited, C_occ, backflow_net_excited, spin, params, cfg)
-
-    mcmc_sigma = 0.15 * cfg.ell_base
-
-    history = []
-    best_energy = float("inf")
-    best_state = None
-
-    x = sample_asymmetric_positions(n_collocation, cfg)
-
-    # Also sample from lower states for better overlap estimation
-    x_lower = sample_asymmetric_positions(n_collocation, cfg)
-
-    for epoch in range(n_epochs):
-        f_net_excited.train()
-        backflow_net_excited.train()
-
-        # MCMC sampling from |ψ_exc|²
-        with torch.no_grad():
-            logp = 2.0 * psi_log_fn_exc(x)
-            for _ in range(20):
-                x_prop = x + torch.randn_like(x) * mcmc_sigma
-                logp_prop = 2.0 * psi_log_fn_exc(x_prop)
-                accept = torch.rand(n_collocation, device=DEVICE).log() < (logp_prop - logp)
-                x = torch.where(accept.view(-1, 1, 1), x_prop, x)
-                logp = torch.where(accept, logp_prop, logp)
-
-        # Also update x_lower by sampling from lower states
-        if lower_states:
-            with torch.no_grad():
-                _, _, psi_log_lower_0 = lower_states[0]
-                logp_l = 2.0 * psi_log_lower_0(x_lower)
-                for _ in range(10):
-                    x_prop_l = x_lower + torch.randn_like(x_lower) * mcmc_sigma
-                    logp_prop_l = 2.0 * psi_log_lower_0(x_prop_l)
-                    accept_l = torch.rand(n_collocation, device=DEVICE).log() < (
-                        logp_prop_l - logp_l
-                    )
-                    x_lower = torch.where(accept_l.view(-1, 1, 1), x_prop_l, x_lower)
-                    logp_l = torch.where(accept_l, logp_prop_l, logp_l)
+                xp = x + torch.randn_like(x) * mcmc_sigma
+                lp = 2.0 * psi_exc(xp)
+                acc = torch.rand(n_collocation, device=DEVICE).log() < (lp - logp)
+                x = torch.where(acc.view(-1, 1, 1), xp, x)
+                logp = torch.where(acc, lp, logp)
 
         optimizer.zero_grad()
-        x_batch = x.detach().requires_grad_(True)
-
-        # Energy term (variance minimization)
-        E_L, _, _, _ = local_energy(psi_log_fn_exc, x_batch, cfg)
+        xb = x.detach().requires_grad_(True)
+        E_L, _, _, _ = local_energy(psi_exc, xb, cfg)
         E_mean = E_L.mean()
         loss = ((E_L - E_mean.detach()) ** 2).mean()
 
-        # Orthogonality penalty (differentiable)
-        orthog_loss = torch.tensor(0.0, device=DEVICE, dtype=DTYPE)
-        for _, _, psi_log_fn_lower in lower_states:
-            # Sample from excited state distribution
-            overlap_sq = compute_overlap_penalty_differentiable(
-                psi_log_fn_exc, psi_log_fn_lower, x.detach()
+        orth = torch.tensor(0.0, device=DEVICE, dtype=DTYPE)
+        for _, _, psi_low in lower_states:
+            orth = orth + compute_overlap_penalty_differentiable(
+                psi_exc, psi_low, x.detach(),
             )
-            orthog_loss = orthog_loss + overlap_sq
-
-        total_loss = loss + orthog_penalty * orthog_loss
-        total_loss.backward()
-
-        torch.nn.utils.clip_grad_norm_(f_net_excited.parameters(), 1.0)
-        torch.nn.utils.clip_grad_norm_(backflow_net_excited.parameters(), 1.0)
-
+        (loss + orthog_penalty * orth).backward()
+        torch.nn.utils.clip_grad_norm_(all_p, 1.0)
         optimizer.step()
         scheduler.step()
 
-        E_mean_val = float(E_mean.detach().item())
-        E_std = float(E_L.std().item())
-
-        history.append({"epoch": epoch, "E_mean": E_mean_val, "E_std": E_std})
-
-        if E_mean_val < best_energy:
-            best_energy = E_mean_val
+        ev = float(E_mean.detach().item())
+        if ev < best_energy:
+            best_energy = ev
             best_state = {
-                "f_net": {k: v.clone() for k, v in f_net_excited.state_dict().items()},
-                "backflow_net": {
-                    k: v.clone() for k, v in backflow_net_excited.state_dict().items()
-                },
+                "f_net": copy.deepcopy(f_net.state_dict()),
+                "bf_net": (
+                    copy.deepcopy(backflow_net.state_dict())
+                    if backflow_net
+                    else None
+                ),
             }
 
         if epoch % print_every == 0:
-            # Monitor overlaps (non-differentiable, just for display)
-            overlaps_str = ", ".join(
-                [
-                    f"{float(compute_overlap(psi_log_fn_exc, psi, x.detach()).item()):.3f}"
-                    for _, _, psi in lower_states
-                ]
+            ovs = ", ".join(
+                f"{float(compute_overlap(psi_exc, p, x.detach())):.3f}"
+                for _, _, p in lower_states
             )
-            print(f"  Epoch {epoch:4d} | E = {E_mean_val:.5f} | [{overlaps_str}]")
+            print(f"    Ep {epoch:4d} | E = {ev:.5f} | [{ovs}]")
 
-    # Restore best
     if best_state:
-        f_net_excited.load_state_dict(best_state["f_net"])
-        backflow_net_excited.load_state_dict(best_state["backflow_net"])
+        f_net.load_state_dict(best_state["f_net"])
+        if backflow_net and best_state["bf_net"]:
+            backflow_net.load_state_dict(best_state["bf_net"])
 
-    return history, best_energy
+    return best_energy, best_state
 
 
 # ============================================================
@@ -601,360 +471,597 @@ def train_excited_state(
 # ============================================================
 
 
-def evaluate_energy_precise(psi_log_fn, cfg: DoubleWellConfig, n_samples: int = 50000):
-    """Precise energy evaluation with error bars."""
+def evaluate_energy_precise(psi_log_fn, cfg, n_samples=50000):
+    """Precise energy ± stderr via extended MCMC."""
     mcmc_sigma = 0.12 * cfg.ell_base
-    batch_size = 1024
-
-    sum_E, sum_E2 = 0.0, 0.0
+    bs = 1024
+    sum_E = sum_E2 = 0.0
     total = 0
+    x = sample_asymmetric_positions(bs, cfg)
 
-    x = sample_asymmetric_positions(batch_size, cfg)
-
-    # Burn-in
     with torch.no_grad():
         logp = 2.0 * psi_log_fn(x)
         for _ in range(50):
-            x_prop = x + torch.randn_like(x) * mcmc_sigma
-            logp_prop = 2.0 * psi_log_fn(x_prop)
-            accept = torch.rand(batch_size, device=DEVICE).log() < (logp_prop - logp)
-            x = torch.where(accept.view(-1, 1, 1), x_prop, x)
-            logp = torch.where(accept, logp_prop, logp)
+            xp = x + torch.randn_like(x) * mcmc_sigma
+            lp = 2.0 * psi_log_fn(xp)
+            acc = torch.rand(bs, device=DEVICE).log() < (lp - logp)
+            x = torch.where(acc.view(-1, 1, 1), xp, x)
+            logp = torch.where(acc, lp, logp)
 
-    # Sampling
     while total < n_samples:
         with torch.no_grad():
             for _ in range(10):
-                x_prop = x + torch.randn_like(x) * mcmc_sigma
-                logp_prop = 2.0 * psi_log_fn(x_prop)
-                accept = torch.rand(batch_size, device=DEVICE).log() < (logp_prop - logp)
-                x = torch.where(accept.view(-1, 1, 1), x_prop, x)
-                logp = torch.where(accept, logp_prop, logp)
-
+                xp = x + torch.randn_like(x) * mcmc_sigma
+                lp = 2.0 * psi_log_fn(xp)
+                acc = torch.rand(bs, device=DEVICE).log() < (lp - logp)
+                x = torch.where(acc.view(-1, 1, 1), xp, x)
+                logp = torch.where(acc, lp, logp)
         with torch.set_grad_enabled(True):
-            x_eval = x.detach().requires_grad_(True)
-            E_L, _, _, _ = local_energy(psi_log_fn, x_eval, cfg)
-
+            xe = x.detach().requires_grad_(True)
+            E_L, _, _, _ = local_energy(psi_log_fn, xe, cfg)
         E = E_L.detach()
-        sum_E += float(E.sum().item())
-        sum_E2 += float((E**2).sum().item())
-        total += batch_size
+        sum_E += float(E.sum())
+        sum_E2 += float((E ** 2).sum())
+        total += bs
 
-    E_mean = sum_E / total
-    E_var = max(sum_E2 / total - E_mean**2, 0.0)
-    E_std = math.sqrt(E_var)
-    E_stderr = E_std / math.sqrt(total)
-
-    return E_mean, E_stderr
+    mu = sum_E / total
+    var = max(sum_E2 / total - mu ** 2, 0.0)
+    return mu, math.sqrt(var) / math.sqrt(total)
 
 
-def compute_mixing_weights_proper(
-    psi_log_fn,
-    cfg: DoubleWellConfig,
-    n_samples: int = 5000,
-) -> dict:
-    """Compute proper 2-level subspace projection for mixing weights.
-
-    We define the logical basis states:
-    - |10⟩: Left particle in first excited state (n=1), right in ground (n=0)
-    - |01⟩: Left in ground, right in first excited state
-
-    For a 2D harmonic oscillator, excited means higher radial quantum number.
-    We estimate this by computing:
-    1. W_sub = total weight in the {|10⟩, |01⟩} subspace
-    2. Within that subspace: Ψ_∥ = a|10⟩ + b|01⟩, report |a|², |b|²
-
-    The key insight: For proper 2-level physics, we need W_sub to be large
-    and |a|² + |b|² ≈ 1 within the subspace (after normalization).
-    """
+def compute_mixing_weights_proper(psi_log_fn, cfg, n_samples=5000):
+    """W_sub, a², b² via radial classification in {|10⟩, |01⟩}."""
     mcmc_sigma = 0.12 * cfg.ell_base
-    batch_size = 1024
+    bs = 1024
     sep = cfg.sep_physical
+    sig_L = 1.0 / math.sqrt(cfg.omega_left)
+    sig_R = 1.0 / math.sqrt(cfg.omega_right)
+    x = sample_asymmetric_positions(bs, cfg)
 
-    # Length scales for each well
-    sigma_left = 1.0 / math.sqrt(cfg.omega_left)
-    sigma_right = 1.0 / math.sqrt(cfg.omega_right)
-
-    x = sample_asymmetric_positions(batch_size, cfg)
-
-    # Burn-in
     with torch.no_grad():
         logp = 2.0 * psi_log_fn(x)
         for _ in range(100):
-            x_prop = x + torch.randn_like(x) * mcmc_sigma
-            logp_prop = 2.0 * psi_log_fn(x_prop)
-            accept = torch.rand(batch_size, device=DEVICE).log() < (logp_prop - logp)
-            x = torch.where(accept.view(-1, 1, 1), x_prop, x)
-            logp = torch.where(accept, logp_prop, logp)
+            xp = x + torch.randn_like(x) * mcmc_sigma
+            lp = 2.0 * psi_log_fn(xp)
+            acc = torch.rand(bs, device=DEVICE).log() < (lp - logp)
+            x = torch.where(acc.view(-1, 1, 1), xp, x)
+            logp = torch.where(acc, lp, logp)
 
-    # Collect detailed statistics
-    # We classify each sample into configurations based on radial excitation
-    # Ground state: r < threshold, Excited: r > threshold
-    threshold_ground = 1.2  # in units of local sigma (conservative)
-    threshold_excited_min = 1.2
-    threshold_excited_max = 3.0  # Not too far out
-
-    counts = {
-        "00": 0,  # Both ground
-        "10": 0,  # Left excited only
-        "01": 0,  # Right excited only
-        "11": 0,  # Both excited
-        "other": 0,  # Ambiguous or outside clean classification
-    }
+    thr_g, thr_e_lo, thr_e_hi = 1.2, 1.2, 3.0
+    counts = {"00": 0, "10": 0, "01": 0, "11": 0, "other": 0}
     total = 0
-
-    # Also track continuous "excitation" measures for better estimates
-    sum_nL = 0.0  # Mean excitation of left particle
-    sum_nR = 0.0  # Mean excitation of right particle
-    sum_nL_sq = 0.0
-    sum_nR_sq = 0.0
 
     while total < n_samples:
         with torch.no_grad():
             for _ in range(5):
-                x_prop = x + torch.randn_like(x) * mcmc_sigma
-                logp_prop = 2.0 * psi_log_fn(x_prop)
-                accept = torch.rand(batch_size, device=DEVICE).log() < (logp_prop - logp)
-                x = torch.where(accept.view(-1, 1, 1), x_prop, x)
-                logp = torch.where(accept, logp_prop, logp)
+                xp = x + torch.randn_like(x) * mcmc_sigma
+                lp = 2.0 * psi_log_fn(xp)
+                acc = torch.rand(bs, device=DEVICE).log() < (lp - logp)
+                x = torch.where(acc.view(-1, 1, 1), xp, x)
+                logp = torch.where(acc, lp, logp)
 
-            # Radial distance from well centers (normalized by sigma)
-            r_L = torch.sqrt((x[:, 0, 0] + sep / 2) ** 2 + x[:, 0, 1] ** 2) / sigma_left
-            r_R = torch.sqrt((x[:, 1, 0] - sep / 2) ** 2 + x[:, 1, 1] ** 2) / sigma_right
+            rL = (
+                torch.sqrt((x[:, 0, 0] + sep / 2) ** 2 + x[:, 0, 1] ** 2)
+                / sig_L
+            )
+            rR = (
+                torch.sqrt((x[:, 1, 0] - sep / 2) ** 2 + x[:, 1, 1] ** 2)
+                / sig_R
+            )
 
-            # Classification based on radial position
-            L_ground = r_L < threshold_ground
-            L_excited = (r_L >= threshold_excited_min) & (r_L < threshold_excited_max)
-            R_ground = r_R < threshold_ground
-            R_excited = (r_R >= threshold_excited_min) & (r_R < threshold_excited_max)
+            Lg = rL < thr_g
+            Le = (rL >= thr_e_lo) & (rL < thr_e_hi)
+            Rg = rR < thr_g
+            Re = (rR >= thr_e_lo) & (rR < thr_e_hi)
+            counts["00"] += int((Lg & Rg).sum())
+            counts["10"] += int((Le & Rg).sum())
+            counts["01"] += int((Lg & Re).sum())
+            counts["11"] += int((Le & Re).sum())
+            clean = (Lg | Le) & (Rg | Re)
+            counts["other"] += int((~clean).sum())
+            total += bs
 
-            # Count configurations
-            counts["00"] += int((L_ground & R_ground).sum().item())
-            counts["10"] += int((L_excited & R_ground).sum().item())
-            counts["01"] += int((L_ground & R_excited).sum().item())
-            counts["11"] += int((L_excited & R_excited).sum().item())
-
-            # "Other" = doesn't fit clean classification
-            clean = (L_ground | L_excited) & (R_ground | R_excited)
-            counts["other"] += int((~clean).sum().item())
-
-            # Continuous excitation measures (proxy for n_L, n_R)
-            # Use r²/(2σ²) as proxy for oscillator quantum number
-            n_L_proxy = (r_L**2) / 2.0
-            n_R_proxy = (r_R**2) / 2.0
-
-            sum_nL += float(n_L_proxy.sum().item())
-            sum_nR += float(n_R_proxy.sum().item())
-            sum_nL_sq += float((n_L_proxy**2).sum().item())
-            sum_nR_sq += float((n_R_proxy**2).sum().item())
-
-            total += batch_size
-
-    # Compute subspace weight W_sub = P(|10⟩) + P(|01⟩)
-    total_classified = sum(counts.values()) - counts["other"]
-    if total_classified > 0:
-        p_00 = counts["00"] / total_classified
-        p_10 = counts["10"] / total_classified
-        p_01 = counts["01"] / total_classified
-        p_11 = counts["11"] / total_classified
+    tc = sum(counts.values()) - counts["other"]
+    if tc > 0:
+        p10, p01 = counts["10"] / tc, counts["01"] / tc
     else:
-        p_00 = p_10 = p_01 = p_11 = 0.25
-
-    W_sub = p_10 + p_01  # Total weight in the 2-level subspace
-
-    # Normalized mixing within the subspace
-    if W_sub > 1e-6:
-        a_sq = p_10 / W_sub  # |a|² = P(|10⟩) / W_sub
-        b_sq = p_01 / W_sub  # |b|² = P(|01⟩) / W_sub
-    else:
-        a_sq = b_sq = 0.5
-
-    # Continuous measures
-    mean_nL = sum_nL / total
-    mean_nR = sum_nR / total
-
+        p10 = p01 = 0.25
+    W_sub = p10 + p01
+    a_sq = p10 / W_sub if W_sub > 1e-6 else 0.5
+    b_sq = p01 / W_sub if W_sub > 1e-6 else 0.5
     return {
-        # Proper 2-level subspace analysis
-        "W_sub": W_sub,  # Total weight in {|10⟩, |01⟩} subspace
-        "a_sq": a_sq,  # |⟨10|Ψ⟩|² / W_sub (normalized left excitation)
-        "b_sq": b_sq,  # |⟨01|Ψ⟩|² / W_sub (normalized right excitation)
-        # Raw probabilities
-        "p_00": p_00,
-        "p_10": p_10,
-        "p_01": p_01,
-        "p_11": p_11,
-        "p_other": counts["other"] / total,
-        # Continuous excitation measures
-        "mean_nL": mean_nL,
-        "mean_nR": mean_nR,
+        "W_sub": W_sub,
+        "a_sq": a_sq,
+        "b_sq": b_sq,
+        "p_00": counts["00"] / tc if tc > 0 else 0.25,
+        "p_10": p10,
+        "p_01": p01,
+        "p_11": counts["11"] / tc if tc > 0 else 0.25,
     }
 
 
-def compute_entanglement_proxy(
-    psi_log_fn,
-    cfg: DoubleWellConfig,
-    n_samples: int = 5000,
-) -> float:
-    """Compute a proxy for entanglement: correlation between left and right excitations.
+def compute_subspace_entanglement(a_sq: float, b_sq: float) -> float:
+    """Entanglement entropy within the {|10⟩, |01⟩} projected subspace.
 
-    For separable states: ⟨n_L n_R⟩ = ⟨n_L⟩⟨n_R⟩
-    For entangled states: ⟨n_L n_R⟩ ≠ ⟨n_L⟩⟨n_R⟩
+    S_sub = −a² ln a² − b² ln b²
 
-    We compute the covariance and normalize it.
+    S = 0        → fully |10⟩ or |01⟩ (product state)
+    S = ln 2     → equal superposition   (maximally entangled)
+
+    This is the *only* entanglement metric we report — clean, cheap,
+    and directly comparable to Jonny's 1D two-level picture.
     """
+    S = 0.0
+    if a_sq > 1e-10:
+        S -= a_sq * math.log(a_sq)
+    if b_sq > 1e-10:
+        S -= b_sq * math.log(b_sq)
+    return S
+
+
+def compute_transverse_leakage(psi_log_fn, cfg, n_samples=5000):
+    """L = ⟨y²⟩ / ⟨r²⟩.   L→0.5: isotropic 2D.  L→0: quasi-1D."""
     mcmc_sigma = 0.12 * cfg.ell_base
-    batch_size = 1024
+    bs = 1024
     sep = cfg.sep_physical
+    x = sample_asymmetric_positions(bs, cfg)
 
-    sigma_left = 1.0 / math.sqrt(cfg.omega_left)
-    sigma_right = 1.0 / math.sqrt(cfg.omega_right)
-
-    x = sample_asymmetric_positions(batch_size, cfg)
-
-    # Burn-in
     with torch.no_grad():
         logp = 2.0 * psi_log_fn(x)
         for _ in range(100):
-            x_prop = x + torch.randn_like(x) * mcmc_sigma
-            logp_prop = 2.0 * psi_log_fn(x_prop)
-            accept = torch.rand(batch_size, device=DEVICE).log() < (logp_prop - logp)
-            x = torch.where(accept.view(-1, 1, 1), x_prop, x)
-            logp = torch.where(accept, logp_prop, logp)
+            xp = x + torch.randn_like(x) * mcmc_sigma
+            lp = 2.0 * psi_log_fn(xp)
+            acc = torch.rand(bs, device=DEVICE).log() < (lp - logp)
+            x = torch.where(acc.view(-1, 1, 1), xp, x)
+            logp = torch.where(acc, lp, logp)
 
-    # Collect samples
-    n_L_list: list[torch.Tensor] = []
-    n_R_list: list[torch.Tensor] = []
-
-    while len(n_L_list) * batch_size < n_samples:
-        with torch.no_grad():
-            for _ in range(5):
-                x_prop = x + torch.randn_like(x) * mcmc_sigma
-                logp_prop = 2.0 * psi_log_fn(x_prop)
-                accept = torch.rand(batch_size, device=DEVICE).log() < (logp_prop - logp)
-                x = torch.where(accept.view(-1, 1, 1), x_prop, x)
-                logp = torch.where(accept, logp_prop, logp)
-
-            # "Excitation" proxies (normalized distance from center)
-            r_left = torch.sqrt((x[:, 0, 0] + sep / 2) ** 2 + x[:, 0, 1] ** 2) / sigma_left
-            r_right = torch.sqrt((x[:, 1, 0] - sep / 2) ** 2 + x[:, 1, 1] ** 2) / sigma_right
-
-            n_L_list.append(r_left.cpu())
-            n_R_list.append(r_right.cpu())
-
-    n_L = torch.cat(n_L_list)
-    n_R = torch.cat(n_R_list)
-
-    # Compute correlation
-    cov = float(((n_L - n_L.mean()) * (n_R - n_R.mean())).mean().item())
-    std_L = float(n_L.std().item())
-    std_R = float(n_R.std().item())
-
-    if std_L > 0 and std_R > 0:
-        correlation = cov / (std_L * std_R)
-    else:
-        correlation = 0.0
-
-    # Convert to entanglement-like measure (0 for uncorrelated, higher for correlated)
-    entanglement_proxy = abs(correlation)
-
-    return entanglement_proxy
-
-
-def compute_transverse_leakage(
-    psi_log_fn,
-    cfg: DoubleWellConfig,
-    n_samples: int = 5000,
-) -> float:
-    """Compute transverse leakage: how much the state spills into y-modes.
-
-    In the 1D limit, particles should stay on the x-axis.
-    Leakage L = ⟨y²⟩ / ⟨x² + y²⟩
-
-    For 1D-like behavior: L → 0
-    For 2D spreading: L → 0.5 (isotropic)
-    """
-    mcmc_sigma = 0.12 * cfg.ell_base
-    batch_size = 1024
-    sep = cfg.sep_physical
-
-    x = sample_asymmetric_positions(batch_size, cfg)
-
-    # Burn-in
-    with torch.no_grad():
-        logp = 2.0 * psi_log_fn(x)
-        for _ in range(100):
-            x_prop = x + torch.randn_like(x) * mcmc_sigma
-            logp_prop = 2.0 * psi_log_fn(x_prop)
-            accept = torch.rand(batch_size, device=DEVICE).log() < (logp_prop - logp)
-            x = torch.where(accept.view(-1, 1, 1), x_prop, x)
-            logp = torch.where(accept, logp_prop, logp)
-
-    sum_y2 = 0.0
-    sum_total = 0.0
+    sy2 = sr2 = 0.0
     total = 0
-
     while total < n_samples:
         with torch.no_grad():
             for _ in range(5):
-                x_prop = x + torch.randn_like(x) * mcmc_sigma
-                logp_prop = 2.0 * psi_log_fn(x_prop)
-                accept = torch.rand(batch_size, device=DEVICE).log() < (logp_prop - logp)
-                x = torch.where(accept.view(-1, 1, 1), x_prop, x)
-                logp = torch.where(accept, logp_prop, logp)
-
-            # Compute y² contribution (relative to well centers)
-            y_left = x[:, 0, 1]
-            y_right = x[:, 1, 1]
-
-            # Distance from well centers
-            x_left_disp = x[:, 0, 0] + sep / 2
-            x_right_disp = x[:, 1, 0] - sep / 2
-
-            y2 = y_left**2 + y_right**2
-            total_disp2 = x_left_disp**2 + y_left**2 + x_right_disp**2 + y_right**2
-
-            sum_y2 += float(y2.sum().item())
-            sum_total += float(total_disp2.sum().item())
-            total += batch_size
-
-    if sum_total > 0:
-        leakage = sum_y2 / sum_total
-    else:
-        leakage = 0.0
-
-    return leakage
+                xp = x + torch.randn_like(x) * mcmc_sigma
+                lp = 2.0 * psi_log_fn(xp)
+                acc = torch.rand(bs, device=DEVICE).log() < (lp - logp)
+                x = torch.where(acc.view(-1, 1, 1), xp, x)
+                logp = torch.where(acc, lp, logp)
+            y2 = x[:, 0, 1] ** 2 + x[:, 1, 1] ** 2
+            xd0 = x[:, 0, 0] + sep / 2
+            xd1 = x[:, 1, 0] - sep / 2
+            r2 = xd0 ** 2 + x[:, 0, 1] ** 2 + xd1 ** 2 + x[:, 1, 1] ** 2
+            sy2 += float(y2.sum())
+            sr2 += float(r2.sum())
+            total += bs
+    return sy2 / sr2 if sr2 > 0 else 0.0
 
 
 # ============================================================
-# Main Sweep Function
+# Train all three states at a single λ
 # ============================================================
 
 
-def run_lambda_sweep(
-    lambda_values: list,
-    well_separation: float = 4.0,
-    n_epochs_ground: int = 300,
-    n_epochs_excited: int = 400,
-    n_eval_samples: int = 30000,
-    n_diag_samples: int = 5000,
+def train_all_states(
+    cfg,
+    C_occ,
+    params,
+    *,
+    n_epochs_ground=200,
+    n_epochs_excited=250,
+    n_eval_samples=10000,
+    n_diag_samples=5000,
+    model_mode="full",
+    warm_state=None,
+    print_every=100,
 ):
-    """Run the full λ sweep and compute all diagnostics.
+    """Train E0, E1, E2 at one λ.
 
-    For each λ:
-    1. Train ground state (E0)
-    2. Train first excited state (E1) orthogonal to E0
-    3. Train second excited state (E2) orthogonal to E0, E1
-    4. Compute diagnostics: gap, mixing, entanglement, leakage
+    Returns (result_dict, model_states, psi_pair).
+
+    warm_state : dict with keys "ground", "lower", "upper" each containing
+                 {"f_net": state_dict, "bf_net": state_dict|None}
     """
+    spin = torch.tensor([0, 1], dtype=torch.long, device=DEVICE)
+    is_sd_only = model_mode == "sd_only"
+
+    # --- Ground ---
+    print("    [Ground]")
+    f0, bf0 = build_model(OMEGA_BASE, mode=model_mode)
+    if warm_state and warm_state.get("ground"):
+        _load_warm(f0, bf0, warm_state["ground"])
+    E0_best, st0 = train_ground_state(
+        f0, bf0, C_occ, cfg, params,
+        n_epochs=n_epochs_ground, print_every=print_every,
+    )
+    psi0 = make_psi_log_fn(f0, C_occ, bf0, spin, params, cfg)
+    E0, E0_err = evaluate_energy_precise(psi0, cfg, n_eval_samples)
+    print(f"    E0 = {E0:.5f} ± {E0_err:.5f}")
+
+    if is_sd_only:
+        result = _pack_result_sd_only(cfg, E0, E0_err)
+        return result, {"ground": st0, "lower": None, "upper": None}, None
+
+    # --- First excited ---
+    print("    [Exc-1]")
+    f1, bf1 = build_model(OMEGA_BASE, mode=model_mode)
+    if warm_state and warm_state.get("lower"):
+        _load_warm(f1, bf1, warm_state["lower"])
+    _, st1 = train_excited_state(
+        f1, bf1, C_occ, cfg, params,
+        lower_states=[(f0, bf0, psi0)],
+        n_epochs=n_epochs_excited, print_every=print_every,
+    )
+    psi1 = make_psi_log_fn(f1, C_occ, bf1, spin, params, cfg)
+    E1, E1_err = evaluate_energy_precise(psi1, cfg, n_eval_samples)
+    print(f"    E1 = {E1:.5f} ± {E1_err:.5f}")
+
+    # --- Second excited ---
+    print("    [Exc-2]")
+    f2, bf2 = build_model(OMEGA_BASE, mode=model_mode)
+    if warm_state and warm_state.get("upper"):
+        _load_warm(f2, bf2, warm_state["upper"])
+    _, st2 = train_excited_state(
+        f2, bf2, C_occ, cfg, params,
+        lower_states=[(f0, bf0, psi0), (f1, bf1, psi1)],
+        n_epochs=n_epochs_excited, print_every=print_every,
+    )
+    psi2 = make_psi_log_fn(f2, C_occ, bf2, spin, params, cfg)
+    E2, E2_err = evaluate_energy_precise(psi2, cfg, n_eval_samples)
+    print(f"    E2 = {E2:.5f} ± {E2_err:.5f}")
+
+    # --- Sort by energy ---
+    if E1 <= E2:
+        E_lo, E_lo_err, psi_lo, st_lo = E1, E1_err, psi1, st1
+        E_hi, E_hi_err, psi_hi, st_hi = E2, E2_err, psi2, st2
+    else:
+        E_lo, E_lo_err, psi_lo, st_lo = E2, E2_err, psi2, st2
+        E_hi, E_hi_err, psi_hi, st_hi = E1, E1_err, psi1, st1
+
+    gap = E_hi - E_lo
+
+    # --- Diagnostics ---
+    print("    [Diag]")
+    print(f"      Δ = {gap:.5f}  (E_lo={E_lo:.5f}, E_hi={E_hi:.5f})")
+
+    mx_lo = compute_mixing_weights_proper(psi_lo, cfg, n_samples=n_diag_samples)
+    mx_hi = compute_mixing_weights_proper(psi_hi, cfg, n_samples=n_diag_samples)
+    S_lo = compute_subspace_entanglement(mx_lo["a_sq"], mx_lo["b_sq"])
+    S_hi = compute_subspace_entanglement(mx_hi["a_sq"], mx_hi["b_sq"])
+
+    print(
+        f"      Lo: W={mx_lo['W_sub']:.3f} a²={mx_lo['a_sq']:.3f}"
+        f" b²={mx_lo['b_sq']:.3f}  S={S_lo:.4f}"
+    )
+    print(
+        f"      Hi: W={mx_hi['W_sub']:.3f} a²={mx_hi['a_sq']:.3f}"
+        f" b²={mx_hi['b_sq']:.3f}  S={S_hi:.4f}"
+    )
+
+    lk0 = compute_transverse_leakage(psi0, cfg, n_samples=n_diag_samples)
+    lk_lo = compute_transverse_leakage(psi_lo, cfg, n_samples=n_diag_samples)
+    lk_hi = compute_transverse_leakage(psi_hi, cfg, n_samples=n_diag_samples)
+    print(f"      Leak: E0={lk0:.3f}  lo={lk_lo:.3f}  hi={lk_hi:.3f}")
+
+    result = {
+        "lambda": cfg.lam,
+        "omega_left": cfg.omega_left,
+        "omega_right": cfg.omega_right,
+        "quasi_1d": cfg.quasi_1d,
+        "E0": E0,
+        "E0_err": E0_err,
+        "E_lower": E_lo,
+        "E_lower_err": E_lo_err,
+        "E_upper": E_hi,
+        "E_upper_err": E_hi_err,
+        "gap": gap,
+        "lower_W_sub": mx_lo["W_sub"],
+        "lower_a_sq": mx_lo["a_sq"],
+        "lower_b_sq": mx_lo["b_sq"],
+        "upper_W_sub": mx_hi["W_sub"],
+        "upper_a_sq": mx_hi["a_sq"],
+        "upper_b_sq": mx_hi["b_sq"],
+        "S_sub_lower": S_lo,
+        "S_sub_upper": S_hi,
+        "E0_leakage": lk0,
+        "lower_leakage": lk_lo,
+        "upper_leakage": lk_hi,
+    }
+
+    new_warm = {"ground": st0, "lower": st_lo, "upper": st_hi}
+    return result, new_warm, (psi_lo, psi_hi)
+
+
+def _load_warm(f_net, bf_net, state):
+    """Load warm-start state dicts, silently skipping mismatches."""
+    if state is None:
+        return
+    try:
+        f_net.load_state_dict(state["f_net"])
+    except Exception:
+        pass
+    if bf_net is not None and state.get("bf_net"):
+        try:
+            bf_net.load_state_dict(state["bf_net"])
+        except Exception:
+            pass
+
+
+def _pack_result_sd_only(cfg, E0, E0_err):
+    """Result dict for sd_only mode (no excited states)."""
+    return {
+        "lambda": cfg.lam,
+        "omega_left": cfg.omega_left,
+        "omega_right": cfg.omega_right,
+        "quasi_1d": cfg.quasi_1d,
+        "E0": E0,
+        "E0_err": E0_err,
+        "E_lower": None,
+        "E_lower_err": None,
+        "E_upper": None,
+        "E_upper_err": None,
+        "gap": None,
+        "lower_W_sub": None,
+        "lower_a_sq": None,
+        "lower_b_sq": None,
+        "upper_W_sub": None,
+        "upper_a_sq": None,
+        "upper_b_sq": None,
+        "S_sub_lower": None,
+        "S_sub_upper": None,
+        "E0_leakage": None,
+        "lower_leakage": None,
+        "upper_leakage": None,
+    }
+
+
+# ============================================================
+# Dense Sweep — warm-start + hop detection + multi-seed
+# ============================================================
+
+
+def run_dense_sweep(
+    lambda_values=None,
+    *,
+    n_seeds=3,
+    n_epochs_ground=200,
+    n_epochs_excited=250,
+    n_epochs_ground_warm=100,
+    n_epochs_excited_warm=150,
+    n_eval_samples=10000,
+    n_diag_samples=5000,
+    quasi_1d=False,
+    omega_y_factor=5.0,
+):
+    """Dense sweep near resonance with warm-starting and multi-seed error bars."""
+    if lambda_values is None:
+        lambda_values = [round(v, 2) for v in np.arange(-0.10, 0.101, 0.02)]
+
+    tag = "DENSE SWEEP"
+    if quasi_1d:
+        tag += f"  (quasi-1D, ω_y/ω_x={omega_y_factor})"
     print("=" * 70)
-    print("AVOIDED CROSSING STUDY - λ SWEEP")
+    print(tag)
     print("=" * 70)
-    print(f"Device: {DEVICE}")
-    print(f"Well separation: {well_separation}")
-    print(f"λ values: {lambda_values}")
+    print(f"  λ values ({len(lambda_values)}): {lambda_values}")
+    print(f"  seeds = {n_seeds}")
+    print(f"  epochs cold : gnd={n_epochs_ground}  exc={n_epochs_excited}")
+    print(f"  epochs warm : gnd={n_epochs_ground_warm}  exc={n_epochs_excited_warm}")
     print()
 
-    # Setup config
+    _init_config()
+    params = config.get().as_dict()
+    C_occ = make_cartesian_C_occ(2, 2, 1, device=DEVICE, dtype=DTYPE)
+
+    all_seed_results = []
+
+    for seed in range(n_seeds):
+        print(f"\n{'#' * 70}")
+        print(f"  SEED {seed}")
+        print(f"{'#' * 70}")
+        torch.manual_seed(seed * 42)
+
+        warm_state = None
+        prev_psi = None
+        seed_results = []
+
+        for i, lam in enumerate(lambda_values):
+            print(
+                f"\n  === λ={lam:+.3f}"
+                f"  (seed {seed}, {i + 1}/{len(lambda_values)}) ==="
+            )
+
+            cfg = DoubleWellConfig(
+                well_separation=4.0,
+                omega_base=OMEGA_BASE,
+                asymmetry_strength=0.3,
+                lam=lam,
+                quasi_1d=quasi_1d,
+                omega_y_factor=omega_y_factor,
+            )
+
+            use_warm = warm_state is not None
+            ne_g = n_epochs_ground_warm if use_warm else n_epochs_ground
+            ne_e = n_epochs_excited_warm if use_warm else n_epochs_excited
+
+            result, new_warm, psi_pair = train_all_states(
+                cfg,
+                C_occ,
+                params,
+                n_epochs_ground=ne_g,
+                n_epochs_excited=ne_e,
+                n_eval_samples=n_eval_samples,
+                n_diag_samples=n_diag_samples,
+                warm_state=warm_state if use_warm else None,
+                print_every=max(ne_g, ne_e),
+            )
+
+            # --- Hop detection ---
+            if prev_psi is not None and psi_pair is not None:
+                x_t = sample_asymmetric_positions(1024, cfg)
+                with torch.no_grad():
+                    logp = 2.0 * psi_pair[0](x_t)
+                    for _ in range(50):
+                        xp = x_t + torch.randn_like(x_t) * 0.12
+                        lp = 2.0 * psi_pair[0](xp)
+                        acc = (
+                            torch.rand(1024, device=DEVICE).log()
+                            < (lp - logp)
+                        )
+                        x_t = torch.where(acc.view(-1, 1, 1), xp, x_t)
+                        logp = torch.where(acc, lp, logp)
+
+                ov_lo = float(compute_overlap(psi_pair[0], prev_psi[0], x_t))
+                ov_hi = float(compute_overlap(psi_pair[1], prev_psi[1], x_t))
+                hop = abs(ov_lo) < 0.3 or abs(ov_hi) < 0.3
+                result["overlap_lo_prev"] = ov_lo
+                result["overlap_hi_prev"] = ov_hi
+                result["hop_flag"] = hop
+                sym = "⚠ HOP" if hop else "✓"
+                print(
+                    f"      Branch overlap: lo={ov_lo:.3f}"
+                    f" hi={ov_hi:.3f}  {sym}"
+                )
+            else:
+                result["overlap_lo_prev"] = None
+                result["overlap_hi_prev"] = None
+                result["hop_flag"] = False
+
+            result["seed"] = seed
+            seed_results.append(result)
+            warm_state = new_warm
+            if psi_pair is not None:
+                prev_psi = psi_pair
+
+        all_seed_results.append(seed_results)
+        with open(RESULTS_DIR / f"dense_seed{seed}.json", "w") as f:
+            json.dump(seed_results, f, indent=2, default=str)
+
+    aggregated = _aggregate_seeds(all_seed_results, lambda_values)
+    with open(RESULTS_DIR / "dense_aggregated.json", "w") as f:
+        json.dump(aggregated, f, indent=2, default=str)
+
+    return aggregated, all_seed_results
+
+
+def _aggregate_seeds(all_seed_results, lambda_values):
+    """mean ± std across seeds for each λ."""
+    agg = []
+    for i, lam in enumerate(lambda_values):
+        rows = [sr[i] for sr in all_seed_results if i < len(sr)]
+        n = len(rows)
+
+        def _stat(key):
+            vals = [r[key] for r in rows if r.get(key) is not None]
+            if not vals:
+                return None, None
+            return float(np.mean(vals)), float(np.std(vals))
+
+        gm, gs = _stat("gap")
+        entry = {
+            "lambda": lam,
+            "n_seeds": n,
+            "E0_mean": _stat("E0")[0],
+            "E0_std": _stat("E0")[1],
+            "E_lower_mean": _stat("E_lower")[0],
+            "E_lower_std": _stat("E_lower")[1],
+            "E_upper_mean": _stat("E_upper")[0],
+            "E_upper_std": _stat("E_upper")[1],
+            "gap_mean": gm,
+            "gap_std": gs,
+            "lower_W_sub_mean": _stat("lower_W_sub")[0],
+            "lower_W_sub_std": _stat("lower_W_sub")[1],
+            "upper_W_sub_mean": _stat("upper_W_sub")[0],
+            "upper_W_sub_std": _stat("upper_W_sub")[1],
+            "lower_a_sq_mean": _stat("lower_a_sq")[0],
+            "lower_b_sq_mean": _stat("lower_b_sq")[0],
+            "S_sub_lower_mean": _stat("S_sub_lower")[0],
+            "S_sub_lower_std": _stat("S_sub_lower")[1],
+            "S_sub_upper_mean": _stat("S_sub_upper")[0],
+            "S_sub_upper_std": _stat("S_sub_upper")[1],
+            "E0_leakage_mean": _stat("E0_leakage")[0],
+            "lower_leakage_mean": _stat("lower_leakage")[0],
+            "upper_leakage_mean": _stat("upper_leakage")[0],
+            "hop_flags": [r.get("hop_flag", False) for r in rows],
+        }
+        agg.append(entry)
+    return agg
+
+
+# ============================================================
+# Ablation Study
+# ============================================================
+
+
+def run_ablation(
+    lambda_values=None,
+    *,
+    n_epochs_ground=200,
+    n_epochs_excited=250,
+    n_eval_samples=8000,
+    n_diag_samples=4000,
+):
+    """SD / SD+Jastrow / SD+BF+Jastrow  at λ values near resonance."""
+    if lambda_values is None:
+        lambda_values = [-0.06, -0.02, 0.0, 0.02, 0.06]
+
+    modes = ["sd_only", "sd_jastrow", "full"]
+    labels = {"sd_only": "SD", "sd_jastrow": "SD+J", "full": "SD+BF+J"}
+
+    print("=" * 70)
+    print("ABLATION STUDY")
+    print("=" * 70)
+    print(f"  λ values: {lambda_values}")
+    print(f"  Models: {[labels[m] for m in modes]}")
+    print()
+
+    _init_config()
+    params = config.get().as_dict()
+    C_occ = make_cartesian_C_occ(2, 2, 1, device=DEVICE, dtype=DTYPE)
+
+    ablation = {}
+    for mode in modes:
+        print(f"\n{'#' * 70}")
+        print(f"  Model: {labels[mode]}")
+        print(f"{'#' * 70}")
+        torch.manual_seed(0)
+        mode_results = []
+
+        for lam in lambda_values:
+            cfg = DoubleWellConfig(
+                well_separation=4.0,
+                omega_base=OMEGA_BASE,
+                asymmetry_strength=0.3,
+                lam=lam,
+            )
+            print(f"\n  λ={lam:+.3f}  [{labels[mode]}]")
+
+            result, _, _ = train_all_states(
+                cfg,
+                C_occ,
+                params,
+                n_epochs_ground=n_epochs_ground,
+                n_epochs_excited=n_epochs_excited,
+                n_eval_samples=n_eval_samples,
+                n_diag_samples=n_diag_samples,
+                model_mode=mode,
+                print_every=max(n_epochs_ground, n_epochs_excited),
+            )
+            result["model"] = mode
+            mode_results.append(result)
+
+        ablation[mode] = mode_results
+
+    with open(RESULTS_DIR / "ablation_results.json", "w") as f:
+        json.dump(ablation, f, indent=2, default=str)
+
+    return ablation
+
+
+# ============================================================
+# Helper
+# ============================================================
+
+
+def _init_config():
     config.update(
         device=DEVICE,
         omega=OMEGA_BASE,
@@ -964,390 +1071,274 @@ def run_lambda_sweep(
         nx=2,
         ny=2,
     )
-    cfg_base = config.get()
-    params = cfg_base.as_dict()
-
-    C_occ = make_cartesian_C_occ(2, 2, 1, device=DEVICE, dtype=DTYPE)
-
-    results = []
-
-    for lam in lambda_values:
-        print(f"\n{'='*70}")
-        print(f"λ = {lam:.3f}")
-        print(f"{'='*70}")
-
-        # Create config for this λ
-        cfg = DoubleWellConfig(
-            well_separation=well_separation,
-            omega_base=OMEGA_BASE,
-            asymmetry_strength=0.3,
-            lam=lam,
-        )
-
-        print(f"ω_left = {cfg.omega_left:.3f}, ω_right = {cfg.omega_right:.3f}")
-        E00, E10, E01 = cfg.expected_E_asymptotic()
-        print(f"Expected asymptotic: E_00 = {E00:.3f}, E_10 = {E10:.3f}, E_01 = {E01:.3f}")
-
-        spin = torch.tensor([0, 1], dtype=torch.long, device=DEVICE)
-
-        # --- Train ground state ---
-        print("\n[Ground State]")
-        f_net_0, bf_net_0 = build_model(OMEGA_BASE)
-        _, E0_train = train_ground_state(
-            f_net_0, bf_net_0, C_occ, cfg, params, n_epochs=n_epochs_ground, print_every=100
-        )
-
-        psi_log_0 = make_psi_log_fn(f_net_0, C_occ, bf_net_0, spin, params, cfg)
-        E0, E0_err = evaluate_energy_precise(psi_log_0, cfg, n_eval_samples)
-        print(f"  E0 = {E0:.5f} ± {E0_err:.5f}")
-
-        # --- Train first excited state ---
-        print("\n[First Excited State]")
-        f_net_1, bf_net_1 = build_model(OMEGA_BASE)
-        lower_states_1 = [(f_net_0, bf_net_0, psi_log_0)]
-
-        _, E1_train = train_excited_state(
-            f_net_1,
-            bf_net_1,
-            C_occ,
-            cfg,
-            params,
-            lower_states=lower_states_1,
-            n_epochs=n_epochs_excited,
-            print_every=100,
-        )
-
-        psi_log_1 = make_psi_log_fn(f_net_1, C_occ, bf_net_1, spin, params, cfg)
-        E1, E1_err = evaluate_energy_precise(psi_log_1, cfg, n_eval_samples)
-        print(f"  E1 = {E1:.5f} ± {E1_err:.5f}")
-
-        # --- Train second excited state ---
-        print("\n[Second Excited State]")
-        f_net_2, bf_net_2 = build_model(OMEGA_BASE)
-        lower_states_2 = [
-            (f_net_0, bf_net_0, psi_log_0),
-            (f_net_1, bf_net_1, psi_log_1),
-        ]
-
-        _, E2_train = train_excited_state(
-            f_net_2,
-            bf_net_2,
-            C_occ,
-            cfg,
-            params,
-            lower_states=lower_states_2,
-            n_epochs=n_epochs_excited,
-            print_every=100,
-        )
-
-        psi_log_2 = make_psi_log_fn(f_net_2, C_occ, bf_net_2, spin, params, cfg)
-        E2, E2_err = evaluate_energy_precise(psi_log_2, cfg, n_eval_samples)
-        print(f"  E2 = {E2:.5f} ± {E2_err:.5f}")
-
-        # --- Sort energies for consistent gap definition ---
-        # E_lower = min(E1, E2), E_upper = max(E1, E2)
-        if E1 <= E2:
-            E_lower, E_lower_err = E1, E1_err
-            E_upper, E_upper_err = E2, E2_err
-            psi_lower, psi_upper = psi_log_1, psi_log_2
-        else:
-            E_lower, E_lower_err = E2, E2_err
-            E_upper, E_upper_err = E1, E1_err
-            psi_lower, psi_upper = psi_log_2, psi_log_1
-
-        # --- Compute diagnostics ---
-        print("\n[Diagnostics]")
-
-        # Proper gap (always positive)
-        gap = E_upper - E_lower
-        print(f"  Gap Δ = E_upper - E_lower = {gap:.5f}")
-        print(f"    E_lower = {E_lower:.5f}, E_upper = {E_upper:.5f}")
-
-        # Proper mixing weights using 2-level subspace projection
-        mix_lower = compute_mixing_weights_proper(psi_lower, cfg, n_samples=n_diag_samples)
-        mix_upper = compute_mixing_weights_proper(psi_upper, cfg, n_samples=n_diag_samples)
-
-        print(f"  E_lower: W_sub={mix_lower['W_sub']:.3f}, "
-              f"a²={mix_lower['a_sq']:.3f}, b²={mix_lower['b_sq']:.3f}")
-        print(f"  E_upper: W_sub={mix_upper['W_sub']:.3f}, "
-              f"a²={mix_upper['a_sq']:.3f}, b²={mix_upper['b_sq']:.3f}")
-
-        # Entanglement proxy for both excited states
-        ent_lower = compute_entanglement_proxy(psi_lower, cfg, n_samples=n_diag_samples)
-        ent_upper = compute_entanglement_proxy(psi_upper, cfg, n_samples=n_diag_samples)
-        print(f"  Entanglement proxy: lower={ent_lower:.3f}, upper={ent_upper:.3f}")
-
-        # Transverse leakage
-        leak_0 = compute_transverse_leakage(psi_log_0, cfg, n_samples=n_diag_samples)
-        leak_lower = compute_transverse_leakage(psi_lower, cfg, n_samples=n_diag_samples)
-        leak_upper = compute_transverse_leakage(psi_upper, cfg, n_samples=n_diag_samples)
-        print(f"  Transverse leakage: E0={leak_0:.3f}, "
-              f"lower={leak_lower:.3f}, upper={leak_upper:.3f}")
-
-        # Store results with both raw and sorted data
-        results.append(
-            {
-                "lambda": lam,
-                "omega_left": cfg.omega_left,
-                "omega_right": cfg.omega_right,
-                # Raw energies (as trained)
-                "E0": E0, "E0_err": E0_err,
-                "E1_raw": E1, "E1_raw_err": E1_err,
-                "E2_raw": E2, "E2_raw_err": E2_err,
-                # Sorted energies (for consistent gap)
-                "E_lower": E_lower, "E_lower_err": E_lower_err,
-                "E_upper": E_upper, "E_upper_err": E_upper_err,
-                "gap": gap,  # Always positive
-                # Proper 2-level subspace mixing (for sorted states)
-                "lower_W_sub": mix_lower["W_sub"],
-                "lower_a_sq": mix_lower["a_sq"],
-                "lower_b_sq": mix_lower["b_sq"],
-                "upper_W_sub": mix_upper["W_sub"],
-                "upper_a_sq": mix_upper["a_sq"],
-                "upper_b_sq": mix_upper["b_sq"],
-                # Entanglement
-                "ent_lower": ent_lower,
-                "ent_upper": ent_upper,
-                # Leakage
-                "E0_leakage": leak_0,
-                "lower_leakage": leak_lower,
-                "upper_leakage": leak_upper,
-            }
-        )
-
-        # Save intermediate results
-        with open(RESULTS_DIR / "sweep_results.json", "w") as f:
-            json.dump(results, f, indent=2)
-
-    return results
 
 
 # ============================================================
-# Plotting Functions
+# Plotting
 # ============================================================
 
 
-def create_comparison_plots(results: list, save_dir: Path = RESULTS_DIR):
-    """Create comparison plots with proper energy ordering and 2-level analysis."""
+def create_dense_plots(aggregated, save_dir=RESULTS_DIR, suffix=""):
+    """6-panel plot with multi-seed error bars."""
+    lams = [r["lambda"] for r in aggregated]
+    E0 = [r["E0_mean"] for r in aggregated]
+    Elo = [r["E_lower_mean"] for r in aggregated]
+    Ehi = [r["E_upper_mean"] for r in aggregated]
+    Elo_e = [r.get("E_lower_std") or 0 for r in aggregated]
+    Ehi_e = [r.get("E_upper_std") or 0 for r in aggregated]
+    gaps = [r["gap_mean"] for r in aggregated]
+    gap_e = [r.get("gap_std") or 0 for r in aggregated]
+    a_lo = [r.get("lower_a_sq_mean") or 0.5 for r in aggregated]
+    b_lo = [r.get("lower_b_sq_mean") or 0.5 for r in aggregated]
+    W_lo = [r.get("lower_W_sub_mean") or 0 for r in aggregated]
+    W_hi = [r.get("upper_W_sub_mean") or 0 for r in aggregated]
+    S_lo = [r.get("S_sub_lower_mean") or 0 for r in aggregated]
+    S_hi = [r.get("S_sub_upper_mean") or 0 for r in aggregated]
+    S_lo_e = [r.get("S_sub_lower_std") or 0 for r in aggregated]
+    S_hi_e = [r.get("S_sub_upper_std") or 0 for r in aggregated]
+    lk0 = [r.get("E0_leakage_mean") or 0 for r in aggregated]
+    lk_lo = [r.get("lower_leakage_mean") or 0 for r in aggregated]
+    lk_hi = [r.get("upper_leakage_mean") or 0 for r in aggregated]
 
-    lambdas = [r["lambda"] for r in results]
-    E0 = [r["E0"] for r in results]
+    fig, axes = plt.subplots(2, 3, figsize=(16, 10))
 
-    # Use sorted energies for consistent plotting
-    E_lower = [r["E_lower"] for r in results]
-    E_upper = [r["E_upper"] for r in results]
-    gaps = [r["gap"] for r in results]  # Now always positive
-
-    # 2-level subspace analysis
-    lower_a_sq = [r["lower_a_sq"] for r in results]
-    lower_b_sq = [r["lower_b_sq"] for r in results]
-    upper_a_sq = [r["upper_a_sq"] for r in results]
-    upper_b_sq = [r["upper_b_sq"] for r in results]
-    lower_W_sub = [r["lower_W_sub"] for r in results]
-    upper_W_sub = [r["upper_W_sub"] for r in results]
-
-    ent_lower = [r["ent_lower"] for r in results]
-    ent_upper = [r["ent_upper"] for r in results]
-
-    leak_0 = [r["E0_leakage"] for r in results]
-    leak_lower = [r["lower_leakage"] for r in results]
-    leak_upper = [r["upper_leakage"] for r in results]
-
-    fig, axes = plt.subplots(2, 3, figsize=(15, 10))
-
-    # Plot 1: Energy spectrum (with sorted excited states)
+    # (a) Energy spectrum
     ax = axes[0, 0]
-    ax.plot(lambdas, E0, "b-o", label=r"$E_0$ (ground)", markersize=5)
-    ax.plot(lambdas, E_lower, "r-s", label=r"$E_{lower}$", markersize=5)
-    ax.plot(lambdas, E_upper, "g-^", label=r"$E_{upper}$", markersize=5)
-    ax.set_xlabel(r"$\lambda$")
-    ax.set_ylabel(r"Energy")
-    ax.set_title(r"(a) Energy Spectrum (sorted)")
-    ax.legend()
-    ax.grid(True, alpha=0.3)
-
-    # Plot 2: Gap (now always positive, proper avoided crossing signature)
-    ax = axes[0, 1]
-    ax.plot(lambdas, gaps, "k-o", markersize=5)
-    ax.set_xlabel(r"$\lambda$")
-    ax.set_ylabel(r"$\Delta = E_{upper} - E_{lower} \geq 0$")
-    ax.set_title(r"(b) Energy Gap $\Delta(\lambda)$")
-    ax.grid(True, alpha=0.3)
-
-    # Find minimum gap
-    min_gap_idx = np.argmin(gaps)
-    ax.axvline(
-        lambdas[min_gap_idx],
-        color="r",
-        linestyle="--",
-        alpha=0.5,
-        label=rf"$\lambda^* = {lambdas[min_gap_idx]:.2f}$, $\Delta^* = {gaps[min_gap_idx]:.3f}$",
+    ax.plot(lams, E0, "b-o", label=r"$E_0$", ms=4)
+    ax.errorbar(
+        lams, Elo, yerr=Elo_e, fmt="r-s",
+        label=r"$E_{\rm lo}$", ms=4, capsize=3,
     )
+    ax.errorbar(
+        lams, Ehi, yerr=Ehi_e, fmt="g-^",
+        label=r"$E_{\rm hi}$", ms=4, capsize=3,
+    )
+    ax.set(xlabel=r"$\lambda$", ylabel="Energy", title="(a) Energy spectrum")
     ax.legend()
+    ax.grid(True, alpha=0.3)
+
+    # (b) Gap Δ with error bars
+    ax = axes[0, 1]
+    ax.errorbar(lams, gaps, yerr=gap_e, fmt="k-o", ms=5, capsize=3)
+    valid = [(g, l) for g, l in zip(gaps, lams) if g is not None]
+    if valid:
+        mi = min(range(len(valid)), key=lambda j: valid[j][0])
+        ax.axvline(
+            valid[mi][1], color="r", ls="--", alpha=0.5,
+            label=(
+                rf"$\lambda^*={valid[mi][1]:.2f}$,"
+                rf" $\Delta^*={valid[mi][0]:.4f}$"
+            ),
+        )
+    ax.set(
+        xlabel=r"$\lambda$",
+        ylabel=r"$\Delta = E_{\rm hi} - E_{\rm lo}$",
+        title=r"(b) Gap $\Delta(\lambda)$",
+    )
+    ax.legend(fontsize=8)
+    ax.grid(True, alpha=0.3)
     ax.set_ylim(bottom=0)
 
-    # Plot 3: Normalized mixing in 2-level subspace for E_lower
+    # (c) Mixing (a², b²) for E_lower
     ax = axes[0, 2]
-    ax.plot(lambdas, lower_a_sq, "b-o", label=r"$|a|^2$ (left)", markersize=4)
-    ax.plot(lambdas, lower_b_sq, "r-s", label=r"$|b|^2$ (right)", markersize=4)
-    ax.plot(lambdas, lower_W_sub, "k--", label=r"$W_{sub}$", markersize=3, alpha=0.7)
-    ax.set_xlabel(r"$\lambda$")
-    ax.set_ylabel("Weight")
-    ax.set_title(r"(c) $E_{lower}$: 2-level mixing")
-    ax.legend()
+    ax.plot(lams, a_lo, "b-o", label=r"$|a|^2$ (left)", ms=4)
+    ax.plot(lams, b_lo, "r-s", label=r"$|b|^2$ (right)", ms=4)
+    ax.plot(lams, W_lo, "k--", label=r"$W_{\rm sub}$", ms=3, alpha=0.7)
+    ax.axhline(0.5, color="gray", ls=":", alpha=0.5)
+    ax.set(
+        xlabel=r"$\lambda$", ylabel="Weight",
+        title=r"(c) $E_{\rm lo}$: 2-level mixing",
+    )
+    ax.legend(fontsize=8)
     ax.grid(True, alpha=0.3)
     ax.set_ylim(0, 1)
-    ax.axhline(0.5, color="gray", linestyle=":", alpha=0.5)
 
-    # Plot 4: Normalized mixing in 2-level subspace for E_upper
+    # (d) W_sub for both states
     ax = axes[1, 0]
-    ax.plot(lambdas, upper_a_sq, "b-o", label=r"$|a|^2$ (left)", markersize=4)
-    ax.plot(lambdas, upper_b_sq, "r-s", label=r"$|b|^2$ (right)", markersize=4)
-    ax.plot(lambdas, upper_W_sub, "k--", label=r"$W_{sub}$", markersize=3, alpha=0.7)
-    ax.set_xlabel(r"$\lambda$")
-    ax.set_ylabel("Weight")
-    ax.set_title(r"(d) $E_{upper}$: 2-level mixing")
+    ax.plot(lams, W_lo, "r-s", label=r"$W_{\rm sub}^{\rm lo}$", ms=4)
+    ax.plot(lams, W_hi, "g-^", label=r"$W_{\rm sub}^{\rm hi}$", ms=4)
+    ax.axhline(0.8, color="gray", ls=":", alpha=0.5, label="target 0.8")
+    ax.set(
+        xlabel=r"$\lambda$", ylabel=r"$W_{\rm sub}$",
+        title=r"(d) Subspace weight",
+    )
     ax.legend()
     ax.grid(True, alpha=0.3)
     ax.set_ylim(0, 1)
-    ax.axhline(0.5, color="gray", linestyle=":", alpha=0.5)
 
-    # Plot 5: Entanglement (sorted by energy)
+    # (e) Subspace entanglement entropy
     ax = axes[1, 1]
-    ax.plot(lambdas, ent_lower, "r-s", label=r"$E_{lower}$", markersize=4)
-    ax.plot(lambdas, ent_upper, "g-^", label=r"$E_{upper}$", markersize=4)
-    ax.set_xlabel(r"$\lambda$")
-    ax.set_ylabel("Entanglement proxy")
-    ax.set_title(r"(e) Entanglement vs $\lambda$")
-    ax.legend()
+    ax.errorbar(
+        lams, S_lo, yerr=S_lo_e, fmt="r-s",
+        label=r"$S_{\rm sub}^{\rm lo}$", ms=4, capsize=3,
+    )
+    ax.errorbar(
+        lams, S_hi, yerr=S_hi_e, fmt="g-^",
+        label=r"$S_{\rm sub}^{\rm hi}$", ms=4, capsize=3,
+    )
+    ax.axhline(math.log(2), color="gray", ls=":", alpha=0.5, label=r"$\ln 2$")
+    ax.set(
+        xlabel=r"$\lambda$", ylabel=r"$S_{\rm sub}$",
+        title="(e) Subspace entanglement",
+    )
+    ax.legend(fontsize=8)
     ax.grid(True, alpha=0.3)
-    ax.axvline(lambdas[min_gap_idx], color="gray", linestyle="--", alpha=0.5)
 
-    # Plot 6: Transverse leakage (sorted by energy)
+    # (f) Transverse leakage
     ax = axes[1, 2]
-    ax.plot(lambdas, leak_0, "b-o", label=r"$E_0$", markersize=4)
-    ax.plot(lambdas, leak_lower, "r-s", label=r"$E_{lower}$", markersize=4)
-    ax.plot(lambdas, leak_upper, "g-^", label=r"$E_{upper}$", markersize=4)
-    ax.axhline(0.5, color="gray", linestyle=":", label="2D isotropic")
-    ax.set_xlabel(r"$\lambda$")
-    ax.set_ylabel(r"Leakage $L = \langle y^2 \rangle / \langle r^2 \rangle$")
-    ax.set_title(r"(f) Transverse Leakage (2D$\rightarrow$1D)")
-    ax.legend()
+    ax.plot(lams, lk0, "b-o", label=r"$E_0$", ms=4)
+    ax.plot(lams, lk_lo, "r-s", label=r"$E_{\rm lo}$", ms=4)
+    ax.plot(lams, lk_hi, "g-^", label=r"$E_{\rm hi}$", ms=4)
+    ax.axhline(0.5, color="gray", ls=":", label="2D isotropic")
+    ax.set(
+        xlabel=r"$\lambda$",
+        ylabel=r"$L = \langle y^2\rangle/\langle r^2\rangle$",
+        title="(f) Transverse leakage",
+    )
+    ax.legend(fontsize=8)
     ax.grid(True, alpha=0.3)
     ax.set_ylim(0, 0.6)
 
     plt.tight_layout()
-    plt.savefig(save_dir / "avoided_crossing_comparison.pdf", dpi=150, bbox_inches="tight")
-    plt.savefig(save_dir / "avoided_crossing_comparison.png", dpi=150, bbox_inches="tight")
+    name = f"dense_sweep{suffix}"
+    plt.savefig(save_dir / f"{name}.pdf", dpi=150, bbox_inches="tight")
+    plt.savefig(save_dir / f"{name}.png", dpi=150, bbox_inches="tight")
     plt.close()
+    print(f"\n  Saved {name}.pdf / .png")
 
-    print(f"\nPlots saved to {save_dir}")
+
+def create_ablation_plots(ablation, save_dir=RESULTS_DIR):
+    """4-panel ablation comparison."""
+    labels = {"sd_only": "SD", "sd_jastrow": "SD+J", "full": "SD+BF+J"}
+    colors = {"sd_only": "C0", "sd_jastrow": "C1", "full": "C2"}
+    markers = {"sd_only": "o", "sd_jastrow": "s", "full": "^"}
+
+    fig, axes = plt.subplots(2, 2, figsize=(12, 10))
+
+    for mode, results in ablation.items():
+        lams = [r["lambda"] for r in results]
+        gaps = [r["gap"] for r in results]
+        W_lo = [r["lower_W_sub"] for r in results]
+        S_lo = [r["S_sub_lower"] for r in results]
+        E0_errs = [r["E0_err"] for r in results]
+        c, m, lb = colors[mode], markers[mode], labels[mode]
+
+        # SD-only: can only plot E0_err
+        if any(g is None for g in gaps):
+            axes[1, 1].plot(lams, E0_errs, f"-{m}", color=c, label=lb, ms=5)
+            continue
+
+        axes[0, 0].plot(lams, gaps, f"-{m}", color=c, label=lb, ms=5)
+        axes[0, 1].plot(lams, W_lo, f"-{m}", color=c, label=lb, ms=5)
+        axes[1, 0].plot(lams, S_lo, f"-{m}", color=c, label=lb, ms=5)
+        axes[1, 1].plot(lams, E0_errs, f"-{m}", color=c, label=lb, ms=5)
+
+    titles = [
+        (r"(a) Resolved gap $\Delta^*$", r"$\Delta$"),
+        (r"(b) Subspace weight $W_{\rm sub}$", r"$W_{\rm sub}$"),
+        ("(c) Subspace entanglement", r"$S_{\rm sub}$"),
+        (r"(d) Ground-state $\sigma_E$", r"$\sigma_E$"),
+    ]
+    for ax, (t, yl) in zip(axes.flat, titles):
+        ax.set(xlabel=r"$\lambda$", ylabel=yl, title=t)
+        ax.grid(True, alpha=0.3)
+        ax.legend()
+
+    axes[0, 0].set_ylim(bottom=0)
+    axes[0, 1].axhline(0.8, color="gray", ls=":", alpha=0.5)
+    axes[1, 0].axhline(math.log(2), color="gray", ls=":", alpha=0.5)
+
+    plt.tight_layout()
+    plt.savefig(save_dir / "ablation_comparison.pdf", dpi=150, bbox_inches="tight")
+    plt.savefig(save_dir / "ablation_comparison.png", dpi=150, bbox_inches="tight")
+    plt.close()
+    print("\n  Saved ablation_comparison.pdf / .png")
 
 
 # ============================================================
-# Quick Test Mode
+# Legacy convenience modes
 # ============================================================
 
 
 def tiny_test():
-    """Smoke test: 3 λ values, minimal epochs. ~5 min on CPU."""
-    print("=" * 70)
-    print("TINY TEST MODE (smoke test)")
-    print("=" * 70)
-
-    lambda_values = [-0.5, 0.0, 0.5]
-
-    results = run_lambda_sweep(
-        lambda_values,
-        well_separation=4.0,
+    """Smoke test: 3 λ, 1 seed, minimal epochs.  ~5 min."""
+    agg, _ = run_dense_sweep(
+        lambda_values=[-0.5, 0.0, 0.5],
+        n_seeds=1,
         n_epochs_ground=50,
         n_epochs_excited=80,
+        n_epochs_ground_warm=50,
+        n_epochs_excited_warm=80,
         n_eval_samples=3000,
         n_diag_samples=2000,
     )
-
-    create_comparison_plots(results)
+    create_dense_plots(agg, suffix="_tiny")
     print("\nTINY TEST COMPLETE")
-    return results
 
 
 def quick_test():
-    """Quick test: 7 λ values, moderate epochs. ~30 min on CPU."""
-    print("=" * 70)
-    print("QUICK TEST MODE")
-    print("=" * 70)
-
-    lambda_values = [-0.6, -0.3, -0.1, 0.0, 0.1, 0.3, 0.6]
-
-    results = run_lambda_sweep(
-        lambda_values,
-        well_separation=4.0,
+    """Quick: 7 λ, 1 seed, moderate epochs.  ~40 min."""
+    agg, _ = run_dense_sweep(
+        lambda_values=[-0.6, -0.3, -0.1, 0.0, 0.1, 0.3, 0.6],
+        n_seeds=1,
         n_epochs_ground=150,
         n_epochs_excited=200,
+        n_epochs_ground_warm=100,
+        n_epochs_excited_warm=150,
         n_eval_samples=8000,
         n_diag_samples=4000,
     )
-
-    create_comparison_plots(results)
+    create_dense_plots(agg, suffix="_quick")
     print("\nQUICK TEST COMPLETE")
-    return results
 
 
 # ============================================================
-# Main Entry Point
+# CLI
 # ============================================================
-
-
-def main():
-    """Full production run with more λ points near the crossing."""
-    # Cluster more points near λ=0 where the avoided crossing occurs
-    # Coarse grid + fine grid near center
-    coarse = [-0.8, -0.6, -0.4, 0.4, 0.6, 0.8]
-    fine = np.linspace(-0.3, 0.3, 9).tolist()  # Dense sampling near crossing
-    lambda_values = sorted(set(coarse + fine))
-
-    results = run_lambda_sweep(
-        lambda_values,
-        well_separation=4.0,
-        n_epochs_ground=300,
-        n_epochs_excited=400,
-        n_eval_samples=30000,
-    )
-
-    create_comparison_plots(results)
-
-    # Print summary
-    print("\n" + "=" * 70)
-    print("SUMMARY")
-    print("=" * 70)
-
-    gaps = [r["gap"] for r in results]
-    min_idx = np.argmin(gaps)
-
-    r = results[min_idx]
-    print(f"Minimum gap at λ* = {r['lambda']:.3f}")
-    print(f"  Gap Δ = {r['gap']:.5f}")
-    print(f"  E_lower: a²={r['lower_a_sq']:.3f}, "
-          f"b²={r['lower_b_sq']:.3f}, W={r['lower_W_sub']:.3f}")
-    print(f"  E_upper: a²={r['upper_a_sq']:.3f}, "
-          f"b²={r['upper_b_sq']:.3f}, W={r['upper_W_sub']:.3f}")
-
-    return results
-
 
 if __name__ == "__main__":
     import argparse
 
-    parser = argparse.ArgumentParser(description="Avoided Crossing Study")
-    parser.add_argument("--tiny", action="store_true",
-                        help="Smoke test (~5 min)")
-    parser.add_argument("--quick", action="store_true",
-                        help="Quick test (~30 min)")
-    args = parser.parse_args()
+    p = argparse.ArgumentParser(description="Avoided Crossing Study v2")
+    p.add_argument(
+        "--dense", action="store_true",
+        help="Dense 11-pt sweep + multi-seed (~2h)",
+    )
+    p.add_argument(
+        "--ablation", action="store_true",
+        help="Ablation: SD/SD+J/SD+BF+J (~1h)",
+    )
+    p.add_argument(
+        "--quasi1d", action="store_true",
+        help="Quasi-1D confinement (ω_y/ω_x=5)",
+    )
+    p.add_argument(
+        "--seeds", type=int, default=3,
+        help="Seeds for error bars (default 3)",
+    )
+    p.add_argument("--quick", action="store_true", help="Quick 7-pt (~40m)")
+    p.add_argument("--tiny", action="store_true", help="Smoke test (~5m)")
+    args = p.parse_args()
 
     if args.tiny:
         tiny_test()
     elif args.quick:
         quick_test()
+    elif args.dense:
+        agg, raw = run_dense_sweep(
+            n_seeds=args.seeds,
+            quasi_1d=args.quasi1d,
+        )
+        sfx = "_quasi1d" if args.quasi1d else ""
+        create_dense_plots(agg, suffix=sfx)
+    elif args.ablation:
+        ab = run_ablation()
+        create_ablation_plots(ab)
     else:
-        main()
+        # Default: dense sweep + ablation
+        print("Running dense sweep then ablation...\n")
+        agg, _ = run_dense_sweep(n_seeds=args.seeds, quasi_1d=args.quasi1d)
+        sfx = "_quasi1d" if args.quasi1d else ""
+        create_dense_plots(agg, suffix=sfx)
+        ab = run_ablation()
+        create_ablation_plots(ab)

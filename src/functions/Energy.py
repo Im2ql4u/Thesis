@@ -1,6 +1,8 @@
 # =========================
 # Thorough energy evaluation (multi-laplacian + stable sampler)
 # =========================
+from __future__ import annotations
+
 import math
 
 import torch

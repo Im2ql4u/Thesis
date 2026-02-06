@@ -1,4 +1,5 @@
 # stable_training.py — capped-simplex sampler, clean, shape-safe
+from __future__ import annotations
 
 import math
 from typing import Literal

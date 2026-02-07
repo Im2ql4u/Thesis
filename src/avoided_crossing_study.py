@@ -635,6 +635,35 @@ def compute_transverse_leakage(psi_log_fn, cfg, n_samples=5000):
     return sy2 / sr2 if sr2 > 0 else 0.0
 
 
+# Jonny-comparability criterion
+W_SUB_THRESHOLD = 0.8
+
+
+def compute_detuning(cfg: DoubleWellConfig) -> float:
+    """Non-interacting detuning δ(λ) = E_10^(0) − E_01^(0).
+
+    If δ(0) ≠ 0, the resonance is not at λ=0 and the gap minimum
+    will be shifted.  This is essential for interpreting the sweep.
+
+    For 2D isotropic:  E_10 = 2ω_L + ω_R,  E_01 = ω_L + 2ω_R
+        => δ = ω_L − ω_R = 2 ω_base α λ
+
+    For quasi-1D:  E_10 = 1.5ω_L + 0.5ω_R + ω_y,  E_01 = 0.5ω_L + 1.5ω_R + ω_y
+        => δ = ω_L − ω_R  (same)
+    """
+    _, E10, E01 = cfg.expected_E_asymptotic()
+    return E10 - E01
+
+
+def compute_resonance_lambda(cfg_template: DoubleWellConfig) -> float:
+    """Find λ* where δ(λ*)=0 analytically.
+
+    δ = ω_L − ω_R = ω_base[(1+λα) − (1−λα)] = 2 ω_base α λ
+    => λ*=0 always, by construction.  But report it explicitly.
+    """
+    return 0.0  # analytic; kept as function for clarity/logging
+
+
 # ============================================================
 # Train all three states at a single λ
 # ============================================================
@@ -741,11 +770,27 @@ def train_all_states(
     lk_hi = compute_transverse_leakage(psi_hi, cfg, n_samples=n_diag_samples)
     print(f"      Leak: E0={lk0:.3f}  lo={lk_lo:.3f}  hi={lk_hi:.3f}")
 
+    # Non-interacting detuning
+    detuning = compute_detuning(cfg)
+    _, E10_ref, E01_ref = cfg.expected_E_asymptotic()
+    W_clean = min(mx_lo["W_sub"], mx_hi["W_sub"]) >= W_SUB_THRESHOLD
+    print(
+        f"      δ(λ)={detuning:+.5f}  (E10⁰={E10_ref:.4f}  E01⁰={E01_ref:.4f})"
+    )
+    print(
+        f"      Two-level clean: {W_clean}"
+        f"  (min W_sub={min(mx_lo['W_sub'], mx_hi['W_sub']):.3f},"
+        f" threshold={W_SUB_THRESHOLD})"
+    )
+
     result = {
         "lambda": cfg.lam,
         "omega_left": cfg.omega_left,
         "omega_right": cfg.omega_right,
         "quasi_1d": cfg.quasi_1d,
+        "detuning": detuning,
+        "E10_ref": E10_ref,
+        "E01_ref": E01_ref,
         "E0": E0,
         "E0_err": E0_err,
         "E_lower": E_lo,
@@ -764,6 +809,7 @@ def train_all_states(
         "E0_leakage": lk0,
         "lower_leakage": lk_lo,
         "upper_leakage": lk_hi,
+        "two_level_clean": W_clean,
     }
 
     new_warm = {"ground": st0, "lower": st_lo, "upper": st_hi}
@@ -785,13 +831,34 @@ def _load_warm(f_net, bf_net, state):
             pass
 
 
+def _check_branch_overlap(psi_pair, prev_psi, cfg):
+    """Compute branch-tracking overlap between consecutive λ steps."""
+    x_t = sample_asymmetric_positions(1024, cfg)
+    with torch.no_grad():
+        logp = 2.0 * psi_pair[0](x_t)
+        for _ in range(50):
+            xp = x_t + torch.randn_like(x_t) * 0.12
+            lp = 2.0 * psi_pair[0](xp)
+            acc = torch.rand(1024, device=DEVICE).log() < (lp - logp)
+            x_t = torch.where(acc.view(-1, 1, 1), xp, x_t)
+            logp = torch.where(acc, lp, logp)
+    ov_lo = float(compute_overlap(psi_pair[0], prev_psi[0], x_t))
+    ov_hi = float(compute_overlap(psi_pair[1], prev_psi[1], x_t))
+    return ov_lo, ov_hi
+
+
 def _pack_result_sd_only(cfg, E0, E0_err):
     """Result dict for sd_only mode (no excited states)."""
+    detuning = compute_detuning(cfg)
+    _, E10_ref, E01_ref = cfg.expected_E_asymptotic()
     return {
         "lambda": cfg.lam,
         "omega_left": cfg.omega_left,
         "omega_right": cfg.omega_right,
         "quasi_1d": cfg.quasi_1d,
+        "detuning": detuning,
+        "E10_ref": E10_ref,
+        "E01_ref": E01_ref,
         "E0": E0,
         "E0_err": E0_err,
         "E_lower": None,
@@ -810,6 +877,7 @@ def _pack_result_sd_only(cfg, E0, E0_err):
         "E0_leakage": None,
         "lower_leakage": None,
         "upper_leakage": None,
+        "two_level_clean": False,
     }
 
 
@@ -894,36 +962,53 @@ def run_dense_sweep(
                 print_every=max(ne_g, ne_e),
             )
 
-            # --- Hop detection ---
+            # --- Hop detection + retrain-on-hop ---
+            hop = False
+            retrained = False
             if prev_psi is not None and psi_pair is not None:
-                x_t = sample_asymmetric_positions(1024, cfg)
-                with torch.no_grad():
-                    logp = 2.0 * psi_pair[0](x_t)
-                    for _ in range(50):
-                        xp = x_t + torch.randn_like(x_t) * 0.12
-                        lp = 2.0 * psi_pair[0](xp)
-                        acc = (
-                            torch.rand(1024, device=DEVICE).log()
-                            < (lp - logp)
-                        )
-                        x_t = torch.where(acc.view(-1, 1, 1), xp, x_t)
-                        logp = torch.where(acc, lp, logp)
-
-                ov_lo = float(compute_overlap(psi_pair[0], prev_psi[0], x_t))
-                ov_hi = float(compute_overlap(psi_pair[1], prev_psi[1], x_t))
+                ov_lo, ov_hi = _check_branch_overlap(
+                    psi_pair, prev_psi, cfg,
+                )
                 hop = abs(ov_lo) < 0.3 or abs(ov_hi) < 0.3
-                result["overlap_lo_prev"] = ov_lo
-                result["overlap_hi_prev"] = ov_hi
-                result["hop_flag"] = hop
                 sym = "⚠ HOP" if hop else "✓"
                 print(
                     f"      Branch overlap: lo={ov_lo:.3f}"
                     f" hi={ov_hi:.3f}  {sym}"
                 )
+
+                if hop:
+                    print("      → Retraining from SCRATCH (no warm-start)")
+                    result, new_warm, psi_pair = train_all_states(
+                        cfg,
+                        C_occ,
+                        params,
+                        n_epochs_ground=n_epochs_ground,
+                        n_epochs_excited=n_epochs_excited,
+                        n_eval_samples=n_eval_samples,
+                        n_diag_samples=n_diag_samples,
+                        warm_state=None,
+                        print_every=max(n_epochs_ground, n_epochs_excited),
+                    )
+                    retrained = True
+                    # Re-check overlap after retrain
+                    if psi_pair is not None:
+                        ov_lo, ov_hi = _check_branch_overlap(
+                            psi_pair, prev_psi, cfg,
+                        )
+                        hop = abs(ov_lo) < 0.3 or abs(ov_hi) < 0.3
+                        print(
+                            f"      Post-retrain overlap:"
+                            f" lo={ov_lo:.3f} hi={ov_hi:.3f}"
+                        )
+
+                result["overlap_lo_prev"] = ov_lo
+                result["overlap_hi_prev"] = ov_hi
             else:
                 result["overlap_lo_prev"] = None
                 result["overlap_hi_prev"] = None
-                result["hop_flag"] = False
+
+            result["hop_flag"] = hop
+            result["retrained_from_scratch"] = retrained
 
             result["seed"] = seed
             seed_results.append(result)
@@ -981,6 +1066,10 @@ def _aggregate_seeds(all_seed_results, lambda_values):
             "lower_leakage_mean": _stat("lower_leakage")[0],
             "upper_leakage_mean": _stat("upper_leakage")[0],
             "hop_flags": [r.get("hop_flag", False) for r in rows],
+            "detuning": _stat("detuning")[0],
+            "two_level_clean": all(
+                r.get("two_level_clean", False) for r in rows
+            ),
         }
         agg.append(entry)
     return agg
@@ -1100,7 +1189,10 @@ def create_dense_plots(aggregated, save_dir=RESULTS_DIR, suffix=""):
     lk_lo = [r.get("lower_leakage_mean") or 0 for r in aggregated]
     lk_hi = [r.get("upper_leakage_mean") or 0 for r in aggregated]
 
-    fig, axes = plt.subplots(2, 3, figsize=(16, 10))
+    detunings = [r.get("detuning") or 0 for r in aggregated]
+    clean = [r.get("two_level_clean", False) for r in aggregated]
+
+    fig, axes = plt.subplots(2, 4, figsize=(20, 10))
 
     # (a) Energy spectrum
     ax = axes[0, 0]
@@ -1198,6 +1290,44 @@ def create_dense_plots(aggregated, save_dir=RESULTS_DIR, suffix=""):
     ax.legend(fontsize=8)
     ax.grid(True, alpha=0.3)
     ax.set_ylim(0, 0.6)
+
+    # (g) Non-interacting detuning δ(λ)
+    ax = axes[0, 3]
+    ax.plot(lams, detunings, "k-o", ms=5)
+    ax.axhline(0, color="r", ls="--", alpha=0.5, label=r"$\delta=0$ (resonance)")
+    ax.set(
+        xlabel=r"$\lambda$",
+        ylabel=r"$\delta(\lambda) = E_{10}^{(0)} - E_{01}^{(0)}$",
+        title=r"(g) Non-interacting detuning",
+    )
+    ax.legend(fontsize=8)
+    ax.grid(True, alpha=0.3)
+
+    # (h) Two-level criterion summary
+    ax = axes[1, 3]
+    W_min = [min(wl, wh) for wl, wh in zip(W_lo, W_hi)]
+    colors_pts = ["green" if c else "red" for c in clean]
+    ax.scatter(lams, W_min, c=colors_pts, s=60, zorder=5,
+              label=r"$\min(W_{\rm sub}^{\rm lo}, W_{\rm sub}^{\rm hi})$")
+    ax.plot(lams, W_min, "k-", alpha=0.3)
+    ax.axhline(W_SUB_THRESHOLD, color="gray", ls="--",
+               label=f"Jonny threshold ({W_SUB_THRESHOLD})")
+    ax.set(
+        xlabel=r"$\lambda$", ylabel=r"$\min\, W_{\rm sub}$",
+        title="(h) Two-level criterion",
+    )
+    ax.legend(fontsize=8)
+    ax.grid(True, alpha=0.3)
+    ax.set_ylim(0, 1)
+    n_clean = sum(clean)
+    ax.text(
+        0.05, 0.95,
+        f"Clean: {n_clean}/{len(clean)} pts"
+        + ("\n→ Jonny-comparable" if n_clean == len(clean)
+           else "\n→ 2D leakage regime"),
+        transform=ax.transAxes, fontsize=9, va="top",
+        bbox=dict(boxstyle="round", fc="wheat", alpha=0.8),
+    )
 
     plt.tight_layout()
     name = f"dense_sweep{suffix}"

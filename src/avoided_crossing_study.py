@@ -1251,7 +1251,7 @@ def _fig1_energy_spectrum(agg, sd):
 
     gaps, gape = _extract(agg, "gap_mean", "gap_std")
     ax2.errorbar(lams, gaps, yerr=gape, fmt="k-o", ms=5, capsize=3)
-    valid = [(g, lv) for g, lv in zip(gaps, lams, strict=False) if g]
+    valid = [(g, lv) for g, lv in zip(gaps, lams) if g]
     if valid:
         mi = min(range(len(valid)), key=lambda j: valid[j][0])
         ax2.axvline(
@@ -1428,7 +1428,7 @@ def _fig5_ablation(ablation, sd):
         ("(c) $S_{\\rm sub}$", r"$S_{\\rm sub}$"),
         ("(d) $\\Delta_{\\rm eff}$", r"$\\Delta_{\\rm eff}$"),
     ]
-    for ax, (t, yl) in zip(axes.flat, ttl, strict=False):
+    for ax, (t, yl) in zip(axes.flat, ttl):
         ax.set(xlabel=r"$\lambda$", ylabel=yl, title=t)
         ax.grid(True, alpha=0.3)
         ax.legend()

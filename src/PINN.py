@@ -652,3 +652,303 @@ class CTNNBackflowNet(nn.Module):
         # positive scale factor (same semantics as original)
         bf_scale = F.softplus(self.bf_scale_raw)  # > 0
         return dx * bf_scale
+
+
+# ===========================================================================
+# Unified CTNN:  shared graph backbone  →  backflow  Δx  +  Jastrow  f
+# ===========================================================================
+
+
+class UnifiedCTNN(nn.Module):
+    """
+    Single network that produces BOTH:
+      - Δx  (B, N, d)   backflow displacement
+      - f   (B, 1)      Jastrow log-factor
+
+    from a shared copresheaf / graph-style backbone.
+
+    The key idea: node features h_v and edge features h_e are computed once
+    and then fed to TWO lightweight heads:
+      • dx_head  →  per-particle backflow shift  (same as CTNNBackflowNet)
+      • f_head   →  scalar Jastrow  (replaces the separate PINN)
+
+    The Jastrow head also adds analytic cusps u(r) = γ r exp(-r/ℓ).
+
+    This fuses all gradient paths, enabling:
+      • coupled Jastrow ↔ backflow learning from epoch 0
+      • a single parameter vector → L-BFGS-compatible closure
+      • shared feature computation (no duplicated pair-distance work)
+
+    Drop-in usage:
+        unified = UnifiedCTNN(d=2, n_particles=6, omega=0.5)
+        # In psi_fn: if isinstance(f_net, UnifiedCTNN) → use unified path
+    """
+
+    def __init__(
+        self,
+        d: int,
+        n_particles: int,
+        omega: float,
+        *,
+        # Backbone
+        node_hidden: int = 128,
+        edge_hidden: int = 128,
+        msg_layers: int = 2,
+        node_layers: int = 3,
+        n_mp_steps: int = 1,
+        act: str = "silu",
+        aggregation: str = "sum",
+        use_spin: bool = True,
+        same_spin_only: bool = False,
+        # Backflow head
+        out_bound: str = "tanh",
+        bf_scale_init: float = 0.05,
+        zero_init_last: bool = True,
+        # Jastrow head
+        jastrow_hidden: int = 64,
+        jastrow_layers: int = 2,
+    ):
+        super().__init__()
+        self.d = d
+        self.n_particles = n_particles
+        self.omega = float(omega)
+        self.use_spin = use_spin
+        self.same_spin_only = same_spin_only
+        self.aggregation = aggregation
+        self.out_bound = out_bound
+        self.n_mp_steps = n_mp_steps
+
+        # ---- activation ----
+        def make_act(name: str) -> nn.Module:
+            name = name.lower()
+            acts = {
+                "relu": nn.ReLU,
+                "gelu": nn.GELU,
+                "tanh": nn.Tanh,
+                "silu": nn.SiLU,
+                "mish": lambda: getattr(nn, "Mish", nn.SiLU)(),
+                "leakyrelu": lambda: nn.LeakyReLU(0.1),
+            }
+            if name in ("swish",):
+                name = "silu"
+            if name not in acts:
+                raise ValueError(f"Unknown activation '{name}'")
+            return acts[name]()
+
+        self._act_fn = act
+        _act = make_act(act)
+
+        # ---- pair index buffers ----
+        ii, jj = torch.triu_indices(n_particles, n_particles, offset=1)
+        self.register_buffer("idx_i", ii, persistent=False)
+        self.register_buffer("idx_j", jj, persistent=False)
+
+        # ---- embeddings ----
+        node_in_dim = d + (1 if use_spin else 0)
+        edge_in_dim = d + 2  # [r_ij, |r_ij|, |r_ij|²]
+
+        self.node_embed = nn.Linear(node_in_dim, node_hidden)
+        self.edge_embed = self._mlp(
+            edge_in_dim, edge_hidden, edge_hidden, msg_layers, make_act(act)
+        )
+
+        # ---- per-step transport + update MLPs ----
+        self.rho_v_to_e = nn.ModuleList()
+        self.edge_updates = nn.ModuleList()
+        self.rho_e_to_v = nn.ModuleList()
+        self.node_updates = nn.ModuleList()
+
+        for _ in range(n_mp_steps):
+            self.rho_v_to_e.append(nn.Linear(node_hidden, edge_hidden, bias=False))
+            self.edge_updates.append(
+                self._mlp(3 * edge_hidden, edge_hidden, edge_hidden, msg_layers, make_act(act))
+            )
+            self.rho_e_to_v.append(nn.Linear(edge_hidden, node_hidden, bias=False))
+            self.node_updates.append(
+                self._mlp(2 * node_hidden, node_hidden, node_hidden, node_layers, make_act(act))
+            )
+
+        # ====== HEAD 1: backflow  Δx  (per-particle) ======
+        self.dx_head = nn.Linear(node_hidden, d)
+        self.bf_scale_raw = nn.Parameter(torch.tensor(math.log(math.exp(bf_scale_init) - 1.0)))
+        if zero_init_last:
+            nn.init.zeros_(self.dx_head.weight)
+            nn.init.zeros_(self.dx_head.bias)
+
+        # ====== HEAD 2: Jastrow  f  (scalar) ======
+        # Reads from:
+        #   - mean node features  (node_hidden)
+        #   - mean edge features  (edge_hidden)
+        #   - safe extras         (2)
+        f_in_dim = node_hidden + edge_hidden + 2
+        layers_f: list[nn.Module] = []
+        dim = f_in_dim
+        for _ in range(jastrow_layers):
+            layers_f += [nn.Linear(dim, jastrow_hidden), make_act(act)]
+            dim = jastrow_hidden
+        layers_f.append(nn.Linear(dim, 1))
+        # zero-init so f starts ≈ 0  (wavefunction starts as pure SD)
+        nn.init.zeros_(layers_f[-1].weight)
+        nn.init.zeros_(layers_f[-1].bias)
+        self.f_head = nn.Sequential(*layers_f)
+
+        # ---- analytic cusp params ----
+        self.gamma_apara = 1.0 / (d - 1)  # opposite-spin
+        self.gamma_para = 1.0 / (d + 1)  # same-spin
+        self.cusp_len = 1.0 / (omega**0.5)
+
+    # ---- helpers ----
+    def _mlp(self, in_dim: int, hid: int, out_dim: int, n_layers: int, act: nn.Module):
+        assert n_layers >= 1
+        layers: list[nn.Module] = []
+        if n_layers == 1:
+            layers.append(nn.Linear(in_dim, out_dim))
+        else:
+            layers.append(nn.Linear(in_dim, hid))
+            layers.append(act)
+            for _ in range(n_layers - 2):
+                layers.append(nn.Linear(hid, hid))
+                layers.append(act)
+            layers.append(nn.Linear(hid, out_dim))
+        return nn.Sequential(*layers)
+
+    def _aggregate_dense(self, msgs: torch.Tensor) -> torch.Tensor:
+        """msgs: (B,N,N,H) → (B,N,H)"""
+        if self.aggregation == "sum":
+            return msgs.sum(dim=2)
+        if self.aggregation == "mean":
+            return msgs.mean(dim=2)
+        if self.aggregation == "max":
+            return msgs.max(dim=2).values
+        raise ValueError(self.aggregation)
+
+    # ---- forward: returns (backflow_dx, jastrow_f) ----
+    def forward(
+        self, x: torch.Tensor, spin: torch.Tensor | None = None
+    ) -> tuple[torch.Tensor, torch.Tensor]:
+        """
+        x:    (B, N, d)   raw particle positions
+        spin: (N,) or (B,N), optional
+
+        Returns
+        -------
+        dx : (B, N, d)  backflow displacement  (zero-mean, scaled)
+        f  : (B, 1)     Jastrow scalar  (includes analytic cusps)
+        """
+        B, N, d = x.shape
+        assert d == self.d and N == self.n_particles
+
+        x_sc = x * (self.omega**0.5)  # scale to a_ho units for features
+
+        # ---- node input ----
+        if self.use_spin and spin is not None:
+            sf = (spin.view(1, N, 1) if spin.ndim == 1 else spin.view(B, N, 1)).to(x.dtype)
+            if sf.shape[0] == 1:
+                sf = sf.expand(B, N, 1)
+            node_in = torch.cat([x_sc, sf], dim=-1)
+        else:
+            node_in = x_sc
+
+        h_v = self.node_embed(node_in)  # (B, N, node_hidden)
+
+        # ---- edge geometry (dense N×N) ----
+        r_vec = x_sc.unsqueeze(2) - x_sc.unsqueeze(1)  # (B,N,N,d)
+        r2 = (r_vec**2).sum(dim=-1, keepdim=True)  # (B,N,N,1)
+        r1 = torch.sqrt(r2 + 1e-12)  # (B,N,N,1)
+        edge_in = torch.cat([r_vec, r1, r2], dim=-1)  # (B,N,N,d+2)
+        h_e = self.edge_embed(edge_in)  # (B,N,N,edge_hidden)
+
+        # ---- spin mask ----
+        if self.use_spin and spin is not None:
+            if spin.ndim == 1:
+                s_i = spin.view(1, N, 1, 1).to(x.dtype).expand(B, N, N, 1)
+                s_j = spin.view(1, 1, N, 1).to(x.dtype).expand(B, N, N, 1)
+            else:
+                s_i = spin.view(B, N, 1, 1).to(x.dtype).expand(B, N, N, 1)
+                s_j = spin.view(B, 1, N, 1).to(x.dtype).expand(B, N, N, 1)
+            same = (s_i == s_j).to(x.dtype)
+            weight = same if self.same_spin_only else torch.ones_like(same)
+        else:
+            weight = torch.ones_like(r_vec[..., :1])
+
+        eye = torch.eye(N, device=x.device, dtype=x.dtype).view(1, N, N, 1)
+        weight = weight * (1.0 - eye)
+
+        # ---- message passing iterations ----
+        for step in range(self.n_mp_steps):
+            # node → edge transport
+            h_v_i = h_v.unsqueeze(2).expand(B, N, N, h_v.shape[-1])
+            h_v_j = h_v.unsqueeze(1).expand(B, N, N, h_v.shape[-1])
+            v_i_to_e = self.rho_v_to_e[step](h_v_i)
+            v_j_to_e = self.rho_v_to_e[step](h_v_j)
+
+            # edge update
+            edge_upd_in = torch.cat([h_e, v_i_to_e, v_j_to_e], dim=-1)
+            h_e = h_e + self.edge_updates[step](edge_upd_in)  # residual
+
+            # edge → node transport
+            msgs = self.rho_e_to_v[step](h_e) * weight
+            m_v = self._aggregate_dense(msgs)
+
+            # node update (residual)
+            node_upd_in = torch.cat([h_v, m_v], dim=-1)
+            h_v = h_v + self.node_updates[step](node_upd_in)
+
+        # ====== HEAD 1: backflow ======
+        dx = self.dx_head(h_v)  # (B, N, d)
+        if self.out_bound == "tanh":
+            dx = torch.tanh(dx)
+        dx = dx - dx.mean(dim=1, keepdim=True)  # zero COM shift
+        dx = dx * F.softplus(self.bf_scale_raw)
+
+        # ====== HEAD 2: Jastrow ======
+        # Pool backbone features → global descriptors
+        h_v_mean = h_v.mean(dim=1)  # (B, node_hidden)
+        # Mean of upper-triangle edge features only (no self-loops)
+        h_e_pairs = h_e[:, self.idx_i, self.idx_j, :]  # (B, P, edge_hidden)
+        h_e_mean = h_e_pairs.mean(dim=1)  # (B, edge_hidden)
+
+        # Safe global extras (ω-scaled)
+        r2_mean = (x_sc**2).mean(dim=(1, 2), keepdim=False).unsqueeze(-1)  # (B, 1)
+        # Mean mollified pair distance
+        eps_feat = 0.20 / (self.omega**0.5)
+        r_pairs_phys = torch.sqrt(
+            (x.unsqueeze(2) - x.unsqueeze(1))[:, self.idx_i, self.idx_j, :]
+            .pow(2)
+            .sum(-1, keepdim=True)
+            + eps_feat**2
+        )  # (B, P, 1)
+        s1_mean = torch.log1p((r_pairs_phys / eps_feat) ** 2).mean(dim=1)  # (B, 1)
+
+        extras = torch.cat([r2_mean, s1_mean], dim=1)  # (B, 2)
+        f_in = torch.cat([h_v_mean, h_e_mean, extras], dim=1)
+        f_nn = self.f_head(f_in)  # (B, 1)
+
+        # ---- analytic cusps (on raw / physical x) ----
+        diff_phys = x[:, self.idx_i, :] - x[:, self.idx_j, :]  # (B, P, d)
+        r_phys = torch.sqrt((diff_phys**2).sum(-1, keepdim=True) + 1e-30)  # (B,P,1)
+
+        if spin is not None:
+            sp = spin.to(x.device).long()
+            if sp.ndim == 1:
+                sp = sp.unsqueeze(0).expand(B, -1)
+            si = sp[:, self.idx_i]
+            sj = sp[:, self.idx_j]
+            same_sp = (si == sj).to(x.dtype).unsqueeze(-1)
+        else:
+            up = N // 2
+            sp_row = torch.cat(
+                [
+                    torch.zeros(up, dtype=torch.long, device=x.device),
+                    torch.ones(N - up, dtype=torch.long, device=x.device),
+                ]
+            )
+            si = sp_row[self.idx_i].unsqueeze(0).expand(B, -1)
+            sj = sp_row[self.idx_j].unsqueeze(0).expand(B, -1)
+            same_sp = (si == sj).to(x.dtype).unsqueeze(-1)
+
+        gamma = same_sp * self.gamma_para + (1.0 - same_sp) * self.gamma_apara
+        cusp = (gamma * r_phys * torch.exp(-r_phys)).sum(dim=1)  # (B, 1)
+
+        f = f_nn + cusp  # (B, 1)
+        return dx, f

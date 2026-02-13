@@ -8,7 +8,6 @@ from .Energy import (
 
 # --- Neural_Networks ---
 from .Neural_Networks import (
-    compute_laplacian_fast,
     psi_fn,
     train_model,
 )
@@ -27,7 +26,7 @@ from .Plotting import (
     make_mala_sample_fn,
     mirror_quadrants,
     plot_f_psi_sd_with_backflow,
-    radial_two_body_density_2d_fast,
+    radial_two_body_density_2d,
     run_radial_map,
 )
 from .Save_Model import (
@@ -74,7 +73,7 @@ __all__ = [
     "one_electron_integral_2d",
     # Plotting
     "make_mala_sample_fn",
-    "radial_two_body_density_2d_fast",
+    "radial_two_body_density_2d",
     "mirror_quadrants",
     "plot_f_psi_sd_with_backflow",
     "run_radial_map",
@@ -90,5 +89,6 @@ __all__ = [
     "run_compact_analysis",
     # Neural Networks
     "psi_fn",
+    "compute_laplacian_fast",
     "train_model",
 ]

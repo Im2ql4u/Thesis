@@ -400,45 +400,255 @@ class BackflowNet(nn.Module):
         return dx * bf_scale
 
 
-# Usage:
-# --- Training Backflow ---
-# opt = torch.optim.AdamW([
-#     {"params": [p for n,p in bf.named_parameters() if n != "bf_scale_raw"], "lr": 1e-3},
-#     {"params": [bf.bf_scale_raw], "lr": 1e-3, "weight_decay": 1e-5},
-# ])
+class CTNNBackflowNet(nn.Module):
+    """
+    Copresheaf / graph-style backflow network.
+    Drop-in replacement for BackflowNet.
 
-# _, bf = train_model(
-#     f_net_zero,
-#     opt,
-#     C_occ,
-#     mapper,
-#     backflow_net=bf,
-#     std=std,
-#     print_e=10,
-# )
-# bf_frozen = DetachWrapper(bf).to(cfg.torch_device, cfg.torch_dtype)
+    Interface:
+      forward(x, spin=None) -> Δx with shape (B, N, d)
 
-# --- Training phi only ---
-# f_net.freeze_rho_as_avg()
-# f_net.set_trainable(phi=True, psi=False, rho=False)
-# opt = torch.optim.AdamW(f_net.param_groups(lr_phi=1e-3, lr_psi=0, lr_rho=0, wd=1e-4))
+    Differences vs BackflowNet:
+      - Maintains explicit node and edge features.
+      - Message passing uses learned linear "transport" maps:
+          node -> edge  (rho_v_to_e)
+          edge -> node  (rho_e_to_v)
+      - Still respects aggregation='sum'|'mean'|'max',
+        spin masking, zero-mean Δx, and positive scale via bf_scale.
+    """
 
-# --- Training psi only ---
-# f_net.freeze_rho_as_avg()
-# f_net.set_trainable(phi=False, psi=True, rho=False)
-# opt = torch.optim.AdamW(f_net.param_groups(lr_phi=0, lr_psi=1e-3, lr_rho=0, wd=1e-4))
+    def __init__(
+        self,
+        d: int,
+        *,
+        msg_hidden: int = 128,
+        msg_layers: int = 2,
+        hidden: int = 128,
+        layers: int = 3,
+        act: str = "silu",
+        aggregation: str = "sum",
+        use_spin: bool = True,
+        same_spin_only: bool = False,
+        out_bound: str = "tanh",
+        bf_scale_init: float = 0.05,
+        zero_init_last: bool = True,
+        omega: float = 1.0,
+    ):
+        super().__init__()
+        self.d = d
+        self.use_spin = use_spin
+        self.same_spin_only = same_spin_only
+        self.aggregation = aggregation
+        self.out_bound = out_bound
+        self.omega = omega
 
-# --- Training entire network ---
-# f_net.unfreeze_rho(reinit_zero=False)   # keep averaging weights as a warm start
-# f_net.set_trainable(phi=True, psi=True, rho=True)
-# opt = torch.optim.AdamW(f_net.param_groups(lr_phi=1e-4, lr_psi=1e-3, lr_rho=1e-4, wd=0))
+        # --- activation factory (same semantics as your original) ---
+        def make_act(name: str) -> nn.Module:
+            name = name.lower()
+            if name == "relu":
+                return nn.ReLU()
+            if name == "gelu":
+                return nn.GELU()
+            if name == "tanh":
+                return nn.Tanh()
+            if name in ("silu", "swish"):
+                return nn.SiLU()
+            if name == "mish":
+                return getattr(nn, "Mish", nn.SiLU)()
+            if name == "leakyrelu":
+                return nn.LeakyReLU(0.1)
+            if name in ("identity", "none"):
+                return nn.Identity()
+            raise ValueError(f"Unknown activation '{name}'")
 
-# f_net, _ = train_model(
-#     f_net,
-#     opt,
-#     C_occ,
-#     mapper,
-#     backflow_net=None,
-#     std=std,
-#     print_e=10,
-# )
+        self._act = make_act(act)
+
+        # ---------- Feature dimensions ----------
+        # Node input: positions (+ optional spin scalar)
+        node_in_dim = d + (1 if use_spin else 0)
+        node_hidden = hidden  # node feature dim = hidden
+        edge_hidden = msg_hidden  # edge feature dim = msg_hidden
+
+        # ---------- Embeddings ----------
+        # Node embedding: (x_i, spin_i) -> h_i
+        self.node_embed = nn.Linear(node_in_dim, node_hidden)
+
+        # Edge initial features: use relative geometry only:
+        #   [r_ij (d), |r_ij|, |r_ij|^2]  -> edge_hidden
+        edge_in_dim = d + 2
+        self.edge_embed = self._mlp(
+            edge_in_dim,
+            edge_hidden,
+            edge_hidden,
+            msg_layers,
+            self._act,
+        )
+
+        # ---------- Copresheaf-style transport maps ----------
+        # Node -> Edge: maps node space to edge space
+        self.rho_v_to_e = nn.Linear(node_hidden, edge_hidden, bias=False)
+        # Edge -> Node: maps edge space to node space
+        self.rho_e_to_v = nn.Linear(edge_hidden, node_hidden, bias=False)
+
+        # ---------- Update MLPs ----------
+        # Edge update: uses current edge feat + transported node feats
+        #   [h_e, rho_v_to_e(h_i), rho_v_to_e(h_j)] with dim 3 * edge_hidden
+        self.edge_update = self._mlp(
+            3 * edge_hidden,
+            edge_hidden,
+            edge_hidden,
+            msg_layers,
+            self._act,
+        )
+
+        # Node update: residual update on node features
+        #   [h_v, m_v] with dim 2 * node_hidden
+        self.node_update = self._mlp(
+            2 * node_hidden,
+            node_hidden,
+            node_hidden,
+            layers,
+            self._act,
+        )
+
+        # Final head to produce Δx from node features
+        self.dx_head = nn.Linear(node_hidden, d)
+
+        # positive learnable scale via softplus (same semantics)
+        self.bf_scale_raw = nn.Parameter(torch.tensor(math.log(math.exp(bf_scale_init) - 1.0)))
+
+        # zero-init last dx layer to start Δx≈0 (identity backflow)
+        if zero_init_last:
+            nn.init.zeros_(self.dx_head.weight)
+            nn.init.zeros_(self.dx_head.bias)
+
+    # ---------- helpers ----------
+
+    def _mlp(self, in_dim: int, hid: int, out_dim: int, num_layers: int, act: nn.Module):
+        assert num_layers >= 1
+        layers = []
+        if num_layers == 1:
+            layers.append(nn.Linear(in_dim, out_dim))
+        else:
+            layers.append(nn.Linear(in_dim, hid))
+            layers.append(act)
+            for _ in range(num_layers - 2):
+                layers.append(nn.Linear(hid, hid))
+                layers.append(act)
+            layers.append(nn.Linear(hid, out_dim))
+        return nn.Sequential(*layers)
+
+    @property
+    def bf_scale(self):
+        return F.softplus(self.bf_scale_raw)
+
+    def _aggregate(self, msgs: torch.Tensor) -> torch.Tensor:
+        """
+        msgs: (B, N, N, H) — messages from j -> i along last dim H
+        returns m_i: (B, N, H)
+        """
+        if self.aggregation == "sum":
+            return msgs.sum(dim=2)
+        if self.aggregation == "mean":
+            return msgs.mean(dim=2)
+        if self.aggregation == "max":
+            return msgs.max(dim=2).values
+        raise ValueError(f"Unknown aggregation '{self.aggregation}'")
+
+    # ---------- forward pass ----------
+
+    def forward(self, x: torch.Tensor, spin: torch.Tensor | None = None) -> torch.Tensor:
+        """
+        x:    (B, N, d)
+        spin: (N,) or (B, N) with {0,1}, optional
+
+        returns:
+          Δx: (B, N, d)
+        """
+        B, N, d = x.shape
+        assert d == self.d
+        x = x * (self.omega**0.5)
+        # -------- node input features --------
+        if self.use_spin and spin is not None:
+            if spin.ndim == 1:
+                spin_feat = spin.view(1, N, 1).to(x.dtype).expand(B, N, 1)
+            else:  # (B,N)
+                spin_feat = spin.view(B, N, 1).to(x.dtype)
+            node_in = torch.cat([x, spin_feat], dim=-1)  # (B,N,d+1)
+        else:
+            node_in = x  # (B,N,d)
+
+        # Initial node features h_v: (B,N,node_hidden)
+        h_v = self.node_embed(node_in)
+
+        # -------- edge geometry --------
+        # pairwise relative vectors and norms
+        r = x.unsqueeze(2) - x.unsqueeze(1)  # (B,N,N,d)
+        r2 = (r**2).sum(dim=-1, keepdim=True)  # (B,N,N,1)
+        r1 = torch.sqrt(r2 + 1e-12)  # (B,N,N,1)
+
+        edge_in = torch.cat([r, r1, r2], dim=-1)  # (B,N,N,d+2)
+        # Initial edge features h_e: (B,N,N,edge_hidden)
+        h_e = self.edge_embed(edge_in)
+
+        # -------- spin-based edge weights (mask) --------
+        if self.use_spin and spin is not None:
+            if spin.ndim == 1:
+                s_i = spin.view(1, N, 1, 1).to(x.dtype).expand(B, N, N, 1)
+                s_j = spin.view(1, 1, N, 1).to(x.dtype).expand(B, N, N, 1)
+            else:  # (B,N)
+                s_i = spin.view(B, N, 1, 1).to(x.dtype).expand(B, N, N, 1)
+                s_j = spin.view(B, 1, N, 1).to(x.dtype).expand(B, N, N, 1)
+            same = (s_i == s_j).to(x.dtype)
+            if self.same_spin_only:
+                weight = same  # only same-spin edges
+            else:
+                weight = torch.ones_like(same)  # all edges allowed
+        else:
+            weight = torch.ones_like(r[..., :1])  # (B,N,N,1)
+
+        # remove self-messages
+        eye = torch.eye(N, device=x.device, dtype=x.dtype).view(1, N, N, 1)
+        weight = weight * (1.0 - eye)  # (B,N,N,1)
+
+        # -------- node -> edge transport --------
+        # expand node features to edge positions
+        h_v_i = h_v.unsqueeze(2).expand(B, N, N, h_v.shape[-1])
+        h_v_j = h_v.unsqueeze(1).expand(B, N, N, h_v.shape[-1])
+
+        v_i_to_e = self.rho_v_to_e(h_v_i)  # (B,N,N,edge_hidden)
+        v_j_to_e = self.rho_v_to_e(h_v_j)  # (B,N,N,edge_hidden)
+
+        # edge update (local CTNN step on edges)
+        edge_update_in = torch.cat([h_e, v_i_to_e, v_j_to_e], dim=-1)  # (B,N,N,3*edge_hidden)
+        h_e_new = self.edge_update(edge_update_in)  # (B,N,N,edge_hidden)
+
+        # -------- edge -> node transport --------
+        msgs_e_to_v = self.rho_e_to_v(h_e_new)  # (B,N,N,node_hidden)
+        msgs_e_to_v = msgs_e_to_v * weight  # apply spin + no-self mask
+
+        # aggregate messages per node i over neighbors j
+        m_v = self._aggregate(msgs_e_to_v)  # (B,N,node_hidden)
+
+        # -------- node update with residual --------
+        node_update_in = torch.cat([h_v, m_v], dim=-1)  # (B,N,2*node_hidden)
+        delta_h = self.node_update(node_update_in)  # (B,N,node_hidden)
+        h_v = h_v + delta_h  # residual update
+
+        # -------- map to Δx --------
+        dx = self.dx_head(h_v)  # (B,N,d)
+
+        # output bound
+        if self.out_bound == "tanh":
+            dx = torch.tanh(dx)
+        elif self.out_bound == "identity":
+            pass
+        else:
+            raise ValueError(f"Unknown out_bound '{self.out_bound}'")
+
+        # enforce zero center-of-mass shift
+        dx = dx - dx.mean(dim=1, keepdim=True)
+
+        # positive scale factor (same semantics as original)
+        bf_scale = F.softplus(self.bf_scale_raw)  # > 0
+        return dx * bf_scale

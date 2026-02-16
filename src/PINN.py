@@ -8,7 +8,7 @@ import torch.nn.functional as F
 class ZeroJastrow(nn.Module):
     """f(x) ≡ 0. No parameters; always returns zeros of shape (B,1)."""
 
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
+    def forward(self, x: torch.Tensor, spin=None) -> torch.Tensor:
         return torch.zeros(x.shape[0], 1, device=x.device, dtype=x.dtype)
 
 
@@ -707,11 +707,17 @@ class UnifiedCTNN(nn.Module):
         # Jastrow head
         jastrow_hidden: int = 64,
         jastrow_layers: int = 2,
+        # Asymptotic envelope: f_nn × exp(-ω r²_eff / envelope_width²)
+        # Ensures Jastrow → 0 at large r (bound-state BC).
+        # envelope_width in units of ℓ = 1/√ω.  Default 3.0 → envelope
+        # starts biting around 3 oscillator lengths.
+        envelope_width_aho: float = 3.0,
     ):
         super().__init__()
         self.d = d
         self.n_particles = n_particles
         self.omega = float(omega)
+        self.envelope_width_aho = float(envelope_width_aho)
         self.use_spin = use_spin
         self.same_spin_only = same_spin_only
         self.aggregation = aggregation
@@ -923,6 +929,18 @@ class UnifiedCTNN(nn.Module):
         extras = torch.cat([r2_mean, s1_mean], dim=1)  # (B, 2)
         f_in = torch.cat([h_v_mean, h_e_mean, extras], dim=1)
         f_nn = self.f_head(f_in)  # (B, 1)
+
+        # ---- Gaussian decay envelope on f_nn ----
+        # Enforces f_nn → 0 as particles move far from origin.
+        # Uses mean |r_i|² (physical coords) so envelope ≈ 1 near center.
+        # threshold r²: envelope_width² × ℓ² × N
+        ell2 = 1.0 / self.omega  # ℓ²
+        r2_phys_total = (x ** 2).sum(dim=(1, 2))  # (B,) total Σ_i |r_i|²
+        # Normalize by N so envelope is per-particle-average
+        r2_per_particle = r2_phys_total / N  # (B,)
+        env_scale = self.envelope_width_aho ** 2 * ell2  # width² in physical units
+        envelope = torch.exp(-r2_per_particle / env_scale)  # (B,)
+        f_nn = f_nn * envelope.unsqueeze(-1)  # (B, 1)
 
         # ---- analytic cusps (on raw / physical x) ----
         diff_phys = x[:, self.idx_i, :] - x[:, self.idx_j, :]  # (B, P, d)

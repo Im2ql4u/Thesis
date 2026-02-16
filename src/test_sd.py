@@ -1,11 +1,14 @@
 """Quick test of the SD-only setup."""
-import torch
+
 import sys
+
+import torch
+
 sys.path.insert(0, "/Users/aleksandersekkelsten/thesis/src")
 
-from train_simple import setup_system, compute_local_energy
-from PINN import ZeroJastrow
 from functions.Neural_Networks import psi_fn
+from PINN import ZeroJastrow
+from train_simple import compute_local_energy, setup_system
 
 device = "cpu"
 dtype = torch.float64
@@ -17,12 +20,13 @@ print("C_occ:\n", C_occ)
 
 # SD-only (zero Jastrow)
 f_net = ZeroJastrow().to(device).to(dtype)
-spin = torch.cat([torch.zeros(1, dtype=torch.long),
-                  torch.ones(1, dtype=torch.long)]).to(device)
+spin = torch.cat([torch.zeros(1, dtype=torch.long), torch.ones(1, dtype=torch.long)]).to(device)
+
 
 def psi_log_fn(y):
     lp, _ = psi_fn(f_net, y, C_occ, backflow_net=None, spin=spin, params=params)
     return lp
+
 
 # Test E_L at random points
 x = torch.randn(64, 2, 2, dtype=dtype, device=device) * 1.0

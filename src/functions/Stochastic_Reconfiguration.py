@@ -1,20 +1,19 @@
 from __future__ import annotations
 
 import math
-from typing import List, Tuple
 
 import torch
 from torch import nn
 from torch.nn.utils import parameters_to_vector, vector_to_parameters
 
-
 # ======================================================================================
 # 0) Utilities
 # ======================================================================================
 
-def _gather_params(mods: List[nn.Module | None]) -> Tuple[List[torch.Tensor], torch.Tensor]:
+
+def _gather_params(mods: list[nn.Module | None]) -> tuple[list[torch.Tensor], torch.Tensor]:
     """Collect trainable parameters from a list of modules and return (list, flat_vector)."""
-    ps: List[torch.Tensor] = []
+    ps: list[torch.Tensor] = []
     for m in mods:
         if m is None:
             continue
@@ -48,7 +47,7 @@ def _persistent_rw(
         prop = x + torch.randn_like(x) * sig
         lp_prop = psi_log_fn(prop) * 2.0
         logu = torch.log(torch.rand_like(lp_prop))
-        acc = (logu < (lp_prop - lp))  # (B,)
+        acc = logu < (lp_prop - lp)  # (B,)
         x = torch.where(acc.view(-1, 1, 1), prop, x)
         lp = torch.where(acc, lp_prop, lp)
         a_hat = float(acc.float().mean().item())
@@ -61,6 +60,7 @@ def _persistent_rw(
 
     return x, sig, acc_cnt, prop_cnt
 
+
 @torch.no_grad()
 def _persistent_rw_mixture(
     psi_log_fn,
@@ -69,10 +69,12 @@ def _persistent_rw_mixture(
     sigma_small: float,
     *,
     p_big: float = 0.15,
-    sigma_big: float | None = None,     # if None → 3 * sigma_small (updated live)
-    use_cauchy_jumps: bool = False,     # symmetric heavy-tail jumps
-    cauchy_scale: float = 0.05,         # in same units as x (use ℓ-scaled)
-    adapt: bool = False, target: float = 0.45, adapt_lr: float = 0.05,
+    sigma_big: float | None = None,  # if None → 3 * sigma_small (updated live)
+    use_cauchy_jumps: bool = False,  # symmetric heavy-tail jumps
+    cauchy_scale: float = 0.05,  # in same units as x (use ℓ-scaled)
+    adapt: bool = False,
+    target: float = 0.45,
+    adapt_lr: float = 0.05,
 ) -> tuple[torch.Tensor, float, int, int]:
     """
     RW Metropolis targeting |ψ|^2 with a *mixture* of proposal kernels:
@@ -117,7 +119,7 @@ def _persistent_rw_mixture(
 
         lp_prop = psi_log_fn(prop) * 2.0
         logu = torch.log(torch.rand_like(lp_prop))
-        acc = (logu < (lp_prop - lp))
+        acc = logu < (lp_prop - lp)
         x = torch.where(acc.view(-1, 1, 1), prop, x)
         lp = torch.where(acc, lp_prop, lp)
 
@@ -134,9 +136,11 @@ def _persistent_rw_mixture(
 
     return x, sig_s, acc_cnt, prop_cnt
 
+
 # ======================================================================================
 # 1) Laplacian backends and Local Energy (multi-mode)
 # ======================================================================================
+
 
 def _lap_log_fd_hutch(psi_log_fn, x, probes=16, eps=1e-3):
     """Hutchinson on ∆logψ via forward finite differences of ∇logψ."""
@@ -150,8 +154,12 @@ def _lap_log_fd_hutch(psi_log_fn, x, probes=16, eps=1e-3):
         xp = (x + eps_t * v).requires_grad_(True)
         xm = (x - eps_t * v).requires_grad_(True)
         with torch.set_grad_enabled(True):
-            gp = torch.autograd.grad(psi_log_fn(xp).sum(), xp, create_graph=False, retain_graph=False)[0]
-            gm = torch.autograd.grad(psi_log_fn(xm).sum(), xm, create_graph=False, retain_graph=False)[0]
+            gp = torch.autograd.grad(
+                psi_log_fn(xp).sum(), xp, create_graph=False, retain_graph=False
+            )[0]
+            gm = torch.autograd.grad(
+                psi_log_fn(xm).sum(), xm, create_graph=False, retain_graph=False
+            )[0]
         acc += ((gp - gm) * v).sum(dim=(1, 2)) / (2.0 * eps_t)
     return acc / float(max(1, int(probes)))
 
@@ -160,7 +168,9 @@ def _lap_log_fd_central_hutch(psi_log_fn, x, probes=16, eps=1e-3):
     """Hutchinson on ∆logψ using central second-difference of ∇logψ (uses one extra ∇ at x)."""
     x0 = x.detach().requires_grad_(True)
     with torch.set_grad_enabled(True):
-        g0 = torch.autograd.grad(psi_log_fn(x0).sum(), x0, create_graph=False, retain_graph=False)[0]
+        g0 = torch.autograd.grad(psi_log_fn(x0).sum(), x0, create_graph=False, retain_graph=False)[
+            0
+        ]
     x = x0.detach()
     B = x.shape[0]
     acc = torch.zeros(B, device=x.device, dtype=x.dtype)
@@ -171,8 +181,12 @@ def _lap_log_fd_central_hutch(psi_log_fn, x, probes=16, eps=1e-3):
         xp = (x + eps_t * v).requires_grad_(True)
         xm = (x - eps_t * v).requires_grad_(True)
         with torch.set_grad_enabled(True):
-            gp = torch.autograd.grad(psi_log_fn(xp).sum(), xp, create_graph=False, retain_graph=False)[0]
-            gm = torch.autograd.grad(psi_log_fn(xm).sum(), xm, create_graph=False, retain_graph=False)[0]
+            gp = torch.autograd.grad(
+                psi_log_fn(xp).sum(), xp, create_graph=False, retain_graph=False
+            )[0]
+            gm = torch.autograd.grad(
+                psi_log_fn(xm).sum(), xm, create_graph=False, retain_graph=False
+            )[0]
         acc += ((gp - 2.0 * g0 + gm) * v).sum(dim=(1, 2)) / (eps_t * eps_t)
     return acc / float(max(1, int(probes)))
 
@@ -198,20 +212,20 @@ def _lap_log_exact(psi_log_fn, x):
     with torch.set_grad_enabled(True):
         l = psi_log_fn(x)  # (B,)
         g = torch.autograd.grad(
-            l, x,
-            grad_outputs=torch.ones_like(l),
-            create_graph=True, retain_graph=True
-        )[0]  # (B,N,d)
+            l, x, grad_outputs=torch.ones_like(l), create_graph=True, retain_graph=True
+        )[
+            0
+        ]  # (B,N,d)
         B, N, d = x.shape
         lap = torch.zeros(B, device=x.device, dtype=x.dtype)
         for i in range(N):
             for k in range(d):
                 gi = g[:, i, k]  # (B,)
                 Hiik = torch.autograd.grad(
-                    gi, x,
-                    grad_outputs=torch.ones_like(gi),
-                    retain_graph=True, create_graph=False
-                )[0][:, i, k]  # (B,)
+                    gi, x, grad_outputs=torch.ones_like(gi), retain_graph=True, create_graph=False
+                )[0][
+                    :, i, k
+                ]  # (B,)
                 lap += Hiik
     return lap
 
@@ -234,11 +248,13 @@ def _local_energy_multi(
     x = x.detach().requires_grad_(True)
     with torch.set_grad_enabled(True):
         logpsi = psi_log_fn(x)  # (B,)
-        need_graph = (lap_mode in ("hvp-hutch", "exact"))
+        need_graph = lap_mode in ("hvp-hutch", "exact")
         g = torch.autograd.grad(
-            logpsi, x,
+            logpsi,
+            x,
             grad_outputs=torch.ones_like(logpsi),
-            create_graph=need_graph, retain_graph=True
+            create_graph=need_graph,
+            retain_graph=True,
         )[0]
     g2 = (g * g).sum(dim=(1, 2))
 
@@ -253,7 +269,7 @@ def _local_energy_multi(
     else:
         raise ValueError(f"Unknown lap_mode: {lap_mode}")
 
-    V_harm = 0.5 * (omega ** 2) * (x * x).sum(dim=(1, 2))
+    V_harm = 0.5 * (omega**2) * (x * x).sum(dim=(1, 2))
     V_int = compute_coulomb_interaction(x)
     V_int = V_int.view(-1) if V_int.ndim > 1 else V_int
 
@@ -264,6 +280,7 @@ def _local_energy_multi(
 # ======================================================================================
 # 2) Score matrix per-sample (robust, fast, no vmap/jvp required)
 # ======================================================================================
+
 
 def _score_rows(
     psi_log_fn,
@@ -290,18 +307,19 @@ def _score_rows(
     O = torch.empty(B, P, device=dev, dtype=dtype)
 
     for s in range(0, B, chunk_size):
-        xb = x[s:s + chunk_size].detach().requires_grad_(True)
+        xb = x[s : s + chunk_size].detach().requires_grad_(True)
         with torch.set_grad_enabled(True):
             lb = psi_log_fn(xb)  # (K,)
             K = lb.shape[0]
             for j in range(K):
                 gj = torch.autograd.grad(
-                    lb[j], params_list,
-                    retain_graph=True, allow_unused=True, create_graph=False
+                    lb[j], params_list, retain_graph=True, allow_unused=True, create_graph=False
                 )
                 # robust to None grads
-                gj = [(g if g is not None else torch.zeros_like(p))
-                      for g, p in zip(gj, params_list, strict=False)]
+                gj = [
+                    (g if g is not None else torch.zeros_like(p))
+                    for g, p in zip(gj, params_list, strict=False)
+                ]
                 O[s + j].copy_(parameters_to_vector(gj))
         del xb, lb  # free graph
 
@@ -312,8 +330,11 @@ def _score_rows(
 # 3) Microbatched SR step with multi-Laplacian + ω-invariant controls
 # ======================================================================================
 
+
 def sr_step_energy_mb(
-    f_net: nn.Module, C_occ: torch.Tensor, *,
+    f_net: nn.Module,
+    C_occ: torch.Tensor,
+    *,
     psi_fn,
     compute_coulomb_interaction,
     backflow_net: nn.Module | None = None,
@@ -323,12 +344,12 @@ def sr_step_energy_mb(
     micro_batch: int = 1200,
     total_rows: int = 9000,
     sampler_steps: int = 90,
-    sampler_step_sigma: float = 0.10,        # initial σ in units of ℓ
+    sampler_step_sigma: float = 0.10,  # initial σ in units of ℓ
     sampler_sigma_bounds: tuple[float, float] | None = None,  # (lo, hi) in units of ℓ
     # Laplacian controls
-    lap_mode: str = "hvp-hutch",             # "fd-hutch" | "fd-central-hutch" | "hvp-hutch" | "exact"
-    fd_probes: int = 12,                     # probes for FD/HVP Hutchinson (ignored for "exact")
-    fd_eps_scale: float = 1e-3,              # ε in units of ℓ for FD modes
+    lap_mode: str = "hvp-hutch",  # "fd-hutch" | "fd-central-hutch" | "hvp-hutch" | "exact"
+    fd_probes: int = 12,  # probes for FD/HVP Hutchinson (ignored for "exact")
+    fd_eps_scale: float = 1e-3,  # ε in units of ℓ for FD modes
     # SR / solver / trust region
     center_O: bool = True,
     damping: float = 1e-2,
@@ -359,10 +380,9 @@ def sr_step_energy_mb(
     # spin default
     if spin is None:
         up = N // 2
-        spin = torch.cat([
-            torch.zeros(up, dtype=torch.long),
-            torch.ones(N - up, dtype=torch.long)
-        ]).to(device)
+        spin = torch.cat(
+            [torch.zeros(up, dtype=torch.long), torch.ones(N - up, dtype=torch.long)]
+        ).to(device)
 
     # Nets to device/dtype
     f_net.to(device).to(net_dtype).train()
@@ -371,17 +391,19 @@ def sr_step_energy_mb(
 
     # try compiling only the psi closure (safe fallback)
     psi_forward = psi_fn
-#    if hasattr(torch, "compile"):
-#        try:
-#            psi_forward = torch.compile(psi_fn, dynamic=False, fullgraph=False)  # type: ignore
-#        except Exception:
-#            psi_forward = psi_fn
+    #    if hasattr(torch, "compile"):
+    #        try:
+    #            psi_forward = torch.compile(psi_fn, dynamic=False, fullgraph=False)  # type: ignore
+    #        except Exception:
+    #            psi_forward = psi_fn
 
     # logψ closure
     def psi_log_fn(x: torch.Tensor) -> torch.Tensor:
         if not x.requires_grad:
             x = x.detach().requires_grad_(True)
-        logpsi, _ = psi_forward(f_net, x, C_occ, backflow_net=backflow_net, spin=spin, params=params)
+        logpsi, _ = psi_forward(
+            f_net, x, C_occ, backflow_net=backflow_net, spin=spin, params=params
+        )
         return logpsi.view(-1)
 
     # ---------- persistent sampler state (kept on DEVICE) ----------
@@ -390,11 +412,11 @@ def sr_step_energy_mb(
     if (S is None) or (S.get("key") != key):
         S = {
             "key": key,
-            "prev_x": None,                    # will hold tensor on `device`
+            "prev_x": None,  # will hold tensor on `device`
             "sigma": float(sampler_step_sigma * ell),
             "did_burn": False,
         }
-        setattr(sr_step_energy_mb, "_state", S)
+        sr_step_energy_mb._state = S
 
     # Eval mode for sampling (avoid dropout/bn randomness during MCMC)
     was_train = f_net.training
@@ -429,18 +451,18 @@ def sr_step_energy_mb(
 
     if not S["did_burn"]:
         x, sig, a1, p1 = _persistent_rw(
-            psi_log_fn, x, burn_in0, S["sigma"],
-            adapt=True, target=target_accept, adapt_lr=adapt_lr
+            psi_log_fn, x, burn_in0, S["sigma"], adapt=True, target=target_accept, adapt_lr=adapt_lr
         )
-        acc_t += a1; prop_t += p1
+        acc_t += a1
+        prop_t += p1
         S["sigma"] = sig
         S["did_burn"] = True
     else:
         x, sig, a1, p1 = _persistent_rw(
-            psi_log_fn, x, thin, S["sigma"],
-            adapt=False, target=target_accept, adapt_lr=adapt_lr
+            psi_log_fn, x, thin, S["sigma"], adapt=False, target=target_accept, adapt_lr=adapt_lr
         )
-        acc_t += a1; prop_t += p1
+        acc_t += a1
+        prop_t += p1
         S["sigma"] = sig
 
     # Clamp σ to ω-invariant bounds
@@ -478,10 +500,16 @@ def sr_step_energy_mb(
         with torch.no_grad():
             for _ in range(keep_per):
                 x, _, a2, p2 = _persistent_rw(
-                    psi_log_fn, x, thin, S["sigma"],
-                    adapt=False, target=target_accept, adapt_lr=adapt_lr
+                    psi_log_fn,
+                    x,
+                    thin,
+                    S["sigma"],
+                    adapt=False,
+                    target=target_accept,
+                    adapt_lr=adapt_lr,
                 )
-                acc_t += a2; prop_t += p2
+                acc_t += a2
+                prop_t += p2
                 keeps.append(x.clone())
 
         for xk in keeps:
@@ -490,15 +518,21 @@ def sr_step_energy_mb(
             # Local energy
             with torch.set_grad_enabled(True):
                 E_L, _ = _local_energy_multi(
-                    psi_log_fn, xk, compute_coulomb_interaction, omega,
-                    lap_mode=lap_mode, lap_probes=fd_probes, fd_eps=eps_phys
+                    psi_log_fn,
+                    xk,
+                    compute_coulomb_interaction,
+                    omega,
+                    lap_mode=lap_mode,
+                    lap_probes=fd_probes,
+                    fd_eps=eps_phys,
                 )
 
             # Filter non-finite
             good = torch.isfinite(E_L)
             if not good.all():
                 filtered += int((~good).sum().item())
-                xk = xk[good]; E_L = E_L[good]
+                xk = xk[good]
+                E_L = E_L[good]
             if xk.numel() == 0:
                 continue
 
@@ -506,18 +540,17 @@ def sr_step_energy_mb(
             with torch.no_grad():
                 med = E_L.median()
                 mad = (E_L - med).abs().median().clamp_min(1e-12)
-                mask = ((E_L - med).abs() <= 60.0 * mad)
+                mask = (E_L - med).abs() <= 60.0 * mad
             if not mask.all():
                 filtered += int((~mask).sum().item())
-                xk = xk[mask]; E_L = E_L[mask]
+                xk = xk[mask]
+                E_L = E_L[mask]
             if xk.numel() == 0:
                 continue
 
             # Score rows (per-sample ∂logψ/∂θ)
             modules = [f_net] if backflow_net is None else [f_net, backflow_net]
-            O_chunk, params_list = _score_rows(
-                psi_log_fn, xk, modules, chunk_size=score_chunk_size
-            )
+            O_chunk, params_list = _score_rows(psi_log_fn, xk, modules, chunk_size=score_chunk_size)
             P = O_chunk.shape[1]
 
             # Accumulate (keep on device)
@@ -525,15 +558,17 @@ def sr_step_energy_mb(
             E_dev = E_L.detach().to(device=store_device, dtype=torch.float64)
 
             if sumO is None:
-                sumO  = torch.zeros(P, dtype=torch.float64, device=store_device)
+                sumO = torch.zeros(P, dtype=torch.float64, device=store_device)
                 sumO2 = torch.zeros(P, dtype=torch.float64, device=store_device)
 
-            sumE  += E_dev.sum()
+            sumE += E_dev.sum()
             sumE2 += (E_dev * E_dev).sum()
-            sumO  += O_dev.sum(dim=0)
+            sumO += O_dev.sum(dim=0)
             sumO2 += (O_dev * O_dev).sum(dim=0)
 
-            O_blocks.append(O_dev)  # could cast to float32 to save VRAM, but keep 64-bit for stability
+            O_blocks.append(
+                O_dev
+            )  # could cast to float32 to save VRAM, but keep 64-bit for stability
             E_blocks.append(E_dev)
             total += int(E_dev.numel())
             if total >= int(total_rows):
@@ -555,27 +590,27 @@ def sr_step_energy_mb(
         }
 
     B_eff = float(total)
-    mu_E  = float((sumE / B_eff).item())
+    mu_E = float((sumE / B_eff).item())
     var_E = max(0.0, float((sumE2 / B_eff - (sumE / B_eff) ** 2).item()))
-    E_std = var_E ** 0.5
+    E_std = var_E**0.5
 
     # Variance of O columns (for whitening + pruning)
-    meanO = (sumO / B_eff)
-    varO  = (sumO2 / B_eff) - (meanO * meanO)
-    varO  = varO.clamp_min(1e-12)
+    meanO = sumO / B_eff
+    varO = (sumO2 / B_eff) - (meanO * meanO)
+    varO = varO.clamp_min(1e-12)
     v10 = float(torch.quantile(varO, 0.01).item())
     v99 = float(torch.quantile(varO, 0.999).item())
     v_floor = max(v10, 1e-8)
-    v_ceil  = max(v99, v_floor)
+    v_ceil = max(v99, v_floor)
     varO = varO.clamp(min=v_floor, max=v_ceil)
 
     # Drop weakly observed parameters (lowest ~10% variance)
     P_full = int(varO.numel())
-    #thresh = float(torch.quantile(varO, 0.10).item()) if P_full > 10 else 0.0
-    #keep_mask = (varO > thresh) if P_full > 10 else torch.ones(P_full, dtype=torch.bool, device=store_device)
-    #keep_idx = keep_mask.nonzero(as_tuple=False).flatten()
+    # thresh = float(torch.quantile(varO, 0.10).item()) if P_full > 10 else 0.0
+    # keep_mask = (varO > thresh) if P_full > 10 else torch.ones(P_full, dtype=torch.bool, device=store_device)
+    # keep_idx = keep_mask.nonzero(as_tuple=False).flatten()
     keep_idx = torch.arange(P_full, device=store_device)  # keep ALL params
-    P_kept   = int(keep_idx.numel())
+    P_kept = int(keep_idx.numel())
 
     if P_kept == 0:
         return {
@@ -601,11 +636,11 @@ def sr_step_energy_mb(
         Ok = Oc[:, keep_idx].to(dtype=torch.float64, device=store_device)
         if center_O:
             Ok = Ok - meanO_k
-        Ow_blocks.append((Ok * D_inv_sqrt))
+        Ow_blocks.append(Ok * D_inv_sqrt)
 
     # Gradient in whitened coords: g_w = 2/B Σ Ow * (E - μ)
     g_w = torch.zeros(P_kept, dtype=torch.float64, device=store_device)
-    for Ow, E in zip(Ow_blocks, E_blocks):
+    for Ow, E in zip(Ow_blocks, E_blocks, strict=False):
         g_w += (Ow * (E.view(-1, 1) - mu_E)).sum(dim=0)
     g_w = 2.0 * (g_w / B_eff)
 
@@ -620,9 +655,9 @@ def sr_step_energy_mb(
     lam = float(damping)
     b = -g_w.clone()
     xk = torch.zeros_like(b)
-    r  = b - (A_mv_w(xk) + lam * xk)
+    r = b - (A_mv_w(xk) + lam * xk)
     r0 = float(torch.linalg.norm(r))
-    rel_floor = max(float(cg_tol), 2.0 / (B_eff ** 0.5))
+    rel_floor = max(float(cg_tol), 2.0 / (B_eff**0.5))
     p = r.clone()
     its = 0
     while its < cg_iters:
@@ -645,8 +680,8 @@ def sr_step_energy_mb(
     # Trust region scaling in whitened coords
     quad_w = float((xk @ (A_mv_w(xk) + lam * xk)).item())
     quad_w = max(quad_w, 1e-12)
-    scale_tr  = step_size / (quad_w ** 0.5)
-    norm_dk   = float(torch.linalg.norm(xk))
+    scale_tr = step_size / (quad_w**0.5)
+    norm_dk = float(torch.linalg.norm(xk))
     scale_cap = max_param_step / (norm_dk + 1e-12)
     scale = min(scale_tr, scale_cap)
     step_kept = scale * xk
@@ -659,7 +694,9 @@ def sr_step_energy_mb(
             lam = min(max_damping, max(1.5 * lam, 1.5e-3))
             step_kept *= 0.5
             step_norm = float(torch.linalg.norm(step_kept))
-            mr = float((g_w @ step_kept) + 0.5 * (step_kept @ (A_mv_w(step_kept) + lam * step_kept)))
+            mr = float(
+                (g_w @ step_kept) + 0.5 * (step_kept @ (A_mv_w(step_kept) + lam * step_kept))
+            )
             if mr > 0.0:
                 step_kept *= 0.5
                 step_norm = float(torch.linalg.norm(step_kept))
@@ -675,10 +712,10 @@ def sr_step_energy_mb(
 
     acc_rate = float(acc_t) / float(max(prop_t, 1))
     return {
-        "E_mean":   mu_E,
-        "E_std":    E_std,
-        "g_norm":   float(torch.linalg.norm(g_w).item()),
-        "step_norm":step_norm,
+        "E_mean": mu_E,
+        "E_std": E_std,
+        "g_norm": float(torch.linalg.norm(g_w).item()),
+        "step_norm": step_norm,
         "filtered": int(filtered),
         "cg_iters": int(its),
         "kept_params": int(P_kept),
@@ -693,8 +730,11 @@ def sr_step_energy_mb(
 # 4) Trainer loop wrapper (microbatch SR; multi-laplacian)
 # ======================================================================================
 
+
 def train_model_sr_energy(
-    f_net: nn.Module, C_occ: torch.Tensor, *,
+    f_net: nn.Module,
+    C_occ: torch.Tensor,
+    *,
     psi_fn,
     compute_coulomb_interaction,
     backflow_net: nn.Module | None = None,
@@ -704,12 +744,12 @@ def train_model_sr_energy(
     log_every: int = 5,
     # sampling / chunks
     micro_batch: int = 1200,
-    total_rows: int  = 9000,
+    total_rows: int = 9000,
     sampler_steps: int = 90,
-    sampler_step_sigma: float = 0.10,     # in units of ℓ
+    sampler_step_sigma: float = 0.10,  # in units of ℓ
     sampler_sigma_bounds: tuple[float, float] | None = None,  # in units of ℓ
     # Laplacian controls
-    lap_mode: str = "hvp-hutch",          # "fd-hutch" | "fd-central-hutch" | "hvp-hutch" | "exact"
+    lap_mode: str = "hvp-hutch",  # "fd-hutch" | "fd-central-hutch" | "hvp-hutch" | "exact"
     fd_probes: int = 12,
     fd_eps_scale: float = 1e-3,
     # SR solver / trust region
@@ -731,7 +771,8 @@ def train_model_sr_energy(
     lap_tag = lap_mode
     for t in range(n_sr_steps):
         info = sr_step_energy_mb(
-            f_net, C_occ,
+            f_net,
+            C_occ,
             psi_fn=psi_fn,
             compute_coulomb_interaction=compute_coulomb_interaction,
             backflow_net=backflow_net,
@@ -748,7 +789,9 @@ def train_model_sr_energy(
             step_size=step_size,
             max_param_step=max_param_step,
             damping=damping,
-            cg_tol=cg_tol, cg_iters=cg_iters, restart_every=restart_every,
+            cg_tol=cg_tol,
+            cg_iters=cg_iters,
+            restart_every=restart_every,
             center_O=True,
             do_backtrack=True,
             store_device=store_device,

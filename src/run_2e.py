@@ -4,18 +4,20 @@ Simple 2e run: non-interacting SD + PINN Jastrow + original train_model.
 Uses the EXISTING train_model from Neural_Networks.py which already works.
 No HF — just identity C_occ for the lowest orbitals.
 """
+
 import math
 import sys
+
 import numpy as np
 import torch
 
 sys.path.insert(0, "/Users/aleksandersekkelsten/thesis/src")
 
 import config
-from PINN import PINN
+from functions.Energy import evaluate_energy_vmc
 from functions.Neural_Networks import psi_fn, train_model
 from functions.Physics import compute_coulomb_interaction
-from functions.Energy import evaluate_energy_vmc
+from PINN import PINN
 
 
 def setup_noninteracting(N, omega, d=2, device="cpu", dtype=torch.float64):
@@ -27,9 +29,16 @@ def setup_noninteracting(N, omega, d=2, device="cpu", dtype=torch.float64):
     L = max(8.0, 3.0 / math.sqrt(omega))
 
     config.update(
-        omega=omega, n_particles=N, d=d,
-        L=L, n_grid=80, nx=nx, ny=ny,
-        basis="cart", device=str(device), dtype="float64",
+        omega=omega,
+        n_particles=N,
+        d=d,
+        L=L,
+        n_grid=80,
+        nx=nx,
+        ny=ny,
+        basis="cart",
+        device=str(device),
+        dtype="float64",
     )
 
     # Energy ordering for 2D Cartesian HO: E = omega*(nx + ny + 1)
@@ -69,12 +78,22 @@ def run_2e():
     params["n_epochs"] = 200
     params["N_collocation"] = 1024
 
-    f_net = PINN(
-        n_particles=2, d=2, omega=1.0,
-        dL=5, hidden_dim=64, n_layers=2,
-        act="gelu", init="xavier",
-        use_gate=True, use_pair_attn=False,
-    ).to(device).to(dtype)
+    f_net = (
+        PINN(
+            n_particles=2,
+            d=2,
+            omega=1.0,
+            dL=5,
+            hidden_dim=64,
+            n_layers=2,
+            act="gelu",
+            init="xavier",
+            use_gate=True,
+            use_pair_attn=False,
+        )
+        .to(device)
+        .to(dtype)
+    )
 
     n_p = sum(p.numel() for p in f_net.parameters())
     print(f"PINN params: {n_p:,}")
@@ -82,7 +101,9 @@ def run_2e():
     optimizer = torch.optim.Adam(f_net.parameters(), lr=3e-4)
 
     f_net, _, optimizer, hist = train_model(
-        f_net, optimizer, C_occ,
+        f_net,
+        optimizer,
+        C_occ,
         psi_fn=psi_fn,
         lap_mode="exact",
         objective="energy_var",
@@ -98,14 +119,20 @@ def run_2e():
     # VMC evaluation
     print("\n── VMC evaluation ──")
     result = evaluate_energy_vmc(
-        f_net, C_occ,
+        f_net,
+        C_occ,
         psi_fn=psi_fn,
         compute_coulomb_interaction=compute_coulomb_interaction,
-        backflow_net=None, params=params,
-        n_samples=15_000, batch_size=512,
-        sampler_steps=50, sampler_step_sigma=0.12,
+        backflow_net=None,
+        params=params,
+        n_samples=15_000,
+        batch_size=512,
+        sampler_steps=50,
+        sampler_step_sigma=0.12,
         lap_mode="exact",
-        persistent=True, sampler_burn_in=300, sampler_thin=3,
+        persistent=True,
+        sampler_burn_in=300,
+        sampler_thin=3,
         progress=True,
     )
     E = result["E_mean"]

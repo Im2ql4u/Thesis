@@ -10,6 +10,7 @@ Key ideas:
 
 This is variance-minimization VMC with Adam, not SR.
 """
+
 import math
 import sys
 import time
@@ -19,20 +20,20 @@ import torch.nn as nn
 
 sys.path.insert(0, "/Users/aleksandersekkelsten/thesis/src")
 
-from PINN import UnifiedCTNN
+import config
+from functions.Energy import evaluate_energy_vmc
 from functions.Neural_Networks import (
-    psi_fn,
     _laplacian_logpsi_exact,
+    psi_fn,
 )
 from functions.Physics import compute_coulomb_interaction
 from functions.Slater_Determinant import compute_integrals, hartree_fock_closed_shell
-from functions.Energy import evaluate_energy_vmc
-import config
-
+from PINN import UnifiedCTNN
 
 # ─────────────────────────────────────────────────────────────────
 # System setup
 # ─────────────────────────────────────────────────────────────────
+
 
 def setup_system(N, omega, d=2, device="cpu", dtype=torch.float64):
     L = max(8.0, 3.0 / math.sqrt(omega))
@@ -43,10 +44,18 @@ def setup_system(N, omega, d=2, device="cpu", dtype=torch.float64):
     #    the correct omega, n_particles, etc.  Without this, all basis
     #    functions use the default omega=0.1 from Config().
     config.update(
-        omega=omega, n_particles=N, d=d,
-        L=L, n_grid=80, nx=nx, ny=ny,
-        basis="cart", device=str(device), dtype="float64",
-        hf_verbose=False, hf_damping=0.5,
+        omega=omega,
+        n_particles=N,
+        d=d,
+        L=L,
+        n_grid=80,
+        nx=nx,
+        ny=ny,
+        basis="cart",
+        device=str(device),
+        dtype="float64",
+        hf_verbose=False,
+        hf_damping=0.5,
     )
 
     params = config.get().as_dict()
@@ -71,9 +80,10 @@ def setup_system(N, omega, d=2, device="cpu", dtype=torch.float64):
 # Sampling
 # ─────────────────────────────────────────────────────────────────
 
+
 def sample_stratified(B, N, d, omega, device, dtype):
     """Gaussian mixture sampler covering the physical domain.
-    
+
     4 components at different length scales to cover:
       - core region (cusp region)
       - oscillator length region (SD peak)
@@ -87,29 +97,39 @@ def sample_stratified(B, N, d, omega, device, dtype):
     sigmas = [0.25 * ell, 0.55 * ell, 0.90 * ell, 1.5 * ell]
 
     idx = 0
-    for n, sig in zip(sizes, sigmas):
-        x[idx:idx + n] = torch.randn(n, N, d, device=device, dtype=dtype) * sig
+    for n, sig in zip(sizes, sigmas, strict=False):
+        x[idx : idx + n] = torch.randn(n, N, d, device=device, dtype=dtype) * sig
         idx += n
 
     # Random permutation of particles (antisymmetry exploration)
     perm = torch.stack([torch.randperm(N, device=device) for _ in range(B)])
     x = x.gather(1, perm.unsqueeze(-1).expand(B, N, d))
-    
+
     # Random rotation (2D equivariance)
     if d == 2:
         theta = 2 * math.pi * torch.rand(B, device=device, dtype=dtype)
         c, s = torch.cos(theta), torch.sin(theta)
-        R = torch.stack([torch.stack([c, -s], dim=-1),
-                         torch.stack([s, c], dim=-1)], dim=-2)
+        R = torch.stack([torch.stack([c, -s], dim=-1), torch.stack([s, c], dim=-1)], dim=-2)
         x = torch.einsum("bnc,bcC->bnC", x, R)
-    
+
     return x
     return x
 
 
 @torch.no_grad()
-def sample_mcmc(psi_log_fn, N, d, omega, n_samples, device, dtype,
-                burn_in=300, thin=5, sigma_frac=0.12, x_init=None):
+def sample_mcmc(
+    psi_log_fn,
+    N,
+    d,
+    omega,
+    n_samples,
+    device,
+    dtype,
+    burn_in=300,
+    thin=5,
+    sigma_frac=0.12,
+    x_init=None,
+):
     """Metropolis MCMC sampling from |Ψ|².  Returns (x, acc_rate)."""
     ell = 1.0 / math.sqrt(omega)
     sig = sigma_frac * ell
@@ -149,13 +169,14 @@ def sample_mcmc(psi_log_fn, N, d, omega, n_samples, device, dtype,
 # Local energy computation
 # ─────────────────────────────────────────────────────────────────
 
+
 def compute_local_energy(psi_log_fn, x, omega):
     """E_L(x) = T(x) + V(x) using exact analytic Laplacian."""
     x = x.detach().requires_grad_(True)
     g, g2, lap_log = _laplacian_logpsi_exact(psi_log_fn, x)
 
     T = -0.5 * (lap_log.squeeze(-1) + g2.squeeze(-1))
-    V_harm = 0.5 * omega ** 2 * (x ** 2).sum(dim=(1, 2))
+    V_harm = 0.5 * omega**2 * (x**2).sum(dim=(1, 2))
     V_int = compute_coulomb_interaction(x).squeeze(-1)
     E_L = T + V_harm + V_int
     return E_L
@@ -165,6 +186,7 @@ def compute_local_energy(psi_log_fn, x, omega):
 # Training: stratified variance-minimization (i.i.d. samples)
 # ─────────────────────────────────────────────────────────────────
 
+
 def train_stratified(
     f_net: nn.Module,
     C_occ: torch.Tensor,
@@ -173,7 +195,7 @@ def train_stratified(
     n_epochs: int = 600,
     lr: float = 5e-4,
     n_collocation: int = 1024,  # samples per epoch
-    micro_batch: int = 64,      # for gradient accumulation
+    micro_batch: int = 64,  # for gradient accumulation
     grad_clip: float = 0.5,
     quantile_trim: float = 0.05,
     print_every: int = 25,
@@ -181,20 +203,20 @@ def train_stratified(
     lr_schedule: str = "cosine",
     lr_min_frac: float = 0.01,
     warmup_epochs: int = 20,
-    eval_every: int = 100,      # VMC check every N epochs
+    eval_every: int = 100,  # VMC check every N epochs
     patience: int = 150,
 ):
     """
     Residual PDE training with stratified (i.i.d.) sampling.
-    
+
     Loss = Var[E_L] under a fixed Gaussian mixture.
     When E_L = const everywhere → Ψ is exact eigenstate.
-    
+
     Advantages over MCMC:
       - i.i.d. samples → lower gradient noise → stable training
       - Covers broader domain → better generalization
       - No autocorrelation → every sample is independent
-    
+
     The envelope on f_nn prevents the Jastrow from growing in
     regions not covered by the sampler.
     """
@@ -208,8 +230,9 @@ def train_stratified(
     f_net.to(device).to(dtype)
 
     up = N // 2
-    spin = torch.cat([torch.zeros(up, dtype=torch.long),
-                      torch.ones(N - up, dtype=torch.long)]).to(device)
+    spin = torch.cat([torch.zeros(up, dtype=torch.long), torch.ones(N - up, dtype=torch.long)]).to(
+        device
+    )
 
     def psi_log_fn(y):
         lp, _ = psi_fn(f_net, y, C_occ, backflow_net=None, spin=spin, params=params)
@@ -259,7 +282,7 @@ def train_stratified(
         n_batches = max(1, math.ceil(X.shape[0] / micro_batch))
 
         for i in range(0, X.shape[0], micro_batch):
-            x_mb = X[i:i + micro_batch]
+            x_mb = X[i : i + micro_batch]
             E_L = compute_local_energy(psi_log_fn, x_mb, omega)
 
             good = torch.isfinite(E_L)
@@ -284,7 +307,7 @@ def train_stratified(
             abs_r = resid.abs()
             loss = torch.where(
                 abs_r <= huber_delta,
-                0.5 * resid ** 2,
+                0.5 * resid**2,
                 huber_delta * (abs_r - 0.5 * huber_delta),
             ).mean()
 
@@ -335,8 +358,7 @@ def train_stratified(
         # Periodic VMC evaluation
         if eval_every > 0 and epoch > 0 and epoch % eval_every == 0:
             f_net.eval()
-            vmc = evaluate_vmc(f_net, C_occ, params, n_samples=5_000,
-                               label=f"checkpoint ep{epoch}")
+            vmc = evaluate_vmc(f_net, C_occ, params, n_samples=5_000, label=f"checkpoint ep{epoch}")
             f_net.train()
 
     # Restore best
@@ -353,6 +375,7 @@ def train_stratified(
 # ─────────────────────────────────────────────────────────────────
 # Training: MCMC variance-minimization (|Ψ|² sampling)
 # ─────────────────────────────────────────────────────────────────
+
 
 def _mcmc_burn_in(psi_log_fn, x_chain, sigma, burn_in, device, dtype):
     """Run burn-in on MCMC chain. Returns (x_chain, lp_chain, acc_rate)."""
@@ -378,20 +401,20 @@ def train_residual(
     *,
     n_epochs: int = 500,
     lr: float = 3e-4,
-    n_walkers: int = 512,       # persistent MCMC walkers
-    rw_steps: int = 10,         # RW steps between epochs to decorrelate
-    burn_in: int = 500,         # initial burn-in steps
-    sigma_frac: float = 0.15,   # proposal std in units of ℓ
-    micro_batch: int = 64,      # for gradient accumulation with exact Laplacian
+    n_walkers: int = 512,  # persistent MCMC walkers
+    rw_steps: int = 10,  # RW steps between epochs to decorrelate
+    burn_in: int = 500,  # initial burn-in steps
+    sigma_frac: float = 0.15,  # proposal std in units of ℓ
+    micro_batch: int = 64,  # for gradient accumulation with exact Laplacian
     grad_clip: float = 0.5,
     quantile_trim: float = 0.05,
     print_every: int = 25,
     huber_delta: float = 1.0,
     lr_schedule: str = "cosine",
     lr_min_frac: float = 0.01,  # min LR as fraction of max (for cosine)
-    warmup_epochs: int = 20,    # linear LR warmup
-    rechain_every: int = 100,   # re-burn MCMC chain periodically to avoid drift
-    patience: int = 80,         # early stop if no improvement for this many epochs
+    warmup_epochs: int = 20,  # linear LR warmup
+    rechain_every: int = 100,  # re-burn MCMC chain periodically to avoid drift
+    patience: int = 80,  # early stop if no improvement for this many epochs
 ):
     """
     Pure variance-minimisation VMC with Adam.
@@ -423,8 +446,9 @@ def train_residual(
 
     # Spin
     up = N // 2
-    spin = torch.cat([torch.zeros(up, dtype=torch.long),
-                      torch.ones(N - up, dtype=torch.long)]).to(device)
+    spin = torch.cat([torch.zeros(up, dtype=torch.long), torch.ones(N - up, dtype=torch.long)]).to(
+        device
+    )
 
     def psi_log_fn(y):
         lp, _ = psi_fn(f_net, y, C_occ, backflow_net=None, spin=spin, params=params)
@@ -521,7 +545,7 @@ def train_residual(
         n_batches = max(1, math.ceil(X.shape[0] / micro_batch))
 
         for i in range(0, X.shape[0], micro_batch):
-            x_mb = X[i:i + micro_batch]
+            x_mb = X[i : i + micro_batch]
             E_L = compute_local_energy(psi_log_fn, x_mb, omega)
 
             # Filter non-finite
@@ -550,7 +574,7 @@ def train_residual(
             abs_r = resid.abs()
             loss = torch.where(
                 abs_r <= huber_delta,
-                0.5 * resid ** 2,
+                0.5 * resid**2,
                 huber_delta * (abs_r - 0.5 * huber_delta),
             ).mean()
 
@@ -628,19 +652,26 @@ def train_residual(
 # Evaluation
 # ─────────────────────────────────────────────────────────────────
 
+
 def evaluate_vmc(f_net, C_occ, params, n_samples=15_000, label=""):
     """Full VMC evaluation with exact Laplacian."""
     print(f"\n── Evaluating {label} ──")
     sys.stdout.flush()
     result = evaluate_energy_vmc(
-        f_net, C_occ,
+        f_net,
+        C_occ,
         psi_fn=psi_fn,
         compute_coulomb_interaction=compute_coulomb_interaction,
-        backflow_net=None, params=params,
-        n_samples=n_samples, batch_size=512,
-        sampler_steps=50, sampler_step_sigma=0.12,
+        backflow_net=None,
+        params=params,
+        n_samples=n_samples,
+        batch_size=512,
+        sampler_steps=50,
+        sampler_step_sigma=0.12,
         lap_mode="exact",
-        persistent=True, sampler_burn_in=300, sampler_thin=3,
+        persistent=True,
+        sampler_burn_in=300,
+        sampler_thin=3,
         progress=True,
     )
     E = result["E_mean"]
@@ -657,23 +688,36 @@ def evaluate_vmc(f_net, C_occ, params, n_samples=15_000, label=""):
 # Experiments
 # ─────────────────────────────────────────────────────────────────
 
+
 def experiment_2e(device="cpu"):
     """2-electron ω=1.0 → target E=3.0"""
     dtype = torch.float64
     C_occ, params = setup_system(2, 1.0, device=device, dtype=dtype)
 
-    net = UnifiedCTNN(
-        d=2, n_particles=2, omega=1.0,
-        node_hidden=64, edge_hidden=64,
-        msg_layers=2, node_layers=2, n_mp_steps=1,
-        jastrow_hidden=32, jastrow_layers=2,
-        envelope_width_aho=3.0,
-    ).to(device).to(dtype)
+    net = (
+        UnifiedCTNN(
+            d=2,
+            n_particles=2,
+            omega=1.0,
+            node_hidden=64,
+            edge_hidden=64,
+            msg_layers=2,
+            node_layers=2,
+            n_mp_steps=1,
+            jastrow_hidden=32,
+            jastrow_layers=2,
+            envelope_width_aho=3.0,
+        )
+        .to(device)
+        .to(dtype)
+    )
     n_p = sum(p.numel() for p in net.parameters())
     print(f"Net params: {n_p:,}")
 
     net, hist = train_stratified(
-        net, C_occ, params,
+        net,
+        C_occ,
+        params,
         n_epochs=600,
         lr=5e-4,
         n_collocation=1024,
@@ -703,18 +747,30 @@ def experiment_6e(device="cpu"):
     dtype = torch.float64
     C_occ, params = setup_system(6, 0.5, device=device, dtype=dtype)
 
-    net = UnifiedCTNN(
-        d=2, n_particles=6, omega=0.5,
-        node_hidden=128, edge_hidden=128,
-        msg_layers=2, node_layers=3, n_mp_steps=2,
-        jastrow_hidden=64, jastrow_layers=2,
-        envelope_width_aho=3.0,
-    ).to(device).to(dtype)
+    net = (
+        UnifiedCTNN(
+            d=2,
+            n_particles=6,
+            omega=0.5,
+            node_hidden=128,
+            edge_hidden=128,
+            msg_layers=2,
+            node_layers=3,
+            n_mp_steps=2,
+            jastrow_hidden=64,
+            jastrow_layers=2,
+            envelope_width_aho=3.0,
+        )
+        .to(device)
+        .to(dtype)
+    )
     n_p = sum(p.numel() for p in net.parameters())
     print(f"Net params: {n_p:,}")
 
     net, hist = train_stratified(
-        net, C_occ, params,
+        net,
+        C_occ,
+        params,
         n_epochs=1000,
         lr=3e-4,
         n_collocation=2048,
@@ -762,7 +818,7 @@ if __name__ == "__main__":
     E2 = res2["E_mean"]
     E6 = res6["E_mean"]
     print(f"\n{'='*60}")
-    print(f"SUMMARY")
+    print("SUMMARY")
     print(f"  2e: E={E2:.5f} (target=3.00000, err={abs(E2-3.0)/3.0*100:.2f}%)")
     print(f"  6e: E={E6:.5f} (target=11.78484, err={abs(E6-11.78484)/11.78484*100:.2f}%)")
     print(f"{'='*60}")

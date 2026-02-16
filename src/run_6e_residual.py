@@ -3,13 +3,13 @@
 
 KEY IDEA:
   MCMC from |Ψ|² = VMC.  Importance weighting fails in 12D (ESS → 1).
-  
+
   Solution: SCREENED COLLOCATION.
     1. Draw many (10–20×) candidate points from a fixed Gaussian proposal.
     2. Evaluate |Ψ|² at every candidate  (cheap forward-pass, no grads).
     3. Keep only the top-K by |Ψ(x)|²/q(x)  — these are where Ψ lives.
     4. Train on those K points with UNIFORM weights  (no IS weights).
-  
+
   This is genuinely residual-based:
     • The proposal q(x) is a fixed Gaussian — independent of θ.
     • The selection uses |Ψ|² only for screening, with no gradient.
@@ -21,7 +21,10 @@ Extras:
   • Warm-start option  (pre-train PINN, freeze, train backflow, unfreeze)
 """
 
-import math, sys, time, copy
+import math
+import sys
+import time
+
 import numpy as np
 import torch
 import torch.nn as nn
@@ -29,19 +32,18 @@ import torch.nn as nn
 sys.path.insert(0, "/Users/aleksandersekkelsten/thesis/src")
 
 import config
-from PINN import PINN, CTNNBackflowNet, UnifiedCTNN
+from functions.Energy import evaluate_energy_vmc
 from functions.Neural_Networks import (
-    psi_fn,
     _laplacian_logpsi_exact,
-    _make_closed_shell_spin,
+    psi_fn,
 )
 from functions.Physics import compute_coulomb_interaction
-from functions.Energy import evaluate_energy_vmc
-
+from PINN import PINN, CTNNBackflowNet, UnifiedCTNN
 
 # ══════════════════════════════════════════════════════════════════
 #  Helpers
 # ══════════════════════════════════════════════════════════════════
+
 
 def setup_noninteracting(N, omega, d=2, device="cpu", dtype=torch.float64):
     n_occ = N // 2
@@ -50,9 +52,16 @@ def setup_noninteracting(N, omega, d=2, device="cpu", dtype=torch.float64):
     n_basis = nx * ny
     L = max(8.0, 3.0 / math.sqrt(omega))
     config.update(
-        omega=omega, n_particles=N, d=d,
-        L=L, n_grid=80, nx=nx, ny=ny,
-        basis="cart", device=str(device), dtype="float64",
+        omega=omega,
+        n_particles=N,
+        d=d,
+        L=L,
+        n_grid=80,
+        nx=nx,
+        ny=ny,
+        basis="cart",
+        device=str(device),
+        dtype="float64",
     )
     energies = []
     for ix in range(nx):
@@ -82,7 +91,7 @@ def compute_local_energy(psi_log_fn, x, omega):
     g, g2, lap_log = _laplacian_logpsi_exact(psi_log_fn, x)
     B = x.shape[0]
     T = -0.5 * (lap_log.view(B) + g2.view(B))
-    V_harm = 0.5 * omega ** 2 * (x ** 2).sum(dim=(1, 2))
+    V_harm = 0.5 * omega**2 * (x**2).sum(dim=(1, 2))
     V_int = compute_coulomb_interaction(x).view(B)
     return T + V_harm + V_int
 
@@ -91,6 +100,7 @@ def compute_local_energy(psi_log_fn, x, omega):
 #  Proposal sampling  &  importance weights
 # ══════════════════════════════════════════════════════════════════
 
+
 def sample_gaussian_proposal(n_samples, N, d, sigma, device, dtype):
     """
     Fixed isotropic Gaussian proposal q(x) = prod_i N(r_i; 0, sigma^2 I_d).
@@ -98,16 +108,16 @@ def sample_gaussian_proposal(n_samples, N, d, sigma, device, dtype):
     """
     x = torch.randn(n_samples, N, d, device=device, dtype=dtype) * sigma
     Nd = N * d
-    log_q = (
-        -0.5 * Nd * math.log(2 * math.pi * sigma ** 2)
-        - x.reshape(n_samples, -1).pow(2).sum(-1) / (2 * sigma ** 2)
-    )
+    log_q = -0.5 * Nd * math.log(2 * math.pi * sigma**2) - x.reshape(n_samples, -1).pow(2).sum(
+        -1
+    ) / (2 * sigma**2)
     return x, log_q
 
 
 @torch.no_grad()
-def screened_collocation(psi_log_fn, N, d, sigma, n_keep, oversampling,
-                         device, dtype, batch_size=4096):
+def screened_collocation(
+    psi_log_fn, N, d, sigma, n_keep, oversampling, device, dtype, batch_size=4096
+):
     """
     Generate oversampling×n_keep candidate points from a Gaussian proposal,
     evaluate |Ψ|² at each, and return the top n_keep by |Ψ|²/q ratio.
@@ -120,7 +130,7 @@ def screened_collocation(psi_log_fn, N, d, sigma, n_keep, oversampling,
     # Evaluate log|Ψ|² in batches (forward-only, cheap)
     log_psi2_parts = []
     for i in range(0, n_cand, batch_size):
-        lp = psi_log_fn(x_all[i:i + batch_size])
+        lp = psi_log_fn(x_all[i : i + batch_size])
         log_psi2_parts.append(2.0 * lp)
     log_psi2 = torch.cat(log_psi2_parts)
 
@@ -135,20 +145,24 @@ def screened_collocation(psi_log_fn, N, d, sigma, n_keep, oversampling,
 #  Residual trainer  (screened collocation)
 # ══════════════════════════════════════════════════════════════════
 
+
 def train_residual(
-    f_net, C_occ, params, *,
+    f_net,
+    C_occ,
+    params,
+    *,
     backflow_net=None,
     # --- schedule ---
     n_epochs=300,
     lr=3e-4,
-    lr_min_frac=0.02,          # min LR as fraction of initial
+    lr_min_frac=0.02,  # min LR as fraction of initial
     # --- phase 1 (pure var-min) / phase 2 (E_DMC targeting) ---
-    phase1_frac=0.25,          # fraction of epochs for phase 1
-    alpha_end=0.60,            # max alpha at end of phase 2
+    phase1_frac=0.25,  # fraction of epochs for phase 1
+    alpha_end=0.60,  # max alpha at end of phase 2
     # --- collocation ---
     n_collocation=2048,
-    oversampling=10,           # generate this × n_collocation candidates
-    proposal_sigma_factor=1.3, # sigma = factor * ell
+    oversampling=10,  # generate this × n_collocation candidates
+    proposal_sigma_factor=1.3,  # sigma = factor * ell
     micro_batch=256,
     # --- robustness ---
     grad_clip=0.5,
@@ -172,26 +186,26 @@ def train_residual(
     LR follows a cosine schedule over all epochs.
     """
     device = params["device"]
-    dtype  = params.get("torch_dtype", torch.float64)
-    omega  = float(params["omega"])
-    N      = int(params["n_particles"])
-    d      = int(params["d"])
-    E_DMC  = params.get("E", None)
-    ell    = 1.0 / math.sqrt(omega)
+    dtype = params.get("torch_dtype", torch.float64)
+    omega = float(params["omega"])
+    N = int(params["n_particles"])
+    d = int(params["d"])
+    E_DMC = params.get("E", None)
+    ell = 1.0 / math.sqrt(omega)
 
-    sigma  = proposal_sigma_factor * ell
+    sigma = proposal_sigma_factor * ell
 
     f_net.to(device).to(dtype)
     if backflow_net is not None:
         backflow_net.to(device).to(dtype)
 
-    up   = N // 2
-    spin = torch.cat([torch.zeros(up, dtype=torch.long),
-                      torch.ones(N - up, dtype=torch.long)]).to(device)
+    up = N // 2
+    spin = torch.cat([torch.zeros(up, dtype=torch.long), torch.ones(N - up, dtype=torch.long)]).to(
+        device
+    )
 
     def psi_log_fn(y):
-        lp, _ = psi_fn(f_net, y, C_occ, backflow_net=backflow_net,
-                        spin=spin, params=params)
+        lp, _ = psi_fn(f_net, y, C_occ, backflow_net=backflow_net, spin=spin, params=params)
         return lp
 
     all_params = list(f_net.parameters())
@@ -203,15 +217,19 @@ def train_residual(
     lr_min = lr * lr_min_frac
     scheduler = torch.optim.lr_scheduler.LambdaLR(
         optimizer,
-        lr_lambda=lambda ep: (lr_min + 0.5 * (lr - lr_min) *
-                              (1 + math.cos(math.pi * ep / max(1, n_epochs - 1)))) / lr,
+        lr_lambda=lambda ep: (
+            lr_min + 0.5 * (lr - lr_min) * (1 + math.cos(math.pi * ep / max(1, n_epochs - 1)))
+        )
+        / lr,
     )
 
     phase1_end = int(phase1_frac * n_epochs)
 
     print(f"\n{'='*60}")
-    print(f"Screened-collocation training:  {n_epochs} ep, "
-          f"{n_collocation} pts (from {oversampling*n_collocation} candidates)")
+    print(
+        f"Screened-collocation training:  {n_epochs} ep, "
+        f"{n_collocation} pts (from {oversampling*n_collocation} candidates)"
+    )
     print(f"  {n_p:,} params, lr={lr}, cosine → {lr_min:.1e}")
     print(f"  proposal σ = {sigma:.3f}  (ℓ = {ell:.3f})")
     print(f"  phase 1 (var-min): epochs 0–{phase1_end}")
@@ -241,9 +259,14 @@ def train_residual(
         if backflow_net is not None:
             backflow_net.eval()
         X = screened_collocation(
-            psi_log_fn, N, d, sigma,
-            n_keep=n_collocation, oversampling=oversampling,
-            device=device, dtype=dtype,
+            psi_log_fn,
+            N,
+            d,
+            sigma,
+            n_keep=n_collocation,
+            oversampling=oversampling,
+            device=device,
+            dtype=dtype,
         )
 
         # ── Compute loss in micro-batches (uniform weights) ──
@@ -256,7 +279,7 @@ def train_residual(
         n_batches = max(1, math.ceil(n_collocation / micro_batch))
 
         for i in range(0, n_collocation, micro_batch):
-            x_mb = X[i:i + micro_batch]
+            x_mb = X[i : i + micro_batch]
 
             E_L = compute_local_energy(psi_log_fn, x_mb, omega).view(-1)
 
@@ -282,7 +305,7 @@ def train_residual(
             E_eff = alpha * float(E_DMC) + (1.0 - alpha) * mu
 
             resid = E_L - E_eff
-            loss_mb = (resid ** 2).mean()      # uniform weights
+            loss_mb = (resid**2).mean()  # uniform weights
             (loss_mb / n_batches).backward()
 
         if grad_clip > 0:
@@ -294,8 +317,8 @@ def train_residual(
         if len(all_EL) > 0:
             EL_cat = torch.cat(all_EL)
             E_mean = EL_cat.mean().item()
-            E_var  = EL_cat.var().item()
-            E_std  = EL_cat.std().item()
+            E_var = EL_cat.var().item()
+            E_std = EL_cat.std().item()
         else:
             E_mean, E_var, E_std = float("nan"), float("nan"), float("nan")
 
@@ -342,17 +365,24 @@ def train_residual(
 #  Evaluate  (VMC evaluation — this IS correct VMC for evaluation)
 # ══════════════════════════════════════════════════════════════════
 
+
 def evaluate(f_net, C_occ, params, backflow_net=None, n_samples=15_000, label=""):
     print(f"\n── VMC eval: {label} ──")
     result = evaluate_energy_vmc(
-        f_net, C_occ,
+        f_net,
+        C_occ,
         psi_fn=psi_fn,
         compute_coulomb_interaction=compute_coulomb_interaction,
-        backflow_net=backflow_net, params=params,
-        n_samples=n_samples, batch_size=512,
-        sampler_steps=50, sampler_step_sigma=0.12,
+        backflow_net=backflow_net,
+        params=params,
+        n_samples=n_samples,
+        batch_size=512,
+        sampler_steps=50,
+        sampler_step_sigma=0.12,
         lap_mode="exact",
-        persistent=True, sampler_burn_in=300, sampler_thin=3,
+        persistent=True,
+        sampler_burn_in=300,
+        sampler_thin=3,
         progress=True,
     )
     E, E_std = result["E_mean"], result["E_stderr"]
@@ -367,10 +397,15 @@ def evaluate(f_net, C_occ, params, backflow_net=None, n_samples=15_000, label=""
 # ══════════════════════════════════════════════════════════════════
 
 COMMON = dict(
-    n_epochs=300, lr=3e-4,
-    n_collocation=2048, oversampling=10, micro_batch=256,
-    grad_clip=0.5, print_every=10,
-    phase1_frac=0.25, alpha_end=0.60,
+    n_epochs=300,
+    lr=3e-4,
+    n_collocation=2048,
+    oversampling=10,
+    micro_batch=256,
+    grad_clip=0.5,
+    print_every=10,
+    phase1_frac=0.25,
+    alpha_end=0.60,
     proposal_sigma_factor=1.3,
 )
 
@@ -378,12 +413,22 @@ COMMON = dict(
 def run_pinn():
     device, dtype = "cpu", torch.float64
     C_occ, params = setup_noninteracting(6, 0.5, device=device, dtype=dtype)
-    f_net = PINN(
-        n_particles=6, d=2, omega=0.5,
-        dL=8, hidden_dim=64, n_layers=2,
-        act="gelu", init="xavier",
-        use_gate=True, use_pair_attn=False,
-    ).to(device).to(dtype)
+    f_net = (
+        PINN(
+            n_particles=6,
+            d=2,
+            omega=0.5,
+            dL=8,
+            hidden_dim=64,
+            n_layers=2,
+            act="gelu",
+            init="xavier",
+            use_gate=True,
+            use_pair_attn=False,
+        )
+        .to(device)
+        .to(dtype)
+    )
     print(f"PINN params: {sum(p.numel() for p in f_net.parameters()):,}")
     f_net, _, hist = train_residual(f_net, C_occ, params, **COMMON)
     return evaluate(f_net, C_occ, params, label="PINN dL=8 (residual)")
@@ -392,28 +437,52 @@ def run_pinn():
 def run_ctnn_pinn():
     device, dtype = "cpu", torch.float64
     C_occ, params = setup_noninteracting(6, 0.5, device=device, dtype=dtype)
-    f_net = PINN(
-        n_particles=6, d=2, omega=0.5,
-        dL=8, hidden_dim=64, n_layers=2,
-        act="gelu", init="xavier",
-        use_gate=True, use_pair_attn=False,
-    ).to(device).to(dtype)
-    bf_net = CTNNBackflowNet(
-        d=2, msg_hidden=32, msg_layers=1,
-        hidden=32, layers=2,
-        act="silu", aggregation="sum",
-        use_spin=True, same_spin_only=False,
-        out_bound="tanh", bf_scale_init=0.05,
-        omega=0.5,
-    ).to(device).to(dtype)
-    np_total = (sum(p.numel() for p in f_net.parameters())
-              + sum(p.numel() for p in bf_net.parameters()))
+    f_net = (
+        PINN(
+            n_particles=6,
+            d=2,
+            omega=0.5,
+            dL=8,
+            hidden_dim=64,
+            n_layers=2,
+            act="gelu",
+            init="xavier",
+            use_gate=True,
+            use_pair_attn=False,
+        )
+        .to(device)
+        .to(dtype)
+    )
+    bf_net = (
+        CTNNBackflowNet(
+            d=2,
+            msg_hidden=32,
+            msg_layers=1,
+            hidden=32,
+            layers=2,
+            act="silu",
+            aggregation="sum",
+            use_spin=True,
+            same_spin_only=False,
+            out_bound="tanh",
+            bf_scale_init=0.05,
+            omega=0.5,
+        )
+        .to(device)
+        .to(dtype)
+    )
+    np_total = sum(p.numel() for p in f_net.parameters()) + sum(
+        p.numel() for p in bf_net.parameters()
+    )
     print(f"CTNN+PINN params: {np_total:,}")
     f_net, bf_net, hist = train_residual(
-        f_net, C_occ, params, backflow_net=bf_net, **COMMON,
+        f_net,
+        C_occ,
+        params,
+        backflow_net=bf_net,
+        **COMMON,
     )
-    return evaluate(f_net, C_occ, params, backflow_net=bf_net,
-                    label="CTNN+PINN (residual)")
+    return evaluate(f_net, C_occ, params, backflow_net=bf_net, label="CTNN+PINN (residual)")
 
 
 def run_warmstart_ctnn():
@@ -426,12 +495,22 @@ def run_warmstart_ctnn():
     device, dtype = "cpu", torch.float64
     C_occ, params = setup_noninteracting(6, 0.5, device=device, dtype=dtype)
 
-    f_net = PINN(
-        n_particles=6, d=2, omega=0.5,
-        dL=8, hidden_dim=64, n_layers=2,
-        act="gelu", init="xavier",
-        use_gate=True, use_pair_attn=False,
-    ).to(device).to(dtype)
+    f_net = (
+        PINN(
+            n_particles=6,
+            d=2,
+            omega=0.5,
+            dL=8,
+            hidden_dim=64,
+            n_layers=2,
+            act="gelu",
+            init="xavier",
+            use_gate=True,
+            use_pair_attn=False,
+        )
+        .to(device)
+        .to(dtype)
+    )
 
     total_epochs = COMMON["n_epochs"]
     ep1 = int(0.60 * total_epochs)  # PINN only
@@ -443,11 +522,18 @@ def run_warmstart_ctnn():
     print(f"Warm-start phase 1: PINN only ({ep1} ep)")
     print(f"{'─'*40}")
     f_net, _, _ = train_residual(
-        f_net, C_occ, params,
-        n_epochs=ep1, lr=3e-4,
-        n_collocation=2048, oversampling=10, micro_batch=256,
-        grad_clip=0.5, print_every=10,
-        phase1_frac=0.30, alpha_end=0.50,
+        f_net,
+        C_occ,
+        params,
+        n_epochs=ep1,
+        lr=3e-4,
+        n_collocation=2048,
+        oversampling=10,
+        micro_batch=256,
+        grad_clip=0.5,
+        print_every=10,
+        phase1_frac=0.30,
+        alpha_end=0.50,
         proposal_sigma_factor=1.3,
     )
 
@@ -455,25 +541,43 @@ def run_warmstart_ctnn():
     print(f"\n{'─'*40}")
     print(f"Warm-start phase 2: backflow only, PINN frozen ({ep2} ep)")
     print(f"{'─'*40}")
-    bf_net = CTNNBackflowNet(
-        d=2, msg_hidden=32, msg_layers=1,
-        hidden=32, layers=2,
-        act="silu", aggregation="sum",
-        use_spin=True, same_spin_only=False,
-        out_bound="tanh", bf_scale_init=0.05,
-        omega=0.5,
-    ).to(device).to(dtype)
+    bf_net = (
+        CTNNBackflowNet(
+            d=2,
+            msg_hidden=32,
+            msg_layers=1,
+            hidden=32,
+            layers=2,
+            act="silu",
+            aggregation="sum",
+            use_spin=True,
+            same_spin_only=False,
+            out_bound="tanh",
+            bf_scale_init=0.05,
+            omega=0.5,
+        )
+        .to(device)
+        .to(dtype)
+    )
 
     # Freeze PINN
     for p in f_net.parameters():
         p.requires_grad_(False)
 
     f_net, bf_net, _ = train_residual(
-        f_net, C_occ, params, backflow_net=bf_net,
-        n_epochs=ep2, lr=5e-4,      # slightly larger LR for backflow alone
-        n_collocation=2048, oversampling=10, micro_batch=256,
-        grad_clip=0.5, print_every=10,
-        phase1_frac=0.0, alpha_end=0.50,   # skip phase 1, start targeting
+        f_net,
+        C_occ,
+        params,
+        backflow_net=bf_net,
+        n_epochs=ep2,
+        lr=5e-4,  # slightly larger LR for backflow alone
+        n_collocation=2048,
+        oversampling=10,
+        micro_batch=256,
+        grad_clip=0.5,
+        print_every=10,
+        phase1_frac=0.0,
+        alpha_end=0.50,  # skip phase 1, start targeting
         proposal_sigma_factor=1.3,
     )
 
@@ -485,35 +589,55 @@ def run_warmstart_ctnn():
         p.requires_grad_(True)
 
     f_net, bf_net, _ = train_residual(
-        f_net, C_occ, params, backflow_net=bf_net,
-        n_epochs=ep3, lr=1e-4,      # lower LR for fine-tuning
-        n_collocation=2048, oversampling=10, micro_batch=256,
-        grad_clip=0.3, print_every=10,
-        phase1_frac=0.0, alpha_end=0.60,
+        f_net,
+        C_occ,
+        params,
+        backflow_net=bf_net,
+        n_epochs=ep3,
+        lr=1e-4,  # lower LR for fine-tuning
+        n_collocation=2048,
+        oversampling=10,
+        micro_batch=256,
+        grad_clip=0.3,
+        print_every=10,
+        phase1_frac=0.0,
+        alpha_end=0.60,
         proposal_sigma_factor=1.3,
     )
 
-    np_total = (sum(p.numel() for p in f_net.parameters())
-              + sum(p.numel() for p in bf_net.parameters()))
+    np_total = sum(p.numel() for p in f_net.parameters()) + sum(
+        p.numel() for p in bf_net.parameters()
+    )
     print(f"Warm-start CTNN+PINN total params: {np_total:,}")
-    return evaluate(f_net, C_occ, params, backflow_net=bf_net,
-                    label="Warm-start CTNN+PINN (residual)")
+    return evaluate(
+        f_net, C_occ, params, backflow_net=bf_net, label="Warm-start CTNN+PINN (residual)"
+    )
 
 
 def run_unified():
     device, dtype = "cpu", torch.float64
     C_occ, params = setup_noninteracting(6, 0.5, device=device, dtype=dtype)
-    net = UnifiedCTNN(
-        d=2, n_particles=6, omega=0.5,
-        node_hidden=64, edge_hidden=64,
-        msg_layers=1, node_layers=2, n_mp_steps=1,
-        jastrow_hidden=32, jastrow_layers=2,
-        envelope_width_aho=3.0,
-    ).to(device).to(dtype)
+    net = (
+        UnifiedCTNN(
+            d=2,
+            n_particles=6,
+            omega=0.5,
+            node_hidden=64,
+            edge_hidden=64,
+            msg_layers=1,
+            node_layers=2,
+            n_mp_steps=1,
+            jastrow_hidden=32,
+            jastrow_layers=2,
+            envelope_width_aho=3.0,
+        )
+        .to(device)
+        .to(dtype)
+    )
     print(f"UnifiedCTNN params: {sum(p.numel() for p in net.parameters()):,}")
-    net, _, hist = train_residual(net, C_occ, params, lr=2e-4, **{
-        k: v for k, v in COMMON.items() if k != "lr"
-    })
+    net, _, hist = train_residual(
+        net, C_occ, params, lr=2e-4, **{k: v for k, v in COMMON.items() if k != "lr"}
+    )
     return evaluate(net, C_occ, params, label="UnifiedCTNN (residual)")
 
 
@@ -525,10 +649,10 @@ if __name__ == "__main__":
     results = {}
 
     for name, fn in [
-        ("pinn",       run_pinn),
-        ("ctnn",       run_ctnn_pinn),
-        ("warmstart",  run_warmstart_ctnn),
-        ("unified",    run_unified),
+        ("pinn", run_pinn),
+        ("ctnn", run_ctnn_pinn),
+        ("warmstart", run_warmstart_ctnn),
+        ("unified", run_unified),
     ]:
         print(f"\n{'#'*60}")
         print(f"# {name.upper()}")

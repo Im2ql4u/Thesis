@@ -1,10 +1,13 @@
 #!/usr/bin/env python3
 """Quick test: just discover pairs and print them."""
-import os, sys, json, re
+import json
+import os
+import sys
 from collections import defaultdict
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "src"))
 MODEL_ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "results", "models 2")
+
 
 def discover_pairs():
     pairs = []
@@ -37,14 +40,21 @@ def discover_pairs():
                     if bf_ts == fn_ts and bf_ts:
                         is_ctnn = "CTNN" in bf_class or "CTNN" in bf_name
                         pair_type = "ctnn" if is_ctnn else "bf"
-                        pairs.append({
-                            "N": N, "omega": bf_omega, "omega_dir": wdir,
-                            "pair_type": pair_type,
-                            "bf_name": bf_name, "fn_name": fn_name,
-                            "bf_class": bf_class, "fn_class": fn_meta.get("class",""),
-                            "saved_at": bf_ts,
-                        })
+                        pairs.append(
+                            {
+                                "N": N,
+                                "omega": bf_omega,
+                                "omega_dir": wdir,
+                                "pair_type": pair_type,
+                                "bf_name": bf_name,
+                                "fn_name": fn_name,
+                                "bf_class": bf_class,
+                                "fn_class": fn_meta.get("class", ""),
+                                "saved_at": bf_ts,
+                            }
+                        )
     return pairs
+
 
 pairs = discover_pairs()
 print(f"Found {len(pairs)} total pairs\n")

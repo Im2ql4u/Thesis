@@ -14,27 +14,25 @@ Experiments (all bf_scale=0.7, zero_init_last=False):
 All ~100ep effective bf training.  Total time ~2h instead of ~8h.
 """
 
-import math, sys, time, copy
-import numpy as np
+import copy
+import math
+import sys
+import time
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
 sys.path.insert(0, "/Users/aleksandersekkelsten/thesis/src")
 
-import config
+from functions.Neural_Networks import psi_fn
 from PINN import PINN, CTNNBackflowNet
-from functions.Neural_Networks import psi_fn, _laplacian_logpsi_exact
-from functions.Physics import compute_coulomb_interaction
-from functions.Energy import evaluate_energy_vmc
-
 from run_6e_residual import (
-    setup_noninteracting,
     compute_local_energy,
-    screened_collocation,
     evaluate,
+    screened_collocation,
+    setup_noninteracting,
     train_residual,
-    COMMON,
 )
 
 E_DMC = 11.78484
@@ -47,27 +45,41 @@ CKPT_PATH = "/Users/aleksandersekkelsten/thesis/results/models/pinn_6e_ckpt.pt"
 #  Helpers
 # ══════════════════════════════════════════════════════════════════
 
+
 def make_bf(bf_scale_init=0.7):
-    return CTNNBackflowNet(
-        d=2, msg_hidden=32, msg_layers=1,
-        hidden=32, layers=2, act="silu", aggregation="sum",
-        use_spin=True, same_spin_only=False,
-        out_bound="tanh", bf_scale_init=bf_scale_init,
-        zero_init_last=False, omega=0.5,
-    ).to(DEVICE).to(DTYPE)
+    return (
+        CTNNBackflowNet(
+            d=2,
+            msg_hidden=32,
+            msg_layers=1,
+            hidden=32,
+            layers=2,
+            act="silu",
+            aggregation="sum",
+            use_spin=True,
+            same_spin_only=False,
+            out_bound="tanh",
+            bf_scale_init=bf_scale_init,
+            zero_init_last=False,
+            omega=0.5,
+        )
+        .to(DEVICE)
+        .to(DTYPE)
+    )
 
 
 def get_spin(N=6):
     up = N // 2
-    return torch.cat([torch.zeros(up, dtype=torch.long),
-                      torch.ones(N - up, dtype=torch.long)]).to(DEVICE)
+    return torch.cat([torch.zeros(up, dtype=torch.long), torch.ones(N - up, dtype=torch.long)]).to(
+        DEVICE
+    )
 
 
 def make_psi_fn(f_net, bf_net, C_occ, params, spin):
     def fn(y):
-        lp, _ = psi_fn(f_net, y, C_occ, backflow_net=bf_net,
-                        spin=spin, params=params)
+        lp, _ = psi_fn(f_net, y, C_occ, backflow_net=bf_net, spin=spin, params=params)
         return lp
+
     return fn
 
 
@@ -75,21 +87,33 @@ def make_psi_fn(f_net, bf_net, C_occ, params, spin):
 #  Compact trainer — fast, prints every 5 epochs, tracks bf diagnostics
 # ══════════════════════════════════════════════════════════════════
 
+
 def train_fast(
-    f_net, bf_net, C_occ, params, *,
-    optimizer, n_epochs=100,
+    f_net,
+    bf_net,
+    C_occ,
+    params,
+    *,
+    optimizer,
+    n_epochs=100,
     lr_sched_fn=None,
-    n_collocation=2048, oversampling=10, micro_batch=256,
-    grad_clip=0.5, phase1_frac=0.0, alpha_end=0.60,
-    print_every=5, patience=40, label="",
+    n_collocation=2048,
+    oversampling=10,
+    micro_batch=256,
+    grad_clip=0.5,
+    phase1_frac=0.0,
+    alpha_end=0.60,
+    print_every=5,
+    patience=40,
+    label="",
 ):
     device = params["device"]
-    dtype  = params.get("torch_dtype", torch.float64)
-    omega  = float(params["omega"])
-    N      = int(params["n_particles"])
-    d      = int(params["d"])
-    sigma  = 1.3 / math.sqrt(omega)
-    spin   = get_spin(N)
+    dtype = params.get("torch_dtype", torch.float64)
+    omega = float(params["omega"])
+    N = int(params["n_particles"])
+    d = int(params["d"])
+    sigma = 1.3 / math.sqrt(omega)
+    spin = get_spin(N)
 
     psi_log_fn = make_psi_fn(f_net, bf_net, C_occ, params, spin)
     scheduler = lr_sched_fn(optimizer, n_epochs) if lr_sched_fn else None
@@ -107,7 +131,8 @@ def train_fast(
 
     t0 = time.time()
     best_var = float("inf")
-    best_f = {}; best_bf = {}
+    best_f = {}
+    best_bf = {}
     no_imp = 0
 
     for ep in range(n_epochs):
@@ -117,25 +142,37 @@ def train_fast(
             t2 = (ep - phase1_end) / max(1, n_epochs - phase1_end - 1)
             alpha = 0.5 * alpha_end * (1 - math.cos(math.pi * t2))
 
-        f_net.eval(); bf_net.eval()
-        X = screened_collocation(psi_log_fn, N, d, sigma,
-                                 n_keep=n_collocation, oversampling=oversampling,
-                                 device=device, dtype=dtype)
+        f_net.eval()
+        bf_net.eval()
+        X = screened_collocation(
+            psi_log_fn,
+            N,
+            d,
+            sigma,
+            n_keep=n_collocation,
+            oversampling=oversampling,
+            device=device,
+            dtype=dtype,
+        )
 
-        f_net.train(); bf_net.train()
+        f_net.train()
+        bf_net.train()
         optimizer.zero_grad(set_to_none=True)
 
         all_EL = []
         nb = max(1, math.ceil(n_collocation / micro_batch))
         for i in range(0, n_collocation, micro_batch):
-            E_L = compute_local_energy(psi_log_fn, X[i:i+micro_batch], omega).view(-1)
+            E_L = compute_local_energy(psi_log_fn, X[i : i + micro_batch], omega).view(-1)
             good = torch.isfinite(E_L)
-            if not good.all(): E_L = E_L[good]
-            if E_L.numel() == 0: continue
+            if not good.all():
+                E_L = E_L[good]
+            if E_L.numel() == 0:
+                continue
             if E_L.numel() > 20:
                 lo, hi = torch.quantile(E_L.detach(), 0.02), torch.quantile(E_L.detach(), 0.98)
                 E_L = E_L[(E_L.detach() >= lo) & (E_L.detach() <= hi)]
-                if E_L.numel() == 0: continue
+                if E_L.numel() == 0:
+                    continue
             all_EL.append(E_L.detach())
             mu = E_L.mean().detach()
             E_eff = alpha * E_DMC + (1 - alpha) * mu
@@ -146,7 +183,8 @@ def train_fast(
         if grad_clip > 0:
             nn.utils.clip_grad_norm_(all_p, grad_clip)
         optimizer.step()
-        if scheduler: scheduler.step()
+        if scheduler:
+            scheduler.step()
 
         if all_EL:
             EL = torch.cat(all_EL)
@@ -174,17 +212,33 @@ def train_fast(
                 bf_net.eval()
                 bf_mag = bf_net(X[:64], spin).norm(dim=-1).mean().item()
                 bf_net.train()
-            bf_gn = sum(p.grad.data.norm(2).item()**2 for p in bf_net.parameters()
-                        if p.grad is not None) ** 0.5
-            f_gn = sum(p.grad.data.norm(2).item()**2 for p in f_net.parameters()
-                       if p.grad is not None and p.requires_grad) ** 0.5
-            print(f"  [{ep:3d}] E={E_mean:.4f}±{E_std:.3f} var={E_var:.2e} "
-                  f"α={alpha:.2f} |Δx|={bf_mag:.3f} ‖∇bf‖={bf_gn:.3f} "
-                  f"‖∇f‖={f_gn:.3f} err={err:.2f}%  ({dt:.0f}s)")
+            bf_gn = (
+                sum(
+                    p.grad.data.norm(2).item() ** 2
+                    for p in bf_net.parameters()
+                    if p.grad is not None
+                )
+                ** 0.5
+            )
+            f_gn = (
+                sum(
+                    p.grad.data.norm(2).item() ** 2
+                    for p in f_net.parameters()
+                    if p.grad is not None and p.requires_grad
+                )
+                ** 0.5
+            )
+            print(
+                f"  [{ep:3d}] E={E_mean:.4f}±{E_std:.3f} var={E_var:.2e} "
+                f"α={alpha:.2f} |Δx|={bf_mag:.3f} ‖∇bf‖={bf_gn:.3f} "
+                f"‖∇f‖={f_gn:.3f} err={err:.2f}%  ({dt:.0f}s)"
+            )
             sys.stdout.flush()
 
-    if best_f: f_net.load_state_dict(best_f)
-    if best_bf: bf_net.load_state_dict(best_bf)
+    if best_f:
+        f_net.load_state_dict(best_f)
+    if best_bf:
+        bf_net.load_state_dict(best_bf)
     dt = time.time() - t0
     print(f"  Best var={best_var:.3e}, {dt:.0f}s ({dt/60:.1f}min)")
     return f_net, bf_net
@@ -194,8 +248,8 @@ def train_fast(
 #  Cusp pre-training
 # ══════════════════════════════════════════════════════════════════
 
-def pretrain_cusp(bf_net, *, n_epochs=30, lr=1e-3, n_samples=4096,
-                  strength=0.15, sigma_ell=0.5):
+
+def pretrain_cusp(bf_net, *, n_epochs=30, lr=1e-3, n_samples=4096, strength=0.15, sigma_ell=0.5):
     spin = get_spin()
     sigma = 1.3 / math.sqrt(0.5)
     ell = 1.0 / math.sqrt(0.5)
@@ -224,7 +278,8 @@ def pretrain_cusp(bf_net, *, n_epochs=30, lr=1e-3, n_samples=4096,
 
         dx_pred = bf_net(x, spin)
         loss = F.mse_loss(dx_pred, dx_tgt)
-        opt.zero_grad(); loss.backward()
+        opt.zero_grad()
+        loss.backward()
         nn.utils.clip_grad_norm_(bf_net.parameters(), 1.0)
         opt.step()
 
@@ -240,12 +295,25 @@ def pretrain_cusp(bf_net, *, n_epochs=30, lr=1e-3, n_samples=4096,
 #  Fisher-preconditioned bf update
 # ══════════════════════════════════════════════════════════════════
 
+
 def train_fisher_bf(
-    f_net, bf_net, C_occ, params, *,
-    n_epochs=100, lr=5e-4, n_collocation=2048, oversampling=10,
-    micro_batch=256, grad_clip=0.5, alpha_end=0.60,
-    fisher_samples=256, fisher_damping=1e-3,
-    print_every=5, patience=40, label="fisher_bf",
+    f_net,
+    bf_net,
+    C_occ,
+    params,
+    *,
+    n_epochs=100,
+    lr=5e-4,
+    n_collocation=2048,
+    oversampling=10,
+    micro_batch=256,
+    grad_clip=0.5,
+    alpha_end=0.60,
+    fisher_samples=256,
+    fisher_damping=1e-3,
+    print_every=5,
+    patience=40,
+    label="fisher_bf",
 ):
     """
     Backflow-only training with diagonal Fisher preconditioning.
@@ -273,52 +341,67 @@ def train_fisher_bf(
     sys.stdout.flush()
 
     t0 = time.time()
-    best_var = float("inf"); best_f = {}; best_bf = {}; no_imp = 0
+    best_var = float("inf")
+    best_f = {}
+    best_bf = {}
+    no_imp = 0
 
     for ep in range(n_epochs):
         t2 = ep / max(1, n_epochs - 1)
         alpha = 0.5 * alpha_end * (1 - math.cos(math.pi * t2))
 
-        f_net.eval(); bf_net.eval()
-        X = screened_collocation(psi_log_fn, N, d, sigma,
-                                 n_keep=n_collocation, oversampling=oversampling,
-                                 device=device, dtype=DTYPE)
+        f_net.eval()
+        bf_net.eval()
+        X = screened_collocation(
+            psi_log_fn,
+            N,
+            d,
+            sigma,
+            n_keep=n_collocation,
+            oversampling=oversampling,
+            device=device,
+            dtype=DTYPE,
+        )
 
         # ── Estimate diagonal Fisher from ∂log|Ψ|/∂θ_bf ──
-        if ep % 5 == 0:   # recompute every 5 epochs
+        if ep % 5 == 0:  # recompute every 5 epochs
             bf_net.eval()
             fisher_diag = [torch.zeros_like(p) for p in bf_params]
             x_fisher = X[:fisher_samples].detach().requires_grad_(False)
             bs = 64
             n_fb = 0
             for i in range(0, min(fisher_samples, x_fisher.shape[0]), bs):
-                xb = x_fisher[i:i+bs]
+                xb = x_fisher[i : i + bs]
                 for j in range(xb.shape[0]):
                     bf_net.zero_grad()
-                    lp = psi_log_fn(xb[j:j+1])
+                    lp = psi_log_fn(xb[j : j + 1])
                     lp.backward()
                     for k, p in enumerate(bf_params):
                         if p.grad is not None:
-                            fisher_diag[k] += p.grad.data ** 2
+                            fisher_diag[k] += p.grad.data**2
                     n_fb += 1
             for k in range(len(fisher_diag)):
                 fisher_diag[k] /= max(n_fb, 1)
 
         # ── Standard energy-variance loss ──
-        f_net.train(); bf_net.train()
+        f_net.train()
+        bf_net.train()
         optimizer.zero_grad(set_to_none=True)
 
         all_EL = []
         nb = max(1, math.ceil(n_collocation / micro_batch))
         for i in range(0, n_collocation, micro_batch):
-            E_L = compute_local_energy(psi_log_fn, X[i:i+micro_batch], omega).view(-1)
+            E_L = compute_local_energy(psi_log_fn, X[i : i + micro_batch], omega).view(-1)
             good = torch.isfinite(E_L)
-            if not good.all(): E_L = E_L[good]
-            if E_L.numel() == 0: continue
+            if not good.all():
+                E_L = E_L[good]
+            if E_L.numel() == 0:
+                continue
             if E_L.numel() > 20:
                 lo, hi = torch.quantile(E_L.detach(), 0.02), torch.quantile(E_L.detach(), 0.98)
                 E_L = E_L[(E_L.detach() >= lo) & (E_L.detach() <= hi)]
-                if E_L.numel() == 0: continue
+                if E_L.numel() == 0:
+                    continue
             all_EL.append(E_L.detach())
             mu = E_L.mean().detach()
             E_eff = alpha * E_DMC + (1 - alpha) * mu
@@ -332,7 +415,7 @@ def train_fisher_bf(
         for k, p in enumerate(bf_params):
             if p.grad is not None:
                 # Natural gradient: F^{-1} g  (diagonal approx)
-                p.grad.data /= (fisher_diag[k] + fisher_damping)
+                p.grad.data /= fisher_diag[k] + fisher_damping
 
         optimizer.step()
         scheduler.step()
@@ -362,15 +445,20 @@ def train_fisher_bf(
                 bf_net.eval()
                 bf_mag = bf_net(X[:64], spin).norm(dim=-1).mean().item()
                 bf_net.train()
-            bf_gn = sum(p.grad.data.norm(2).item()**2 for p in bf_params
-                        if p.grad is not None) ** 0.5
-            print(f"  [{ep:3d}] E={E_mean:.4f}±{E_std:.3f} var={E_var:.2e} "
-                  f"α={alpha:.2f} |Δx|={bf_mag:.3f} ‖∇bf‖={bf_gn:.3f} "
-                  f"err={err:.2f}%  ({dt:.0f}s)")
+            bf_gn = (
+                sum(p.grad.data.norm(2).item() ** 2 for p in bf_params if p.grad is not None) ** 0.5
+            )
+            print(
+                f"  [{ep:3d}] E={E_mean:.4f}±{E_std:.3f} var={E_var:.2e} "
+                f"α={alpha:.2f} |Δx|={bf_mag:.3f} ‖∇bf‖={bf_gn:.3f} "
+                f"err={err:.2f}%  ({dt:.0f}s)"
+            )
             sys.stdout.flush()
 
-    if best_f: f_net.load_state_dict(best_f)
-    if best_bf: bf_net.load_state_dict(best_bf)
+    if best_f:
+        f_net.load_state_dict(best_f)
+    if best_bf:
+        bf_net.load_state_dict(best_bf)
     dt = time.time() - t0
     print(f"  Best var={best_var:.3e}, {dt:.0f}s ({dt/60:.1f}min)")
     return f_net, bf_net
@@ -380,33 +468,62 @@ def train_fisher_bf(
 #  Phase 0: Train + save PINN checkpoint
 # ══════════════════════════════════════════════════════════════════
 
+
 def train_and_save_pinn(C_occ, params):
     import os
+
     if os.path.exists(CKPT_PATH):
         print(f"Loading PINN checkpoint from {CKPT_PATH}")
-        f_net = PINN(
-            n_particles=6, d=2, omega=0.5,
-            dL=8, hidden_dim=64, n_layers=2,
-            act="gelu", init="xavier",
-            use_gate=True, use_pair_attn=False,
-        ).to(DEVICE).to(DTYPE)
+        f_net = (
+            PINN(
+                n_particles=6,
+                d=2,
+                omega=0.5,
+                dL=8,
+                hidden_dim=64,
+                n_layers=2,
+                act="gelu",
+                init="xavier",
+                use_gate=True,
+                use_pair_attn=False,
+            )
+            .to(DEVICE)
+            .to(DTYPE)
+        )
         f_net.load_state_dict(torch.load(CKPT_PATH, map_location=DEVICE, weights_only=True))
         return f_net
 
     print("\n── Training PINN baseline (300ep) ──")
-    f_net = PINN(
-        n_particles=6, d=2, omega=0.5,
-        dL=8, hidden_dim=64, n_layers=2,
-        act="gelu", init="xavier",
-        use_gate=True, use_pair_attn=False,
-    ).to(DEVICE).to(DTYPE)
+    f_net = (
+        PINN(
+            n_particles=6,
+            d=2,
+            omega=0.5,
+            dL=8,
+            hidden_dim=64,
+            n_layers=2,
+            act="gelu",
+            init="xavier",
+            use_gate=True,
+            use_pair_attn=False,
+        )
+        .to(DEVICE)
+        .to(DTYPE)
+    )
 
     f_net, _, _ = train_residual(
-        f_net, C_occ, params,
-        n_epochs=300, lr=3e-4,
-        n_collocation=2048, oversampling=10, micro_batch=256,
-        grad_clip=0.5, print_every=20,
-        phase1_frac=0.25, alpha_end=0.60,
+        f_net,
+        C_occ,
+        params,
+        n_epochs=300,
+        lr=3e-4,
+        n_collocation=2048,
+        oversampling=10,
+        micro_batch=256,
+        grad_clip=0.5,
+        print_every=20,
+        phase1_frac=0.25,
+        alpha_end=0.60,
         proposal_sigma_factor=1.3,
     )
 
@@ -420,18 +537,29 @@ def train_and_save_pinn(C_occ, params):
 #  Experiments
 # ══════════════════════════════════════════════════════════════════
 
+
 def run_experiment(name, C_occ, params, pinn_state, experiment_fn):
     print(f"\n{'#'*55}")
     print(f"# {name}")
     print(f"{'#'*55}")
 
     # Fresh copies
-    f_net = PINN(
-        n_particles=6, d=2, omega=0.5,
-        dL=8, hidden_dim=64, n_layers=2,
-        act="gelu", init="xavier",
-        use_gate=True, use_pair_attn=False,
-    ).to(DEVICE).to(DTYPE)
+    f_net = (
+        PINN(
+            n_particles=6,
+            d=2,
+            omega=0.5,
+            dL=8,
+            hidden_dim=64,
+            n_layers=2,
+            act="gelu",
+            init="xavier",
+            use_gate=True,
+            use_pair_attn=False,
+        )
+        .to(DEVICE)
+        .to(DTYPE)
+    )
     f_net.load_state_dict(copy.deepcopy(pinn_state))
 
     return experiment_fn(f_net, C_occ, params)
@@ -440,15 +568,23 @@ def run_experiment(name, C_occ, params, pinn_state, experiment_fn):
 def exp_bf_only(f_net, C_occ, params):
     """Freeze Jastrow, train bf only 100ep."""
     bf_net = make_bf()
-    for p in f_net.parameters(): p.requires_grad_(False)
+    for p in f_net.parameters():
+        p.requires_grad_(False)
     opt = torch.optim.Adam(bf_net.parameters(), lr=5e-4)
     sched = lambda o, n: torch.optim.lr_scheduler.CosineAnnealingLR(o, n, eta_min=1e-5)
     f_net, bf_net = train_fast(
-        f_net, bf_net, C_occ, params,
-        optimizer=opt, n_epochs=100, lr_sched_fn=sched,
-        alpha_end=0.60, label="bf_only (Jastrow frozen, 100ep)",
+        f_net,
+        bf_net,
+        C_occ,
+        params,
+        optimizer=opt,
+        n_epochs=100,
+        lr_sched_fn=sched,
+        alpha_end=0.60,
+        label="bf_only (Jastrow frozen, 100ep)",
     )
-    for p in f_net.parameters(): p.requires_grad_(True)
+    for p in f_net.parameters():
+        p.requires_grad_(True)
     return evaluate(f_net, C_occ, params, backflow_net=bf_net, label="bf_only")
 
 
@@ -456,29 +592,44 @@ def exp_cusp_bf(f_net, C_occ, params):
     """Cusp pre-train → freeze Jastrow → bf 100ep."""
     bf_net = make_bf()
     bf_net = pretrain_cusp(bf_net, n_epochs=30, strength=0.15)
-    for p in f_net.parameters(): p.requires_grad_(False)
+    for p in f_net.parameters():
+        p.requires_grad_(False)
     opt = torch.optim.Adam(bf_net.parameters(), lr=5e-4)
     sched = lambda o, n: torch.optim.lr_scheduler.CosineAnnealingLR(o, n, eta_min=1e-5)
     f_net, bf_net = train_fast(
-        f_net, bf_net, C_occ, params,
-        optimizer=opt, n_epochs=100, lr_sched_fn=sched,
-        alpha_end=0.60, label="cusp+bf (cusp 30ep → Jastrow frozen → bf 100ep)",
+        f_net,
+        bf_net,
+        C_occ,
+        params,
+        optimizer=opt,
+        n_epochs=100,
+        lr_sched_fn=sched,
+        alpha_end=0.60,
+        label="cusp+bf (cusp 30ep → Jastrow frozen → bf 100ep)",
     )
-    for p in f_net.parameters(): p.requires_grad_(True)
+    for p in f_net.parameters():
+        p.requires_grad_(True)
     return evaluate(f_net, C_occ, params, backflow_net=bf_net, label="cusp+bf")
 
 
 def exp_fisher_bf(f_net, C_occ, params):
     """Freeze Jastrow, train bf with diagonal Fisher preconditioning."""
     bf_net = make_bf()
-    for p in f_net.parameters(): p.requires_grad_(False)
+    for p in f_net.parameters():
+        p.requires_grad_(False)
     f_net, bf_net = train_fisher_bf(
-        f_net, bf_net, C_occ, params,
-        n_epochs=100, lr=5e-4,
-        fisher_samples=256, fisher_damping=1e-3,
+        f_net,
+        bf_net,
+        C_occ,
+        params,
+        n_epochs=100,
+        lr=5e-4,
+        fisher_samples=256,
+        fisher_damping=1e-3,
         label="fisher_bf (Jastrow frozen, Fisher precond, 100ep)",
     )
-    for p in f_net.parameters(): p.requires_grad_(True)
+    for p in f_net.parameters():
+        p.requires_grad_(True)
     return evaluate(f_net, C_occ, params, backflow_net=bf_net, label="fisher_bf")
 
 
@@ -487,27 +638,44 @@ def exp_bf_then_joint(f_net, C_occ, params):
     bf_net = make_bf()
 
     # Phase 1: bf only, 50ep
-    for p in f_net.parameters(): p.requires_grad_(False)
+    for p in f_net.parameters():
+        p.requires_grad_(False)
     opt = torch.optim.Adam(bf_net.parameters(), lr=5e-4)
     sched = lambda o, n: torch.optim.lr_scheduler.CosineAnnealingLR(o, n, eta_min=5e-5)
     f_net, bf_net = train_fast(
-        f_net, bf_net, C_occ, params,
-        optimizer=opt, n_epochs=50, lr_sched_fn=sched,
-        phase1_frac=0.3, alpha_end=0.40, patience=30,
+        f_net,
+        bf_net,
+        C_occ,
+        params,
+        optimizer=opt,
+        n_epochs=50,
+        lr_sched_fn=sched,
+        phase1_frac=0.3,
+        alpha_end=0.40,
+        patience=30,
         label="bf_then_joint phase1: bf-only 50ep",
     )
 
     # Phase 2: unfreeze both, sep opts, f_lr very low
-    for p in f_net.parameters(): p.requires_grad_(True)
-    opt = torch.optim.Adam([
-        {"params": f_net.parameters(), "lr": 5e-5},
-        {"params": bf_net.parameters(), "lr": 2e-4},
-    ])
+    for p in f_net.parameters():
+        p.requires_grad_(True)
+    opt = torch.optim.Adam(
+        [
+            {"params": f_net.parameters(), "lr": 5e-5},
+            {"params": bf_net.parameters(), "lr": 2e-4},
+        ]
+    )
     sched = lambda o, n: torch.optim.lr_scheduler.CosineAnnealingLR(o, n, eta_min=6e-6)
     f_net, bf_net = train_fast(
-        f_net, bf_net, C_occ, params,
-        optimizer=opt, n_epochs=80, lr_sched_fn=sched,
-        phase1_frac=0.0, alpha_end=0.60,
+        f_net,
+        bf_net,
+        C_occ,
+        params,
+        optimizer=opt,
+        n_epochs=80,
+        lr_sched_fn=sched,
+        phase1_frac=0.0,
+        alpha_end=0.60,
         label="bf_then_joint phase2: joint 80ep (f_lr=5e-5, bf_lr=2e-4)",
     )
     return evaluate(f_net, C_occ, params, backflow_net=bf_net, label="bf_then_joint")
@@ -519,27 +687,44 @@ def exp_cusp_bf_joint(f_net, C_occ, params):
     bf_net = pretrain_cusp(bf_net, n_epochs=30, strength=0.15)
 
     # Phase 1: bf only, 50ep
-    for p in f_net.parameters(): p.requires_grad_(False)
+    for p in f_net.parameters():
+        p.requires_grad_(False)
     opt = torch.optim.Adam(bf_net.parameters(), lr=5e-4)
     sched = lambda o, n: torch.optim.lr_scheduler.CosineAnnealingLR(o, n, eta_min=5e-5)
     f_net, bf_net = train_fast(
-        f_net, bf_net, C_occ, params,
-        optimizer=opt, n_epochs=50, lr_sched_fn=sched,
-        phase1_frac=0.3, alpha_end=0.40, patience=30,
+        f_net,
+        bf_net,
+        C_occ,
+        params,
+        optimizer=opt,
+        n_epochs=50,
+        lr_sched_fn=sched,
+        phase1_frac=0.3,
+        alpha_end=0.40,
+        patience=30,
         label="cusp+bf+joint phase1: cusp→bf-only 50ep",
     )
 
     # Phase 2: unfreeze
-    for p in f_net.parameters(): p.requires_grad_(True)
-    opt = torch.optim.Adam([
-        {"params": f_net.parameters(), "lr": 5e-5},
-        {"params": bf_net.parameters(), "lr": 2e-4},
-    ])
+    for p in f_net.parameters():
+        p.requires_grad_(True)
+    opt = torch.optim.Adam(
+        [
+            {"params": f_net.parameters(), "lr": 5e-5},
+            {"params": bf_net.parameters(), "lr": 2e-4},
+        ]
+    )
     sched = lambda o, n: torch.optim.lr_scheduler.CosineAnnealingLR(o, n, eta_min=6e-6)
     f_net, bf_net = train_fast(
-        f_net, bf_net, C_occ, params,
-        optimizer=opt, n_epochs=80, lr_sched_fn=sched,
-        phase1_frac=0.0, alpha_end=0.60,
+        f_net,
+        bf_net,
+        C_occ,
+        params,
+        optimizer=opt,
+        n_epochs=80,
+        lr_sched_fn=sched,
+        phase1_frac=0.0,
+        alpha_end=0.60,
         label="cusp+bf+joint phase2: joint 80ep",
     )
     return evaluate(f_net, C_occ, params, backflow_net=bf_net, label="cusp+bf+joint")
@@ -562,11 +747,11 @@ if __name__ == "__main__":
     pinn_state = copy.deepcopy(f_net_base.state_dict())
 
     experiments = [
-        ("1. bf_only",        exp_bf_only),
-        ("2. cusp+bf",        exp_cusp_bf),
-        ("3. fisher_bf",      exp_fisher_bf),
-        ("4. bf_then_joint",  exp_bf_then_joint),
-        ("5. cusp+bf+joint",  exp_cusp_bf_joint),
+        ("1. bf_only", exp_bf_only),
+        ("2. cusp+bf", exp_cusp_bf),
+        ("3. fisher_bf", exp_fisher_bf),
+        ("4. bf_then_joint", exp_bf_then_joint),
+        ("5. cusp+bf+joint", exp_cusp_bf_joint),
     ]
 
     results = {}
@@ -575,7 +760,9 @@ if __name__ == "__main__":
             results[name] = run_experiment(name, C_occ, params, pinn_state, fn)
         except Exception as e:
             print(f"  FAILED: {e}")
-            import traceback; traceback.print_exc()
+            import traceback
+
+            traceback.print_exc()
             results[name] = {"E_mean": float("nan"), "E_stderr": float("nan")}
 
     print(f"\n{'='*65}")

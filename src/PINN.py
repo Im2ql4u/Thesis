@@ -935,10 +935,10 @@ class UnifiedCTNN(nn.Module):
         # Uses mean |r_i|² (physical coords) so envelope ≈ 1 near center.
         # threshold r²: envelope_width² × ℓ² × N
         ell2 = 1.0 / self.omega  # ℓ²
-        r2_phys_total = (x ** 2).sum(dim=(1, 2))  # (B,) total Σ_i |r_i|²
+        r2_phys_total = (x**2).sum(dim=(1, 2))  # (B,) total Σ_i |r_i|²
         # Normalize by N so envelope is per-particle-average
         r2_per_particle = r2_phys_total / N  # (B,)
-        env_scale = self.envelope_width_aho ** 2 * ell2  # width² in physical units
+        env_scale = self.envelope_width_aho**2 * ell2  # width² in physical units
         envelope = torch.exp(-r2_per_particle / env_scale)  # (B,)
         f_nn = f_nn * envelope.unsqueeze(-1)  # (B, 1)
 

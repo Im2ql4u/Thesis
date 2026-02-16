@@ -23,7 +23,10 @@ SD forces Ψ → 0 at same-spin coalescence — exactly the pair-coalescence
 cusp that backflow modifies.
 """
 
-import math, sys, time
+import math
+import sys
+import time
+
 import numpy as np
 import torch
 import torch.nn as nn
@@ -31,19 +34,18 @@ import torch.nn as nn
 sys.path.insert(0, "/Users/aleksandersekkelsten/thesis/src")
 
 import config
-from PINN import PINN, CTNNBackflowNet, UnifiedCTNN
+from functions.Energy import evaluate_energy_vmc
 from functions.Neural_Networks import (
-    psi_fn,
     _laplacian_logpsi_exact,
-    _make_closed_shell_spin,
+    psi_fn,
 )
 from functions.Physics import compute_coulomb_interaction
-from functions.Energy import evaluate_energy_vmc
-
+from PINN import PINN, CTNNBackflowNet
 
 # ══════════════════════════════════════════════════════════════════
 #  Helpers
 # ══════════════════════════════════════════════════════════════════
+
 
 def setup_noninteracting(N, omega, d=2, device="cpu", dtype=torch.float64):
     n_occ = N // 2
@@ -52,9 +54,16 @@ def setup_noninteracting(N, omega, d=2, device="cpu", dtype=torch.float64):
     n_basis = nx * ny
     L = max(8.0, 3.0 / math.sqrt(omega))
     config.update(
-        omega=omega, n_particles=N, d=d,
-        L=L, n_grid=80, nx=nx, ny=ny,
-        basis="cart", device=str(device), dtype="float64",
+        omega=omega,
+        n_particles=N,
+        d=d,
+        L=L,
+        n_grid=80,
+        nx=nx,
+        ny=ny,
+        basis="cart",
+        device=str(device),
+        dtype="float64",
     )
     energies = []
     for ix in range(nx):
@@ -82,32 +91,39 @@ def compute_local_energy(psi_log_fn, x, omega):
     g, g2, lap_log = _laplacian_logpsi_exact(psi_log_fn, x)
     B = x.shape[0]
     T = -0.5 * (lap_log.view(B) + g2.view(B))
-    V_harm = 0.5 * omega ** 2 * (x ** 2).sum(dim=(1, 2))
+    V_harm = 0.5 * omega**2 * (x**2).sum(dim=(1, 2))
     V_int = compute_coulomb_interaction(x).view(B)
     return T + V_harm + V_int
 
 
 def _huber(resid, delta):
     a = resid.abs()
-    return torch.where(a <= delta, 0.5 * resid ** 2, delta * (a - 0.5 * delta))
+    return torch.where(a <= delta, 0.5 * resid**2, delta * (a - 0.5 * delta))
 
 
 # ══════════════════════════════════════════════════════════════════
 #  Two-pool collocation:  BULK  +  NEAR-NODE
 # ══════════════════════════════════════════════════════════════════
 
+
 @torch.no_grad()
 def two_pool_collocation(
-    psi_log_fn, N, d, sigma, device, dtype, *,
-    n_bulk,                    # how many bulk (high |Ψ|²) points
-    n_node,                    # how many near-node points
+    psi_log_fn,
+    N,
+    d,
+    sigma,
+    device,
+    dtype,
+    *,
+    n_bulk,  # how many bulk (high |Ψ|²) points
+    n_node,  # how many near-node points
     oversampling=10,
     # near-node band: select by percentile of log|Ψ| among candidates
-    node_lo_pct=0.05,          # ignore extremely small |Ψ| (numerical junk)
-    node_hi_pct=0.30,          # upper bound of "near-node" band
+    node_lo_pct=0.05,  # ignore extremely small |Ψ| (numerical junk)
+    node_hi_pct=0.30,  # upper bound of "near-node" band
     # same-spin close-pair injection
-    close_pair_n=0,            # how many same-spin close-pair configs
-    close_pair_sigma=0.3,      # σ for the inter-electron displacement
+    close_pair_n=0,  # how many same-spin close-pair configs
+    close_pair_sigma=0.3,  # σ for the inter-electron displacement
     batch_size=4096,
 ):
     """
@@ -121,16 +137,15 @@ def two_pool_collocation(
     # Evaluate log|Ψ| at all candidates  (forward only)
     log_psi_parts = []
     for i in range(0, n_cand, batch_size):
-        lp = psi_log_fn(x_cand[i:i + batch_size])
+        lp = psi_log_fn(x_cand[i : i + batch_size])
         log_psi_parts.append(lp)
-    log_psi = torch.cat(log_psi_parts)   # (n_cand,)
+    log_psi = torch.cat(log_psi_parts)  # (n_cand,)
 
     # Also compute log q(x) for the Gaussian proposal, for IS ratio
     Nd = N * d
-    log_q = (
-        - 0.5 * Nd * math.log(2 * math.pi * sigma ** 2)
-        - x_cand.reshape(n_cand, -1).pow(2).sum(-1) / (2 * sigma ** 2)
-    )
+    log_q = -0.5 * Nd * math.log(2 * math.pi * sigma**2) - x_cand.reshape(n_cand, -1).pow(2).sum(
+        -1
+    ) / (2 * sigma**2)
 
     # ── BULK pool: top by |Ψ|²/q  ──
     log_ratio = 2.0 * log_psi - log_q
@@ -168,8 +183,8 @@ def two_pool_collocation(
         # Half: two same-spin-up electrons close
         n_half = close_pair_n // 2
         if up >= 2:
-            i_up = torch.zeros(n_half, dtype=torch.long)   # electron 0
-            j_up = torch.ones(n_half, dtype=torch.long)    # electron 1
+            i_up = torch.zeros(n_half, dtype=torch.long)  # electron 0
+            j_up = torch.ones(n_half, dtype=torch.long)  # electron 1
             offset = torch.randn(n_half, d, device=device, dtype=dtype) * close_pair_sigma
             x_cp[:n_half, 1] = x_cp[:n_half, 0] + offset
 
@@ -181,7 +196,7 @@ def two_pool_collocation(
             x_cp[n_half:, down_start + 1] = x_cp[n_half:, down_start] + offset2
 
         # Append to near-node pool (these bypass |Ψ|² screening)
-        X_node = torch.cat([X_node[:n_node - close_pair_n], x_cp], dim=0)
+        X_node = torch.cat([X_node[: n_node - close_pair_n], x_cp], dim=0)
 
     return X_bulk, X_node
 
@@ -190,8 +205,12 @@ def two_pool_collocation(
 #  Two-stream residual training
 # ══════════════════════════════════════════════════════════════════
 
+
 def train_two_stream(
-    f_net, C_occ, params, *,
+    f_net,
+    C_occ,
+    params,
+    *,
     backflow_net,
     # schedule
     n_epochs=300,
@@ -200,44 +219,44 @@ def train_two_stream(
     phase1_frac=0.25,
     alpha_end=0.60,
     # collocation
-    n_bulk=1536,              # bulk pool size
-    n_node=512,               # near-node pool size
+    n_bulk=1536,  # bulk pool size
+    n_node=512,  # near-node pool size
     oversampling=10,
     proposal_sigma_factor=1.3,
     micro_batch=256,
     # near-node settings
     node_lo_pct=0.05,
     node_hi_pct=0.30,
-    close_pair_n=128,         # same-spin close-pair injections
+    close_pair_n=128,  # same-spin close-pair injections
     close_pair_sigma_ell=0.25,
     # loss weights
-    node_loss_weight=0.5,     # relative weight of near-node loss
-    node_huber_delta=5.0,     # Huber δ for near-node E_L (prevents blowup)
+    node_loss_weight=0.5,  # relative weight of near-node loss
+    node_huber_delta=5.0,  # Huber δ for near-node E_L (prevents blowup)
     # robustness
     grad_clip=0.5,
     quantile_trim=0.02,
     print_every=10,
 ):
     device = params["device"]
-    dtype  = params.get("torch_dtype", torch.float64)
-    omega  = float(params["omega"])
-    N      = int(params["n_particles"])
-    d      = int(params["d"])
-    E_DMC  = params.get("E", None)
-    ell    = 1.0 / math.sqrt(omega)
-    sigma  = proposal_sigma_factor * ell
+    dtype = params.get("torch_dtype", torch.float64)
+    omega = float(params["omega"])
+    N = int(params["n_particles"])
+    d = int(params["d"])
+    E_DMC = params.get("E", None)
+    ell = 1.0 / math.sqrt(omega)
+    sigma = proposal_sigma_factor * ell
     cp_sigma = close_pair_sigma_ell * ell
 
     f_net.to(device).to(dtype)
     backflow_net.to(device).to(dtype)
 
-    up   = N // 2
-    spin = torch.cat([torch.zeros(up, dtype=torch.long),
-                      torch.ones(N - up, dtype=torch.long)]).to(device)
+    up = N // 2
+    spin = torch.cat([torch.zeros(up, dtype=torch.long), torch.ones(N - up, dtype=torch.long)]).to(
+        device
+    )
 
     def psi_log_fn(y):
-        lp, _ = psi_fn(f_net, y, C_occ, backflow_net=backflow_net,
-                        spin=spin, params=params)
+        lp, _ = psi_fn(f_net, y, C_occ, backflow_net=backflow_net, spin=spin, params=params)
         return lp
 
     all_params = list(f_net.parameters()) + list(backflow_net.parameters())
@@ -248,20 +267,24 @@ def train_two_stream(
     lr_min = lr * lr_min_frac
     scheduler = torch.optim.lr_scheduler.LambdaLR(
         optimizer,
-        lr_lambda=lambda ep: (lr_min + 0.5 * (lr - lr_min) *
-                              (1 + math.cos(math.pi * ep / max(1, n_epochs - 1)))) / lr,
+        lr_lambda=lambda ep: (
+            lr_min + 0.5 * (lr - lr_min) * (1 + math.cos(math.pi * ep / max(1, n_epochs - 1)))
+        )
+        / lr,
     )
 
     phase1_end = int(phase1_frac * n_epochs)
 
     print(f"\n{'='*60}")
-    print(f"Two-stream residual training")
+    print("Two-stream residual training")
     print(f"  {n_epochs} ep, bulk={n_bulk} + node={n_node} coll pts (×{oversampling})")
     print(f"  {n_p:,} total params ({n_bf:,} backflow)")
     print(f"  lr={lr}, cosine → {lr_min:.1e}")
     print(f"  proposal σ={sigma:.3f}  (ℓ={ell:.3f})")
-    print(f"  near-node: band [{node_lo_pct:.0%}, {node_hi_pct:.0%}], "
-          f"{close_pair_n} close-pairs (σ_cp={cp_sigma:.3f})")
+    print(
+        f"  near-node: band [{node_lo_pct:.0%}, {node_hi_pct:.0%}], "
+        f"{close_pair_n} close-pairs (σ_cp={cp_sigma:.3f})"
+    )
     print(f"  node_loss_weight={node_loss_weight}, huber_δ={node_huber_delta}")
     print(f"  phase 1 (var-min): 0–{phase1_end}")
     print(f"  phase 2 (targeting): α 0→{alpha_end}, {phase1_end}–{n_epochs}")
@@ -286,25 +309,34 @@ def train_two_stream(
             alpha = 0.5 * alpha_end * (1 - math.cos(math.pi * t2))
 
         # ── Two-pool collocation ──
-        f_net.eval(); backflow_net.eval()
+        f_net.eval()
+        backflow_net.eval()
         X_bulk, X_node = two_pool_collocation(
-            psi_log_fn, N, d, sigma, device, dtype,
-            n_bulk=n_bulk, n_node=n_node,
+            psi_log_fn,
+            N,
+            d,
+            sigma,
+            device,
+            dtype,
+            n_bulk=n_bulk,
+            n_node=n_node,
             oversampling=oversampling,
-            node_lo_pct=node_lo_pct, node_hi_pct=node_hi_pct,
+            node_lo_pct=node_lo_pct,
+            node_hi_pct=node_hi_pct,
             close_pair_n=close_pair_n,
             close_pair_sigma=cp_sigma,
         )
 
         # ── Compute losses ──
-        f_net.train(); backflow_net.train()
+        f_net.train()
+        backflow_net.train()
         optimizer.zero_grad(set_to_none=True)
 
         # ── STREAM 1: Bulk (standard energy variance) ──
         all_EL_bulk = []
         n_b1 = max(1, math.ceil(n_bulk / micro_batch))
         for i in range(0, n_bulk, micro_batch):
-            x_mb = X_bulk[i:i + micro_batch]
+            x_mb = X_bulk[i : i + micro_batch]
             E_L = compute_local_energy(psi_log_fn, x_mb, omega).view(-1)
 
             good = torch.isfinite(E_L)
@@ -324,14 +356,14 @@ def train_two_stream(
             mu = E_L.mean().detach()
             E_eff = alpha * float(E_DMC) + (1.0 - alpha) * mu
             resid = E_L - E_eff
-            loss_bulk = (resid ** 2).mean()
+            loss_bulk = (resid**2).mean()
             (loss_bulk / n_b1).backward()
 
         # ── STREAM 2: Near-node (Huber loss, targets backflow) ──
         all_EL_node = []
         n_b2 = max(1, math.ceil(n_node / micro_batch))
         for i in range(0, n_node, micro_batch):
-            x_mb = X_node[i:i + micro_batch]
+            x_mb = X_node[i : i + micro_batch]
             E_L = compute_local_energy(psi_log_fn, x_mb, omega).view(-1)
 
             good = torch.isfinite(E_L)
@@ -360,8 +392,8 @@ def train_two_stream(
         if len(all_EL_bulk) > 0:
             EL_bulk = torch.cat(all_EL_bulk)
             E_mean = EL_bulk.mean().item()
-            E_var  = EL_bulk.var().item()
-            E_std  = EL_bulk.std().item()
+            E_var = EL_bulk.var().item()
+            E_std = EL_bulk.std().item()
         else:
             E_mean, E_var, E_std = float("nan"), float("nan"), float("nan")
 
@@ -372,14 +404,19 @@ def train_two_stream(
         else:
             node_var, node_mean = float("nan"), float("nan")
 
-        history.append({
-            "epoch": epoch, "E_mean": E_mean, "E_var": E_var,
-            "node_var": node_var, "node_mean": node_mean,
-        })
+        history.append(
+            {
+                "epoch": epoch,
+                "E_mean": E_mean,
+                "E_var": E_var,
+                "node_var": node_var,
+                "node_mean": node_mean,
+            }
+        )
 
         if math.isfinite(E_var) and E_var < best_var * 0.999:
             best_var = E_var
-            best_f_state  = {k: v.clone() for k, v in f_net.state_dict().items()}
+            best_f_state = {k: v.clone() for k, v in f_net.state_dict().items()}
             best_bf_state = {k: v.clone() for k, v in backflow_net.state_dict().items()}
             epochs_no_improve = 0
         else:
@@ -414,17 +451,24 @@ def train_two_stream(
 #  Evaluate
 # ══════════════════════════════════════════════════════════════════
 
+
 def evaluate(f_net, C_occ, params, backflow_net=None, n_samples=15_000, label=""):
     print(f"\n── VMC eval: {label} ──")
     result = evaluate_energy_vmc(
-        f_net, C_occ,
+        f_net,
+        C_occ,
         psi_fn=psi_fn,
         compute_coulomb_interaction=compute_coulomb_interaction,
-        backflow_net=backflow_net, params=params,
-        n_samples=n_samples, batch_size=512,
-        sampler_steps=50, sampler_step_sigma=0.12,
+        backflow_net=backflow_net,
+        params=params,
+        n_samples=n_samples,
+        batch_size=512,
+        sampler_steps=50,
+        sampler_step_sigma=0.12,
         lap_mode="exact",
-        persistent=True, sampler_burn_in=300, sampler_thin=3,
+        persistent=True,
+        sampler_burn_in=300,
+        sampler_thin=3,
         progress=True,
     )
     E, E_std = result["E_mean"], result["E_stderr"]
@@ -438,23 +482,45 @@ def evaluate(f_net, C_occ, params, backflow_net=None, n_samples=15_000, label=""
 #  Network factory
 # ══════════════════════════════════════════════════════════════════
 
+
 def make_nets(device="cpu", dtype=torch.float64):
-    f_net = PINN(
-        n_particles=6, d=2, omega=0.5,
-        dL=8, hidden_dim=64, n_layers=2,
-        act="gelu", init="xavier",
-        use_gate=True, use_pair_attn=False,
-    ).to(device).to(dtype)
-    bf_net = CTNNBackflowNet(
-        d=2, msg_hidden=32, msg_layers=1,
-        hidden=32, layers=2,
-        act="silu", aggregation="sum",
-        use_spin=True, same_spin_only=False,
-        out_bound="tanh", bf_scale_init=0.05,
-        omega=0.5,
-    ).to(device).to(dtype)
-    np_total = (sum(p.numel() for p in f_net.parameters())
-              + sum(p.numel() for p in bf_net.parameters()))
+    f_net = (
+        PINN(
+            n_particles=6,
+            d=2,
+            omega=0.5,
+            dL=8,
+            hidden_dim=64,
+            n_layers=2,
+            act="gelu",
+            init="xavier",
+            use_gate=True,
+            use_pair_attn=False,
+        )
+        .to(device)
+        .to(dtype)
+    )
+    bf_net = (
+        CTNNBackflowNet(
+            d=2,
+            msg_hidden=32,
+            msg_layers=1,
+            hidden=32,
+            layers=2,
+            act="silu",
+            aggregation="sum",
+            use_spin=True,
+            same_spin_only=False,
+            out_bound="tanh",
+            bf_scale_init=0.05,
+            omega=0.5,
+        )
+        .to(device)
+        .to(dtype)
+    )
+    np_total = sum(p.numel() for p in f_net.parameters()) + sum(
+        p.numel() for p in bf_net.parameters()
+    )
     print(f"CTNN+PINN params: {np_total:,}")
     return f_net, bf_net
 
@@ -464,13 +530,21 @@ def make_nets(device="cpu", dtype=torch.float64):
 # ══════════════════════════════════════════════════════════════════
 
 COMMON = dict(
-    n_epochs=300, lr=3e-4,
-    n_bulk=1536, n_node=512, oversampling=10,
-    micro_batch=256, grad_clip=0.5, print_every=10,
-    phase1_frac=0.25, alpha_end=0.60,
+    n_epochs=300,
+    lr=3e-4,
+    n_bulk=1536,
+    n_node=512,
+    oversampling=10,
+    micro_batch=256,
+    grad_clip=0.5,
+    print_every=10,
+    phase1_frac=0.25,
+    alpha_end=0.60,
     proposal_sigma_factor=1.3,
-    close_pair_n=128, close_pair_sigma_ell=0.25,
-    node_lo_pct=0.05, node_hi_pct=0.30,
+    close_pair_n=128,
+    close_pair_sigma_ell=0.25,
+    node_lo_pct=0.05,
+    node_hi_pct=0.30,
 )
 
 
@@ -480,13 +554,15 @@ def run_twostream():
     C_occ, params = setup_noninteracting(6, 0.5, device=device, dtype=dtype)
     f_net, bf_net = make_nets(device, dtype)
     f_net, bf_net, _ = train_two_stream(
-        f_net, C_occ, params, backflow_net=bf_net,
+        f_net,
+        C_occ,
+        params,
+        backflow_net=bf_net,
         node_loss_weight=0.5,
         node_huber_delta=5.0,
         **COMMON,
     )
-    return evaluate(f_net, C_occ, params, backflow_net=bf_net,
-                    label="Two-stream  λ_node=0.5  δ=5")
+    return evaluate(f_net, C_occ, params, backflow_net=bf_net, label="Two-stream  λ_node=0.5  δ=5")
 
 
 def run_twostream_heavy():
@@ -495,22 +571,30 @@ def run_twostream_heavy():
     C_occ, params = setup_noninteracting(6, 0.5, device=device, dtype=dtype)
     f_net, bf_net = make_nets(device, dtype)
     f_net, bf_net, _ = train_two_stream(
-        f_net, C_occ, params, backflow_net=bf_net,
-        node_loss_weight=1.0,        # equal weight to node and bulk
-        node_huber_delta=3.0,        # tighter Huber → stronger signal
-        n_node=768,                  # more near-node points
+        f_net,
+        C_occ,
+        params,
+        backflow_net=bf_net,
+        node_loss_weight=1.0,  # equal weight to node and bulk
+        node_huber_delta=3.0,  # tighter Huber → stronger signal
+        n_node=768,  # more near-node points
         n_bulk=1280,
-        close_pair_n=256,            # more close-pairs
-        close_pair_sigma_ell=0.20,   # tighter coalescence
-        node_hi_pct=0.35,            # wider near-node band
-        n_epochs=300, lr=3e-4,
-        oversampling=10, micro_batch=256,
-        grad_clip=0.5, print_every=10,
-        phase1_frac=0.25, alpha_end=0.60,
+        close_pair_n=256,  # more close-pairs
+        close_pair_sigma_ell=0.20,  # tighter coalescence
+        node_hi_pct=0.35,  # wider near-node band
+        n_epochs=300,
+        lr=3e-4,
+        oversampling=10,
+        micro_batch=256,
+        grad_clip=0.5,
+        print_every=10,
+        phase1_frac=0.25,
+        alpha_end=0.60,
         proposal_sigma_factor=1.3,
     )
-    return evaluate(f_net, C_occ, params, backflow_net=bf_net,
-                    label="Two-stream  λ_node=1.0  heavy")
+    return evaluate(
+        f_net, C_occ, params, backflow_net=bf_net, label="Two-stream  λ_node=1.0  heavy"
+    )
 
 
 def run_twostream_wider_band():
@@ -519,23 +603,29 @@ def run_twostream_wider_band():
     C_occ, params = setup_noninteracting(6, 0.5, device=device, dtype=dtype)
     f_net, bf_net = make_nets(device, dtype)
     f_net, bf_net, _ = train_two_stream(
-        f_net, C_occ, params, backflow_net=bf_net,
+        f_net,
+        C_occ,
+        params,
+        backflow_net=bf_net,
         node_loss_weight=0.5,
         node_huber_delta=5.0,
-        node_lo_pct=0.02,            # include points closer to node
-        node_hi_pct=0.40,            # wider band
+        node_lo_pct=0.02,  # include points closer to node
+        node_hi_pct=0.40,  # wider band
         close_pair_n=192,
-        close_pair_sigma_ell=0.15,   # very tight coalescence
+        close_pair_sigma_ell=0.15,  # very tight coalescence
         n_node=640,
         n_bulk=1408,
-        n_epochs=300, lr=3e-4,
-        oversampling=10, micro_batch=256,
-        grad_clip=0.5, print_every=10,
-        phase1_frac=0.25, alpha_end=0.60,
+        n_epochs=300,
+        lr=3e-4,
+        oversampling=10,
+        micro_batch=256,
+        grad_clip=0.5,
+        print_every=10,
+        phase1_frac=0.25,
+        alpha_end=0.60,
         proposal_sigma_factor=1.3,
     )
-    return evaluate(f_net, C_occ, params, backflow_net=bf_net,
-                    label="Two-stream  wide-band")
+    return evaluate(f_net, C_occ, params, backflow_net=bf_net, label="Two-stream  wide-band")
 
 
 # ══════════════════════════════════════════════════════════════════
@@ -546,9 +636,9 @@ if __name__ == "__main__":
     results = {}
 
     for name, fn in [
-        ("twostream",    run_twostream),
-        ("heavy",        run_twostream_heavy),
-        ("wide_band",    run_twostream_wider_band),
+        ("twostream", run_twostream),
+        ("heavy", run_twostream_heavy),
+        ("wide_band", run_twostream_wider_band),
     ]:
         print(f"\n{'#'*60}")
         print(f"# {name.upper()}")

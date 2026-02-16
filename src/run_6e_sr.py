@@ -24,19 +24,22 @@ confirmed: the problem isn't the gradient direction, it's the objective.
 Quick test: 30ep fine-tune from best model.
 """
 
-import math, sys, time, os
+import math
+import os
+import sys
+import time
+
 import numpy as np
 import torch
-import torch.nn as nn
 import torch.nn.functional as F
 
 sys.path.insert(0, "/Users/aleksandersekkelsten/thesis/src")
 
 import config
-from PINN import PINN, CTNNBackflowNet
-from functions.Neural_Networks import psi_fn, _laplacian_logpsi_exact
-from functions.Physics import compute_coulomb_interaction
 from functions.Energy import evaluate_energy_vmc
+from functions.Neural_Networks import _laplacian_logpsi_exact, psi_fn
+from functions.Physics import compute_coulomb_interaction
+from PINN import PINN, CTNNBackflowNet
 
 E_DMC = 11.78484
 DEVICE = "cpu"
@@ -52,8 +55,18 @@ def setup_noninteracting(N, omega, d=2, device="cpu", dtype=torch.float64):
     ny = nx
     n_basis = nx * ny
     L = max(8.0, 3.0 / math.sqrt(omega))
-    config.update(omega=omega, n_particles=N, d=d, L=L, n_grid=80,
-                  nx=nx, ny=ny, basis="cart", device=str(device), dtype="float64")
+    config.update(
+        omega=omega,
+        n_particles=N,
+        d=d,
+        L=L,
+        n_grid=80,
+        nx=nx,
+        ny=ny,
+        basis="cart",
+        device=str(device),
+        dtype="float64",
+    )
     energies = []
     for ix in range(nx):
         for iy in range(ny):
@@ -73,24 +86,54 @@ def setup_noninteracting(N, omega, d=2, device="cpu", dtype=torch.float64):
 
 
 def make_nets(bf_scale_init=0.7, zero_init_last=False):
-    f_net = PINN(n_particles=N_PARTICLES, d=DIM, omega=OMEGA,
-                 dL=8, hidden_dim=64, n_layers=2, act="gelu", init="xavier",
-                 use_gate=True, use_pair_attn=False).to(DEVICE).to(DTYPE)
-    bf_net = CTNNBackflowNet(d=DIM, msg_hidden=32, msg_layers=1,
-                             hidden=32, layers=2, act="silu", aggregation="sum",
-                             use_spin=True, same_spin_only=False,
-                             out_bound="tanh", bf_scale_init=bf_scale_init,
-                             zero_init_last=zero_init_last, omega=OMEGA).to(DEVICE).to(DTYPE)
+    f_net = (
+        PINN(
+            n_particles=N_PARTICLES,
+            d=DIM,
+            omega=OMEGA,
+            dL=8,
+            hidden_dim=64,
+            n_layers=2,
+            act="gelu",
+            init="xavier",
+            use_gate=True,
+            use_pair_attn=False,
+        )
+        .to(DEVICE)
+        .to(DTYPE)
+    )
+    bf_net = (
+        CTNNBackflowNet(
+            d=DIM,
+            msg_hidden=32,
+            msg_layers=1,
+            hidden=32,
+            layers=2,
+            act="silu",
+            aggregation="sum",
+            use_spin=True,
+            same_spin_only=False,
+            out_bound="tanh",
+            bf_scale_init=bf_scale_init,
+            zero_init_last=zero_init_last,
+            omega=OMEGA,
+        )
+        .to(DEVICE)
+        .to(DTYPE)
+    )
     return f_net, bf_net
 
 
 def make_psi_log_fn(f_net, bf_net, C_occ, params):
     up = N_PARTICLES // 2
-    spin = torch.cat([torch.zeros(up, dtype=torch.long),
-                      torch.ones(N_PARTICLES - up, dtype=torch.long)]).to(DEVICE)
+    spin = torch.cat(
+        [torch.zeros(up, dtype=torch.long), torch.ones(N_PARTICLES - up, dtype=torch.long)]
+    ).to(DEVICE)
+
     def fn(y):
         lp, _ = psi_fn(f_net, y, C_occ, backflow_net=bf_net, spin=spin, params=params)
         return lp
+
     return fn, spin
 
 
@@ -99,7 +142,7 @@ def compute_local_energy(psi_log_fn, x, omega):
     g, g2, lap_log = _laplacian_logpsi_exact(psi_log_fn, x)
     B = x.shape[0]
     T = -0.5 * (lap_log.view(B) + g2.view(B))
-    V_harm = 0.5 * omega ** 2 * (x ** 2).sum(dim=(1, 2))
+    V_harm = 0.5 * omega**2 * (x**2).sum(dim=(1, 2))
     V_int = compute_coulomb_interaction(x).view(B)
     return T + V_harm + V_int
 
@@ -107,12 +150,22 @@ def compute_local_energy(psi_log_fn, x, omega):
 def evaluate(f_net, C_occ, params, backflow_net=None, n_samples=15_000, label=""):
     print(f"\n-- VMC eval: {label} --")
     result = evaluate_energy_vmc(
-        f_net, C_occ, psi_fn=psi_fn,
+        f_net,
+        C_occ,
+        psi_fn=psi_fn,
         compute_coulomb_interaction=compute_coulomb_interaction,
-        backflow_net=backflow_net, params=params,
-        n_samples=n_samples, batch_size=512,
-        sampler_steps=50, sampler_step_sigma=0.12, lap_mode="exact",
-        persistent=True, sampler_burn_in=300, sampler_thin=3, progress=True)
+        backflow_net=backflow_net,
+        params=params,
+        n_samples=n_samples,
+        batch_size=512,
+        sampler_steps=50,
+        sampler_step_sigma=0.12,
+        lap_mode="exact",
+        persistent=True,
+        sampler_burn_in=300,
+        sampler_thin=3,
+        progress=True,
+    )
     E, E_std = result["E_mean"], result["E_stderr"]
     err = abs(E - E_DMC) / E_DMC * 100
     print(f"  E = {E:.6f} +/- {E_std:.6f}  (target {E_DMC}, err {err:.2f}%)")
@@ -124,10 +177,12 @@ def topk_collocation(psi_log_fn, n_keep, oversampling, sigma, batch_size=4096):
     M = oversampling * n_keep
     x = torch.randn(M, N_PARTICLES, DIM, device=DEVICE, dtype=DTYPE) * sigma
     Nd = N_PARTICLES * DIM
-    log_q = -0.5 * Nd * math.log(2 * math.pi * sigma**2) - x.reshape(M, -1).pow(2).sum(-1) / (2 * sigma**2)
+    log_q = -0.5 * Nd * math.log(2 * math.pi * sigma**2) - x.reshape(M, -1).pow(2).sum(-1) / (
+        2 * sigma**2
+    )
     lp_parts = []
     for i in range(0, M, batch_size):
-        lp_parts.append(psi_log_fn(x[i:i+batch_size]))
+        lp_parts.append(psi_log_fn(x[i : i + batch_size]))
     log_psi = torch.cat(lp_parts)
     log_w = 2.0 * log_psi - log_q
     log_w[~torch.isfinite(log_w)] = -1e10
@@ -142,9 +197,11 @@ def compute_bf_smoothness_penalty(bf_net, x, spin, n_samples=32):
     for _ in range(2):
         v = torch.empty_like(x_sub).bernoulli_(0.5).mul_(2).add_(-1)
         for k in range(DIM):
-            g1 = torch.autograd.grad(dx[:,:,k].sum(), x_sub, create_graph=True, retain_graph=True)[0]
-            Hv = torch.autograd.grad((g1*v).sum(), x_sub, create_graph=True, retain_graph=True)[0]
-            lap_sq = lap_sq + ((v*Hv).sum(dim=(1,2))**2).mean()
+            g1 = torch.autograd.grad(
+                dx[:, :, k].sum(), x_sub, create_graph=True, retain_graph=True
+            )[0]
+            Hv = torch.autograd.grad((g1 * v).sum(), x_sub, create_graph=True, retain_graph=True)[0]
+            lap_sq = lap_sq + ((v * Hv).sum(dim=(1, 2)) ** 2).mean()
     return lap_sq / (2 * DIM)
 
 
@@ -152,8 +209,10 @@ def compute_bf_smoothness_penalty(bf_net, x, spin, n_samples=32):
 #  SR preconditioner: exact low-rank Fisher via Woodbury
 # ══════════════════════════════════════════════════════════════════
 
-def compute_sr_update(all_params_list, psi_log_fn, x_fisher, loss_grad_flat,
-                      damping=1e-3, max_fisher_samples=128):
+
+def compute_sr_update(
+    all_params_list, psi_log_fn, x_fisher, loss_grad_flat, damping=1e-3, max_fisher_samples=128
+):
     """
     SR-preconditioned gradient: (F + εI)^{-1} g
 
@@ -174,7 +233,7 @@ def compute_sr_update(all_params_list, psi_log_fn, x_fisher, loss_grad_flat,
         for p in all_params_list:
             if p.grad is not None:
                 p.grad = None
-        xb = x_f[b:b+1]
+        xb = x_f[b : b + 1]
         lp = psi_log_fn(xb)
         lp.backward()
         row = torch.cat([p.grad.flatten() for p in all_params_list if p.grad is not None])
@@ -188,8 +247,8 @@ def compute_sr_update(all_params_list, psi_log_fn, x_fisher, loss_grad_flat,
     g = loss_grad_flat.clone()
 
     # Woodbury: (J^T J / B + εI)^{-1} g = (1/ε)[g - J^T (B·ε·I + J J^T)^{-1} J g]
-    Jg = J @ g                         # (B,)
-    K = J @ J.T                         # (B, B)
+    Jg = J @ g  # (B,)
+    K = J @ J.T  # (B, B)
     K_reg = K + B * damping * torch.eye(B, device=DEVICE, dtype=DTYPE)
     solve = torch.linalg.solve(K_reg, Jg)  # (B,)
     sr_update = (g - J.T @ solve) / damping
@@ -213,13 +272,30 @@ def compute_sr_update(all_params_list, psi_log_fn, x_fisher, loss_grad_flat,
 #  Training with SR preconditioning
 # ══════════════════════════════════════════════════════════════════
 
-def train_sr(f_net, bf_net, C_occ, params, *,
-             n_epochs=30, lr=3e-4, n_collocation=2048, oversampling=10,
-             sigma=None, damping=1e-3, n_fisher=128,
-             huber_delta=0.5, smooth_lambda=1e-3,
-             micro_batch=256, grad_clip=0.5, quantile_trim=0.02,
-             phase1_frac=0.25, alpha_end=0.60,
-             print_every=5, label=""):
+
+def train_sr(
+    f_net,
+    bf_net,
+    C_occ,
+    params,
+    *,
+    n_epochs=30,
+    lr=3e-4,
+    n_collocation=2048,
+    oversampling=10,
+    sigma=None,
+    damping=1e-3,
+    n_fisher=128,
+    huber_delta=0.5,
+    smooth_lambda=1e-3,
+    micro_batch=256,
+    grad_clip=0.5,
+    quantile_trim=0.02,
+    phase1_frac=0.25,
+    alpha_end=0.60,
+    print_every=5,
+    label="",
+):
 
     omega = OMEGA
     if sigma is None:
@@ -253,19 +329,21 @@ def train_sr(f_net, bf_net, C_occ, params, *,
             alpha = 0.5 * alpha_end * (1 - math.cos(math.pi * t2))
 
         # Sample
-        f_net.eval(); bf_net.eval()
+        f_net.eval()
+        bf_net.eval()
         X = topk_collocation(psi_log_fn, n_collocation, oversampling, sigma)
         n_pts = X.shape[0]
 
         # === Step 1: compute vanilla loss gradient ===
-        f_net.train(); bf_net.train()
+        f_net.train()
+        bf_net.train()
         for p in all_params:
             p.grad = None
 
         all_EL = []
         n_batches = max(1, math.ceil(n_pts / micro_batch))
         for i in range(0, n_pts, micro_batch):
-            x_mb = X[i:i+micro_batch]
+            x_mb = X[i : i + micro_batch]
             E_L = compute_local_energy(psi_log_fn, x_mb, omega).view(-1)
             good = torch.isfinite(E_L)
             if not good.all():
@@ -303,8 +381,8 @@ def train_sr(f_net, bf_net, C_occ, params, *,
             p.grad = None
 
         sr_update, sr_diag = compute_sr_update(
-            all_params, psi_log_fn, X, vanilla_grad,
-            damping=damping, max_fisher_samples=n_fisher)
+            all_params, psi_log_fn, X, vanilla_grad, damping=damping, max_fisher_samples=n_fisher
+        )
 
         # Clip SR update
         sr_norm = sr_update.norm()
@@ -316,7 +394,7 @@ def train_sr(f_net, bf_net, C_occ, params, *,
         with torch.no_grad():
             for p in all_params:
                 n = p.numel()
-                p.add_(sr_update[offset:offset+n].view_as(p), alpha=-lr)
+                p.add_(sr_update[offset : offset + n].view_as(p), alpha=-lr)
                 offset += n
 
         # Logging
@@ -358,31 +436,47 @@ if __name__ == "__main__":
     BASE = os.path.join(CKPT_DIR, "6e_sir_topk_baseline.pt")
 
     # ── Exp 1: SR-preconditioned, moderate damping ──
-    print(f"\n# SR with damping=1e-3 [30ep fine-tune]")
+    print("\n# SR with damping=1e-3 [30ep fine-tune]")
     f1, bf1 = make_nets()
     ckpt = torch.load(BASE, map_location=DEVICE)
-    f1.load_state_dict(ckpt["f_net"]); bf1.load_state_dict(ckpt["bf_net"])
+    f1.load_state_dict(ckpt["f_net"])
+    bf1.load_state_dict(ckpt["bf_net"])
     print(f"  Loaded <- {BASE}")
 
     f1, bf1 = train_sr(
-        f1, bf1, C_occ, params,
-        n_epochs=30, lr=1e-4, damping=1e-3, n_fisher=128,
-        label="SR damping=1e-3")
+        f1,
+        bf1,
+        C_occ,
+        params,
+        n_epochs=30,
+        lr=1e-4,
+        damping=1e-3,
+        n_fisher=128,
+        label="SR damping=1e-3",
+    )
     r1 = evaluate(f1, C_occ, params, backflow_net=bf1, label="sr_1e3")
     err1 = abs(r1["E_mean"] - E_DMC) / E_DMC * 100
     print(f"  >>> err = {err1:.2f}%")
     results["sr_1e-3"] = (r1["E_mean"], r1["E_stderr"], err1)
 
     # ── Exp 2: SR with stronger damping (more conservative) ──
-    print(f"\n# SR with damping=1e-1 [30ep fine-tune]")
+    print("\n# SR with damping=1e-1 [30ep fine-tune]")
     f2, bf2 = make_nets()
-    f2.load_state_dict(ckpt["f_net"]); bf2.load_state_dict(ckpt["bf_net"])
+    f2.load_state_dict(ckpt["f_net"])
+    bf2.load_state_dict(ckpt["bf_net"])
     print(f"  Loaded <- {BASE}")
 
     f2, bf2 = train_sr(
-        f2, bf2, C_occ, params,
-        n_epochs=30, lr=1e-4, damping=1e-1, n_fisher=128,
-        label="SR damping=1e-1 (heavy)")
+        f2,
+        bf2,
+        C_occ,
+        params,
+        n_epochs=30,
+        lr=1e-4,
+        damping=1e-1,
+        n_fisher=128,
+        label="SR damping=1e-1 (heavy)",
+    )
     r2 = evaluate(f2, C_occ, params, backflow_net=bf2, label="sr_1e1")
     err2 = abs(r2["E_mean"] - E_DMC) / E_DMC * 100
     print(f"  >>> err = {err2:.2f}%")
@@ -390,7 +484,7 @@ if __name__ == "__main__":
 
     # ── Summary ──
     print(f"\n{'='*70}")
-    print(f"SUMMARY -- SR preconditioning")
+    print("SUMMARY -- SR preconditioning")
     print(f"{'='*70}")
     results["topk_baseline (start)"] = (11.826500, 0.003000, 0.35)
     results["bf_0.7 joint 300ep (ref)"] = (11.823253, 0.002982, 0.33)

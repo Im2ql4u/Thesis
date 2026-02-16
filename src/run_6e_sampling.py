@@ -20,28 +20,25 @@ Experiments:
   G. mcmc_varmin_only   — MCMC |Ψ|² with pure variance minimization (no E_DMC targeting)
 """
 
-import math, sys, time, copy, os
-import numpy as np
+import math
+import os
+import sys
+import time
+
 import torch
 import torch.nn as nn
 
 sys.path.insert(0, "/Users/aleksandersekkelsten/thesis/src")
 
-import config
-from PINN import PINN, CTNNBackflowNet
 from functions.Neural_Networks import (
     psi_fn,
-    _laplacian_logpsi_exact,
 )
-from functions.Physics import compute_coulomb_interaction
-from functions.Energy import evaluate_energy_vmc
-
+from PINN import PINN, CTNNBackflowNet
 from run_6e_residual import (
-    setup_noninteracting,
     compute_local_energy,
-    screened_collocation,
-    sample_gaussian_proposal,
     evaluate,
+    screened_collocation,
+    setup_noninteracting,
 )
 
 E_DMC = 11.78484
@@ -54,22 +51,43 @@ CKPT_DIR = "/Users/aleksandersekkelsten/thesis/results/models"
 #  Model construction & loading
 # ══════════════════════════════════════════════════════════════════
 
+
 def make_nets(bf_scale_init=0.7, zero_init_last=False):
-    f_net = PINN(
-        n_particles=6, d=2, omega=0.5,
-        dL=8, hidden_dim=64, n_layers=2,
-        act="gelu", init="xavier",
-        use_gate=True, use_pair_attn=False,
-    ).to(DEVICE).to(DTYPE)
-    bf_net = CTNNBackflowNet(
-        d=2, msg_hidden=32, msg_layers=1,
-        hidden=32, layers=2,
-        act="silu", aggregation="sum",
-        use_spin=True, same_spin_only=False,
-        out_bound="tanh", bf_scale_init=bf_scale_init,
-        zero_init_last=zero_init_last,
-        omega=0.5,
-    ).to(DEVICE).to(DTYPE)
+    f_net = (
+        PINN(
+            n_particles=6,
+            d=2,
+            omega=0.5,
+            dL=8,
+            hidden_dim=64,
+            n_layers=2,
+            act="gelu",
+            init="xavier",
+            use_gate=True,
+            use_pair_attn=False,
+        )
+        .to(DEVICE)
+        .to(DTYPE)
+    )
+    bf_net = (
+        CTNNBackflowNet(
+            d=2,
+            msg_hidden=32,
+            msg_layers=1,
+            hidden=32,
+            layers=2,
+            act="silu",
+            aggregation="sum",
+            use_spin=True,
+            same_spin_only=False,
+            out_bound="tanh",
+            bf_scale_init=bf_scale_init,
+            zero_init_last=zero_init_last,
+            omega=0.5,
+        )
+        .to(DEVICE)
+        .to(DTYPE)
+    )
     return f_net, bf_net
 
 
@@ -95,12 +113,14 @@ def load_model(name, prefix="6e_sampling_"):
 def make_psi_log_fn(f_net, bf_net, C_occ, params):
     N = params["n_particles"]
     up = N // 2
-    spin = torch.cat([torch.zeros(up, dtype=torch.long),
-                      torch.ones(N - up, dtype=torch.long)]).to(DEVICE)
+    spin = torch.cat([torch.zeros(up, dtype=torch.long), torch.ones(N - up, dtype=torch.long)]).to(
+        DEVICE
+    )
+
     def fn(y):
-        lp, _ = psi_fn(f_net, y, C_occ, backflow_net=bf_net,
-                        spin=spin, params=params)
+        lp, _ = psi_fn(f_net, y, C_occ, backflow_net=bf_net, spin=spin, params=params)
         return lp
+
     return fn, spin
 
 
@@ -108,9 +128,9 @@ def make_psi_log_fn(f_net, bf_net, C_occ, params):
 #  MCMC sampler (persistent Metropolis targeting |Ψ|²)
 # ══════════════════════════════════════════════════════════════════
 
+
 @torch.no_grad()
-def mcmc_sample_psi2(psi_log_fn, walkers, n_steps, step_sigma,
-                     target_accept=0.50, adapt_lr=0.03):
+def mcmc_sample_psi2(psi_log_fn, walkers, n_steps, step_sigma, target_accept=0.50, adapt_lr=0.03):
     """
     Persistent random-walk Metropolis targeting |Ψ|².
     walkers: (B, N, d) — current walker positions (mutated in-place).
@@ -145,9 +165,14 @@ def init_walkers(psi_log_fn, n_walkers, N, d, omega):
     sigma = 1.3 * ell
     # Use screened collocation to get good initial positions
     x = screened_collocation(
-        psi_log_fn, N, d, sigma,
-        n_keep=n_walkers, oversampling=10,
-        device=DEVICE, dtype=DTYPE,
+        psi_log_fn,
+        N,
+        d,
+        sigma,
+        n_keep=n_walkers,
+        oversampling=10,
+        device=DEVICE,
+        dtype=DTYPE,
     )
     return x
 
@@ -155,6 +180,7 @@ def init_walkers(psi_log_fn, n_walkers, N, d, omega):
 # ══════════════════════════════════════════════════════════════════
 #  Hard-example mining
 # ══════════════════════════════════════════════════════════════════
+
 
 def find_hard_examples(psi_log_fn, walkers, omega, n_hard, micro_batch=128):
     """
@@ -164,7 +190,7 @@ def find_hard_examples(psi_log_fn, walkers, omega, n_hard, micro_batch=128):
     """
     all_EL = []
     for i in range(0, walkers.shape[0], micro_batch):
-        x_mb = walkers[i:i + micro_batch].detach().requires_grad_(True)
+        x_mb = walkers[i : i + micro_batch].detach().requires_grad_(True)
         EL = compute_local_energy(psi_log_fn, x_mb, omega).view(-1).detach()
         all_EL.append(EL)
     EL_cat = torch.cat(all_EL)
@@ -186,9 +212,14 @@ def find_hard_examples(psi_log_fn, walkers, omega, n_hard, micro_batch=128):
 #  Unified trainer with pluggable sampling
 # ══════════════════════════════════════════════════════════════════
 
+
 def train_with_sampling(
-    f_net, bf_net, C_occ, params, *,
-    sample_fn,           # sample_fn(psi_log_fn, epoch, state) -> (X, state)
+    f_net,
+    bf_net,
+    C_occ,
+    params,
+    *,
+    sample_fn,  # sample_fn(psi_log_fn, epoch, state) -> (X, state)
     n_epochs=50,
     lr=1e-4,
     lr_min_frac=0.1,
@@ -202,7 +233,7 @@ def train_with_sampling(
     print_every=5,
     label="",
     patience=30,
-    loss_type="mse",       # "mse" | "huber"
+    loss_type="mse",  # "mse" | "huber"
     huber_delta=1.0,
 ):
     """
@@ -220,8 +251,10 @@ def train_with_sampling(
     lr_min = lr * lr_min_frac
     scheduler = torch.optim.lr_scheduler.LambdaLR(
         optimizer,
-        lr_lambda=lambda ep: (lr_min + 0.5 * (lr - lr_min) *
-                              (1 + math.cos(math.pi * ep / max(1, n_epochs - 1)))) / lr,
+        lr_lambda=lambda ep: (
+            lr_min + 0.5 * (lr - lr_min) * (1 + math.cos(math.pi * ep / max(1, n_epochs - 1)))
+        )
+        / lr,
     )
 
     phase1_end = int(phase1_frac * n_epochs)
@@ -257,19 +290,21 @@ def train_with_sampling(
             alpha = 0.0
 
         # ── Sample training points ──
-        f_net.eval(); bf_net.eval()
+        f_net.eval()
+        bf_net.eval()
         X, sample_state = sample_fn(psi_log_fn, epoch, sample_state)
         n_pts = X.shape[0]
 
         # ── Compute loss ──
-        f_net.train(); bf_net.train()
+        f_net.train()
+        bf_net.train()
         optimizer.zero_grad(set_to_none=True)
 
         all_EL = []
         n_batches = max(1, math.ceil(n_pts / micro_batch))
 
         for i in range(0, n_pts, micro_batch):
-            x_mb = X[i:i + micro_batch]
+            x_mb = X[i : i + micro_batch]
             E_L = compute_local_energy(psi_log_fn, x_mb, omega).view(-1)
 
             good = torch.isfinite(E_L)
@@ -292,10 +327,11 @@ def train_with_sampling(
             resid = E_L - E_eff
 
             if loss_type == "huber":
-                loss_mb = nn.functional.huber_loss(resid, torch.zeros_like(resid),
-                                                   delta=huber_delta)
+                loss_mb = nn.functional.huber_loss(
+                    resid, torch.zeros_like(resid), delta=huber_delta
+                )
             else:
-                loss_mb = (resid ** 2).mean()
+                loss_mb = (resid**2).mean()
 
             (loss_mb / n_batches).backward()
 
@@ -308,8 +344,8 @@ def train_with_sampling(
         if len(all_EL) > 0:
             EL_cat = torch.cat(all_EL)
             E_mean = EL_cat.mean().item()
-            E_var  = EL_cat.var().item()
-            E_std  = EL_cat.std().item()
+            E_var = EL_cat.var().item()
+            E_std = EL_cat.std().item()
         else:
             E_mean, E_var, E_std = float("nan"), float("nan"), float("nan")
 
@@ -362,48 +398,66 @@ def train_with_sampling(
 #  Sampling strategies (pluggable into train_with_sampling)
 # ══════════════════════════════════════════════════════════════════
 
+
 def make_screened_sampler(N, d, omega, n_keep=2048, oversampling=10, sigma_factor=1.3):
     """Standard screened collocation from Gaussian proposal."""
     ell = 1.0 / math.sqrt(omega)
     sigma = sigma_factor * ell
+
     def sample_fn(psi_log_fn, epoch, state):
         X = screened_collocation(
-            psi_log_fn, N, d, sigma,
-            n_keep=n_keep, oversampling=oversampling,
-            device=DEVICE, dtype=DTYPE,
+            psi_log_fn,
+            N,
+            d,
+            sigma,
+            n_keep=n_keep,
+            oversampling=oversampling,
+            device=DEVICE,
+            dtype=DTYPE,
         )
         return X, state
+
     return sample_fn
 
 
-def make_mcmc_sampler(N, d, omega, n_walkers=2048, steps_per_epoch=20,
-                      step_sigma_frac=0.12):
+def make_mcmc_sampler(N, d, omega, n_walkers=2048, steps_per_epoch=20, step_sigma_frac=0.12):
     """
     Pure MCMC from |Ψ|² — the golden standard for VMC.
     Walkers are persistent across epochs.
     """
     ell = 1.0 / math.sqrt(omega)
     init_sigma = step_sigma_frac * ell
+
     def sample_fn(psi_log_fn, epoch, state):
         # Initialize walkers on first call
         if "walkers" not in state:
             state["walkers"] = init_walkers(psi_log_fn, n_walkers, N, d, omega)
             state["sigma"] = init_sigma
             # Burn-in
-            print(f"    [MCMC] burn-in 100 steps...")
+            print("    [MCMC] burn-in 100 steps...")
             state["walkers"], state["sigma"], _ = mcmc_sample_psi2(
-                psi_log_fn, state["walkers"], 100, state["sigma"])
+                psi_log_fn, state["walkers"], 100, state["sigma"]
+            )
         # Evolve walkers
         state["walkers"], state["sigma"], acc = mcmc_sample_psi2(
-            psi_log_fn, state["walkers"], steps_per_epoch, state["sigma"])
+            psi_log_fn, state["walkers"], steps_per_epoch, state["sigma"]
+        )
         state["accept_rate"] = acc
         return state["walkers"].clone(), state
+
     return sample_fn
 
 
-def make_hard_mining_sampler(N, d, omega, n_total=2048, hard_frac=0.3,
-                             n_walkers=4096, steps_per_epoch=20,
-                             step_sigma_frac=0.12):
+def make_hard_mining_sampler(
+    N,
+    d,
+    omega,
+    n_total=2048,
+    hard_frac=0.3,
+    n_walkers=4096,
+    steps_per_epoch=20,
+    step_sigma_frac=0.12,
+):
     """
     Mixed sampling: draw from |Ψ|², find hardest examples (high |E_L - median|),
     oversample the hard region by spawning walkers near them + random-walking.
@@ -418,18 +472,21 @@ def make_hard_mining_sampler(N, d, omega, n_total=2048, hard_frac=0.3,
         if "walkers" not in state:
             state["walkers"] = init_walkers(psi_log_fn, n_walkers, N, d, omega)
             state["sigma"] = init_sigma
-            print(f"    [HardMine] burn-in 100 steps...")
+            print("    [HardMine] burn-in 100 steps...")
             state["walkers"], state["sigma"], _ = mcmc_sample_psi2(
-                psi_log_fn, state["walkers"], 100, state["sigma"])
+                psi_log_fn, state["walkers"], 100, state["sigma"]
+            )
 
         # Evolve walkers
         state["walkers"], state["sigma"], acc = mcmc_sample_psi2(
-            psi_log_fn, state["walkers"], steps_per_epoch, state["sigma"])
+            psi_log_fn, state["walkers"], steps_per_epoch, state["sigma"]
+        )
         state["accept_rate"] = acc
 
         # Find hard examples
         hard_x, EL_all, devs = find_hard_examples(
-            psi_log_fn, state["walkers"], float(omega), n_hard)
+            psi_log_fn, state["walkers"], float(omega), n_hard
+        )
 
         # Easy: random subsample from all walkers
         idx_easy = torch.randperm(state["walkers"].shape[0])[:n_easy]
@@ -437,18 +494,26 @@ def make_hard_mining_sampler(N, d, omega, n_total=2048, hard_frac=0.3,
 
         # Spawn new walkers near hard examples (small perturbation + short MCMC)
         perturbed = hard_x + torch.randn_like(hard_x) * state["sigma"] * 0.5
-        hard_evolved, _, _ = mcmc_sample_psi2(
-            psi_log_fn, perturbed, 5, state["sigma"] * 0.5)
+        hard_evolved, _, _ = mcmc_sample_psi2(psi_log_fn, perturbed, 5, state["sigma"] * 0.5)
 
         X = torch.cat([easy_x, hard_evolved], dim=0)
         return X, state
+
     return sample_fn
 
 
-def make_mixed_sampler(N, d, omega, n_total=2048, mcmc_frac=0.5,
-                       oversampling=10, sigma_factor=1.3,
-                       n_walkers=2048, steps_per_epoch=20,
-                       step_sigma_frac=0.12):
+def make_mixed_sampler(
+    N,
+    d,
+    omega,
+    n_total=2048,
+    mcmc_frac=0.5,
+    oversampling=10,
+    sigma_factor=1.3,
+    n_walkers=2048,
+    steps_per_epoch=20,
+    step_sigma_frac=0.12,
+):
     """50% screened collocation + 50% MCMC |Ψ|²."""
     ell = 1.0 / math.sqrt(omega)
     sigma_sc = sigma_factor * ell
@@ -459,40 +524,54 @@ def make_mixed_sampler(N, d, omega, n_total=2048, mcmc_frac=0.5,
     def sample_fn(psi_log_fn, epoch, state):
         # Screened collocation portion
         X_sc = screened_collocation(
-            psi_log_fn, N, d, sigma_sc,
-            n_keep=n_sc, oversampling=oversampling,
-            device=DEVICE, dtype=DTYPE,
+            psi_log_fn,
+            N,
+            d,
+            sigma_sc,
+            n_keep=n_sc,
+            oversampling=oversampling,
+            device=DEVICE,
+            dtype=DTYPE,
         )
         # MCMC portion
         if "walkers" not in state:
             state["walkers"] = init_walkers(psi_log_fn, n_walkers, N, d, omega)
             state["sigma"] = init_sigma
-            print(f"    [Mixed] MCMC burn-in 100 steps...")
+            print("    [Mixed] MCMC burn-in 100 steps...")
             state["walkers"], state["sigma"], _ = mcmc_sample_psi2(
-                psi_log_fn, state["walkers"], 100, state["sigma"])
+                psi_log_fn, state["walkers"], 100, state["sigma"]
+            )
         state["walkers"], state["sigma"], acc = mcmc_sample_psi2(
-            psi_log_fn, state["walkers"], steps_per_epoch, state["sigma"])
+            psi_log_fn, state["walkers"], steps_per_epoch, state["sigma"]
+        )
         state["accept_rate"] = acc
         idx = torch.randperm(state["walkers"].shape[0])[:n_mcmc]
         X_mcmc = state["walkers"][idx]
 
         X = torch.cat([X_sc, X_mcmc], dim=0)
         return X, state
+
     return sample_fn
 
 
-def make_wide_screened_sampler(N, d, omega, n_keep=2048, oversampling=10,
-                               sigma_factor=2.0):
+def make_wide_screened_sampler(N, d, omega, n_keep=2048, oversampling=10, sigma_factor=2.0):
     """Screened collocation with WIDER proposal — covers more of the tails."""
     ell = 1.0 / math.sqrt(omega)
     sigma = sigma_factor * ell
+
     def sample_fn(psi_log_fn, epoch, state):
         X = screened_collocation(
-            psi_log_fn, N, d, sigma,
-            n_keep=n_keep, oversampling=oversampling,
-            device=DEVICE, dtype=DTYPE,
+            psi_log_fn,
+            N,
+            d,
+            sigma,
+            n_keep=n_keep,
+            oversampling=oversampling,
+            device=DEVICE,
+            dtype=DTYPE,
         )
         return X, state
+
     return sample_fn
 
 
@@ -512,9 +591,13 @@ def train_bf07_from_scratch(C_occ, params):
     f_net, bf_net = make_nets()
     sampler = make_screened_sampler(N, D, OMEGA)
     return train_with_sampling(
-        f_net, bf_net, C_occ, params,
+        f_net,
+        bf_net,
+        C_occ,
+        params,
         sample_fn=sampler,
-        alpha_schedule="cosine", alpha_end=0.60,
+        alpha_schedule="cosine",
+        alpha_end=0.60,
         label="A. screened_collocation (reference, from scratch)",
         **QUICK,
     )
@@ -525,9 +608,13 @@ def train_mcmc_from_scratch(C_occ, params):
     f_net, bf_net = make_nets()
     sampler = make_mcmc_sampler(N, D, OMEGA, n_walkers=2048, steps_per_epoch=20)
     return train_with_sampling(
-        f_net, bf_net, C_occ, params,
+        f_net,
+        bf_net,
+        C_occ,
+        params,
         sample_fn=sampler,
-        alpha_schedule="cosine", alpha_end=0.60,
+        alpha_schedule="cosine",
+        alpha_end=0.60,
         label="B. MCMC |Ψ|² (from scratch)",
         **QUICK,
     )
@@ -543,7 +630,10 @@ def train_mcmc_finetune(C_occ, params):
         f_net, bf_net = loaded
     sampler = make_mcmc_sampler(N, D, OMEGA, n_walkers=2048, steps_per_epoch=20)
     return train_with_sampling(
-        f_net, bf_net, C_occ, params,
+        f_net,
+        bf_net,
+        C_occ,
+        params,
         sample_fn=sampler,
         alpha_schedule="varmin",
         label="C. MCMC |Ψ|² fine-tune (from trained)",
@@ -562,7 +652,10 @@ def train_hard_mining(C_occ, params):
         f_net, bf_net = loaded
     sampler = make_hard_mining_sampler(N, D, OMEGA, n_total=2048, hard_frac=0.3)
     return train_with_sampling(
-        f_net, bf_net, C_occ, params,
+        f_net,
+        bf_net,
+        C_occ,
+        params,
         sample_fn=sampler,
         alpha_schedule="varmin",
         label="D. Hard-example mining (from trained)",
@@ -581,7 +674,10 @@ def train_mixed(C_occ, params):
         f_net, bf_net = loaded
     sampler = make_mixed_sampler(N, D, OMEGA, n_total=2048, mcmc_frac=0.5)
     return train_with_sampling(
-        f_net, bf_net, C_occ, params,
+        f_net,
+        bf_net,
+        C_occ,
+        params,
         sample_fn=sampler,
         alpha_schedule="varmin",
         label="E. Mixed screened+MCMC (from trained)",
@@ -600,7 +696,10 @@ def train_wide_sigma(C_occ, params):
         f_net, bf_net = loaded
     sampler = make_wide_screened_sampler(N, D, OMEGA, n_keep=2048, sigma_factor=2.0)
     return train_with_sampling(
-        f_net, bf_net, C_occ, params,
+        f_net,
+        bf_net,
+        C_occ,
+        params,
         sample_fn=sampler,
         alpha_schedule="varmin",
         label="F. Wide σ=2.0ℓ screened (from trained)",
@@ -619,7 +718,10 @@ def train_mcmc_varmin(C_occ, params):
         f_net, bf_net = loaded
     sampler = make_mcmc_sampler(N, D, OMEGA, n_walkers=2048, steps_per_epoch=30)
     return train_with_sampling(
-        f_net, bf_net, C_occ, params,
+        f_net,
+        bf_net,
+        C_occ,
+        params,
         sample_fn=sampler,
         alpha_schedule="varmin",
         label="G. MCMC |Ψ|² + varmin only (from trained)",
@@ -638,7 +740,10 @@ def train_mcmc_huber(C_occ, params):
         f_net, bf_net = loaded
     sampler = make_mcmc_sampler(N, D, OMEGA, n_walkers=2048, steps_per_epoch=20)
     return train_with_sampling(
-        f_net, bf_net, C_occ, params,
+        f_net,
+        bf_net,
+        C_occ,
+        params,
         sample_fn=sampler,
         alpha_schedule="varmin",
         loss_type="huber",
@@ -653,12 +758,12 @@ def train_mcmc_huber(C_occ, params):
 #  VMC evaluation + comparison
 # ══════════════════════════════════════════════════════════════════
 
+
 def run_eval(f_net, bf_net, C_occ, params, label):
     """Shared VMC evaluation (reduced samples for quick tests)."""
-    result = evaluate(f_net, C_occ, params, backflow_net=bf_net,
-                      n_samples=10_000, label=label)
+    result = evaluate(f_net, C_occ, params, backflow_net=bf_net, n_samples=10_000, label=label)
     E_mean = result["E_mean"]
-    E_std  = result["E_stderr"]
+    E_std = result["E_stderr"]
     err = abs(E_mean - E_DMC) / E_DMC * 100
     return E_mean, E_std, err
 
@@ -690,6 +795,7 @@ def run_experiment(name, train_fn, C_occ, params):
 #  LONGER runs for winners
 # ══════════════════════════════════════════════════════════════════
 
+
 def train_mcmc_huber_long(C_occ, params):
     """Best winner: MCMC |Ψ|² + Huber, longer run (150ep)."""
     loaded = load_model("kfac_sepclip", prefix="6e_kfac_")
@@ -699,7 +805,10 @@ def train_mcmc_huber_long(C_occ, params):
         f_net, bf_net = loaded
     sampler = make_mcmc_sampler(N, D, OMEGA, n_walkers=2048, steps_per_epoch=25)
     return train_with_sampling(
-        f_net, bf_net, C_occ, params,
+        f_net,
+        bf_net,
+        C_occ,
+        params,
         sample_fn=sampler,
         alpha_schedule="varmin",
         loss_type="huber",
@@ -718,10 +827,13 @@ def train_mcmc_huber_cosine(C_occ, params):
         f_net, bf_net = loaded
     sampler = make_mcmc_sampler(N, D, OMEGA, n_walkers=2048, steps_per_epoch=25)
     return train_with_sampling(
-        f_net, bf_net, C_occ, params,
+        f_net,
+        bf_net,
+        C_occ,
+        params,
         sample_fn=sampler,
         alpha_schedule="cosine",
-        alpha_end=0.30,          # gentle targeting
+        alpha_end=0.30,  # gentle targeting
         loss_type="huber",
         huber_delta=0.5,
         label="J. MCMC Huber + cosine α→0.3 (150ep)",
@@ -738,7 +850,10 @@ def train_hard_mining_long(C_occ, params):
         f_net, bf_net = loaded
     sampler = make_hard_mining_sampler(N, D, OMEGA, n_total=2048, hard_frac=0.3)
     return train_with_sampling(
-        f_net, bf_net, C_occ, params,
+        f_net,
+        bf_net,
+        C_occ,
+        params,
         sample_fn=sampler,
         alpha_schedule="varmin",
         loss_type="huber",
@@ -750,9 +865,9 @@ def train_hard_mining_long(C_occ, params):
 
 if __name__ == "__main__":
     import argparse
+
     parser = argparse.ArgumentParser()
-    parser.add_argument("--phase", type=int, default=2,
-                        help="1=quick screening, 2=longer winners")
+    parser.add_argument("--phase", type=int, default=2, help="1=quick screening, 2=longer winners")
     args = parser.parse_args()
 
     C_occ, params = setup_noninteracting(6, 0.5, device=DEVICE, dtype=DTYPE)
@@ -760,9 +875,9 @@ if __name__ == "__main__":
 
     if args.phase == 1:
         # ── Phase 1: Quick screening (50 epochs each) ──
-        print("\n" + "="*55)
+        print("\n" + "=" * 55)
         print("Phase 1: Quick sampling screening (50ep)")
-        print("="*55)
+        print("=" * 55)
 
         # Eval kfac_sepclip baseline
         loaded = load_model("kfac_sepclip", prefix="6e_kfac_")
@@ -771,12 +886,12 @@ if __name__ == "__main__":
             results["kfac_sepclip_ref"] = (E, std, err)
 
         experiments = [
-            ("mcmc_finetune",     train_mcmc_finetune),
-            ("hard_mining",       train_hard_mining),
-            ("mixed_sc_mcmc",     train_mixed),
-            ("wide_sigma",        train_wide_sigma),
-            ("mcmc_varmin",       train_mcmc_varmin),
-            ("mcmc_huber",        train_mcmc_huber),
+            ("mcmc_finetune", train_mcmc_finetune),
+            ("hard_mining", train_hard_mining),
+            ("mixed_sc_mcmc", train_mixed),
+            ("wide_sigma", train_wide_sigma),
+            ("mcmc_varmin", train_mcmc_varmin),
+            ("mcmc_huber", train_mcmc_huber),
         ]
 
         for name, fn in experiments:
@@ -785,24 +900,25 @@ if __name__ == "__main__":
                 results[name] = (E, std, err)
             except Exception as e:
                 import traceback
+
                 print(f"  ❌ {name} failed: {e}")
                 traceback.print_exc()
                 results[name] = (float("nan"), float("nan"), float("nan"))
 
     elif args.phase == 2:
         # ── Phase 2: Longer runs on winners ──
-        print("\n" + "="*55)
+        print("\n" + "=" * 55)
         print("Phase 2: Longer runs on winners (150ep)")
-        print("="*55)
+        print("=" * 55)
 
         # Cache quick results
         results["mcmc_huber (50ep)"] = (11.821654, 0.003648, 0.31)
         results["mcmc_varmin (50ep)"] = (11.830054, 0.003499, 0.38)
 
         experiments = [
-            ("mcmc_huber_long",      train_mcmc_huber_long),
-            ("mcmc_huber_cosine",    train_mcmc_huber_cosine),
-            ("hard_mining_long",     train_hard_mining_long),
+            ("mcmc_huber_long", train_mcmc_huber_long),
+            ("mcmc_huber_cosine", train_mcmc_huber_cosine),
+            ("hard_mining_long", train_hard_mining_long),
         ]
 
         for name, fn in experiments:
@@ -811,13 +927,14 @@ if __name__ == "__main__":
                 results[name] = (E, std, err)
             except Exception as e:
                 import traceback
+
                 print(f"  ❌ {name} failed: {e}")
                 traceback.print_exc()
                 results[name] = (float("nan"), float("nan"), float("nan"))
 
     # ── Summary ──
     print(f"\n{'═'*55}")
-    print(f"SUMMARY — Sampling strategy experiments")
+    print("SUMMARY — Sampling strategy experiments")
     print(f"{'═'*55}")
 
     results["bf_0.7 joint (300ep ref)"] = (11.823253, 0.002982, 0.33)

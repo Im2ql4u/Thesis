@@ -8,9 +8,11 @@ sample gives a meaningful gradient signal.
 Combined with the alpha-ramp targeting E_DMC (same schedule that made 2e
 converge to 3.000), this should reach DMC for 6e.
 """
+
 import math
 import sys
 import time
+
 import numpy as np
 import torch
 import torch.nn as nn
@@ -18,14 +20,13 @@ import torch.nn as nn
 sys.path.insert(0, "/Users/aleksandersekkelsten/thesis/src")
 
 import config
-from PINN import PINN, CTNNBackflowNet, UnifiedCTNN
+from functions.Energy import evaluate_energy_vmc
 from functions.Neural_Networks import (
-    psi_fn,
     _laplacian_logpsi_exact,
-    _make_closed_shell_spin,
+    psi_fn,
 )
 from functions.Physics import compute_coulomb_interaction
-from functions.Energy import evaluate_energy_vmc
+from PINN import PINN, CTNNBackflowNet, UnifiedCTNN
 
 
 # ─────────────────────────────────────────────────────────────────
@@ -36,9 +37,16 @@ def setup_noninteracting(N, omega, d=2, device="cpu", dtype=torch.float64):
     n_basis = nx * ny
     L = max(8.0, 3.0 / math.sqrt(omega))
     config.update(
-        omega=omega, n_particles=N, d=d,
-        L=L, n_grid=80, nx=nx, ny=ny,
-        basis="cart", device=str(device), dtype="float64",
+        omega=omega,
+        n_particles=N,
+        d=d,
+        L=L,
+        n_grid=80,
+        nx=nx,
+        ny=ny,
+        basis="cart",
+        device=str(device),
+        dtype="float64",
     )
     energies = []
     for ix in range(nx):
@@ -67,7 +75,7 @@ def compute_local_energy(psi_log_fn, x, omega):
     x = x.detach().requires_grad_(True)
     g, g2, lap_log = _laplacian_logpsi_exact(psi_log_fn, x)
     T = -0.5 * (lap_log.squeeze(-1) + g2.squeeze(-1))
-    V_harm = 0.5 * omega ** 2 * (x ** 2).sum(dim=(1, 2))
+    V_harm = 0.5 * omega**2 * (x**2).sum(dim=(1, 2))
     V_int = compute_coulomb_interaction(x).squeeze(-1)
     return T + V_harm + V_int
 
@@ -93,21 +101,30 @@ def mcmc_advance(psi_log_fn, x, lp, sigma, n_steps, device, dtype):
 # ─────────────────────────────────────────────────────────────────
 def _huber(resid, delta):
     abs_r = resid.abs()
-    return torch.where(abs_r <= delta, 0.5 * resid**2,
-                       delta * (abs_r - 0.5 * delta))
+    return torch.where(abs_r <= delta, 0.5 * resid**2, delta * (abs_r - 0.5 * delta))
 
 
 def train_mcmc(
-    f_net, C_occ, params, *,
+    f_net,
+    C_occ,
+    params,
+    *,
     backflow_net=None,
-    n_epochs=200, lr=3e-4,
-    n_walkers=512, rw_steps=10, burn_in=500,
+    n_epochs=200,
+    lr=3e-4,
+    n_walkers=512,
+    rw_steps=10,
+    burn_in=500,
     sigma_frac=0.15,
-    micro_batch=128, grad_clip=0.3,
-    quantile_trim=0.03, huber_delta=1.0,
+    micro_batch=128,
+    grad_clip=0.3,
+    quantile_trim=0.03,
+    huber_delta=1.0,
     print_every=10,
     # Alpha schedule (same as train_model)
-    alpha_start=0.10, alpha_end=0.90, alpha_decay_frac=0.70,
+    alpha_start=0.10,
+    alpha_end=0.90,
+    alpha_decay_frac=0.70,
 ):
     """
     MCMC variance-minimization VMC with energy_var targeting.
@@ -126,12 +143,12 @@ def train_mcmc(
         backflow_net.to(device).to(dtype)
 
     up = N // 2
-    spin = torch.cat([torch.zeros(up, dtype=torch.long),
-                      torch.ones(N - up, dtype=torch.long)]).to(device)
+    spin = torch.cat([torch.zeros(up, dtype=torch.long), torch.ones(N - up, dtype=torch.long)]).to(
+        device
+    )
 
     def psi_log_fn(y):
-        lp, _ = psi_fn(f_net, y, C_occ, backflow_net=backflow_net,
-                        spin=spin, params=params)
+        lp, _ = psi_fn(f_net, y, C_occ, backflow_net=backflow_net, spin=spin, params=params)
         return lp
 
     all_params = list(f_net.parameters())
@@ -179,9 +196,7 @@ def train_mcmc(
         # ── Alpha schedule ──
         t_frac = epoch / max(1, n_epochs - 1)
         t_alpha = min(1.0, t_frac / max(1e-8, alpha_decay_frac))
-        alpha = alpha_start + 0.5 * (alpha_end - alpha_start) * (
-            1 - math.cos(math.pi * t_alpha)
-        )
+        alpha = alpha_start + 0.5 * (alpha_end - alpha_start) * (1 - math.cos(math.pi * t_alpha))
         alpha = max(0.0, min(1.0, alpha))
 
         # ── Periodic re-chain to prevent drift ──
@@ -220,7 +235,7 @@ def train_mcmc(
         n_batches = max(1, math.ceil(X.shape[0] / micro_batch))
 
         for i in range(0, X.shape[0], micro_batch):
-            x_mb = X[i:i + micro_batch]
+            x_mb = X[i : i + micro_batch]
             E_L = compute_local_energy(psi_log_fn, x_mb, omega)
 
             good = torch.isfinite(E_L)
@@ -307,14 +322,20 @@ def train_mcmc(
 def evaluate(f_net, C_occ, params, backflow_net=None, n_samples=15_000, label=""):
     print(f"\n── VMC: {label} ──")
     result = evaluate_energy_vmc(
-        f_net, C_occ,
+        f_net,
+        C_occ,
         psi_fn=psi_fn,
         compute_coulomb_interaction=compute_coulomb_interaction,
-        backflow_net=backflow_net, params=params,
-        n_samples=n_samples, batch_size=512,
-        sampler_steps=50, sampler_step_sigma=0.12,
+        backflow_net=backflow_net,
+        params=params,
+        n_samples=n_samples,
+        batch_size=512,
+        sampler_steps=50,
+        sampler_step_sigma=0.12,
         lap_mode="exact",
-        persistent=True, sampler_burn_in=300, sampler_thin=3,
+        persistent=True,
+        sampler_burn_in=300,
+        sampler_thin=3,
         progress=True,
     )
     E, E_std = result["E_mean"], result["E_stderr"]
@@ -328,19 +349,38 @@ def evaluate(f_net, C_occ, params, backflow_net=None, n_samples=15_000, label=""
 def run_6e_pinn():
     device, dtype = "cpu", torch.float64
     C_occ, params = setup_noninteracting(6, 0.5, device=device, dtype=dtype)
-    f_net = PINN(
-        n_particles=6, d=2, omega=0.5,
-        dL=8, hidden_dim=64, n_layers=2,
-        act="gelu", init="xavier",
-        use_gate=True, use_pair_attn=False,
-    ).to(device).to(dtype)
+    f_net = (
+        PINN(
+            n_particles=6,
+            d=2,
+            omega=0.5,
+            dL=8,
+            hidden_dim=64,
+            n_layers=2,
+            act="gelu",
+            init="xavier",
+            use_gate=True,
+            use_pair_attn=False,
+        )
+        .to(device)
+        .to(dtype)
+    )
     print(f"PINN params: {sum(p.numel() for p in f_net.parameters()):,}")
     f_net, _, hist = train_mcmc(
-        f_net, C_occ, params,
-        n_epochs=200, lr=3e-4,
-        n_walkers=512, rw_steps=10, burn_in=500,
-        micro_batch=128, grad_clip=0.3, print_every=10,
-        alpha_start=0.05, alpha_end=0.60, alpha_decay_frac=0.80,
+        f_net,
+        C_occ,
+        params,
+        n_epochs=200,
+        lr=3e-4,
+        n_walkers=512,
+        rw_steps=10,
+        burn_in=500,
+        micro_batch=128,
+        grad_clip=0.3,
+        print_every=10,
+        alpha_start=0.05,
+        alpha_end=0.60,
+        alpha_decay_frac=0.80,
     )
     return evaluate(f_net, C_occ, params, label="6e PINN dL=8 MCMC")
 
@@ -348,29 +388,60 @@ def run_6e_pinn():
 def run_6e_ctnn_pinn():
     device, dtype = "cpu", torch.float64
     C_occ, params = setup_noninteracting(6, 0.5, device=device, dtype=dtype)
-    f_net = PINN(
-        n_particles=6, d=2, omega=0.5,
-        dL=8, hidden_dim=64, n_layers=2,
-        act="gelu", init="xavier",
-        use_gate=True, use_pair_attn=False,
-    ).to(device).to(dtype)
-    bf_net = CTNNBackflowNet(
-        d=2, msg_hidden=32, msg_layers=1,
-        hidden=32, layers=2,
-        act="silu", aggregation="sum",
-        use_spin=True, same_spin_only=False,
-        out_bound="tanh", bf_scale_init=0.05,
-        omega=0.5,
-    ).to(device).to(dtype)
-    np_total = sum(p.numel() for p in f_net.parameters()) + sum(p.numel() for p in bf_net.parameters())
+    f_net = (
+        PINN(
+            n_particles=6,
+            d=2,
+            omega=0.5,
+            dL=8,
+            hidden_dim=64,
+            n_layers=2,
+            act="gelu",
+            init="xavier",
+            use_gate=True,
+            use_pair_attn=False,
+        )
+        .to(device)
+        .to(dtype)
+    )
+    bf_net = (
+        CTNNBackflowNet(
+            d=2,
+            msg_hidden=32,
+            msg_layers=1,
+            hidden=32,
+            layers=2,
+            act="silu",
+            aggregation="sum",
+            use_spin=True,
+            same_spin_only=False,
+            out_bound="tanh",
+            bf_scale_init=0.05,
+            omega=0.5,
+        )
+        .to(device)
+        .to(dtype)
+    )
+    np_total = sum(p.numel() for p in f_net.parameters()) + sum(
+        p.numel() for p in bf_net.parameters()
+    )
     print(f"CTNN+PINN params: {np_total:,}")
     f_net, bf_net, hist = train_mcmc(
-        f_net, C_occ, params,
+        f_net,
+        C_occ,
+        params,
         backflow_net=bf_net,
-        n_epochs=200, lr=3e-4,
-        n_walkers=512, rw_steps=10, burn_in=500,
-        micro_batch=128, grad_clip=0.3, print_every=10,
-        alpha_start=0.05, alpha_end=0.60, alpha_decay_frac=0.80,
+        n_epochs=200,
+        lr=3e-4,
+        n_walkers=512,
+        rw_steps=10,
+        burn_in=500,
+        micro_batch=128,
+        grad_clip=0.3,
+        print_every=10,
+        alpha_start=0.05,
+        alpha_end=0.60,
+        alpha_decay_frac=0.80,
     )
     return evaluate(f_net, C_occ, params, backflow_net=bf_net, label="6e CTNN+PINN MCMC")
 
@@ -378,20 +449,39 @@ def run_6e_ctnn_pinn():
 def run_6e_unified():
     device, dtype = "cpu", torch.float64
     C_occ, params = setup_noninteracting(6, 0.5, device=device, dtype=dtype)
-    net = UnifiedCTNN(
-        d=2, n_particles=6, omega=0.5,
-        node_hidden=64, edge_hidden=64,
-        msg_layers=1, node_layers=2, n_mp_steps=1,
-        jastrow_hidden=32, jastrow_layers=2,
-        envelope_width_aho=3.0,
-    ).to(device).to(dtype)
+    net = (
+        UnifiedCTNN(
+            d=2,
+            n_particles=6,
+            omega=0.5,
+            node_hidden=64,
+            edge_hidden=64,
+            msg_layers=1,
+            node_layers=2,
+            n_mp_steps=1,
+            jastrow_hidden=32,
+            jastrow_layers=2,
+            envelope_width_aho=3.0,
+        )
+        .to(device)
+        .to(dtype)
+    )
     print(f"UnifiedCTNN params: {sum(p.numel() for p in net.parameters()):,}")
     net, _, hist = train_mcmc(
-        net, C_occ, params,
-        n_epochs=200, lr=2e-4,
-        n_walkers=512, rw_steps=10, burn_in=500,
-        micro_batch=128, grad_clip=0.3, print_every=10,
-        alpha_start=0.05, alpha_end=0.60, alpha_decay_frac=0.80,
+        net,
+        C_occ,
+        params,
+        n_epochs=200,
+        lr=2e-4,
+        n_walkers=512,
+        rw_steps=10,
+        burn_in=500,
+        micro_batch=128,
+        grad_clip=0.3,
+        print_every=10,
+        alpha_start=0.05,
+        alpha_end=0.60,
+        alpha_decay_frac=0.80,
     )
     return evaluate(net, C_occ, params, label="6e UnifiedCTNN MCMC")
 

@@ -16,29 +16,26 @@ Diagnostics each epoch:
   • Distribution of |E_L - median| for hard vs easy
 """
 
-import math, sys, time, copy, os, json
-from collections import defaultdict
-import numpy as np
+import json
+import math
+import os
+import sys
+import time
+
 import torch
 import torch.nn as nn
 
 sys.path.insert(0, "/Users/aleksandersekkelsten/thesis/src")
 
-import config
-from PINN import PINN, CTNNBackflowNet
 from functions.Neural_Networks import (
     psi_fn,
-    _laplacian_logpsi_exact,
 )
-from functions.Physics import compute_coulomb_interaction
-from functions.Energy import evaluate_energy_vmc
-
+from PINN import PINN, CTNNBackflowNet
 from run_6e_residual import (
-    setup_noninteracting,
     compute_local_energy,
-    screened_collocation,
-    sample_gaussian_proposal,
     evaluate,
+    screened_collocation,
+    setup_noninteracting,
 )
 
 E_DMC = 11.78484
@@ -55,22 +52,43 @@ ELL = 1.0 / math.sqrt(OMEGA)
 #  Model helpers
 # ══════════════════════════════════════════════════════════════════
 
+
 def make_nets(bf_scale_init=0.7, zero_init_last=False):
-    f_net = PINN(
-        n_particles=N_PARTICLES, d=DIM, omega=OMEGA,
-        dL=8, hidden_dim=64, n_layers=2,
-        act="gelu", init="xavier",
-        use_gate=True, use_pair_attn=False,
-    ).to(DEVICE).to(DTYPE)
-    bf_net = CTNNBackflowNet(
-        d=DIM, msg_hidden=32, msg_layers=1,
-        hidden=32, layers=2,
-        act="silu", aggregation="sum",
-        use_spin=True, same_spin_only=False,
-        out_bound="tanh", bf_scale_init=bf_scale_init,
-        zero_init_last=zero_init_last,
-        omega=OMEGA,
-    ).to(DEVICE).to(DTYPE)
+    f_net = (
+        PINN(
+            n_particles=N_PARTICLES,
+            d=DIM,
+            omega=OMEGA,
+            dL=8,
+            hidden_dim=64,
+            n_layers=2,
+            act="gelu",
+            init="xavier",
+            use_gate=True,
+            use_pair_attn=False,
+        )
+        .to(DEVICE)
+        .to(DTYPE)
+    )
+    bf_net = (
+        CTNNBackflowNet(
+            d=DIM,
+            msg_hidden=32,
+            msg_layers=1,
+            hidden=32,
+            layers=2,
+            act="silu",
+            aggregation="sum",
+            use_spin=True,
+            same_spin_only=False,
+            out_bound="tanh",
+            bf_scale_init=bf_scale_init,
+            zero_init_last=zero_init_last,
+            omega=OMEGA,
+        )
+        .to(DEVICE)
+        .to(DTYPE)
+    )
     return f_net, bf_net
 
 
@@ -96,18 +114,21 @@ def load_base_model():
 
 def make_psi_log_fn(f_net, bf_net, C_occ, params):
     up = N_PARTICLES // 2
-    spin = torch.cat([torch.zeros(up, dtype=torch.long),
-                      torch.ones(N_PARTICLES - up, dtype=torch.long)]).to(DEVICE)
+    spin = torch.cat(
+        [torch.zeros(up, dtype=torch.long), torch.ones(N_PARTICLES - up, dtype=torch.long)]
+    ).to(DEVICE)
+
     def fn(y):
-        lp, _ = psi_fn(f_net, y, C_occ, backflow_net=bf_net,
-                        spin=spin, params=params)
+        lp, _ = psi_fn(f_net, y, C_occ, backflow_net=bf_net, spin=spin, params=params)
         return lp
+
     return fn, spin
 
 
 # ══════════════════════════════════════════════════════════════════
 #  Smoothness penalty (from kfac experiments)
 # ══════════════════════════════════════════════════════════════════
+
 
 def compute_bf_smoothness_penalty(bf_net, x, spin, n_samples=32):
     """
@@ -124,14 +145,12 @@ def compute_bf_smoothness_penalty(bf_net, x, spin, n_samples=32):
         v = torch.empty_like(x_sub).bernoulli_(0.5).mul_(2).add_(-1)
         for k in range(d):
             dx_k_sum = dx[:, :, k].sum()
-            grad1 = torch.autograd.grad(
-                dx_k_sum, x_sub, create_graph=True, retain_graph=True
-            )[0]
+            grad1 = torch.autograd.grad(dx_k_sum, x_sub, create_graph=True, retain_graph=True)[0]
             Hv = torch.autograd.grad(
                 (grad1 * v).sum(), x_sub, create_graph=True, retain_graph=True
             )[0]
             vTHv = (v * Hv).sum(dim=(1, 2))
-            lap_sq_sum = lap_sq_sum + (vTHv ** 2).mean()
+            lap_sq_sum = lap_sq_sum + (vTHv**2).mean()
 
     return lap_sq_sum / (n_probes * d)
 
@@ -140,6 +159,7 @@ def compute_bf_smoothness_penalty(bf_net, x, spin, n_samples=32):
 #  Hard-point diagnostics
 # ══════════════════════════════════════════════════════════════════
 
+
 def compute_config_features(x):
     """
     Compute diagnostic features for a batch of configs x: (B, N, d).
@@ -147,13 +167,13 @@ def compute_config_features(x):
     """
     B, N, d = x.shape
     # Radial extent: mean ⟨r²⟩ per config
-    r2 = (x ** 2).sum(dim=-1)  # (B, N)
-    mean_r2 = r2.mean(dim=1)   # (B,)
+    r2 = (x**2).sum(dim=-1)  # (B, N)
+    mean_r2 = r2.mean(dim=1)  # (B,)
 
     # Inter-particle distances
     # (B, N, 1, d) - (B, 1, N, d) → (B, N, N, d)
     diff = x.unsqueeze(2) - x.unsqueeze(1)
-    dist = diff.norm(dim=-1)   # (B, N, N)
+    dist = diff.norm(dim=-1)  # (B, N, N)
     # Minimum inter-particle distance (per config, excluding diagonal)
     mask = torch.eye(N, device=x.device, dtype=torch.bool).unsqueeze(0)
     dist_masked = dist.masked_fill(mask, float("inf"))
@@ -161,14 +181,15 @@ def compute_config_features(x):
     mean_dist = dist_masked[~mask.expand(B, -1, -1)].reshape(B, -1).mean(dim=1)  # (B,)
 
     return {
-        "mean_r2": mean_r2,      # (B,)
-        "min_dist": min_dist,    # (B,)
+        "mean_r2": mean_r2,  # (B,)
+        "min_dist": min_dist,  # (B,)
         "mean_dist": mean_dist,  # (B,)
     }
 
 
-def log_hard_diagnostics(epoch, X_hard, X_easy, EL_hard, EL_easy,
-                         prev_hard_features, diagnostics_log):
+def log_hard_diagnostics(
+    epoch, X_hard, X_easy, EL_hard, EL_easy, prev_hard_features, diagnostics_log
+):
     """
     Log diagnostic info about hard vs easy points.
     Tracks whether hard points move or stay in the same region.
@@ -188,8 +209,12 @@ def log_hard_diagnostics(epoch, X_hard, X_easy, EL_hard, EL_easy,
         "hard_mean_dist": hard_feat["mean_dist"].mean().item(),
         "hard_EL_mean": EL_hard.mean().item() if EL_hard.numel() > 0 else float("nan"),
         "hard_EL_std": EL_hard.std().item() if EL_hard.numel() > 1 else float("nan"),
-        "hard_EL_absdev": (EL_hard - EL_hard.median()).abs().mean().item() if EL_hard.numel() > 0 else float("nan"),
-        # Easy point stats  
+        "hard_EL_absdev": (
+            (EL_hard - EL_hard.median()).abs().mean().item()
+            if EL_hard.numel() > 0
+            else float("nan")
+        ),
+        # Easy point stats
         "easy_mean_r2": easy_feat["mean_r2"].mean().item(),
         "easy_min_dist": easy_feat["min_dist"].mean().item(),
         "easy_mean_dist": easy_feat["mean_dist"].mean().item(),
@@ -205,8 +230,7 @@ def log_hard_diagnostics(epoch, X_hard, X_easy, EL_hard, EL_easy,
         # Kolmogorov-Smirnov-like: median distance
         entry["r2_shift"] = abs(curr_r2.median().item() - prev_r2.median().item())
         entry["min_dist_shift"] = abs(
-            hard_feat["min_dist"].median().item() -
-            prev_hard_features["min_dist"].median().item()
+            hard_feat["min_dist"].median().item() - prev_hard_features["min_dist"].median().item()
         )
     else:
         entry["r2_shift"] = float("nan")
@@ -220,8 +244,10 @@ def log_hard_diagnostics(epoch, X_hard, X_easy, EL_hard, EL_easy,
 #  Hard mining sampler (with diagnostics)
 # ══════════════════════════════════════════════════════════════════
 
-def hard_mine_sample(psi_log_fn, n_keep, oversampling, sigma, hard_frac,
-                     perturb_sigma, epoch, state):
+
+def hard_mine_sample(
+    psi_log_fn, n_keep, oversampling, sigma, hard_frac, perturb_sigma, epoch, state
+):
     """
     Screened collocation + hard example mining + diagnostics.
     Returns (X_train, X_hard, X_easy, EL_hard, EL_easy, state).
@@ -231,16 +257,21 @@ def hard_mine_sample(psi_log_fn, n_keep, oversampling, sigma, hard_frac,
 
     # Step 1: Screened collocation
     X_full = screened_collocation(
-        psi_log_fn, N_PARTICLES, DIM, sigma,
-        n_keep=n_keep, oversampling=oversampling,
-        device=DEVICE, dtype=DTYPE,
+        psi_log_fn,
+        N_PARTICLES,
+        DIM,
+        sigma,
+        n_keep=n_keep,
+        oversampling=oversampling,
+        device=DEVICE,
+        dtype=DTYPE,
     )
 
     # Step 2: Evaluate E_L
     all_EL = []
     mb = 128
     for i in range(0, X_full.shape[0], mb):
-        x_mb = X_full[i:i + mb].detach().requires_grad_(True)
+        x_mb = X_full[i : i + mb].detach().requires_grad_(True)
         EL = compute_local_energy(psi_log_fn, x_mb, OMEGA).view(-1).detach()
         all_EL.append(EL)
     EL_cat = torch.cat(all_EL)
@@ -267,7 +298,7 @@ def hard_mine_sample(psi_log_fn, n_keep, oversampling, sigma, hard_frac,
     with torch.no_grad():
         log_psi2_parts = []
         for i in range(0, candidates.shape[0], 512):
-            lp = psi_log_fn(candidates[i:i + 512])
+            lp = psi_log_fn(candidates[i : i + 512])
             log_psi2_parts.append(2.0 * lp)
         log_psi2 = torch.cat(log_psi2_parts)
 
@@ -301,8 +332,13 @@ def hard_mine_sample(psi_log_fn, n_keep, oversampling, sigma, hard_frac,
 #  Main training loop
 # ══════════════════════════════════════════════════════════════════
 
+
 def train_hard_smooth(
-    f_net, bf_net, C_occ, params, *,
+    f_net,
+    bf_net,
+    C_occ,
+    params,
+    *,
     n_epochs=300,
     lr=3e-4,
     lr_min_frac=0.02,
@@ -341,8 +377,10 @@ def train_hard_smooth(
     lr_min = lr * lr_min_frac
     scheduler = torch.optim.lr_scheduler.LambdaLR(
         optimizer,
-        lr_lambda=lambda ep: (lr_min + 0.5 * (lr - lr_min) *
-                              (1 + math.cos(math.pi * ep / max(1, n_epochs - 1)))) / lr,
+        lr_lambda=lambda ep: (
+            lr_min + 0.5 * (lr - lr_min) * (1 + math.cos(math.pi * ep / max(1, n_epochs - 1)))
+        )
+        / lr,
     )
     phase1_end = int(phase1_frac * n_epochs)
 
@@ -374,29 +412,42 @@ def train_hard_smooth(
             alpha = 0.5 * alpha_end * (1 - math.cos(math.pi * t2))
 
         # ── Sample with hard mining ──
-        f_net.eval(); bf_net.eval()
+        f_net.eval()
+        bf_net.eval()
         X, X_hard, X_easy, EL_hard, EL_easy, sample_state = hard_mine_sample(
-            psi_log_fn, n_collocation, oversampling, sigma, hard_frac,
-            perturb_sigma, epoch, sample_state,
+            psi_log_fn,
+            n_collocation,
+            oversampling,
+            sigma,
+            hard_frac,
+            perturb_sigma,
+            epoch,
+            sample_state,
         )
         n_pts = X.shape[0]
 
         # ── Diagnostics (every diag_every epochs) ──
         if epoch % diag_every == 0 and X_hard.shape[0] > 0:
             prev_hard_features = log_hard_diagnostics(
-                epoch, X_hard, X_easy, EL_hard, EL_easy,
-                prev_hard_features, diagnostics_log,
+                epoch,
+                X_hard,
+                X_easy,
+                EL_hard,
+                EL_easy,
+                prev_hard_features,
+                diagnostics_log,
             )
 
         # ── Train ──
-        f_net.train(); bf_net.train()
+        f_net.train()
+        bf_net.train()
         optimizer.zero_grad(set_to_none=True)
 
         all_EL = []
         n_batches = max(1, math.ceil(n_pts / micro_batch))
 
         for i in range(0, n_pts, micro_batch):
-            x_mb = X[i:i + micro_batch]
+            x_mb = X[i : i + micro_batch]
             E_L = compute_local_energy(psi_log_fn, x_mb, omega).view(-1)
 
             good = torch.isfinite(E_L)
@@ -419,13 +470,11 @@ def train_hard_smooth(
             resid = E_L - E_eff
 
             # Huber loss
-            loss_mb = nn.functional.huber_loss(
-                resid, torch.zeros_like(resid), delta=huber_delta)
+            loss_mb = nn.functional.huber_loss(resid, torch.zeros_like(resid), delta=huber_delta)
 
             # Smoothness penalty
             if smooth_lambda > 0:
-                pen = compute_bf_smoothness_penalty(
-                    bf_net, x_mb, spin, n_samples=smooth_n_samples)
+                pen = compute_bf_smoothness_penalty(bf_net, x_mb, spin, n_samples=smooth_n_samples)
                 loss_mb = loss_mb + smooth_lambda * pen
 
             (loss_mb / n_batches).backward()
@@ -439,8 +488,8 @@ def train_hard_smooth(
         if len(all_EL) > 0:
             EL_cat = torch.cat(all_EL)
             E_mean = EL_cat.mean().item()
-            E_var  = EL_cat.var().item()
-            E_std  = EL_cat.std().item()
+            E_var = EL_cat.var().item()
+            E_std = EL_cat.std().item()
         else:
             E_mean, E_var, E_std = float("nan"), float("nan"), float("nan")
 
@@ -502,6 +551,7 @@ def train_hard_smooth(
 #  Print diagnostics summary
 # ══════════════════════════════════════════════════════════════════
 
+
 def print_diagnostics_summary(diagnostics_log):
     """Print a nice summary of how hard points evolve over training."""
     if not diagnostics_log:
@@ -509,13 +559,15 @@ def print_diagnostics_summary(diagnostics_log):
         return
 
     print(f"\n{'─'*75}")
-    print(f"  Hard-point dynamics across training")
+    print("  Hard-point dynamics across training")
     print(f"{'─'*75}")
-    print(f"  {'ep':>4s}  {'n_h':>4s}  "
-          f"{'h_⟨r²⟩':>7s}  {'e_⟨r²⟩':>7s}  "
-          f"{'h_dmin':>7s}  {'e_dmin':>7s}  "
-          f"{'h_EL_σ':>7s}  {'e_EL_σ':>7s}  "
-          f"{'r²_Δ':>6s}  {'d_Δ':>6s}")
+    print(
+        f"  {'ep':>4s}  {'n_h':>4s}  "
+        f"{'h_⟨r²⟩':>7s}  {'e_⟨r²⟩':>7s}  "
+        f"{'h_dmin':>7s}  {'e_dmin':>7s}  "
+        f"{'h_EL_σ':>7s}  {'e_EL_σ':>7s}  "
+        f"{'r²_Δ':>6s}  {'d_Δ':>6s}"
+    )
 
     for d in diagnostics_log:
         print(
@@ -530,7 +582,9 @@ def print_diagnostics_summary(diagnostics_log):
     # Summary statistics
     hard_r2s = [d["hard_mean_r2"] for d in diagnostics_log]
     hard_dmins = [d["hard_min_dist"] for d in diagnostics_log]
-    r2_shifts = [d["r2_shift"] for d in diagnostics_log if math.isfinite(d.get("r2_shift", float("nan")))]
+    r2_shifts = [
+        d["r2_shift"] for d in diagnostics_log if math.isfinite(d.get("r2_shift", float("nan")))
+    ]
 
     print(f"\n  Hard ⟨r²⟩: {min(hard_r2s):.3f} – {max(hard_r2s):.3f}")
     print(f"  Hard d_min: {min(hard_dmins):.4f} – {max(hard_dmins):.4f}")
@@ -540,11 +594,11 @@ def print_diagnostics_summary(diagnostics_log):
         max_shift = max(r2_shifts)
         print(f"  r² shift: mean={mean_shift:.4f}, max={max_shift:.4f}")
         if mean_shift < 0.05:
-            print(f"  → Hard points are STABLE (staying in same region)")
+            print("  → Hard points are STABLE (staying in same region)")
         elif mean_shift < 0.2:
-            print(f"  → Hard points DRIFT slowly")
+            print("  → Hard points DRIFT slowly")
         else:
-            print(f"  → Hard points MOVE significantly between epochs")
+            print("  → Hard points MOVE significantly between epochs")
 
 
 # ══════════════════════════════════════════════════════════════════
@@ -557,12 +611,15 @@ if __name__ == "__main__":
 
     # ── Experiment 1: hard mining + Huber + smoothness (long, from trained) ──
     print(f"\n{'═'*65}")
-    print(f"# Exp 1: Hard mine + Huber + smoothness (300ep, from trained)")
+    print("# Exp 1: Hard mine + Huber + smoothness (300ep, from trained)")
     print(f"{'═'*65}")
 
     f_net, bf_net = load_base_model()
     f_net1, bf_net1, diag1 = train_hard_smooth(
-        f_net, bf_net, C_occ, params,
+        f_net,
+        bf_net,
+        C_occ,
+        params,
         n_epochs=300,
         lr=3e-4,
         lr_min_frac=0.02,
@@ -577,8 +634,9 @@ if __name__ == "__main__":
     print_diagnostics_summary(diag1)
 
     # VMC eval
-    result1 = evaluate(f_net1, C_occ, params, backflow_net=bf_net1,
-                       n_samples=15_000, label="hardsmooth_300")
+    result1 = evaluate(
+        f_net1, C_occ, params, backflow_net=bf_net1, n_samples=15_000, label="hardsmooth_300"
+    )
     E1 = result1["E_mean"]
     std1 = result1["E_stderr"]
     err1 = abs(E1 - E_DMC) / E_DMC * 100
@@ -587,12 +645,15 @@ if __name__ == "__main__":
 
     # ── Experiment 2: same but from SCRATCH (fair comparison to bf_0.7 joint) ──
     print(f"\n{'═'*65}")
-    print(f"# Exp 2: Hard mine + Huber + smoothness (300ep, from SCRATCH)")
+    print("# Exp 2: Hard mine + Huber + smoothness (300ep, from SCRATCH)")
     print(f"{'═'*65}")
 
     f_net2, bf_net2 = make_nets()
     f_net2, bf_net2, diag2 = train_hard_smooth(
-        f_net2, bf_net2, C_occ, params,
+        f_net2,
+        bf_net2,
+        C_occ,
+        params,
         n_epochs=300,
         lr=3e-4,
         lr_min_frac=0.02,
@@ -606,8 +667,9 @@ if __name__ == "__main__":
     save_model(f_net2, bf_net2, "hardsmooth_scratch")
     print_diagnostics_summary(diag2)
 
-    result2 = evaluate(f_net2, C_occ, params, backflow_net=bf_net2,
-                       n_samples=15_000, label="hardsmooth_scratch")
+    result2 = evaluate(
+        f_net2, C_occ, params, backflow_net=bf_net2, n_samples=15_000, label="hardsmooth_scratch"
+    )
     E2 = result2["E_mean"]
     std2 = result2["E_stderr"]
     err2 = abs(E2 - E_DMC) / E_DMC * 100
@@ -616,17 +678,20 @@ if __name__ == "__main__":
 
     # ── Experiment 3: hard mining + Huber only, NO smoothness (ablation) ──
     print(f"\n{'═'*65}")
-    print(f"# Exp 3: Hard mine + Huber, NO smoothness (300ep, from scratch)")
+    print("# Exp 3: Hard mine + Huber, NO smoothness (300ep, from scratch)")
     print(f"{'═'*65}")
 
     f_net3, bf_net3 = make_nets()
     f_net3, bf_net3, diag3 = train_hard_smooth(
-        f_net3, bf_net3, C_occ, params,
+        f_net3,
+        bf_net3,
+        C_occ,
+        params,
         n_epochs=300,
         lr=3e-4,
         lr_min_frac=0.02,
         hard_frac=0.3,
-        smooth_lambda=0.0,     # NO smoothness
+        smooth_lambda=0.0,  # NO smoothness
         huber_delta=0.5,
         perturb_sigma_frac=0.3,
         label="hard_mine + Huber, NO smooth (300ep from scratch)",
@@ -635,8 +700,9 @@ if __name__ == "__main__":
     save_model(f_net3, bf_net3, "hardhuber_scratch")
     print_diagnostics_summary(diag3)
 
-    result3 = evaluate(f_net3, C_occ, params, backflow_net=bf_net3,
-                       n_samples=15_000, label="hardhuber_scratch")
+    result3 = evaluate(
+        f_net3, C_occ, params, backflow_net=bf_net3, n_samples=15_000, label="hardhuber_scratch"
+    )
     E3 = result3["E_mean"]
     std3 = result3["E_stderr"]
     err3 = abs(E3 - E_DMC) / E_DMC * 100
@@ -645,7 +711,7 @@ if __name__ == "__main__":
 
     # ── Summary ──
     print(f"\n{'═'*65}")
-    print(f"SUMMARY — Hard mining + gradient smoothing")
+    print("SUMMARY — Hard mining + gradient smoothing")
     print(f"{'═'*65}")
 
     results["bf_0.7 joint (300ep ref)"] = (11.823253, 0.002982, 0.33)
@@ -657,9 +723,11 @@ if __name__ == "__main__":
 
     # Save diagnostics to JSON
     os.makedirs(LOG_DIR, exist_ok=True)
-    for label_name, diag_data in [("hardsmooth_300", diag1),
-                                   ("hardsmooth_scratch", diag2),
-                                   ("hardhuber_scratch", diag3)]:
+    for label_name, diag_data in [
+        ("hardsmooth_300", diag1),
+        ("hardsmooth_scratch", diag2),
+        ("hardhuber_scratch", diag3),
+    ]:
         json_path = os.path.join(LOG_DIR, f"diag_{label_name}.json")
         with open(json_path, "w") as fp:
             json.dump(diag_data, fp, indent=2)

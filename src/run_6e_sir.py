@@ -31,7 +31,12 @@ to reduce weight degeneracy and improve ESS.
 Includes: bf_scale=0.7, smoothness penalty, Huber loss, ESS tracking.
 """
 
-import math, sys, time, os, json
+import json
+import math
+import os
+import sys
+import time
+
 import numpy as np
 import torch
 import torch.nn as nn
@@ -39,10 +44,10 @@ import torch.nn as nn
 sys.path.insert(0, "/Users/aleksandersekkelsten/thesis/src")
 
 import config
-from PINN import PINN, CTNNBackflowNet
-from functions.Neural_Networks import psi_fn, _laplacian_logpsi_exact
-from functions.Physics import compute_coulomb_interaction
 from functions.Energy import evaluate_energy_vmc
+from functions.Neural_Networks import _laplacian_logpsi_exact, psi_fn
+from functions.Physics import compute_coulomb_interaction
+from PINN import PINN, CTNNBackflowNet
 
 E_DMC = 11.78484
 DEVICE = "cpu"
@@ -58,6 +63,7 @@ ELL = 1.0 / math.sqrt(OMEGA)
 #  Model helpers
 # ══════════════════════════════════════════════════════════════════
 
+
 def setup_noninteracting(N, omega, d=2, device="cpu", dtype=torch.float64):
     n_occ = N // 2
     nx = {2: 2, 6: 3, 12: 4, 20: 5}.get(N, 4)
@@ -65,9 +71,16 @@ def setup_noninteracting(N, omega, d=2, device="cpu", dtype=torch.float64):
     n_basis = nx * ny
     L = max(8.0, 3.0 / math.sqrt(omega))
     config.update(
-        omega=omega, n_particles=N, d=d,
-        L=L, n_grid=80, nx=nx, ny=ny,
-        basis="cart", device=str(device), dtype="float64",
+        omega=omega,
+        n_particles=N,
+        d=d,
+        L=L,
+        n_grid=80,
+        nx=nx,
+        ny=ny,
+        basis="cart",
+        device=str(device),
+        dtype="float64",
     )
     energies = []
     for ix in range(nx):
@@ -90,32 +103,54 @@ def setup_noninteracting(N, omega, d=2, device="cpu", dtype=torch.float64):
 
 
 def make_nets(bf_scale_init=0.7, zero_init_last=False):
-    f_net = PINN(
-        n_particles=N_PARTICLES, d=DIM, omega=OMEGA,
-        dL=8, hidden_dim=64, n_layers=2,
-        act="gelu", init="xavier",
-        use_gate=True, use_pair_attn=False,
-    ).to(DEVICE).to(DTYPE)
-    bf_net = CTNNBackflowNet(
-        d=DIM, msg_hidden=32, msg_layers=1,
-        hidden=32, layers=2,
-        act="silu", aggregation="sum",
-        use_spin=True, same_spin_only=False,
-        out_bound="tanh", bf_scale_init=bf_scale_init,
-        zero_init_last=zero_init_last,
-        omega=OMEGA,
-    ).to(DEVICE).to(DTYPE)
+    f_net = (
+        PINN(
+            n_particles=N_PARTICLES,
+            d=DIM,
+            omega=OMEGA,
+            dL=8,
+            hidden_dim=64,
+            n_layers=2,
+            act="gelu",
+            init="xavier",
+            use_gate=True,
+            use_pair_attn=False,
+        )
+        .to(DEVICE)
+        .to(DTYPE)
+    )
+    bf_net = (
+        CTNNBackflowNet(
+            d=DIM,
+            msg_hidden=32,
+            msg_layers=1,
+            hidden=32,
+            layers=2,
+            act="silu",
+            aggregation="sum",
+            use_spin=True,
+            same_spin_only=False,
+            out_bound="tanh",
+            bf_scale_init=bf_scale_init,
+            zero_init_last=zero_init_last,
+            omega=OMEGA,
+        )
+        .to(DEVICE)
+        .to(DTYPE)
+    )
     return f_net, bf_net
 
 
 def make_psi_log_fn(f_net, bf_net, C_occ, params):
     up = N_PARTICLES // 2
-    spin = torch.cat([torch.zeros(up, dtype=torch.long),
-                      torch.ones(N_PARTICLES - up, dtype=torch.long)]).to(DEVICE)
+    spin = torch.cat(
+        [torch.zeros(up, dtype=torch.long), torch.ones(N_PARTICLES - up, dtype=torch.long)]
+    ).to(DEVICE)
+
     def fn(y):
-        lp, _ = psi_fn(f_net, y, C_occ, backflow_net=bf_net,
-                        spin=spin, params=params)
+        lp, _ = psi_fn(f_net, y, C_occ, backflow_net=bf_net, spin=spin, params=params)
         return lp
+
     return fn, spin
 
 
@@ -124,7 +159,7 @@ def compute_local_energy(psi_log_fn, x, omega):
     g, g2, lap_log = _laplacian_logpsi_exact(psi_log_fn, x)
     B = x.shape[0]
     T = -0.5 * (lap_log.view(B) + g2.view(B))
-    V_harm = 0.5 * omega ** 2 * (x ** 2).sum(dim=(1, 2))
+    V_harm = 0.5 * omega**2 * (x**2).sum(dim=(1, 2))
     V_int = compute_coulomb_interaction(x).view(B)
     return T + V_harm + V_int
 
@@ -139,14 +174,20 @@ def save_model(f_net, bf_net, name):
 def evaluate(f_net, C_occ, params, backflow_net=None, n_samples=15_000, label=""):
     print(f"\n── VMC eval: {label} ──")
     result = evaluate_energy_vmc(
-        f_net, C_occ,
+        f_net,
+        C_occ,
         psi_fn=psi_fn,
         compute_coulomb_interaction=compute_coulomb_interaction,
-        backflow_net=backflow_net, params=params,
-        n_samples=n_samples, batch_size=512,
-        sampler_steps=50, sampler_step_sigma=0.12,
+        backflow_net=backflow_net,
+        params=params,
+        n_samples=n_samples,
+        batch_size=512,
+        sampler_steps=50,
+        sampler_step_sigma=0.12,
         lap_mode="exact",
-        persistent=True, sampler_burn_in=300, sampler_thin=3,
+        persistent=True,
+        sampler_burn_in=300,
+        sampler_thin=3,
         progress=True,
     )
     E, E_std = result["E_mean"], result["E_stderr"]
@@ -158,6 +199,7 @@ def evaluate(f_net, C_occ, params, backflow_net=None, n_samples=15_000, label=""
 # ══════════════════════════════════════════════════════════════════
 #  Systematic resampling  (the key new ingredient)
 # ══════════════════════════════════════════════════════════════════
+
 
 @torch.no_grad()
 def systematic_resample(log_weights, n_keep):
@@ -180,7 +222,7 @@ def systematic_resample(log_weights, n_keep):
     pi = w / w_sum
 
     # Effective sample size: ESS = 1 / Σ π_i²
-    ess = 1.0 / (pi ** 2).sum()
+    ess = 1.0 / (pi**2).sum()
 
     # Systematic resampling: equally spaced points + single random offset
     cumsum = torch.cumsum(pi, dim=0)
@@ -198,15 +240,15 @@ def systematic_resample(log_weights, n_keep):
 #  Proposal distributions
 # ══════════════════════════════════════════════════════════════════
 
+
 @torch.no_grad()
 def sample_single_gaussian(n_samples, sigma):
     """Single isotropic Gaussian proposal. Returns (x, log_q)."""
     x = torch.randn(n_samples, N_PARTICLES, DIM, device=DEVICE, dtype=DTYPE) * sigma
     Nd = N_PARTICLES * DIM
-    log_q = (
-        -0.5 * Nd * math.log(2 * math.pi * sigma ** 2)
-        - x.reshape(n_samples, -1).pow(2).sum(-1) / (2 * sigma ** 2)
-    )
+    log_q = -0.5 * Nd * math.log(2 * math.pi * sigma**2) - x.reshape(n_samples, -1).pow(2).sum(
+        -1
+    ) / (2 * sigma**2)
     return x, log_q
 
 
@@ -235,7 +277,7 @@ def sample_mixture_gaussian(n_samples, sigmas, weights):
     # Sample from each component
     x_parts = []
     component_ids = []
-    for k, (sigma_k, n_k) in enumerate(zip(sigmas, counts)):
+    for k, (sigma_k, n_k) in enumerate(zip(sigmas, counts, strict=False)):
         x_k = torch.randn(n_k, N_PARTICLES, DIM, device=DEVICE, dtype=DTYPE) * sigma_k
         x_parts.append(x_k)
         component_ids.append(torch.full((n_k,), k, dtype=torch.long, device=DEVICE))
@@ -253,15 +295,12 @@ def sample_mixture_gaussian(n_samples, sigmas, weights):
 
     log_components = []
     for k, sigma_k in enumerate(sigmas):
-        log_q_k = (
-            -0.5 * Nd * math.log(2 * math.pi * sigma_k ** 2)
-            - x_flat_sq / (2 * sigma_k ** 2)
-        )
+        log_q_k = -0.5 * Nd * math.log(2 * math.pi * sigma_k**2) - x_flat_sq / (2 * sigma_k**2)
         log_components.append(log_alpha[k] + log_q_k)
 
     # (n_samples, K) → logsumexp over K
     log_q_stack = torch.stack(log_components, dim=-1)  # (n_samples, K)
-    log_q = torch.logsumexp(log_q_stack, dim=-1)       # (n_samples,)
+    log_q = torch.logsumexp(log_q_stack, dim=-1)  # (n_samples,)
 
     return x, log_q
 
@@ -270,9 +309,11 @@ def sample_mixture_gaussian(n_samples, sigmas, weights):
 #  SIR collocation  (replaces screened_collocation)
 # ══════════════════════════════════════════════════════════════════
 
+
 @torch.no_grad()
-def sir_collocation(psi_log_fn, n_keep, oversampling, proposal_fn,
-                    jitter_sigma=0.0, batch_size=4096):
+def sir_collocation(
+    psi_log_fn, n_keep, oversampling, proposal_fn, jitter_sigma=0.0, batch_size=4096
+):
     """
     Sampling Importance Resampling: approximate iid samples from |Ψ|².
 
@@ -291,7 +332,7 @@ def sir_collocation(psi_log_fn, n_keep, oversampling, proposal_fn,
     # Step 2: evaluate log|Ψ| in batches
     log_psi_parts = []
     for i in range(0, M, batch_size):
-        lp = psi_log_fn(x_cand[i:i + batch_size])
+        lp = psi_log_fn(x_cand[i : i + batch_size])
         log_psi_parts.append(lp)
     log_psi = torch.cat(log_psi_parts)
 
@@ -321,12 +362,12 @@ def sir_collocation(psi_log_fn, n_keep, oversampling, proposal_fn,
     log_psi_topk = log_psi[topk_idx]
 
     # Config features for SIR-selected points
-    r2 = (X ** 2).sum(dim=-1).mean(dim=1)                           # (K,)
-    diff = X.unsqueeze(2) - X.unsqueeze(1)                          # (K,N,N,d)
-    dist = diff.norm(dim=-1)                                         # (K,N,N)
+    r2 = (X**2).sum(dim=-1).mean(dim=1)  # (K,)
+    diff = X.unsqueeze(2) - X.unsqueeze(1)  # (K,N,N,d)
+    dist = diff.norm(dim=-1)  # (K,N,N)
     mask = torch.eye(N_PARTICLES, device=DEVICE, dtype=torch.bool).unsqueeze(0)
     dist_masked = dist.masked_fill(mask, float("inf"))
-    dmin = dist_masked.min(dim=-1).values.min(dim=-1).values         # (K,)
+    dmin = dist_masked.min(dim=-1).values.min(dim=-1).values  # (K,)
 
     diag = {
         "ess": ess,
@@ -349,15 +390,14 @@ def sir_collocation(psi_log_fn, n_keep, oversampling, proposal_fn,
 
 
 @torch.no_grad()
-def topk_collocation(psi_log_fn, n_keep, oversampling, proposal_fn,
-                     batch_size=4096):
+def topk_collocation(psi_log_fn, n_keep, oversampling, proposal_fn, batch_size=4096):
     """Standard top-K screening (baseline, for comparison)."""
     M = oversampling * n_keep
     x_cand, log_q = proposal_fn(M)
 
     log_psi_parts = []
     for i in range(0, M, batch_size):
-        lp = psi_log_fn(x_cand[i:i + batch_size])
+        lp = psi_log_fn(x_cand[i : i + batch_size])
         log_psi_parts.append(lp)
     log_psi = torch.cat(log_psi_parts)
 
@@ -370,7 +410,7 @@ def topk_collocation(psi_log_fn, n_keep, oversampling, proposal_fn,
     X = x_cand[idx].clone()
 
     # Diagnostics (for comparison)
-    r2 = (X ** 2).sum(dim=-1).mean(dim=1)
+    r2 = (X**2).sum(dim=-1).mean(dim=1)
     diff = X.unsqueeze(2) - X.unsqueeze(1)
     dist = diff.norm(dim=-1)
     mask = torch.eye(N_PARTICLES, device=DEVICE, dtype=torch.bool).unsqueeze(0)
@@ -398,6 +438,7 @@ def topk_collocation(psi_log_fn, n_keep, oversampling, proposal_fn,
 #  Smoothness penalty on backflow (proven critical: 0.38% vs 0.59%)
 # ══════════════════════════════════════════════════════════════════
 
+
 def compute_bf_smoothness_penalty(bf_net, x, spin, n_samples=32):
     """‖∇²Δx‖² via Hutchinson trace estimator."""
     x_sub = x[:n_samples].detach().requires_grad_(True)
@@ -410,14 +451,12 @@ def compute_bf_smoothness_penalty(bf_net, x, spin, n_samples=32):
         v = torch.empty_like(x_sub).bernoulli_(0.5).mul_(2).add_(-1)
         for k in range(d):
             dx_k_sum = dx[:, :, k].sum()
-            grad1 = torch.autograd.grad(
-                dx_k_sum, x_sub, create_graph=True, retain_graph=True
-            )[0]
+            grad1 = torch.autograd.grad(dx_k_sum, x_sub, create_graph=True, retain_graph=True)[0]
             Hv = torch.autograd.grad(
                 (grad1 * v).sum(), x_sub, create_graph=True, retain_graph=True
             )[0]
             vTHv = (v * Hv).sum(dim=(1, 2))
-            lap_sq_sum = lap_sq_sum + (vTHv ** 2).mean()
+            lap_sq_sum = lap_sq_sum + (vTHv**2).mean()
 
     return lap_sq_sum / (n_probes * d)
 
@@ -426,16 +465,21 @@ def compute_bf_smoothness_penalty(bf_net, x, spin, n_samples=32):
 #  Main training loop
 # ══════════════════════════════════════════════════════════════════
 
+
 def train_sir(
-    f_net, bf_net, C_occ, params, *,
+    f_net,
+    bf_net,
+    C_occ,
+    params,
+    *,
     n_epochs=300,
     lr=3e-4,
     lr_min_frac=0.02,
     # Sampling
     n_collocation=2048,
     oversampling=10,
-    collocation_fn,          # sir_collocation or topk_collocation
-    proposal_fn,             # returns (x, log_q) given n_samples
+    collocation_fn,  # sir_collocation or topk_collocation
+    proposal_fn,  # returns (x, log_q) given n_samples
     jitter_sigma=0.0,
     # Schedule
     phase1_frac=0.25,
@@ -462,8 +506,10 @@ def train_sir(
     lr_min = lr * lr_min_frac
     scheduler = torch.optim.lr_scheduler.LambdaLR(
         optimizer,
-        lr_lambda=lambda ep: (lr_min + 0.5 * (lr - lr_min) *
-                              (1 + math.cos(math.pi * ep / max(1, n_epochs - 1)))) / lr,
+        lr_lambda=lambda ep: (
+            lr_min + 0.5 * (lr - lr_min) * (1 + math.cos(math.pi * ep / max(1, n_epochs - 1)))
+        )
+        / lr,
     )
     phase1_end = int(phase1_frac * n_epochs)
 
@@ -493,27 +539,35 @@ def train_sir(
             alpha = 0.5 * alpha_end * (1 - math.cos(math.pi * t2))
 
         # ── Sample: SIR or top-K ──
-        f_net.eval(); bf_net.eval()
+        f_net.eval()
+        bf_net.eval()
         if collocation_fn == sir_collocation:
             X, diag = collocation_fn(
-                psi_log_fn, n_collocation, oversampling, proposal_fn,
+                psi_log_fn,
+                n_collocation,
+                oversampling,
+                proposal_fn,
                 jitter_sigma=jitter_sigma,
             )
         else:
             X, diag = collocation_fn(
-                psi_log_fn, n_collocation, oversampling, proposal_fn,
+                psi_log_fn,
+                n_collocation,
+                oversampling,
+                proposal_fn,
             )
         n_pts = X.shape[0]
 
         # ── Train step ──
-        f_net.train(); bf_net.train()
+        f_net.train()
+        bf_net.train()
         optimizer.zero_grad(set_to_none=True)
 
         all_EL = []
         n_batches = max(1, math.ceil(n_pts / micro_batch))
 
         for i in range(0, n_pts, micro_batch):
-            x_mb = X[i:i + micro_batch]
+            x_mb = X[i : i + micro_batch]
             E_L = compute_local_energy(psi_log_fn, x_mb, omega).view(-1)
 
             good = torch.isfinite(E_L)
@@ -535,12 +589,10 @@ def train_sir(
             E_eff = alpha * E_DMC + (1.0 - alpha) * mu
             resid = E_L - E_eff
 
-            loss_mb = nn.functional.huber_loss(
-                resid, torch.zeros_like(resid), delta=huber_delta)
+            loss_mb = nn.functional.huber_loss(resid, torch.zeros_like(resid), delta=huber_delta)
 
             if smooth_lambda > 0:
-                pen = compute_bf_smoothness_penalty(
-                    bf_net, x_mb, spin, n_samples=smooth_n_samples)
+                pen = compute_bf_smoothness_penalty(bf_net, x_mb, spin, n_samples=smooth_n_samples)
                 loss_mb = loss_mb + smooth_lambda * pen
 
             (loss_mb / n_batches).backward()
@@ -573,8 +625,7 @@ def train_sir(
 
         # Save diagnostics
         if epoch % diag_every == 0:
-            entry = {"epoch": epoch, **diag,
-                     "E_mean": E_mean, "E_var": E_var}
+            entry = {"epoch": epoch, **diag, "E_mean": E_mean, "E_var": E_var}
             diagnostics_log.append(entry)
 
         if epoch % print_every == 0:
@@ -588,7 +639,11 @@ def train_sir(
                 bf_mag = dx_s.norm(dim=-1).mean().item()
                 bf_net.train()
 
-            ess_str = f"ESS={diag['ess']:.0f}" if math.isfinite(diag.get('ess', float('nan'))) else "top-K"
+            ess_str = (
+                f"ESS={diag['ess']:.0f}"
+                if math.isfinite(diag.get("ess", float("nan")))
+                else "top-K"
+            )
             uniq_str = f"uniq={diag['unique_frac']:.0%}"
 
             phase_tag = " [ph1]" if epoch < phase1_end else ""
@@ -616,19 +671,22 @@ def train_sir(
 #  Print diagnostic comparison
 # ══════════════════════════════════════════════════════════════════
 
+
 def print_sir_diagnostics(diagnostics_log, label):
     if not diagnostics_log:
         return
     print(f"\n{'─'*75}")
     print(f"  {label} — sampling diagnostics")
     print(f"{'─'*75}")
-    print(f"  {'ep':>4s}  {'ESS':>6s}  {'ESS%':>5s}  "
-          f"{'uniq%':>5s}  {'⟨r²⟩':>6s}  {'d_min':>6s}  "
-          f"{'log|Ψ|':>7s}  {'topK_lΨ':>7s}  {'var':>9s}")
+    print(
+        f"  {'ep':>4s}  {'ESS':>6s}  {'ESS%':>5s}  "
+        f"{'uniq%':>5s}  {'⟨r²⟩':>6s}  {'d_min':>6s}  "
+        f"{'log|Ψ|':>7s}  {'topK_lΨ':>7s}  {'var':>9s}"
+    )
 
     for d in diagnostics_log:
-        ess_str = f"{d['ess']:.0f}" if math.isfinite(d.get('ess', float('nan'))) else "──"
-        ess_pct = f"{d['ess_frac']:.1%}" if math.isfinite(d.get('ess_frac', float('nan'))) else "──"
+        ess_str = f"{d['ess']:.0f}" if math.isfinite(d.get("ess", float("nan"))) else "──"
+        ess_pct = f"{d['ess_frac']:.1%}" if math.isfinite(d.get("ess_frac", float("nan"))) else "──"
         print(
             f"  {d['epoch']:4d}  {ess_str:>6s}  {ess_pct:>5s}  "
             f"{d['unique_frac']:5.0%}  {d['sir_mean_r2']:6.2f}  "
@@ -638,12 +696,14 @@ def print_sir_diagnostics(diagnostics_log, label):
         )
 
     # Summary
-    ess_vals = [d['ess'] for d in diagnostics_log if math.isfinite(d.get('ess', float('nan')))]
+    ess_vals = [d["ess"] for d in diagnostics_log if math.isfinite(d.get("ess", float("nan")))]
     if ess_vals:
-        print(f"\n  ESS: min={min(ess_vals):.0f}, max={max(ess_vals):.0f}, "
-              f"mean={sum(ess_vals)/len(ess_vals):.0f}  "
-              f"(out of {diagnostics_log[0].get('ess', 0) / max(diagnostics_log[0].get('ess_frac', 1), 1e-10):.0f} candidates)")
-        mean_uniq = sum(d['unique_frac'] for d in diagnostics_log) / len(diagnostics_log)
+        print(
+            f"\n  ESS: min={min(ess_vals):.0f}, max={max(ess_vals):.0f}, "
+            f"mean={sum(ess_vals)/len(ess_vals):.0f}  "
+            f"(out of {diagnostics_log[0].get('ess', 0) / max(diagnostics_log[0].get('ess_frac', 1), 1e-10):.0f} candidates)"
+        )
+        mean_uniq = sum(d["unique_frac"] for d in diagnostics_log) / len(diagnostics_log)
         print(f"  Unique fraction: mean={mean_uniq:.0%}")
 
 
@@ -660,14 +720,17 @@ if __name__ == "__main__":
     # ── Experiment 1: Standard top-K baseline ──
     # (same as bf_0.7 joint, for fair comparison)
     print(f"\n{'═'*65}")
-    print(f"# Exp 1: Top-K screening baseline (300ep from scratch)")
+    print("# Exp 1: Top-K screening baseline (300ep from scratch)")
     print(f"{'═'*65}")
 
     f1, bf1 = make_nets()
     proposal_single = lambda n: sample_single_gaussian(n, sigma_bulk)
 
     f1, bf1, diag1 = train_sir(
-        f1, bf1, C_occ, params,
+        f1,
+        bf1,
+        C_occ,
+        params,
         n_epochs=300,
         collocation_fn=topk_collocation,
         proposal_fn=proposal_single,
@@ -687,17 +750,20 @@ if __name__ == "__main__":
     # ── Experiment 2: SIR with single Gaussian proposal ──
     # Tests resampling alone (same proposal, just SIR instead of top-K)
     print(f"\n{'═'*65}")
-    print(f"# Exp 2: SIR resampling, single Gaussian (300ep from scratch)")
+    print("# Exp 2: SIR resampling, single Gaussian (300ep from scratch)")
     print(f"{'═'*65}")
 
     f2, bf2 = make_nets()
 
     f2, bf2, diag2 = train_sir(
-        f2, bf2, C_occ, params,
+        f2,
+        bf2,
+        C_occ,
+        params,
         n_epochs=300,
         collocation_fn=sir_collocation,
         proposal_fn=proposal_single,
-        jitter_sigma=0.01 * ELL,     # small jitter to break duplicates
+        jitter_sigma=0.01 * ELL,  # small jitter to break duplicates
         smooth_lambda=1e-3,
         huber_delta=0.5,
         label="SIR resampling, single Gaussian σ=1.3ℓ",
@@ -717,7 +783,7 @@ if __name__ == "__main__":
     #   bulk    (σ=1.3ℓ): standard sampling region
     #   tail    (σ=2.5ℓ): extended configs, rare events
     print(f"\n{'═'*65}")
-    print(f"# Exp 3: SIR resampling, mixture proposal (300ep from scratch)")
+    print("# Exp 3: SIR resampling, mixture proposal (300ep from scratch)")
     print(f"{'═'*65}")
 
     f3, bf3 = make_nets()
@@ -728,7 +794,10 @@ if __name__ == "__main__":
     proposal_mix = lambda n: sample_mixture_gaussian(n, mix_sigmas, mix_weights)
 
     f3, bf3, diag3 = train_sir(
-        f3, bf3, C_occ, params,
+        f3,
+        bf3,
+        C_occ,
+        params,
         n_epochs=300,
         collocation_fn=sir_collocation,
         proposal_fn=proposal_mix,
@@ -748,7 +817,7 @@ if __name__ == "__main__":
 
     # ── Summary ──
     print(f"\n{'═'*65}")
-    print(f"SUMMARY — SIR vs Top-K collocation")
+    print("SUMMARY — SIR vs Top-K collocation")
     print(f"{'═'*65}")
 
     # Reference results
@@ -761,9 +830,7 @@ if __name__ == "__main__":
 
     # Save diagnostics
     os.makedirs(LOG_DIR, exist_ok=True)
-    for lbl, diag_data in [("topk_baseline", diag1),
-                            ("sir_single", diag2),
-                            ("sir_mixture", diag3)]:
+    for lbl, diag_data in [("topk_baseline", diag1), ("sir_single", diag2), ("sir_mixture", diag3)]:
         path = os.path.join(LOG_DIR, f"diag_sir_{lbl}.json")
         with open(path, "w") as fp:
             json.dump(diag_data, fp, indent=2)

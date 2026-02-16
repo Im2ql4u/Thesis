@@ -21,7 +21,10 @@ The Jastrow (PINN) trains with plain Adam as before (where it already
 reaches 0.42%).
 """
 
-import math, sys, time
+import math
+import sys
+import time
+
 import numpy as np
 import torch
 import torch.nn as nn
@@ -29,19 +32,18 @@ import torch.nn as nn
 sys.path.insert(0, "/Users/aleksandersekkelsten/thesis/src")
 
 import config
-from PINN import PINN, CTNNBackflowNet, UnifiedCTNN
+from functions.Energy import evaluate_energy_vmc
 from functions.Neural_Networks import (
-    psi_fn,
     _laplacian_logpsi_exact,
-    _make_closed_shell_spin,
+    psi_fn,
 )
 from functions.Physics import compute_coulomb_interaction
-from functions.Energy import evaluate_energy_vmc
-
+from PINN import PINN, CTNNBackflowNet
 
 # ══════════════════════════════════════════════════════════════════
 #  Helpers  (same as run_6e_residual.py)
 # ══════════════════════════════════════════════════════════════════
+
 
 def setup_noninteracting(N, omega, d=2, device="cpu", dtype=torch.float64):
     n_occ = N // 2
@@ -50,9 +52,16 @@ def setup_noninteracting(N, omega, d=2, device="cpu", dtype=torch.float64):
     n_basis = nx * ny
     L = max(8.0, 3.0 / math.sqrt(omega))
     config.update(
-        omega=omega, n_particles=N, d=d,
-        L=L, n_grid=80, nx=nx, ny=ny,
-        basis="cart", device=str(device), dtype="float64",
+        omega=omega,
+        n_particles=N,
+        d=d,
+        L=L,
+        n_grid=80,
+        nx=nx,
+        ny=ny,
+        basis="cart",
+        device=str(device),
+        dtype="float64",
     )
     energies = []
     for ix in range(nx):
@@ -81,7 +90,7 @@ def compute_local_energy(psi_log_fn, x, omega):
     g, g2, lap_log = _laplacian_logpsi_exact(psi_log_fn, x)
     B = x.shape[0]
     T = -0.5 * (lap_log.view(B) + g2.view(B))
-    V_harm = 0.5 * omega ** 2 * (x ** 2).sum(dim=(1, 2))
+    V_harm = 0.5 * omega**2 * (x**2).sum(dim=(1, 2))
     V_int = compute_coulomb_interaction(x).view(B)
     return T + V_harm + V_int
 
@@ -90,11 +99,22 @@ def compute_local_energy(psi_log_fn, x, omega):
 #  Screened collocation with close-pair augmentation
 # ══════════════════════════════════════════════════════════════════
 
+
 @torch.no_grad()
-def screened_collocation(psi_log_fn, N, d, sigma, n_keep, oversampling,
-                         device, dtype, *,
-                         close_pair_frac=0.0, close_pair_sigma=0.4,
-                         batch_size=4096):
+def screened_collocation(
+    psi_log_fn,
+    N,
+    d,
+    sigma,
+    n_keep,
+    oversampling,
+    device,
+    dtype,
+    *,
+    close_pair_frac=0.0,
+    close_pair_sigma=0.4,
+    batch_size=4096,
+):
     """
     Generate candidates from Gaussian + close-pair proposals,
     rank by |Ψ|², keep top n_keep.
@@ -115,14 +135,12 @@ def screened_collocation(psi_log_fn, N, d, sigma, n_keep, oversampling,
         j_idx = (i_idx + j_offset) % N
         batch_range = torch.arange(n_close)
         offsets = torch.randn(n_close, d, device=device, dtype=dtype) * close_pair_sigma
-        x_all[idx_start + batch_range, j_idx] = (
-            x_all[idx_start + batch_range, i_idx] + offsets
-        )
+        x_all[idx_start + batch_range, j_idx] = x_all[idx_start + batch_range, i_idx] + offsets
 
     # Rank by |Ψ|²
     log_psi2_parts = []
     for i in range(0, n_cand, batch_size):
-        lp = psi_log_fn(x_all[i:i + batch_size])
+        lp = psi_log_fn(x_all[i : i + batch_size])
         log_psi2_parts.append(2.0 * lp)
     log_psi2 = torch.cat(log_psi2_parts)
 
@@ -133,6 +151,7 @@ def screened_collocation(psi_log_fn, N, d, sigma, n_keep, oversampling,
 # ══════════════════════════════════════════════════════════════════
 #  Diagonal Fisher estimator for backflow params
 # ══════════════════════════════════════════════════════════════════
+
 
 def estimate_fisher_diag(psi_log_fn, X, bf_params, n_samples=64, damping=1e-3):
     """
@@ -149,13 +168,15 @@ def estimate_fisher_diag(psi_log_fn, X, bf_params, n_samples=64, damping=1e-3):
     fisher = [torch.zeros_like(p) for p in bf_params]
 
     for k in range(M):
-        x_k = X_sub[k:k+1]
+        x_k = X_sub[k : k + 1]
         log_psi = psi_log_fn(x_k)
         if log_psi.dim() > 0:
             log_psi = log_psi.sum()
         grads = torch.autograd.grad(
-            log_psi, bf_params,
-            retain_graph=False, create_graph=False,
+            log_psi,
+            bf_params,
+            retain_graph=False,
+            create_graph=False,
             allow_unused=True,
         )
         for i, g in enumerate(grads):
@@ -173,9 +194,13 @@ def estimate_fisher_diag(psi_log_fn, X, bf_params, n_samples=64, damping=1e-3):
 #  Training loop with Fisher preconditioning
 # ══════════════════════════════════════════════════════════════════
 
+
 def train_residual_fisher(
-    f_net, C_occ, params, *,
-    backflow_net,            # required
+    f_net,
+    C_occ,
+    params,
+    *,
+    backflow_net,  # required
     # --- schedule ---
     n_epochs=300,
     lr=3e-4,
@@ -201,28 +226,28 @@ def train_residual_fisher(
     print_every=10,
 ):
     device = params["device"]
-    dtype  = params.get("torch_dtype", torch.float64)
-    omega  = float(params["omega"])
-    N      = int(params["n_particles"])
-    d      = int(params["d"])
-    E_DMC  = params.get("E", None)
-    ell    = 1.0 / math.sqrt(omega)
-    sigma  = proposal_sigma_factor * ell
+    dtype = params.get("torch_dtype", torch.float64)
+    omega = float(params["omega"])
+    N = int(params["n_particles"])
+    d = int(params["d"])
+    E_DMC = params.get("E", None)
+    ell = 1.0 / math.sqrt(omega)
+    sigma = proposal_sigma_factor * ell
     cp_sigma = close_pair_sigma_ell * ell
 
     f_net.to(device).to(dtype)
     backflow_net.to(device).to(dtype)
 
-    up   = N // 2
-    spin = torch.cat([torch.zeros(up, dtype=torch.long),
-                      torch.ones(N - up, dtype=torch.long)]).to(device)
+    up = N // 2
+    spin = torch.cat([torch.zeros(up, dtype=torch.long), torch.ones(N - up, dtype=torch.long)]).to(
+        device
+    )
 
     def psi_log_fn(y):
-        lp, _ = psi_fn(f_net, y, C_occ, backflow_net=backflow_net,
-                        spin=spin, params=params)
+        lp, _ = psi_fn(f_net, y, C_occ, backflow_net=backflow_net, spin=spin, params=params)
         return lp
 
-    f_params  = list(f_net.parameters())
+    f_params = list(f_net.parameters())
     bf_params = list(backflow_net.parameters())
     all_params = f_params + bf_params
     n_p = sum(p.numel() for p in all_params)
@@ -232,23 +257,26 @@ def train_residual_fisher(
     lr_min = lr * lr_min_frac
     scheduler = torch.optim.lr_scheduler.LambdaLR(
         optimizer,
-        lr_lambda=lambda ep: (lr_min + 0.5 * (lr - lr_min) *
-                              (1 + math.cos(math.pi * ep / max(1, n_epochs - 1)))) / lr,
+        lr_lambda=lambda ep: (
+            lr_min + 0.5 * (lr - lr_min) * (1 + math.cos(math.pi * ep / max(1, n_epochs - 1)))
+        )
+        / lr,
     )
 
     phase1_end = int(phase1_frac * n_epochs)
 
     print(f"\n{'='*60}")
-    print(f"Fisher-preconditioned residual training")
+    print("Fisher-preconditioned residual training")
     print(f"  {n_epochs} ep, {n_collocation} coll pts (×{oversampling})")
     print(f"  {n_p:,} total params ({n_bf:,} backflow)")
     print(f"  lr={lr}, cosine → {lr_min:.1e}")
     print(f"  proposal σ = {sigma:.3f}  (ℓ = {ell:.3f})")
     if close_pair_frac > 0:
-        print(f"  close-pair: {close_pair_frac*100:.0f}% of candidates, "
-              f"σ_cp = {cp_sigma:.3f}")
-    print(f"  Fisher: {fisher_n} samples, damping={fisher_damping}, "
-          f"update every {fisher_update_every} ep")
+        print(f"  close-pair: {close_pair_frac*100:.0f}% of candidates, " f"σ_cp = {cp_sigma:.3f}")
+    print(
+        f"  Fisher: {fisher_n} samples, damping={fisher_damping}, "
+        f"update every {fisher_update_every} ep"
+    )
     print(f"  phase 1 (var-min): epochs 0–{phase1_end}")
     print(f"  phase 2 (targeting): α 0→{alpha_end}, eps {phase1_end}–{n_epochs}")
     print(f"  E_DMC = {E_DMC}")
@@ -273,32 +301,43 @@ def train_residual_fisher(
             alpha = 0.5 * alpha_end * (1 - math.cos(math.pi * t2))
 
         # ── Screened collocation ──
-        f_net.eval(); backflow_net.eval()
+        f_net.eval()
+        backflow_net.eval()
         X = screened_collocation(
-            psi_log_fn, N, d, sigma,
-            n_keep=n_collocation, oversampling=oversampling,
-            device=device, dtype=dtype,
+            psi_log_fn,
+            N,
+            d,
+            sigma,
+            n_keep=n_collocation,
+            oversampling=oversampling,
+            device=device,
+            dtype=dtype,
             close_pair_frac=close_pair_frac,
             close_pair_sigma=cp_sigma,
         )
 
         # ── Fisher update (every K epochs) ──
         if epoch % fisher_update_every == 0:
-            f_net.train(); backflow_net.train()
+            f_net.train()
+            backflow_net.train()
             fisher = estimate_fisher_diag(
-                psi_log_fn, X, bf_params,
-                n_samples=fisher_n, damping=fisher_damping,
+                psi_log_fn,
+                X,
+                bf_params,
+                n_samples=fisher_n,
+                damping=fisher_damping,
             )
 
         # ── Compute loss in micro-batches ──
-        f_net.train(); backflow_net.train()
+        f_net.train()
+        backflow_net.train()
         optimizer.zero_grad(set_to_none=True)
 
         all_EL = []
         n_batches = max(1, math.ceil(n_collocation / micro_batch))
 
         for i in range(0, n_collocation, micro_batch):
-            x_mb = X[i:i + micro_batch]
+            x_mb = X[i : i + micro_batch]
             E_L = compute_local_energy(psi_log_fn, x_mb, omega).view(-1)
 
             good = torch.isfinite(E_L)
@@ -320,12 +359,12 @@ def train_residual_fisher(
             mu = E_L.mean().detach()
             E_eff = alpha * float(E_DMC) + (1.0 - alpha) * mu
             resid = E_L - E_eff
-            loss_mb = (resid ** 2).mean()
+            loss_mb = (resid**2).mean()
             (loss_mb / n_batches).backward()
 
         # ── Fisher preconditioning on backflow grads ──
         if fisher is not None:
-            for p, f_diag in zip(bf_params, fisher):
+            for p, f_diag in zip(bf_params, fisher, strict=False):
                 if p.grad is not None:
                     p.grad.div_(f_diag)
 
@@ -339,8 +378,8 @@ def train_residual_fisher(
         if len(all_EL) > 0:
             EL_cat = torch.cat(all_EL)
             E_mean = EL_cat.mean().item()
-            E_var  = EL_cat.var().item()
-            E_std  = EL_cat.std().item()
+            E_var = EL_cat.var().item()
+            E_std = EL_cat.std().item()
         else:
             E_mean, E_var, E_std = float("nan"), float("nan"), float("nan")
 
@@ -383,17 +422,24 @@ def train_residual_fisher(
 #  Evaluate
 # ══════════════════════════════════════════════════════════════════
 
+
 def evaluate(f_net, C_occ, params, backflow_net=None, n_samples=15_000, label=""):
     print(f"\n── VMC eval: {label} ──")
     result = evaluate_energy_vmc(
-        f_net, C_occ,
+        f_net,
+        C_occ,
         psi_fn=psi_fn,
         compute_coulomb_interaction=compute_coulomb_interaction,
-        backflow_net=backflow_net, params=params,
-        n_samples=n_samples, batch_size=512,
-        sampler_steps=50, sampler_step_sigma=0.12,
+        backflow_net=backflow_net,
+        params=params,
+        n_samples=n_samples,
+        batch_size=512,
+        sampler_steps=50,
+        sampler_step_sigma=0.12,
         lap_mode="exact",
-        persistent=True, sampler_burn_in=300, sampler_thin=3,
+        persistent=True,
+        sampler_burn_in=300,
+        sampler_thin=3,
         progress=True,
     )
     E, E_std = result["E_mean"], result["E_stderr"]
@@ -407,34 +453,63 @@ def evaluate(f_net, C_occ, params, backflow_net=None, n_samples=15_000, label=""
 #  Run configs
 # ══════════════════════════════════════════════════════════════════
 
+
 def make_nets(device="cpu", dtype=torch.float64):
-    f_net = PINN(
-        n_particles=6, d=2, omega=0.5,
-        dL=8, hidden_dim=64, n_layers=2,
-        act="gelu", init="xavier",
-        use_gate=True, use_pair_attn=False,
-    ).to(device).to(dtype)
-    bf_net = CTNNBackflowNet(
-        d=2, msg_hidden=32, msg_layers=1,
-        hidden=32, layers=2,
-        act="silu", aggregation="sum",
-        use_spin=True, same_spin_only=False,
-        out_bound="tanh", bf_scale_init=0.05,
-        omega=0.5,
-    ).to(device).to(dtype)
-    np_total = (sum(p.numel() for p in f_net.parameters())
-              + sum(p.numel() for p in bf_net.parameters()))
+    f_net = (
+        PINN(
+            n_particles=6,
+            d=2,
+            omega=0.5,
+            dL=8,
+            hidden_dim=64,
+            n_layers=2,
+            act="gelu",
+            init="xavier",
+            use_gate=True,
+            use_pair_attn=False,
+        )
+        .to(device)
+        .to(dtype)
+    )
+    bf_net = (
+        CTNNBackflowNet(
+            d=2,
+            msg_hidden=32,
+            msg_layers=1,
+            hidden=32,
+            layers=2,
+            act="silu",
+            aggregation="sum",
+            use_spin=True,
+            same_spin_only=False,
+            out_bound="tanh",
+            bf_scale_init=0.05,
+            omega=0.5,
+        )
+        .to(device)
+        .to(dtype)
+    )
+    np_total = sum(p.numel() for p in f_net.parameters()) + sum(
+        p.numel() for p in bf_net.parameters()
+    )
     print(f"CTNN+PINN params: {np_total:,}")
     return f_net, bf_net
 
 
 COMMON = dict(
-    n_epochs=300, lr=3e-4,
-    n_collocation=2048, oversampling=10, micro_batch=256,
-    grad_clip=0.5, print_every=10,
-    phase1_frac=0.25, alpha_end=0.60,
+    n_epochs=300,
+    lr=3e-4,
+    n_collocation=2048,
+    oversampling=10,
+    micro_batch=256,
+    grad_clip=0.5,
+    print_every=10,
+    phase1_frac=0.25,
+    alpha_end=0.60,
     proposal_sigma_factor=1.3,
-    fisher_n=64, fisher_damping=1e-3, fisher_update_every=5,
+    fisher_n=64,
+    fisher_damping=1e-3,
+    fisher_update_every=5,
 )
 
 
@@ -444,13 +519,17 @@ def run_fisher_closepair():
     C_occ, params = setup_noninteracting(6, 0.5, device=device, dtype=dtype)
     f_net, bf_net = make_nets(device, dtype)
     f_net, bf_net, _ = train_residual_fisher(
-        f_net, C_occ, params, backflow_net=bf_net,
+        f_net,
+        C_occ,
+        params,
+        backflow_net=bf_net,
         close_pair_frac=0.20,
         close_pair_sigma_ell=0.3,
         **COMMON,
     )
-    return evaluate(f_net, C_occ, params, backflow_net=bf_net,
-                    label="CTNN+PINN  Fisher + close-pair")
+    return evaluate(
+        f_net, C_occ, params, backflow_net=bf_net, label="CTNN+PINN  Fisher + close-pair"
+    )
 
 
 def run_fisher_only():
@@ -459,12 +538,14 @@ def run_fisher_only():
     C_occ, params = setup_noninteracting(6, 0.5, device=device, dtype=dtype)
     f_net, bf_net = make_nets(device, dtype)
     f_net, bf_net, _ = train_residual_fisher(
-        f_net, C_occ, params, backflow_net=bf_net,
+        f_net,
+        C_occ,
+        params,
+        backflow_net=bf_net,
         close_pair_frac=0.0,
         **COMMON,
     )
-    return evaluate(f_net, C_occ, params, backflow_net=bf_net,
-                    label="CTNN+PINN  Fisher only")
+    return evaluate(f_net, C_occ, params, backflow_net=bf_net, label="CTNN+PINN  Fisher only")
 
 
 # ══════════════════════════════════════════════════════════════════
@@ -475,8 +556,8 @@ if __name__ == "__main__":
     results = {}
 
     for name, fn in [
-        ("fisher+cp",  run_fisher_closepair),
-        ("fisher",     run_fisher_only),
+        ("fisher+cp", run_fisher_closepair),
+        ("fisher", run_fisher_only),
     ]:
         print(f"\n{'#'*60}")
         print(f"# {name.upper()}")

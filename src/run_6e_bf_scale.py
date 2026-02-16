@@ -11,29 +11,25 @@ Experiments:
 All use screened collocation, zero_init_last=False, 300ep effective.
 """
 
-import math, sys, time, copy
-import numpy as np
+import math
+import sys
+import time
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
 sys.path.insert(0, "/Users/aleksandersekkelsten/thesis/src")
 
-import config
-from PINN import PINN, CTNNBackflowNet
 from functions.Neural_Networks import (
     psi_fn,
-    _laplacian_logpsi_exact,
 )
-from functions.Physics import compute_coulomb_interaction
-from functions.Energy import evaluate_energy_vmc
-
+from PINN import PINN, CTNNBackflowNet
 from run_6e_residual import (
-    setup_noninteracting,
     compute_local_energy,
-    screened_collocation,
-    sample_gaussian_proposal,
     evaluate,
+    screened_collocation,
+    setup_noninteracting,
     train_residual,
 )
 
@@ -43,21 +39,41 @@ DTYPE = torch.float64
 
 
 def make_nets(bf_scale_init=0.05, zero_init_last=True):
-    f_net = PINN(
-        n_particles=6, d=2, omega=0.5,
-        dL=8, hidden_dim=64, n_layers=2,
-        act="gelu", init="xavier",
-        use_gate=True, use_pair_attn=False,
-    ).to(DEVICE).to(DTYPE)
-    bf_net = CTNNBackflowNet(
-        d=2, msg_hidden=32, msg_layers=1,
-        hidden=32, layers=2,
-        act="silu", aggregation="sum",
-        use_spin=True, same_spin_only=False,
-        out_bound="tanh", bf_scale_init=bf_scale_init,
-        zero_init_last=zero_init_last,
-        omega=0.5,
-    ).to(DEVICE).to(DTYPE)
+    f_net = (
+        PINN(
+            n_particles=6,
+            d=2,
+            omega=0.5,
+            dL=8,
+            hidden_dim=64,
+            n_layers=2,
+            act="gelu",
+            init="xavier",
+            use_gate=True,
+            use_pair_attn=False,
+        )
+        .to(DEVICE)
+        .to(DTYPE)
+    )
+    bf_net = (
+        CTNNBackflowNet(
+            d=2,
+            msg_hidden=32,
+            msg_layers=1,
+            hidden=32,
+            layers=2,
+            act="silu",
+            aggregation="sum",
+            use_spin=True,
+            same_spin_only=False,
+            out_bound="tanh",
+            bf_scale_init=bf_scale_init,
+            zero_init_last=zero_init_last,
+            omega=0.5,
+        )
+        .to(DEVICE)
+        .to(DTYPE)
+    )
     return f_net, bf_net
 
 
@@ -65,12 +81,14 @@ def make_psi_log_fn(f_net, bf_net, C_occ, params):
     up = params["n_particles"] // 2
     N = params["n_particles"]
     device = params["device"]
-    spin = torch.cat([torch.zeros(up, dtype=torch.long),
-                      torch.ones(N - up, dtype=torch.long)]).to(device)
+    spin = torch.cat([torch.zeros(up, dtype=torch.long), torch.ones(N - up, dtype=torch.long)]).to(
+        device
+    )
+
     def fn(y):
-        lp, _ = psi_fn(f_net, y, C_occ, backflow_net=bf_net,
-                        spin=spin, params=params)
+        lp, _ = psi_fn(f_net, y, C_occ, backflow_net=bf_net, spin=spin, params=params)
         return lp
+
     return fn, spin
 
 
@@ -78,21 +96,32 @@ def make_psi_log_fn(f_net, bf_net, C_occ, params):
 #  Generic trainer (from bf_sweeps, extended)
 # ══════════════════════════════════════════════════════════════════
 
+
 def train_generic(
-    f_net, bf_net, C_occ, params, *,
-    optimizer, n_epochs=300,
+    f_net,
+    bf_net,
+    C_occ,
+    params,
+    *,
+    optimizer,
+    n_epochs=300,
     lr_sched_fn=None,
-    n_collocation=2048, oversampling=10, micro_batch=256,
-    grad_clip=0.5, phase1_frac=0.25, alpha_end=0.60,
-    print_every=10, label="",
+    n_collocation=2048,
+    oversampling=10,
+    micro_batch=256,
+    grad_clip=0.5,
+    phase1_frac=0.25,
+    alpha_end=0.60,
+    print_every=10,
+    label="",
 ):
     device = params["device"]
-    dtype  = params.get("torch_dtype", torch.float64)
-    omega  = float(params["omega"])
-    N      = int(params["n_particles"])
-    d      = int(params["d"])
-    ell    = 1.0 / math.sqrt(omega)
-    sigma  = 1.3 * ell
+    dtype = params.get("torch_dtype", torch.float64)
+    omega = float(params["omega"])
+    N = int(params["n_particles"])
+    d = int(params["d"])
+    ell = 1.0 / math.sqrt(omega)
+    sigma = 1.3 * ell
 
     psi_log_fn, spin = make_psi_log_fn(f_net, bf_net, C_occ, params)
 
@@ -111,7 +140,7 @@ def train_generic(
     print(f"Training: {label}")
     print(f"  {n_epochs} ep, {n_collocation} pts, f={n_f:,} bf={n_bf:,} trainable")
     print(f"  optimizer groups: {len(optimizer.param_groups)}, lr={lrs}")
-    bf_s = bf_net.bf_scale.item() if hasattr(bf_net, 'bf_scale') else 0
+    bf_s = bf_net.bf_scale.item() if hasattr(bf_net, "bf_scale") else 0
     print(f"  bf_scale_init={bf_s:.3f}")
     print(f"{'='*60}")
     sys.stdout.flush()
@@ -130,20 +159,27 @@ def train_generic(
             t2 = (epoch - phase1_end) / max(1, n_epochs - phase1_end - 1)
             alpha = 0.5 * alpha_end * (1 - math.cos(math.pi * t2))
 
-        f_net.eval(); bf_net.eval()
+        f_net.eval()
+        bf_net.eval()
         X = screened_collocation(
-            psi_log_fn, N, d, sigma,
-            n_keep=n_collocation, oversampling=oversampling,
-            device=device, dtype=dtype,
+            psi_log_fn,
+            N,
+            d,
+            sigma,
+            n_keep=n_collocation,
+            oversampling=oversampling,
+            device=device,
+            dtype=dtype,
         )
 
-        f_net.train(); bf_net.train()
+        f_net.train()
+        bf_net.train()
         optimizer.zero_grad(set_to_none=True)
 
         all_EL = []
         n_batches = max(1, math.ceil(n_collocation / micro_batch))
         for i in range(0, n_collocation, micro_batch):
-            x_mb = X[i:i + micro_batch]
+            x_mb = X[i : i + micro_batch]
             E_L = compute_local_energy(psi_log_fn, x_mb, omega).view(-1)
             good = torch.isfinite(E_L)
             if not good.all():
@@ -161,12 +197,11 @@ def train_generic(
             mu = E_L.mean().detach()
             E_eff = alpha * E_DMC + (1.0 - alpha) * mu
             resid = E_L - E_eff
-            loss_mb = (resid ** 2).mean()
+            loss_mb = (resid**2).mean()
             (loss_mb / n_batches).backward()
 
         if grad_clip > 0:
-            all_p = [p for pg in optimizer.param_groups for p in pg["params"]
-                     if p.requires_grad]
+            all_p = [p for pg in optimizer.param_groups for p in pg["params"] if p.requires_grad]
             nn.utils.clip_grad_norm_(all_p, grad_clip)
 
         optimizer.step()
@@ -176,8 +211,8 @@ def train_generic(
         if len(all_EL) > 0:
             EL_cat = torch.cat(all_EL)
             E_mean = EL_cat.mean().item()
-            E_var  = EL_cat.var().item()
-            E_std  = EL_cat.std().item()
+            E_var = EL_cat.var().item()
+            E_std = EL_cat.std().item()
         else:
             E_mean, E_var, E_std = float("nan"), float("nan"), float("nan")
 
@@ -197,13 +232,23 @@ def train_generic(
             dt = time.time() - t0
             cur_lr = optimizer.param_groups[0]["lr"]
             err = abs(E_mean - E_DMC) / E_DMC * 100
-            bf_s = bf_net.bf_scale.item() if hasattr(bf_net, 'bf_scale') else 0
-            bf_gnorm = sum(p.grad.data.norm(2).item()**2
-                          for p in bf_net.parameters()
-                          if p.grad is not None) ** 0.5
-            f_gnorm = sum(p.grad.data.norm(2).item()**2
-                         for p in f_net.parameters()
-                         if p.grad is not None and p.requires_grad) ** 0.5
+            bf_s = bf_net.bf_scale.item() if hasattr(bf_net, "bf_scale") else 0
+            bf_gnorm = (
+                sum(
+                    p.grad.data.norm(2).item() ** 2
+                    for p in bf_net.parameters()
+                    if p.grad is not None
+                )
+                ** 0.5
+            )
+            f_gnorm = (
+                sum(
+                    p.grad.data.norm(2).item() ** 2
+                    for p in f_net.parameters()
+                    if p.grad is not None and p.requires_grad
+                )
+                ** 0.5
+            )
 
             # Measure actual backflow magnitude
             with torch.no_grad():
@@ -235,6 +280,7 @@ def train_generic(
 #  Cusp pre-training: teach backflow to anti-bunch same-spin pairs
 # ══════════════════════════════════════════════════════════════════
 
+
 def compute_antibunch_target(x, spin, strength=0.15, sigma_ell=0.5, omega=0.5):
     """
     Supervised target for backflow: push same-spin electrons apart.
@@ -260,14 +306,14 @@ def compute_antibunch_target(x, spin, strength=0.15, sigma_ell=0.5, omega=0.5):
 
     # Pairwise relative vectors
     r_ij = x.unsqueeze(1) - x.unsqueeze(2)  # (B,N,N,d) : r_i - r_j
-    r2 = (r_ij ** 2).sum(-1, keepdim=True)   # (B,N,N,1)
-    r1 = torch.sqrt(r2 + 1e-12)              # (B,N,N,1)
+    r2 = (r_ij**2).sum(-1, keepdim=True)  # (B,N,N,1)
+    r1 = torch.sqrt(r2 + 1e-12)  # (B,N,N,1)
 
     # Direction: unit vector from j toward i (pushes i away from j)
     r_hat = r_ij / (r1 + 1e-8)  # (B,N,N,d)
 
     # Gaussian envelope: strong push when close, decays with distance
-    envelope = torch.exp(-r2 / (2 * sigma ** 2))  # (B,N,N,1)
+    envelope = torch.exp(-r2 / (2 * sigma**2))  # (B,N,N,1)
 
     # Weighted displacement: sum over same-spin neighbors
     dx_target = strength * (r_hat * envelope * mask.unsqueeze(-1)).sum(dim=2)  # (B,N,d)
@@ -278,9 +324,19 @@ def compute_antibunch_target(x, spin, strength=0.15, sigma_ell=0.5, omega=0.5):
     return dx_target
 
 
-def pretrain_backflow_cusp(bf_net, spin, N, d, omega, *,
-                           n_epochs=50, lr=1e-3, n_samples=4096,
-                           bf_target_strength=0.15, sigma_ell=0.5):
+def pretrain_backflow_cusp(
+    bf_net,
+    spin,
+    N,
+    d,
+    omega,
+    *,
+    n_epochs=50,
+    lr=1e-3,
+    n_samples=4096,
+    bf_target_strength=0.15,
+    sigma_ell=0.5,
+):
     """
     Supervised pre-training: teach backflow the anti-bunching pattern.
     """
@@ -303,8 +359,11 @@ def pretrain_backflow_cusp(bf_net, spin, N, d, omega, *,
 
         # Target displacement
         dx_target = compute_antibunch_target(
-            x, spin, strength=bf_target_strength,
-            sigma_ell=sigma_ell, omega=omega,
+            x,
+            spin,
+            strength=bf_target_strength,
+            sigma_ell=sigma_ell,
+            omega=omega,
         )
 
         # Predicted displacement
@@ -322,9 +381,11 @@ def pretrain_backflow_cusp(bf_net, spin, N, d, omega, *,
             with torch.no_grad():
                 mag_pred = dx_pred.norm(dim=-1).mean().item()
                 mag_tgt = dx_target.norm(dim=-1).mean().item()
-            print(f"  [pretrain {epoch:3d}] loss={loss.item():.6f}  "
-                  f"|Δx_pred|={mag_pred:.4f}  |Δx_tgt|={mag_tgt:.4f}  "
-                  f"bf_scale={bf_net.bf_scale.item():.4f}")
+            print(
+                f"  [pretrain {epoch:3d}] loss={loss.item():.6f}  "
+                f"|Δx_pred|={mag_pred:.4f}  |Δx_tgt|={mag_tgt:.4f}  "
+                f"bf_scale={bf_net.bf_scale.item():.4f}"
+            )
 
     dt = time.time() - t0
     print(f"  Pre-training done in {dt:.0f}s")
@@ -335,6 +396,7 @@ def pretrain_backflow_cusp(bf_net, spin, N, d, omega, *,
 #  Cosine schedule factory
 # ══════════════════════════════════════════════════════════════════
 
+
 def cosine_sched(opt, n_epochs, eta_min=6e-6):
     return torch.optim.lr_scheduler.CosineAnnealingLR(opt, n_epochs, eta_min=eta_min)
 
@@ -343,18 +405,25 @@ def cosine_sched(opt, n_epochs, eta_min=6e-6):
 #  Experiment 1: bf_scale=0.7, zero_init_last=False
 # ══════════════════════════════════════════════════════════════════
 
+
 def run_bf_0_7():
     C_occ, params = setup_noninteracting(6, 0.5, device=DEVICE, dtype=DTYPE)
     f_net, bf_net = make_nets(bf_scale_init=0.7, zero_init_last=False)
-    np_total = sum(p.numel() for p in f_net.parameters()) + sum(p.numel() for p in bf_net.parameters())
+    np_total = sum(p.numel() for p in f_net.parameters()) + sum(
+        p.numel() for p in bf_net.parameters()
+    )
     print(f"CTNN+PINN params: {np_total:,}")
 
     all_params = list(f_net.parameters()) + list(bf_net.parameters())
     optimizer = torch.optim.Adam(all_params, lr=3e-4)
 
     f_net, bf_net = train_generic(
-        f_net, bf_net, C_occ, params,
-        optimizer=optimizer, n_epochs=300,
+        f_net,
+        bf_net,
+        C_occ,
+        params,
+        optimizer=optimizer,
+        n_epochs=300,
         lr_sched_fn=lambda o, n: cosine_sched(o, n),
         label="bf_scale=0.7, zero_init=False",
     )
@@ -365,18 +434,25 @@ def run_bf_0_7():
 #  Experiment 2: bf_scale=1.0, zero_init_last=False
 # ══════════════════════════════════════════════════════════════════
 
+
 def run_bf_1_0():
     C_occ, params = setup_noninteracting(6, 0.5, device=DEVICE, dtype=DTYPE)
     f_net, bf_net = make_nets(bf_scale_init=1.0, zero_init_last=False)
-    np_total = sum(p.numel() for p in f_net.parameters()) + sum(p.numel() for p in bf_net.parameters())
+    np_total = sum(p.numel() for p in f_net.parameters()) + sum(
+        p.numel() for p in bf_net.parameters()
+    )
     print(f"CTNN+PINN params: {np_total:,}")
 
     all_params = list(f_net.parameters()) + list(bf_net.parameters())
     optimizer = torch.optim.Adam(all_params, lr=3e-4)
 
     f_net, bf_net = train_generic(
-        f_net, bf_net, C_occ, params,
-        optimizer=optimizer, n_epochs=300,
+        f_net,
+        bf_net,
+        C_occ,
+        params,
+        optimizer=optimizer,
+        n_epochs=300,
         lr_sched_fn=lambda o, n: cosine_sched(o, n),
         label="bf_scale=1.0, zero_init=False",
     )
@@ -387,20 +463,29 @@ def run_bf_1_0():
 #  Experiment 3: separate opts, bf_scale=0.7
 # ══════════════════════════════════════════════════════════════════
 
+
 def run_sep_opt_0_7():
     C_occ, params = setup_noninteracting(6, 0.5, device=DEVICE, dtype=DTYPE)
     f_net, bf_net = make_nets(bf_scale_init=0.7, zero_init_last=False)
-    np_total = sum(p.numel() for p in f_net.parameters()) + sum(p.numel() for p in bf_net.parameters())
+    np_total = sum(p.numel() for p in f_net.parameters()) + sum(
+        p.numel() for p in bf_net.parameters()
+    )
     print(f"CTNN+PINN params: {np_total:,}")
 
-    optimizer = torch.optim.Adam([
-        {"params": f_net.parameters(), "lr": 3e-4},
-        {"params": bf_net.parameters(), "lr": 5e-4},
-    ])
+    optimizer = torch.optim.Adam(
+        [
+            {"params": f_net.parameters(), "lr": 3e-4},
+            {"params": bf_net.parameters(), "lr": 5e-4},
+        ]
+    )
 
     f_net, bf_net = train_generic(
-        f_net, bf_net, C_occ, params,
-        optimizer=optimizer, n_epochs=300,
+        f_net,
+        bf_net,
+        C_occ,
+        params,
+        optimizer=optimizer,
+        n_epochs=300,
         lr_sched_fn=lambda o, n: cosine_sched(o, n),
         label="sep_opt: bf_lr=5e-4, f_lr=3e-4, bf_scale=0.7",
     )
@@ -411,22 +496,33 @@ def run_sep_opt_0_7():
 #  Experiment 4: cusp pre-training + joint training
 # ══════════════════════════════════════════════════════════════════
 
+
 def run_cusp_pretrain():
     C_occ, params = setup_noninteracting(6, 0.5, device=DEVICE, dtype=DTYPE)
     f_net, bf_net = make_nets(bf_scale_init=0.7, zero_init_last=False)
-    np_total = sum(p.numel() for p in f_net.parameters()) + sum(p.numel() for p in bf_net.parameters())
+    np_total = sum(p.numel() for p in f_net.parameters()) + sum(
+        p.numel() for p in bf_net.parameters()
+    )
     print(f"CTNN+PINN params: {np_total:,}")
 
     N = params["n_particles"]
     up = N // 2
-    spin = torch.cat([torch.zeros(up, dtype=torch.long),
-                      torch.ones(N - up, dtype=torch.long)]).to(DEVICE)
+    spin = torch.cat([torch.zeros(up, dtype=torch.long), torch.ones(N - up, dtype=torch.long)]).to(
+        DEVICE
+    )
 
     # Phase 1: pre-train backflow on anti-bunching target
     bf_net = pretrain_backflow_cusp(
-        bf_net, spin, N=6, d=2, omega=0.5,
-        n_epochs=50, lr=1e-3, n_samples=4096,
-        bf_target_strength=0.15, sigma_ell=0.5,
+        bf_net,
+        spin,
+        N=6,
+        d=2,
+        omega=0.5,
+        n_epochs=50,
+        lr=1e-3,
+        n_samples=4096,
+        bf_target_strength=0.15,
+        sigma_ell=0.5,
     )
 
     # Phase 2: joint training (300ep)
@@ -434,8 +530,12 @@ def run_cusp_pretrain():
     optimizer = torch.optim.Adam(all_params, lr=3e-4)
 
     f_net, bf_net = train_generic(
-        f_net, bf_net, C_occ, params,
-        optimizer=optimizer, n_epochs=300,
+        f_net,
+        bf_net,
+        C_occ,
+        params,
+        optimizer=optimizer,
+        n_epochs=300,
         lr_sched_fn=lambda o, n: cosine_sched(o, n),
         label="cusp_pretrain → joint 300ep, bf_scale=0.7",
     )
@@ -446,24 +546,42 @@ def run_cusp_pretrain():
 #  Experiment 5: PINN pre-train → freeze → bf → unfreeze
 # ══════════════════════════════════════════════════════════════════
 
+
 def run_pinn_pretrain():
     C_occ, params = setup_noninteracting(6, 0.5, device=DEVICE, dtype=DTYPE)
 
     # Phase A: full PINN training (300ep)
-    f_net = PINN(
-        n_particles=6, d=2, omega=0.5,
-        dL=8, hidden_dim=64, n_layers=2,
-        act="gelu", init="xavier",
-        use_gate=True, use_pair_attn=False,
-    ).to(DEVICE).to(DTYPE)
+    f_net = (
+        PINN(
+            n_particles=6,
+            d=2,
+            omega=0.5,
+            dL=8,
+            hidden_dim=64,
+            n_layers=2,
+            act="gelu",
+            init="xavier",
+            use_gate=True,
+            use_pair_attn=False,
+        )
+        .to(DEVICE)
+        .to(DTYPE)
+    )
 
     print("\n── Phase A: PINN-only (300 ep) ──")
     f_net, _, _ = train_residual(
-        f_net, C_occ, params,
-        n_epochs=300, lr=3e-4,
-        n_collocation=2048, oversampling=10, micro_batch=256,
-        grad_clip=0.5, print_every=20,
-        phase1_frac=0.25, alpha_end=0.60,
+        f_net,
+        C_occ,
+        params,
+        n_epochs=300,
+        lr=3e-4,
+        n_collocation=2048,
+        oversampling=10,
+        micro_batch=256,
+        grad_clip=0.5,
+        print_every=20,
+        phase1_frac=0.25,
+        alpha_end=0.60,
         proposal_sigma_factor=1.3,
     )
     print("\n── PINN baseline eval ──")
@@ -471,33 +589,47 @@ def run_pinn_pretrain():
 
     # Phase B: freeze Jastrow, train bf only (150ep)
     print("\n── Phase B: Freeze Jastrow, train bf only (150 ep) ──")
-    bf_net = CTNNBackflowNet(
-        d=2, msg_hidden=32, msg_layers=1,
-        hidden=32, layers=2,
-        act="silu", aggregation="sum",
-        use_spin=True, same_spin_only=False,
-        out_bound="tanh", bf_scale_init=0.7,
-        zero_init_last=False,
-        omega=0.5,
-    ).to(DEVICE).to(DTYPE)
+    bf_net = (
+        CTNNBackflowNet(
+            d=2,
+            msg_hidden=32,
+            msg_layers=1,
+            hidden=32,
+            layers=2,
+            act="silu",
+            aggregation="sum",
+            use_spin=True,
+            same_spin_only=False,
+            out_bound="tanh",
+            bf_scale_init=0.7,
+            zero_init_last=False,
+            omega=0.5,
+        )
+        .to(DEVICE)
+        .to(DTYPE)
+    )
 
     for p in f_net.parameters():
         p.requires_grad_(False)
 
     optimizer = torch.optim.Adam(bf_net.parameters(), lr=5e-4)
     f_net, bf_net = train_generic(
-        f_net, bf_net, C_occ, params,
-        optimizer=optimizer, n_epochs=150,
+        f_net,
+        bf_net,
+        C_occ,
+        params,
+        optimizer=optimizer,
+        n_epochs=150,
         lr_sched_fn=lambda o, n: cosine_sched(o, n, eta_min=1e-5),
-        phase1_frac=0.0, alpha_end=0.60,
+        phase1_frac=0.0,
+        alpha_end=0.60,
         label="pinn_pretrain: bf-only (Jastrow frozen), bf_scale=0.7",
     )
 
     print("\n── After bf-only eval ──")
     for p in f_net.parameters():
         p.requires_grad_(True)
-    evaluate(f_net, C_occ, params, backflow_net=bf_net,
-             label="after bf-only phase")
+    evaluate(f_net, C_occ, params, backflow_net=bf_net, label="after bf-only phase")
 
     # Phase C: unfreeze both, fine-tune (100ep)
     print("\n── Phase C: Unfreeze both, fine-tune (100 ep) ──")
@@ -505,10 +637,15 @@ def run_pinn_pretrain():
     optimizer = torch.optim.Adam(all_params, lr=1e-4)
 
     f_net, bf_net = train_generic(
-        f_net, bf_net, C_occ, params,
-        optimizer=optimizer, n_epochs=100,
+        f_net,
+        bf_net,
+        C_occ,
+        params,
+        optimizer=optimizer,
+        n_epochs=100,
         lr_sched_fn=lambda o, n: cosine_sched(o, n, eta_min=6e-6),
-        phase1_frac=0.0, alpha_end=0.60,
+        phase1_frac=0.0,
+        alpha_end=0.60,
         grad_clip=0.3,
         label="pinn_pretrain: fine-tune both (100ep)",
     )
@@ -522,11 +659,11 @@ def run_pinn_pretrain():
 
 if __name__ == "__main__":
     experiments = [
-        ("bf_0.7",          run_bf_0_7),
-        ("bf_1.0",          run_bf_1_0),
-        ("sep_opt_0.7",     run_sep_opt_0_7),
-        ("cusp_pretrain",   run_cusp_pretrain),
-        ("pinn_pretrain",   run_pinn_pretrain),
+        ("bf_0.7", run_bf_0_7),
+        ("bf_1.0", run_bf_1_0),
+        ("sep_opt_0.7", run_sep_opt_0_7),
+        ("cusp_pretrain", run_cusp_pretrain),
+        ("pinn_pretrain", run_pinn_pretrain),
     ]
 
     results = {}
@@ -538,7 +675,9 @@ if __name__ == "__main__":
             results[name] = fn()
         except Exception as e:
             print(f"  FAILED: {e}")
-            import traceback; traceback.print_exc()
+            import traceback
+
+            traceback.print_exc()
             results[name] = {"E_mean": float("nan"), "E_stderr": float("nan")}
 
     print(f"\n{'='*70}")

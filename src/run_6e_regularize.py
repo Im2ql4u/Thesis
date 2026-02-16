@@ -2,7 +2,7 @@
 Regularization experiments: attack the SOURCE of gradient pathology.
 
 The core insight: near-node E_L divergence isn't a sampling problem — it's
-a gradient pathology. The Laplacian through ∇²Δx / det(S̃) blows up at 
+a gradient pathology. The Laplacian through ∇²Δx / det(S̃) blows up at
 nodes, and no sampling or loss trick fixes that. Instead, we soften the
 singularity sources directly.
 
@@ -30,7 +30,11 @@ The key test: do regularized gradients let BF contribute constructively
 without the defensive shrinkage we see from singularity-driven noise?
 """
 
-import math, sys, time, os
+import math
+import os
+import sys
+import time
+
 import numpy as np
 import torch
 import torch.nn as nn
@@ -38,11 +42,11 @@ import torch.nn as nn
 sys.path.insert(0, "/Users/aleksandersekkelsten/thesis/src")
 
 import config
-from PINN import PINN, CTNNBackflowNet
-from functions.Neural_Networks import psi_fn, _laplacian_logpsi_exact
-from functions.Physics import compute_coulomb_interaction
 from functions.Energy import evaluate_energy_vmc
+from functions.Neural_Networks import _laplacian_logpsi_exact, psi_fn
+from functions.Physics import compute_coulomb_interaction
 from functions.Slater_Determinant import slater_determinant_closed_shell
+from PINN import PINN, CTNNBackflowNet
 
 E_DMC = 11.78484
 DEVICE = "cpu"
@@ -57,6 +61,7 @@ ELL = 1.0 / math.sqrt(OMEGA)
 #  Standard model setup (same as previous scripts)
 # ══════════════════════════════════════════════════════════════════
 
+
 def setup_noninteracting(N, omega, d=2, device="cpu", dtype=torch.float64):
     n_occ = N // 2
     nx = {2: 2, 6: 3, 12: 4, 20: 5}.get(N, 4)
@@ -64,9 +69,16 @@ def setup_noninteracting(N, omega, d=2, device="cpu", dtype=torch.float64):
     n_basis = nx * ny
     L = max(8.0, 3.0 / math.sqrt(omega))
     config.update(
-        omega=omega, n_particles=N, d=d,
-        L=L, n_grid=80, nx=nx, ny=ny,
-        basis="cart", device=str(device), dtype="float64",
+        omega=omega,
+        n_particles=N,
+        d=d,
+        L=L,
+        n_grid=80,
+        nx=nx,
+        ny=ny,
+        basis="cart",
+        device=str(device),
+        dtype="float64",
     )
     energies = []
     for ix in range(nx):
@@ -89,32 +101,54 @@ def setup_noninteracting(N, omega, d=2, device="cpu", dtype=torch.float64):
 
 
 def make_nets(bf_scale_init=0.7, zero_init_last=False):
-    f_net = PINN(
-        n_particles=N_PARTICLES, d=DIM, omega=OMEGA,
-        dL=8, hidden_dim=64, n_layers=2,
-        act="gelu", init="xavier",
-        use_gate=True, use_pair_attn=False,
-    ).to(DEVICE).to(DTYPE)
-    bf_net = CTNNBackflowNet(
-        d=DIM, msg_hidden=32, msg_layers=1,
-        hidden=32, layers=2,
-        act="silu", aggregation="sum",
-        use_spin=True, same_spin_only=False,
-        out_bound="tanh", bf_scale_init=bf_scale_init,
-        zero_init_last=zero_init_last,
-        omega=OMEGA,
-    ).to(DEVICE).to(DTYPE)
+    f_net = (
+        PINN(
+            n_particles=N_PARTICLES,
+            d=DIM,
+            omega=OMEGA,
+            dL=8,
+            hidden_dim=64,
+            n_layers=2,
+            act="gelu",
+            init="xavier",
+            use_gate=True,
+            use_pair_attn=False,
+        )
+        .to(DEVICE)
+        .to(DTYPE)
+    )
+    bf_net = (
+        CTNNBackflowNet(
+            d=DIM,
+            msg_hidden=32,
+            msg_layers=1,
+            hidden=32,
+            layers=2,
+            act="silu",
+            aggregation="sum",
+            use_spin=True,
+            same_spin_only=False,
+            out_bound="tanh",
+            bf_scale_init=bf_scale_init,
+            zero_init_last=zero_init_last,
+            omega=OMEGA,
+        )
+        .to(DEVICE)
+        .to(DTYPE)
+    )
     return f_net, bf_net
 
 
 def make_psi_log_fn(f_net, bf_net, C_occ, params):
     up = N_PARTICLES // 2
-    spin = torch.cat([torch.zeros(up, dtype=torch.long),
-                      torch.ones(N_PARTICLES - up, dtype=torch.long)]).to(DEVICE)
+    spin = torch.cat(
+        [torch.zeros(up, dtype=torch.long), torch.ones(N_PARTICLES - up, dtype=torch.long)]
+    ).to(DEVICE)
+
     def fn(y):
-        lp, _ = psi_fn(f_net, y, C_occ, backflow_net=bf_net,
-                        spin=spin, params=params)
+        lp, _ = psi_fn(f_net, y, C_occ, backflow_net=bf_net, spin=spin, params=params)
         return lp
+
     return fn, spin
 
 
@@ -128,14 +162,20 @@ def save_model(f_net, bf_net, name):
 def evaluate(f_net, C_occ, params, backflow_net=None, n_samples=15_000, label=""):
     print(f"\n-- VMC eval: {label} --")
     result = evaluate_energy_vmc(
-        f_net, C_occ,
+        f_net,
+        C_occ,
         psi_fn=psi_fn,
         compute_coulomb_interaction=compute_coulomb_interaction,
-        backflow_net=backflow_net, params=params,
-        n_samples=n_samples, batch_size=512,
-        sampler_steps=50, sampler_step_sigma=0.12,
+        backflow_net=backflow_net,
+        params=params,
+        n_samples=n_samples,
+        batch_size=512,
+        sampler_steps=50,
+        sampler_step_sigma=0.12,
         lap_mode="exact",
-        persistent=True, sampler_burn_in=300, sampler_thin=3,
+        persistent=True,
+        sampler_burn_in=300,
+        sampler_thin=3,
         progress=True,
     )
     E, E_std = result["E_mean"], result["E_stderr"]
@@ -148,6 +188,7 @@ def evaluate(f_net, C_occ, params, backflow_net=None, n_samples=15_000, label=""
 #  Smoothness penalty (proven critical)
 # ══════════════════════════════════════════════════════════════════
 
+
 def compute_bf_smoothness_penalty(bf_net, x, spin, n_samples=32):
     x_sub = x[:n_samples].detach().requires_grad_(True)
     B, N, d = x_sub.shape
@@ -158,12 +199,12 @@ def compute_bf_smoothness_penalty(bf_net, x, spin, n_samples=32):
         v = torch.empty_like(x_sub).bernoulli_(0.5).mul_(2).add_(-1)
         for k in range(d):
             dx_k_sum = dx[:, :, k].sum()
-            grad1 = torch.autograd.grad(
-                dx_k_sum, x_sub, create_graph=True, retain_graph=True)[0]
+            grad1 = torch.autograd.grad(dx_k_sum, x_sub, create_graph=True, retain_graph=True)[0]
             Hv = torch.autograd.grad(
-                (grad1 * v).sum(), x_sub, create_graph=True, retain_graph=True)[0]
+                (grad1 * v).sum(), x_sub, create_graph=True, retain_graph=True
+            )[0]
             vTHv = (v * Hv).sum(dim=(1, 2))
-            lap_sq_sum = lap_sq_sum + (vTHv ** 2).mean()
+            lap_sq_sum = lap_sq_sum + (vTHv**2).mean()
     return lap_sq_sum / (n_probes * d)
 
 
@@ -171,11 +212,12 @@ def compute_bf_smoothness_penalty(bf_net, x, spin, n_samples=32):
 #  INTERVENTION 1: Soft Coulomb (training only)
 # ══════════════════════════════════════════════════════════════════
 
+
 def compute_soft_coulomb(x, eps_phys=0.1):
     """
     Mollified Coulomb: 1/sqrt(r^2 + eps^2).
     eps_phys is in physical units (units of ell = 1/sqrt(omega)).
-    
+
     The Jastrow already handles the exact e-e cusp analytically via
     gamma * r * exp(-r). So the NN never needs to see the raw 1/r.
     During training, we soften this to remove the gradient singularity.
@@ -183,34 +225,36 @@ def compute_soft_coulomb(x, eps_phys=0.1):
     """
     B, N, d = x.shape
     ii, jj = torch.triu_indices(N, N, 1, device=x.device)
-    diff = x[:, ii, :] - x[:, jj, :]       # (B, P, d)
-    r2 = (diff ** 2).sum(-1)                 # (B, P)
-    eps2 = eps_phys ** 2
-    r_soft = torch.sqrt(r2 + eps2)           # (B, P)
-    Vij = 1.0 / r_soft                       # (B, P)
-    return Vij.sum(dim=1)                    # (B,)
+    diff = x[:, ii, :] - x[:, jj, :]  # (B, P, d)
+    r2 = (diff**2).sum(-1)  # (B, P)
+    eps2 = eps_phys**2
+    r_soft = torch.sqrt(r2 + eps2)  # (B, P)
+    Vij = 1.0 / r_soft  # (B, P)
+    return Vij.sum(dim=1)  # (B,)
 
 
 # ══════════════════════════════════════════════════════════════════
 #  INTERVENTION 2: Regularized slogdet (training only)
 # ══════════════════════════════════════════════════════════════════
 
+
 def make_regularized_psi_log_fn(f_net, bf_net, C_occ, params, det_floor=1e-4):
     """
     Like standard psi_log_fn but with a soft floor on |det S̃|:
-    
+
       logψ_reg = log(max(|det S̃|, δ)) + f
-    
+
     Near nodes (|det| < δ), the gradient of logψ w.r.t. x becomes
     bounded instead of → ∞. This removes the ∇²logψ singularity.
-    
+
     Equivalent to: we pretend ψ never goes below δ·exp(f).
     The wavefunction still changes sign (sign is tracked separately),
     but the log-magnitude is bounded from below.
     """
     up = N_PARTICLES // 2
-    spin = torch.cat([torch.zeros(up, dtype=torch.long),
-                      torch.ones(N_PARTICLES - up, dtype=torch.long)]).to(DEVICE)
+    spin = torch.cat(
+        [torch.zeros(up, dtype=torch.long), torch.ones(N_PARTICLES - up, dtype=torch.long)]
+    ).to(DEVICE)
 
     def fn(y):
         B, N, d = y.shape
@@ -222,8 +266,11 @@ def make_regularized_psi_log_fn(f_net, bf_net, C_occ, params, det_floor=1e-4):
 
         # Slater determinant
         sign, logabs = slater_determinant_closed_shell(
-            x_config=x_eff, C_occ=C_occ, params=params,
-            spin=spin_bn, normalize=True,
+            x_config=x_eff,
+            C_occ=C_occ,
+            params=params,
+            spin=spin_bn,
+            normalize=True,
         )
 
         # KEY REGULARIZATION: floor |det| to prevent logabs → -∞
@@ -234,7 +281,9 @@ def make_regularized_psi_log_fn(f_net, bf_net, C_occ, params, det_floor=1e-4):
         # = log(exp(logabs) + exp(log_floor))
         # When logabs >> log_floor: → logabs (no change)
         # When logabs << log_floor: → log_floor (capped)
-        logabs_reg = torch.logaddexp(logabs, torch.tensor(log_floor, dtype=y.dtype, device=y.device))
+        logabs_reg = torch.logaddexp(
+            logabs, torch.tensor(log_floor, dtype=y.dtype, device=y.device)
+        )
         # Subtract log(2) bias from logaddexp when both are equal
         # Actually logaddexp(a, b) = log(exp(a) + exp(b)), which is always ≥ max(a,b)
         # This adds a tiny upward bias (~log2 when a≈b), which is fine for training.
@@ -252,12 +301,11 @@ def make_regularized_psi_log_fn(f_net, bf_net, C_occ, params, det_floor=1e-4):
 #  INTERVENTION 3: Kinetic energy clipping
 # ══════════════════════════════════════════════════════════════════
 
-def compute_local_energy_soft(psi_log_fn, x, omega, *,
-                               eps_coulomb=0.0,
-                               T_clip=None):
+
+def compute_local_energy_soft(psi_log_fn, x, omega, *, eps_coulomb=0.0, T_clip=None):
     """
     Local energy with optional soft Coulomb and kinetic energy clipping.
-    
+
     T_clip: if set, clips |T| to this value. Prevents extreme kinetic
     energy contributions from propagating gradients.
     Typical E_L ~ 12 for N=6, so T_clip ~ 50 is loose, ~20 is moderate.
@@ -271,7 +319,7 @@ def compute_local_energy_soft(psi_log_fn, x, omega, *,
     if T_clip is not None and T_clip > 0:
         T = torch.clamp(T, -T_clip, T_clip)
 
-    V_harm = 0.5 * omega ** 2 * (x ** 2).sum(dim=(1, 2))
+    V_harm = 0.5 * omega**2 * (x**2).sum(dim=(1, 2))
 
     if eps_coulomb > 0:
         V_int = compute_soft_coulomb(x, eps_phys=eps_coulomb)
@@ -282,15 +330,16 @@ def compute_local_energy_soft(psi_log_fn, x, omega, *,
 
 
 # ══════════════════════════════════════════════════════════════════
-#  Standard local energy (baseline)  
+#  Standard local energy (baseline)
 # ══════════════════════════════════════════════════════════════════
+
 
 def compute_local_energy_standard(psi_log_fn, x, omega):
     x = x.detach().requires_grad_(True)
     g, g2, lap_log = _laplacian_logpsi_exact(psi_log_fn, x)
     B = x.shape[0]
     T = -0.5 * (lap_log.view(B) + g2.view(B))
-    V_harm = 0.5 * omega ** 2 * (x ** 2).sum(dim=(1, 2))
+    V_harm = 0.5 * omega**2 * (x**2).sum(dim=(1, 2))
     V_int = compute_coulomb_interaction(x).view(B)
     return T + V_harm + V_int
 
@@ -299,25 +348,24 @@ def compute_local_energy_standard(psi_log_fn, x, omega):
 #  Sampling: standard top-K
 # ══════════════════════════════════════════════════════════════════
 
+
 @torch.no_grad()
 def sample_gaussian(n_samples, sigma):
     x = torch.randn(n_samples, N_PARTICLES, DIM, device=DEVICE, dtype=DTYPE) * sigma
     Nd = N_PARTICLES * DIM
-    log_q = (
-        -0.5 * Nd * math.log(2 * math.pi * sigma ** 2)
-        - x.reshape(n_samples, -1).pow(2).sum(-1) / (2 * sigma ** 2)
-    )
+    log_q = -0.5 * Nd * math.log(2 * math.pi * sigma**2) - x.reshape(n_samples, -1).pow(2).sum(
+        -1
+    ) / (2 * sigma**2)
     return x, log_q
 
 
 @torch.no_grad()
-def topk_collocation(psi_log_fn, n_keep, oversampling, sigma,
-                     batch_size=4096):
+def topk_collocation(psi_log_fn, n_keep, oversampling, sigma, batch_size=4096):
     M = oversampling * n_keep
     x_cand, log_q = sample_gaussian(M, sigma)
     log_psi_parts = []
     for i in range(0, M, batch_size):
-        lp = psi_log_fn(x_cand[i:i + batch_size])
+        lp = psi_log_fn(x_cand[i : i + batch_size])
         log_psi_parts.append(lp)
     log_psi = torch.cat(log_psi_parts)
     log_w = 2.0 * log_psi - log_q
@@ -332,8 +380,13 @@ def topk_collocation(psi_log_fn, n_keep, oversampling, sigma,
 #  Training loop
 # ══════════════════════════════════════════════════════════════════
 
+
 def train_regularized(
-    f_net, bf_net, C_occ, params, *,
+    f_net,
+    bf_net,
+    C_occ,
+    params,
+    *,
     n_epochs=150,
     lr=3e-4,
     lr_min_frac=0.02,
@@ -341,9 +394,9 @@ def train_regularized(
     oversampling=10,
     sigma=None,
     # Regularization options
-    eps_coulomb=0.0,       # soft Coulomb epsilon (0 = exact)
-    det_floor=0.0,         # regularized det floor (0 = exact)
-    T_clip=0.0,            # kinetic energy clip (0 = no clip)
+    eps_coulomb=0.0,  # soft Coulomb epsilon (0 = exact)
+    det_floor=0.0,  # regularized det floor (0 = exact)
+    T_clip=0.0,  # kinetic energy clip (0 = no clip)
     # Loss
     huber_delta=0.5,
     smooth_lambda=1e-3,
@@ -366,7 +419,8 @@ def train_regularized(
     # Build psi_log_fn — potentially regularized
     if det_floor > 0:
         psi_log_fn_train, spin = make_regularized_psi_log_fn(
-            f_net, bf_net, C_occ, params, det_floor=det_floor)
+            f_net, bf_net, C_occ, params, det_floor=det_floor
+        )
     else:
         psi_log_fn_train, spin = make_psi_log_fn(f_net, bf_net, C_occ, params)
 
@@ -378,8 +432,10 @@ def train_regularized(
     lr_min = lr * lr_min_frac
     scheduler = torch.optim.lr_scheduler.LambdaLR(
         optimizer,
-        lr_lambda=lambda ep: (lr_min + 0.5 * (lr - lr_min) *
-                              (1 + math.cos(math.pi * ep / max(1, n_epochs - 1)))) / lr,
+        lr_lambda=lambda ep: (
+            lr_min + 0.5 * (lr - lr_min) * (1 + math.cos(math.pi * ep / max(1, n_epochs - 1)))
+        )
+        / lr,
     )
     phase1_end = int(phase1_frac * n_epochs)
 
@@ -408,23 +464,27 @@ def train_regularized(
             alpha = 0.5 * alpha_end * (1 - math.cos(math.pi * t2))
 
         # Sample with exact psi
-        f_net.eval(); bf_net.eval()
+        f_net.eval()
+        bf_net.eval()
         X = topk_collocation(psi_log_fn_screen, n_collocation, oversampling, sigma)
         n_pts = X.shape[0]
 
         # Train step
-        f_net.train(); bf_net.train()
+        f_net.train()
+        bf_net.train()
         optimizer.zero_grad(set_to_none=True)
 
         all_EL = []
         n_batches = max(1, math.ceil(n_pts / micro_batch))
 
         for i in range(0, n_pts, micro_batch):
-            x_mb = X[i:i + micro_batch]
+            x_mb = X[i : i + micro_batch]
 
             # Compute E_L with regularizations
             E_L = compute_local_energy_soft(
-                psi_log_fn_train, x_mb, omega,
+                psi_log_fn_train,
+                x_mb,
+                omega,
                 eps_coulomb=eps_coulomb,
                 T_clip=T_clip if T_clip > 0 else None,
             ).view(-1)
@@ -448,12 +508,10 @@ def train_regularized(
             E_eff = alpha * E_DMC + (1.0 - alpha) * mu
             resid = E_L - E_eff
 
-            loss_mb = nn.functional.huber_loss(
-                resid, torch.zeros_like(resid), delta=huber_delta)
+            loss_mb = nn.functional.huber_loss(resid, torch.zeros_like(resid), delta=huber_delta)
 
             if smooth_lambda > 0:
-                pen = compute_bf_smoothness_penalty(
-                    bf_net, x_mb, spin, n_samples=smooth_n_samples)
+                pen = compute_bf_smoothness_penalty(bf_net, x_mb, spin, n_samples=smooth_n_samples)
                 loss_mb = loss_mb + smooth_lambda * pen
 
             (loss_mb / n_batches).backward()
@@ -518,6 +576,7 @@ def train_regularized(
 #  Experiments
 # ══════════════════════════════════════════════════════════════════
 
+
 def load_trained(f_net, bf_net, path):
     ckpt = torch.load(path, map_location=DEVICE)
     f_net.load_state_dict(ckpt["f_net"])
@@ -533,10 +592,10 @@ if __name__ == "__main__":
     BASE_MODEL = os.path.join(CKPT_DIR, "6e_sir_topk_baseline.pt")  # 0.35%
 
     configs = [
-        ("soft_coul",   dict(eps_coulomb=0.2,  det_floor=0.0,   T_clip=0.0)),
-        ("reg_det",     dict(eps_coulomb=0.0,  det_floor=1e-3,  T_clip=0.0)),
-        ("T_clip",      dict(eps_coulomb=0.0,  det_floor=0.0,   T_clip=30.0)),
-        ("all_reg",     dict(eps_coulomb=0.2,  det_floor=1e-3,  T_clip=30.0)),
+        ("soft_coul", dict(eps_coulomb=0.2, det_floor=0.0, T_clip=0.0)),
+        ("reg_det", dict(eps_coulomb=0.0, det_floor=1e-3, T_clip=0.0)),
+        ("T_clip", dict(eps_coulomb=0.0, det_floor=0.0, T_clip=30.0)),
+        ("all_reg", dict(eps_coulomb=0.2, det_floor=1e-3, T_clip=30.0)),
     ]
 
     for name, reg_kw in configs:
@@ -548,7 +607,10 @@ if __name__ == "__main__":
         f, bf = load_trained(f, bf, BASE_MODEL)
 
         f, bf = train_regularized(
-            f, bf, C_occ, params,
+            f,
+            bf,
+            C_occ,
+            params,
             n_epochs=N_EP,
             lr=1e-4,
             patience=999,  # don't early-stop on short runs
@@ -572,4 +634,4 @@ if __name__ == "__main__":
 
     for name, (E, std, err) in sorted(results.items(), key=lambda x: x[1][2]):
         print(f"  {name:40s}  E={E:.6f} +/- {std:.6f}  err={err:.2f}%")
-    print(f"Done.")
+    print("Done.")

@@ -1,12 +1,24 @@
 """Quick sanity check for K-FAC components."""
-import sys; sys.path.insert(0, "/Users/aleksandersekkelsten/thesis/src")
-import torch, numpy as np, math
-torch.manual_seed(42); np.random.seed(42)
 
-from run_6e_kfac import (make_nets, make_psi_log_fn, KFACPreconditioner,
-                          compute_bf_laplacian_penalty, damped_slogdet)
-from run_6e_residual import (setup_noninteracting, compute_local_energy,
-                              screened_collocation)
+import sys
+
+sys.path.insert(0, "/Users/aleksandersekkelsten/thesis/src")
+import math
+
+import numpy as np
+import torch
+
+torch.manual_seed(42)
+np.random.seed(42)
+
+from run_6e_kfac import (
+    KFACPreconditioner,
+    compute_bf_laplacian_penalty,
+    damped_slogdet,
+    make_nets,
+    make_psi_log_fn,
+)
+from run_6e_residual import compute_local_energy, screened_collocation, setup_noninteracting
 
 C_occ, params = setup_noninteracting(6, 0.5, d=2)
 f_net, bf_net = make_nets(0.7, False)
@@ -18,11 +30,13 @@ kfac.register_hooks()
 print(f"K-FAC tracking {len(kfac.linear_layers)} linear layers")
 
 sigma = 1.3 / math.sqrt(0.5)
-X = screened_collocation(psi_log_fn, 6, 2, sigma, n_keep=64,
-                         oversampling=10, device="cpu", dtype=torch.float64)
-f_net.train(); bf_net.train()
+X = screened_collocation(
+    psi_log_fn, 6, 2, sigma, n_keep=64, oversampling=10, device="cpu", dtype=torch.float64
+)
+f_net.train()
+bf_net.train()
 E_L = compute_local_energy(psi_log_fn, X[:16], 0.5).view(-1)
-loss = (E_L ** 2).mean()
+loss = (E_L**2).mean()
 loss.backward()
 kfac.step()
 kfac.remove_hooks()

@@ -4,7 +4,7 @@ Residual-based sampling experiments for 6e quantum dot (ω=0.5).
 Core insight:
   Screened collocation trains on points where |Ψ|²/q is highest — these are the
   "easy" points where the wavefunction is large. But VMC evaluates everywhere |Ψ|²
-  lives, including regions where E_L has high variance. We need to train on the 
+  lives, including regions where E_L has high variance. We need to train on the
   HARD configurations too — where the local energy deviates most from the mean.
 
   All approaches here are genuinely residual-based:
@@ -17,7 +17,7 @@ Experiments (all start from trained kfac_sepclip model, 50ep quick test):
   B. hard_mine           — screened collocation, then find high-|E_L - median|
                            points, perturb them, re-screen, and include
   C. multiscale          — pool proposals at 3 scales (σ=0.8ℓ, 1.3ℓ, 2.5ℓ),
-                           screen the combined pool → diverse coverage 
+                           screen the combined pool → diverse coverage
   D. residual_weighted   — screen by |E_L - E_target|² × |Ψ|²/q instead of
                            just |Ψ|²/q — focuses on high-residual regions
   E. iterative_refine    — use previous epoch's hard points as Gaussian proposal
@@ -27,28 +27,26 @@ Experiments (all start from trained kfac_sepclip model, 50ep quick test):
                            screen from → better coverage)
 """
 
-import math, sys, time, copy, os
-import numpy as np
+import math
+import os
+import sys
+import time
+
 import torch
 import torch.nn as nn
 
 sys.path.insert(0, "/Users/aleksandersekkelsten/thesis/src")
 
-import config
-from PINN import PINN, CTNNBackflowNet
 from functions.Neural_Networks import (
     psi_fn,
-    _laplacian_logpsi_exact,
 )
-from functions.Physics import compute_coulomb_interaction
-from functions.Energy import evaluate_energy_vmc
-
+from PINN import PINN, CTNNBackflowNet
 from run_6e_residual import (
-    setup_noninteracting,
     compute_local_energy,
-    screened_collocation,
-    sample_gaussian_proposal,
     evaluate,
+    sample_gaussian_proposal,
+    screened_collocation,
+    setup_noninteracting,
 )
 
 E_DMC = 11.78484
@@ -64,22 +62,43 @@ ELL = 1.0 / math.sqrt(OMEGA)  # oscillator length
 #  Model construction & loading
 # ══════════════════════════════════════════════════════════════════
 
+
 def make_nets(bf_scale_init=0.7, zero_init_last=False):
-    f_net = PINN(
-        n_particles=N, d=D, omega=OMEGA,
-        dL=8, hidden_dim=64, n_layers=2,
-        act="gelu", init="xavier",
-        use_gate=True, use_pair_attn=False,
-    ).to(DEVICE).to(DTYPE)
-    bf_net = CTNNBackflowNet(
-        d=D, msg_hidden=32, msg_layers=1,
-        hidden=32, layers=2,
-        act="silu", aggregation="sum",
-        use_spin=True, same_spin_only=False,
-        out_bound="tanh", bf_scale_init=bf_scale_init,
-        zero_init_last=zero_init_last,
-        omega=OMEGA,
-    ).to(DEVICE).to(DTYPE)
+    f_net = (
+        PINN(
+            n_particles=N,
+            d=D,
+            omega=OMEGA,
+            dL=8,
+            hidden_dim=64,
+            n_layers=2,
+            act="gelu",
+            init="xavier",
+            use_gate=True,
+            use_pair_attn=False,
+        )
+        .to(DEVICE)
+        .to(DTYPE)
+    )
+    bf_net = (
+        CTNNBackflowNet(
+            d=D,
+            msg_hidden=32,
+            msg_layers=1,
+            hidden=32,
+            layers=2,
+            act="silu",
+            aggregation="sum",
+            use_spin=True,
+            same_spin_only=False,
+            out_bound="tanh",
+            bf_scale_init=bf_scale_init,
+            zero_init_last=zero_init_last,
+            omega=OMEGA,
+        )
+        .to(DEVICE)
+        .to(DTYPE)
+    )
     return f_net, bf_net
 
 
@@ -118,12 +137,14 @@ def load_base_model():
 
 def make_psi_log_fn(f_net, bf_net, C_occ, params):
     up = N // 2
-    spin = torch.cat([torch.zeros(up, dtype=torch.long),
-                      torch.ones(N - up, dtype=torch.long)]).to(DEVICE)
+    spin = torch.cat([torch.zeros(up, dtype=torch.long), torch.ones(N - up, dtype=torch.long)]).to(
+        DEVICE
+    )
+
     def fn(y):
-        lp, _ = psi_fn(f_net, y, C_occ, backflow_net=bf_net,
-                        spin=spin, params=params)
+        lp, _ = psi_fn(f_net, y, C_occ, backflow_net=bf_net, spin=spin, params=params)
         return lp
+
     return fn, spin
 
 
@@ -133,15 +154,23 @@ def make_psi_log_fn(f_net, bf_net, C_occ, params):
 
 # --- A. Standard screened collocation ---
 
+
 def make_screened_sampler(n_keep=2048, oversampling=10, sigma_factor=1.3):
     sigma = sigma_factor * ELL
+
     def sample_fn(psi_log_fn, epoch, state):
         X = screened_collocation(
-            psi_log_fn, N, D, sigma,
-            n_keep=n_keep, oversampling=oversampling,
-            device=DEVICE, dtype=DTYPE,
+            psi_log_fn,
+            N,
+            D,
+            sigma,
+            n_keep=n_keep,
+            oversampling=oversampling,
+            device=DEVICE,
+            dtype=DTYPE,
         )
         return X, state
+
     return sample_fn
 
 
@@ -152,8 +181,10 @@ def make_screened_sampler(n_keep=2048, oversampling=10, sigma_factor=1.3):
 #   4. Re-screen the cloud through |Ψ|²/q → keep the good perturbed ones
 #   5. Combine: normal screened + re-screened-hard
 
-def make_hard_mining_sampler(n_keep=2048, hard_frac=0.3, oversampling=10,
-                             sigma_factor=1.3, perturb_sigma_frac=0.3):
+
+def make_hard_mining_sampler(
+    n_keep=2048, hard_frac=0.3, oversampling=10, sigma_factor=1.3, perturb_sigma_frac=0.3
+):
     """
     Residual-based hard mining: no MCMC, no walkers.
     Every epoch:
@@ -172,16 +203,21 @@ def make_hard_mining_sampler(n_keep=2048, hard_frac=0.3, oversampling=10,
     def sample_fn(psi_log_fn, epoch, state):
         # Step 1: Normal screened collocation (full pool for E_L eval)
         X_full = screened_collocation(
-            psi_log_fn, N, D, sigma,
-            n_keep=n_keep, oversampling=oversampling,
-            device=DEVICE, dtype=DTYPE,
+            psi_log_fn,
+            N,
+            D,
+            sigma,
+            n_keep=n_keep,
+            oversampling=oversampling,
+            device=DEVICE,
+            dtype=DTYPE,
         )
 
         # Step 2: Evaluate E_L at all screened points (needs grad!)
         all_EL = []
         mb = 128
         for i in range(0, X_full.shape[0], mb):
-            x_mb = X_full[i:i + mb].detach().requires_grad_(True)
+            x_mb = X_full[i : i + mb].detach().requires_grad_(True)
             EL = compute_local_energy(psi_log_fn, x_mb, OMEGA).view(-1).detach()
             all_EL.append(EL)
         EL_cat = torch.cat(all_EL)
@@ -210,7 +246,7 @@ def make_hard_mining_sampler(n_keep=2048, hard_frac=0.3, oversampling=10,
         with torch.no_grad():
             log_psi_cand = []
             for i in range(0, candidates.shape[0], 512):
-                lp = psi_log_fn(candidates[i:i + 512])
+                lp = psi_log_fn(candidates[i : i + 512])
                 log_psi_cand.append(2.0 * lp)
             log_psi2 = torch.cat(log_psi_cand)
 
@@ -245,6 +281,7 @@ def make_hard_mining_sampler(n_keep=2048, hard_frac=0.3, oversampling=10,
         state["median_EL"] = median.item()
 
         return X, state
+
     return sample_fn
 
 
@@ -252,8 +289,8 @@ def make_hard_mining_sampler(n_keep=2048, hard_frac=0.3, oversampling=10,
 #   Pool candidates from 3 different Gaussian widths: tight, medium, wide.
 #   Screen the combined pool. Gives diverse radial coverage.
 
-def make_multiscale_sampler(n_keep=2048, oversampling_per_scale=7,
-                            sigma_factors=(0.8, 1.3, 2.5)):
+
+def make_multiscale_sampler(n_keep=2048, oversampling_per_scale=7, sigma_factors=(0.8, 1.3, 2.5)):
     sigmas = [f * ELL for f in sigma_factors]
     n_cand_each = oversampling_per_scale * n_keep  # per scale
 
@@ -267,7 +304,7 @@ def make_multiscale_sampler(n_keep=2048, oversampling_per_scale=7,
             # Evaluate log|Ψ|²
             log_psi2_parts = []
             for i in range(0, n_cand_each, 4096):
-                lp = psi_log_fn(x[i:i + 4096])
+                lp = psi_log_fn(x[i : i + 4096])
                 log_psi2_parts.append(2.0 * lp)
             log_psi2 = torch.cat(log_psi2_parts)
             log_ratio = log_psi2 - log_q
@@ -279,6 +316,7 @@ def make_multiscale_sampler(n_keep=2048, oversampling_per_scale=7,
         LR_pool = torch.cat(all_log_ratio, dim=0)
         _, idx = torch.topk(LR_pool, n_keep)
         return X_pool[idx].clone(), state
+
     return sample_fn
 
 
@@ -287,8 +325,10 @@ def make_multiscale_sampler(n_keep=2048, oversampling_per_scale=7,
 #   Points where E_L is far from E_target AND |Ψ|² is large are most important.
 #   Two-epoch process: epoch n uses E_L from epoch n-1 to bias selection.
 
-def make_residual_weighted_sampler(n_keep=2048, oversampling=10, sigma_factor=1.3,
-                                   residual_weight=1.0):
+
+def make_residual_weighted_sampler(
+    n_keep=2048, oversampling=10, sigma_factor=1.3, residual_weight=1.0
+):
     sigma = sigma_factor * ELL
 
     def sample_fn(psi_log_fn, epoch, state):
@@ -300,20 +340,20 @@ def make_residual_weighted_sampler(n_keep=2048, oversampling=10, sigma_factor=1.
             n_fresh = int(0.7 * n_cand)
             n_from_prev = n_cand - n_fresh
 
-            x_fresh, log_q_fresh = sample_gaussian_proposal(
-                n_fresh, N, D, sigma, DEVICE, DTYPE)
+            x_fresh, log_q_fresh = sample_gaussian_proposal(n_fresh, N, D, sigma, DEVICE, DTYPE)
 
             # Sample from previous hard points with perturbation
             prev_hard = state["prev_hard_x"]
             idx = torch.randint(0, prev_hard.shape[0], (n_from_prev,))
-            x_from_prev = prev_hard[idx] + torch.randn(n_from_prev, N, D,
-                                                         device=DEVICE, dtype=DTYPE) * sigma * 0.3
+            x_from_prev = (
+                prev_hard[idx]
+                + torch.randn(n_from_prev, N, D, device=DEVICE, dtype=DTYPE) * sigma * 0.3
+            )
             # Compute log_q for the perturbed points (approximate with the same Gaussian)
             Nd = N * D
-            log_q_prev = (
-                -0.5 * Nd * math.log(2 * math.pi * sigma ** 2)
-                - x_from_prev.reshape(n_from_prev, -1).pow(2).sum(-1) / (2 * sigma ** 2)
-            )
+            log_q_prev = -0.5 * Nd * math.log(2 * math.pi * sigma**2) - x_from_prev.reshape(
+                n_from_prev, -1
+            ).pow(2).sum(-1) / (2 * sigma**2)
 
             x_all = torch.cat([x_fresh, x_from_prev], dim=0)
             log_q_all = torch.cat([log_q_fresh, log_q_prev], dim=0)
@@ -324,7 +364,7 @@ def make_residual_weighted_sampler(n_keep=2048, oversampling=10, sigma_factor=1.
         with torch.no_grad():
             log_psi2_parts = []
             for i in range(0, x_all.shape[0], 4096):
-                lp = psi_log_fn(x_all[i:i + 4096])
+                lp = psi_log_fn(x_all[i : i + 4096])
                 log_psi2_parts.append(2.0 * lp)
             log_psi2 = torch.cat(log_psi2_parts)
 
@@ -339,6 +379,7 @@ def make_residual_weighted_sampler(n_keep=2048, oversampling=10, sigma_factor=1.
         state["need_hard_eval"] = True
 
         return X, state
+
     return sample_fn
 
 
@@ -346,8 +387,10 @@ def make_residual_weighted_sampler(n_keep=2048, oversampling=10, sigma_factor=1.
 #   Each epoch: screened collocation + adaptive Gaussian around previous
 #   hard points. The proposal adapts without MCMC.
 
-def make_iterative_refine_sampler(n_keep=2048, oversampling=10, sigma_factor=1.3,
-                                   refine_frac=0.3, refine_sigma_factor=0.4):
+
+def make_iterative_refine_sampler(
+    n_keep=2048, oversampling=10, sigma_factor=1.3, refine_frac=0.3, refine_sigma_factor=0.4
+):
     sigma = sigma_factor * ELL
     refine_sigma = refine_sigma_factor * ELL
     n_refine = int(n_keep * refine_frac)
@@ -357,9 +400,14 @@ def make_iterative_refine_sampler(n_keep=2048, oversampling=10, sigma_factor=1.3
         if "prev_hard_x" not in state or state["prev_hard_x"] is None:
             # First epoch: just normal screened
             X = screened_collocation(
-                psi_log_fn, N, D, sigma,
-                n_keep=n_keep, oversampling=oversampling,
-                device=DEVICE, dtype=DTYPE,
+                psi_log_fn,
+                N,
+                D,
+                sigma,
+                n_keep=n_keep,
+                oversampling=oversampling,
+                device=DEVICE,
+                dtype=DTYPE,
             )
             state["prev_hard_x"] = None
             state["need_hard_eval"] = True
@@ -367,9 +415,14 @@ def make_iterative_refine_sampler(n_keep=2048, oversampling=10, sigma_factor=1.3
 
         # Normal screened portion
         X_normal = screened_collocation(
-            psi_log_fn, N, D, sigma,
-            n_keep=n_normal, oversampling=oversampling,
-            device=DEVICE, dtype=DTYPE,
+            psi_log_fn,
+            N,
+            D,
+            sigma,
+            n_keep=n_normal,
+            oversampling=oversampling,
+            device=DEVICE,
+            dtype=DTYPE,
         )
 
         # Refine portion: Gaussian around previous hard points, then screen
@@ -377,14 +430,15 @@ def make_iterative_refine_sampler(n_keep=2048, oversampling=10, sigma_factor=1.3
         n_perturb = 8
         n_cand_refine = min(prev.shape[0] * n_perturb, n_refine * oversampling)
         idx = torch.randint(0, prev.shape[0], (n_cand_refine,))
-        x_cand = prev[idx] + torch.randn(n_cand_refine, N, D,
-                                          device=DEVICE, dtype=DTYPE) * refine_sigma
+        x_cand = (
+            prev[idx] + torch.randn(n_cand_refine, N, D, device=DEVICE, dtype=DTYPE) * refine_sigma
+        )
 
         # Screen by |Ψ|²
         with torch.no_grad():
             log_psi2_parts = []
             for i in range(0, n_cand_refine, 4096):
-                lp = psi_log_fn(x_cand[i:i + 4096])
+                lp = psi_log_fn(x_cand[i : i + 4096])
                 log_psi2_parts.append(2.0 * lp)
             log_psi2 = torch.cat(log_psi2_parts)
 
@@ -400,6 +454,7 @@ def make_iterative_refine_sampler(n_keep=2048, oversampling=10, sigma_factor=1.3
         X = torch.cat([X_normal, X_refine], dim=0) if X_refine.shape[0] > 0 else X_normal
         state["need_hard_eval"] = True
         return X, state
+
     return sample_fn
 
 
@@ -409,16 +464,24 @@ def make_iterative_refine_sampler(n_keep=2048, oversampling=10, sigma_factor=1.3
 
 # --- G. Heavy oversampling ---
 
+
 def make_heavy_oversampled_sampler(n_keep=2048, oversampling=40, sigma_factor=1.3):
     """40× oversampling instead of 10× — much better top-K approximation of |Ψ|²."""
     sigma = sigma_factor * ELL
+
     def sample_fn(psi_log_fn, epoch, state):
         X = screened_collocation(
-            psi_log_fn, N, D, sigma,
-            n_keep=n_keep, oversampling=oversampling,
-            device=DEVICE, dtype=DTYPE,
+            psi_log_fn,
+            N,
+            D,
+            sigma,
+            n_keep=n_keep,
+            oversampling=oversampling,
+            device=DEVICE,
+            dtype=DTYPE,
         )
         return X, state
+
     return sample_fn
 
 
@@ -426,8 +489,13 @@ def make_heavy_oversampled_sampler(n_keep=2048, oversampling=40, sigma_factor=1.
 #  Unified trainer (same as before, but with hard-point tracking)
 # ══════════════════════════════════════════════════════════════════
 
+
 def train_with_sampling(
-    f_net, bf_net, C_occ, params, *,
+    f_net,
+    bf_net,
+    C_occ,
+    params,
+    *,
     sample_fn,
     n_epochs=50,
     lr=5e-5,
@@ -453,8 +521,10 @@ def train_with_sampling(
     lr_min = lr * lr_min_frac
     scheduler = torch.optim.lr_scheduler.LambdaLR(
         optimizer,
-        lr_lambda=lambda ep: (lr_min + 0.5 * (lr - lr_min) *
-                              (1 + math.cos(math.pi * ep / max(1, n_epochs - 1)))) / lr,
+        lr_lambda=lambda ep: (
+            lr_min + 0.5 * (lr - lr_min) * (1 + math.cos(math.pi * ep / max(1, n_epochs - 1)))
+        )
+        / lr,
     )
     phase1_end = int(phase1_frac * n_epochs)
 
@@ -488,19 +558,21 @@ def train_with_sampling(
             alpha = 0.0
 
         # ── Sample ──
-        f_net.eval(); bf_net.eval()
+        f_net.eval()
+        bf_net.eval()
         X, sample_state = sample_fn(psi_log_fn, epoch, sample_state)
         n_pts = X.shape[0]
 
         # ── Train ──
-        f_net.train(); bf_net.train()
+        f_net.train()
+        bf_net.train()
         optimizer.zero_grad(set_to_none=True)
 
         all_EL = []
         n_batches = max(1, math.ceil(n_pts / micro_batch))
 
         for i in range(0, n_pts, micro_batch):
-            x_mb = X[i:i + micro_batch]
+            x_mb = X[i : i + micro_batch]
             E_L = compute_local_energy(psi_log_fn, x_mb, omega).view(-1)
 
             good = torch.isfinite(E_L)
@@ -524,9 +596,10 @@ def train_with_sampling(
 
             if loss_type == "huber":
                 loss_mb = nn.functional.huber_loss(
-                    resid, torch.zeros_like(resid), delta=huber_delta)
+                    resid, torch.zeros_like(resid), delta=huber_delta
+                )
             else:
-                loss_mb = (resid ** 2).mean()
+                loss_mb = (resid**2).mean()
 
             (loss_mb / n_batches).backward()
 
@@ -552,8 +625,8 @@ def train_with_sampling(
         if len(all_EL) > 0:
             EL_cat = torch.cat(all_EL)
             E_mean = EL_cat.mean().item()
-            E_var  = EL_cat.var().item()
-            E_std  = EL_cat.std().item()
+            E_var = EL_cat.var().item()
+            E_std = EL_cat.std().item()
         else:
             E_mean, E_var, E_std = float("nan"), float("nan"), float("nan")
 
@@ -613,7 +686,10 @@ def exp_screened_baseline(C_occ, params):
     f_net, bf_net = load_base_model()
     sampler = make_screened_sampler()
     return train_with_sampling(
-        f_net, bf_net, C_occ, params,
+        f_net,
+        bf_net,
+        C_occ,
+        params,
         sample_fn=sampler,
         label="A. screened_baseline (σ=1.3ℓ, 10× OS)",
         **QUICK,
@@ -623,10 +699,14 @@ def exp_screened_baseline(C_occ, params):
 def exp_hard_mine(C_occ, params):
     """B. Hard-example mining via screened collocation."""
     f_net, bf_net = load_base_model()
-    sampler = make_hard_mining_sampler(n_keep=2048, hard_frac=0.3,
-                                       oversampling=10, perturb_sigma_frac=0.3)
+    sampler = make_hard_mining_sampler(
+        n_keep=2048, hard_frac=0.3, oversampling=10, perturb_sigma_frac=0.3
+    )
     return train_with_sampling(
-        f_net, bf_net, C_occ, params,
+        f_net,
+        bf_net,
+        C_occ,
+        params,
         sample_fn=sampler,
         label="B. hard_mine (30% hard, perturb+rescreen)",
         **QUICK,
@@ -636,10 +716,14 @@ def exp_hard_mine(C_occ, params):
 def exp_multiscale(C_occ, params):
     """C. Multi-scale screened: σ = 0.8ℓ, 1.3ℓ, 2.5ℓ pooled."""
     f_net, bf_net = load_base_model()
-    sampler = make_multiscale_sampler(n_keep=2048, oversampling_per_scale=7,
-                                      sigma_factors=(0.8, 1.3, 2.5))
+    sampler = make_multiscale_sampler(
+        n_keep=2048, oversampling_per_scale=7, sigma_factors=(0.8, 1.3, 2.5)
+    )
     return train_with_sampling(
-        f_net, bf_net, C_occ, params,
+        f_net,
+        bf_net,
+        C_occ,
+        params,
         sample_fn=sampler,
         label="C. multiscale (σ=0.8,1.3,2.5 ℓ)",
         **QUICK,
@@ -649,10 +733,12 @@ def exp_multiscale(C_occ, params):
 def exp_iterative_refine(C_occ, params):
     """E. Iterative refinement: screen + perturb previous hard points."""
     f_net, bf_net = load_base_model()
-    sampler = make_iterative_refine_sampler(n_keep=2048, refine_frac=0.3,
-                                             refine_sigma_factor=0.4)
+    sampler = make_iterative_refine_sampler(n_keep=2048, refine_frac=0.3, refine_sigma_factor=0.4)
     return train_with_sampling(
-        f_net, bf_net, C_occ, params,
+        f_net,
+        bf_net,
+        C_occ,
+        params,
         sample_fn=sampler,
         label="E. iterative_refine (30% near prev hard)",
         **QUICK,
@@ -664,7 +750,10 @@ def exp_huber_screened(C_occ, params):
     f_net, bf_net = load_base_model()
     sampler = make_screened_sampler()
     return train_with_sampling(
-        f_net, bf_net, C_occ, params,
+        f_net,
+        bf_net,
+        C_occ,
+        params,
         sample_fn=sampler,
         loss_type="huber",
         huber_delta=0.5,
@@ -678,7 +767,10 @@ def exp_oversampled(C_occ, params):
     f_net, bf_net = load_base_model()
     sampler = make_heavy_oversampled_sampler(n_keep=2048, oversampling=40)
     return train_with_sampling(
-        f_net, bf_net, C_occ, params,
+        f_net,
+        bf_net,
+        C_occ,
+        params,
         sample_fn=sampler,
         label="G. oversampled (40× OS, σ=1.3ℓ)",
         **QUICK,
@@ -688,10 +780,14 @@ def exp_oversampled(C_occ, params):
 def exp_hard_mine_huber(C_occ, params):
     """B+F. Hard mining + Huber loss combined."""
     f_net, bf_net = load_base_model()
-    sampler = make_hard_mining_sampler(n_keep=2048, hard_frac=0.3,
-                                       oversampling=10, perturb_sigma_frac=0.3)
+    sampler = make_hard_mining_sampler(
+        n_keep=2048, hard_frac=0.3, oversampling=10, perturb_sigma_frac=0.3
+    )
     return train_with_sampling(
-        f_net, bf_net, C_occ, params,
+        f_net,
+        bf_net,
+        C_occ,
+        params,
         sample_fn=sampler,
         loss_type="huber",
         huber_delta=0.5,
@@ -704,11 +800,11 @@ def exp_hard_mine_huber(C_occ, params):
 #  Evaluation & orchestration
 # ══════════════════════════════════════════════════════════════════
 
+
 def run_eval(f_net, bf_net, C_occ, params, label):
-    result = evaluate(f_net, C_occ, params, backflow_net=bf_net,
-                      n_samples=10_000, label=label)
+    result = evaluate(f_net, C_occ, params, backflow_net=bf_net, n_samples=10_000, label=label)
     E_mean = result["E_mean"]
-    E_std  = result["E_stderr"]
+    E_std = result["E_stderr"]
     err = abs(E_mean - E_DMC) / E_DMC * 100
     return E_mean, E_std, err
 
@@ -734,10 +830,10 @@ if __name__ == "__main__":
     C_occ, params = setup_noninteracting(N, OMEGA, device=DEVICE, dtype=DTYPE)
     results = {}
 
-    print("\n" + "="*55)
+    print("\n" + "=" * 55)
     print("Residual-based sampling experiments (50ep quick screen)")
     print("  All fine-tuned from kfac_sepclip, lr=5e-5, varmin")
-    print("="*55)
+    print("=" * 55)
 
     # Baseline: eval the starting model without any fine-tuning
     base = load_base_model()
@@ -747,13 +843,13 @@ if __name__ == "__main__":
         print(f"  → base model: {err:.2f}%")
 
     experiments = [
-        ("screened_baseline",  exp_screened_baseline),
-        ("hard_mine",          exp_hard_mine),
-        ("multiscale",         exp_multiscale),
-        ("iterative_refine",   exp_iterative_refine),
-        ("huber_screened",     exp_huber_screened),
-        ("oversampled",        exp_oversampled),
-        ("hard_mine_huber",    exp_hard_mine_huber),
+        ("screened_baseline", exp_screened_baseline),
+        ("hard_mine", exp_hard_mine),
+        ("multiscale", exp_multiscale),
+        ("iterative_refine", exp_iterative_refine),
+        ("huber_screened", exp_huber_screened),
+        ("oversampled", exp_oversampled),
+        ("hard_mine_huber", exp_hard_mine_huber),
     ]
 
     for name, fn in experiments:
@@ -762,13 +858,14 @@ if __name__ == "__main__":
             results[name] = (E, std, err)
         except Exception as e:
             import traceback
+
             print(f"  ❌ {name} failed: {e}")
             traceback.print_exc()
             results[name] = (float("nan"), float("nan"), float("nan"))
 
     # ── Summary ──
     print(f"\n{'═'*55}")
-    print(f"SUMMARY — Residual-based sampling experiments")
+    print("SUMMARY — Residual-based sampling experiments")
     print(f"{'═'*55}")
 
     results["bf_0.7 joint (300ep ref)"] = (11.823253, 0.002982, 0.33)

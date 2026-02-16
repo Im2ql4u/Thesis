@@ -12,33 +12,34 @@ For N=2, ω=1.0: the non-interacting SD has both electrons in φ₀₀.
   SD energy = 2.0, Coulomb adds ~1.0 → exact E_DMC = 3.0.
   The Jastrow captures the correlation.
 """
+
 import math
 import sys
 import time
 
+import numpy as np
 import torch
 import torch.nn as nn
-import numpy as np
 
 sys.path.insert(0, "/Users/aleksandersekkelsten/thesis/src")
 
-from PINN import PINN, ZeroJastrow
+import config
+from functions.Energy import evaluate_energy_vmc
 from functions.Neural_Networks import (
-    psi_fn,
     _laplacian_logpsi_exact,
+    psi_fn,
 )
 from functions.Physics import compute_coulomb_interaction
-from functions.Energy import evaluate_energy_vmc
-import config
-
+from PINN import PINN, ZeroJastrow
 
 # ─────────────────────────────────────────────────────────────────
 # System setup — NO HF, just non-interacting orbitals
 # ─────────────────────────────────────────────────────────────────
 
+
 def setup_system(N, omega, d=2, device="cpu", dtype=torch.float64):
     """Set up with non-interacting C_occ (no Hartree-Fock).
-    
+
     For closed-shell 2D HO:
       - Basis: Cartesian product of 1D HO eigenstates
       - Ordering: (nx,ny) = (0,0), (0,1), (1,0), (1,1), ...
@@ -60,9 +61,16 @@ def setup_system(N, omega, d=2, device="cpu", dtype=torch.float64):
 
     # Set global config so @inject_params picks up correct omega
     config.update(
-        omega=omega, n_particles=N, d=d,
-        L=L, n_grid=80, nx=nx, ny=ny,
-        basis="cart", device=str(device), dtype="float64",
+        omega=omega,
+        n_particles=N,
+        d=d,
+        L=L,
+        n_grid=80,
+        nx=nx,
+        ny=ny,
+        basis="cart",
+        device=str(device),
+        dtype="float64",
     )
 
     params = config.get().as_dict()
@@ -104,12 +112,13 @@ def setup_system(N, omega, d=2, device="cpu", dtype=torch.float64):
 # Local energy
 # ─────────────────────────────────────────────────────────────────
 
+
 def compute_local_energy(psi_log_fn, x, omega):
     """E_L(x) = T(x) + V(x) using exact analytic Laplacian."""
     x = x.detach().requires_grad_(True)
     g, g2, lap_log = _laplacian_logpsi_exact(psi_log_fn, x)
     T = -0.5 * (lap_log.squeeze(-1) + g2.squeeze(-1))
-    V_harm = 0.5 * omega ** 2 * (x ** 2).sum(dim=(1, 2))
+    V_harm = 0.5 * omega**2 * (x**2).sum(dim=(1, 2))
     V_int = compute_coulomb_interaction(x).squeeze(-1)
     E_L = T + V_harm + V_int
     return E_L
@@ -118,6 +127,7 @@ def compute_local_energy(psi_log_fn, x, omega):
 # ─────────────────────────────────────────────────────────────────
 # MCMC sampling
 # ─────────────────────────────────────────────────────────────────
+
 
 @torch.no_grad()
 def mcmc_sample(psi_log_fn, x_chain, sigma, n_steps, device, dtype):
@@ -141,6 +151,7 @@ def mcmc_sample(psi_log_fn, x_chain, sigma, n_steps, device, dtype):
 # Training
 # ─────────────────────────────────────────────────────────────────
 
+
 def train(
     f_net: nn.Module,
     C_occ: torch.Tensor,
@@ -158,8 +169,8 @@ def train(
     print_every: int = 10,
     huber_delta: float = 2.0,
     warmup_epochs: int = 10,
-    rechain_every: int = 0,   # 0 = never re-init chain
-    patience: int = 0,         # 0 = no early stopping
+    rechain_every: int = 0,  # 0 = never re-init chain
+    patience: int = 0,  # 0 = no early stopping
 ):
     """MCMC variance-minimization VMC with Adam."""
     device = params["device"]
@@ -173,8 +184,9 @@ def train(
     f_net.to(device).to(dtype)
 
     up = N // 2
-    spin = torch.cat([torch.zeros(up, dtype=torch.long),
-                      torch.ones(N - up, dtype=torch.long)]).to(device)
+    spin = torch.cat([torch.zeros(up, dtype=torch.long), torch.ones(N - up, dtype=torch.long)]).to(
+        device
+    )
 
     def psi_log_fn(y):
         lp, _ = psi_fn(f_net, y, C_occ, backflow_net=None, spin=spin, params=params)
@@ -253,7 +265,7 @@ def train(
         n_batches = max(1, math.ceil(X.shape[0] / micro_batch))
 
         for i in range(0, X.shape[0], micro_batch):
-            x_mb = X[i:i + micro_batch]
+            x_mb = X[i : i + micro_batch]
             E_L = compute_local_energy(psi_log_fn, x_mb, omega)
 
             good = torch.isfinite(E_L)
@@ -276,7 +288,7 @@ def train(
             abs_r = resid.abs()
             loss = torch.where(
                 abs_r <= huber_delta,
-                0.5 * resid ** 2,
+                0.5 * resid**2,
                 huber_delta * (abs_r - 0.5 * huber_delta),
             ).mean()
             (loss / n_batches).backward()
@@ -344,19 +356,26 @@ def train(
 # Evaluation
 # ─────────────────────────────────────────────────────────────────
 
+
 def evaluate_vmc(f_net, C_occ, params, n_samples=15_000, label=""):
     """Full VMC evaluation with MCMC + exact Laplacian."""
     print(f"\n── VMC evaluation: {label} ──")
     sys.stdout.flush()
     result = evaluate_energy_vmc(
-        f_net, C_occ,
+        f_net,
+        C_occ,
         psi_fn=psi_fn,
         compute_coulomb_interaction=compute_coulomb_interaction,
-        backflow_net=None, params=params,
-        n_samples=n_samples, batch_size=512,
-        sampler_steps=50, sampler_step_sigma=0.12,
+        backflow_net=None,
+        params=params,
+        n_samples=n_samples,
+        batch_size=512,
+        sampler_steps=50,
+        sampler_step_sigma=0.12,
         lap_mode="exact",
-        persistent=True, sampler_burn_in=300, sampler_thin=3,
+        persistent=True,
+        sampler_burn_in=300,
+        sampler_thin=3,
         progress=True,
     )
     E = result["E_mean"]
@@ -374,6 +393,7 @@ def evaluate_vmc(f_net, C_occ, params, n_samples=15_000, label=""):
 # Quick test
 # ─────────────────────────────────────────────────────────────────
 
+
 def test_sd_only(N, omega, device="cpu", dtype=torch.float64):
     """Test: SD-only (zero Jastrow) should give E ≈ E_non-interacting + Coulomb mean-field."""
     C_occ, params = setup_system(N, omega, device=device, dtype=dtype)
@@ -388,18 +408,30 @@ def run_2e(device="cpu"):
     C_occ, params = setup_system(2, 1.0, device=device, dtype=dtype)
 
     # Simple PINN Jastrow
-    f_net = PINN(
-        n_particles=2, d=2, omega=1.0,
-        dL=5, hidden_dim=64, n_layers=2,
-        act="gelu", init="xavier",
-        use_gate=True, use_pair_attn=False,
-    ).to(device).to(dtype)
+    f_net = (
+        PINN(
+            n_particles=2,
+            d=2,
+            omega=1.0,
+            dL=5,
+            hidden_dim=64,
+            n_layers=2,
+            act="gelu",
+            init="xavier",
+            use_gate=True,
+            use_pair_attn=False,
+        )
+        .to(device)
+        .to(dtype)
+    )
 
     n_p = sum(p.numel() for p in f_net.parameters())
     print(f"PINN params: {n_p:,}")
 
     f_net, hist = train(
-        f_net, C_occ, params,
+        f_net,
+        C_occ,
+        params,
         n_epochs=400,
         lr=1e-4,
         n_walkers=1024,
@@ -429,18 +461,30 @@ def run_6e(device="cpu"):
     dtype = torch.float64
     C_occ, params = setup_system(6, 0.5, device=device, dtype=dtype)
 
-    f_net = PINN(
-        n_particles=6, d=2, omega=0.5,
-        dL=8, hidden_dim=128, n_layers=3,
-        act="gelu", init="xavier",
-        use_gate=True, use_pair_attn=False,
-    ).to(device).to(dtype)
+    f_net = (
+        PINN(
+            n_particles=6,
+            d=2,
+            omega=0.5,
+            dL=8,
+            hidden_dim=128,
+            n_layers=3,
+            act="gelu",
+            init="xavier",
+            use_gate=True,
+            use_pair_attn=False,
+        )
+        .to(device)
+        .to(dtype)
+    )
 
     n_p = sum(p.numel() for p in f_net.parameters())
     print(f"PINN params: {n_p:,}")
 
     f_net, hist = train(
-        f_net, C_occ, params,
+        f_net,
+        C_occ,
+        params,
         n_epochs=400,
         lr=2e-4,
         n_walkers=2048,
@@ -469,7 +513,7 @@ if __name__ == "__main__":
     device = "cpu"
 
     # ── 2e with PINN Jastrow ──
-    print("="*60)
+    print("=" * 60)
     print("2e + PINN Jastrow → target E=3.0")
-    print("="*60)
+    print("=" * 60)
     run_2e(device=device)

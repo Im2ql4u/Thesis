@@ -20,17 +20,17 @@ import torch
 
 # ── project imports ──
 import config
-from PINN import UnifiedCTNN
+from functions.Energy import evaluate_energy_vmc
 from functions.Neural_Networks import psi_fn, train_model
 from functions.Physics import compute_coulomb_interaction
 from functions.Slater_Determinant import compute_integrals, hartree_fock_closed_shell
 from functions.Stochastic_Reconfiguration import train_model_sr_energy
-from functions.Energy import evaluate_energy_vmc
-
+from PINN import UnifiedCTNN
 
 # ────────────────────────────────────────────────────────────────────
 # Helpers
 # ────────────────────────────────────────────────────────────────────
+
 
 def setup_system(N, omega, d=2, n_max_basis=5, device="cpu", dtype=torch.float64):
     """Build HF orbitals and params dict for a given system."""
@@ -103,7 +103,9 @@ def evaluate(f_net, C_occ, params, n_samples=20_000, label=""):
     E_ref = params.get("E", None)
     print(f"  E = {E:.6f} ± {E_std:.6f}  (target: {E_ref})")
     if E_ref is not None and E < E_ref:
-        print(f"  ⚠ WARNING: E < E_GS ({E:.6f} < {E_ref}) — possible bias or statistical fluctuation")
+        print(
+            f"  ⚠ WARNING: E < E_GS ({E:.6f} < {E_ref}) — possible bias or statistical fluctuation"
+        )
     sys.stdout.flush()
     return result
 
@@ -216,24 +218,39 @@ def run_sr(
     return f_net
 
 
-def make_net(N, omega, node_hidden=64, edge_hidden=64, n_mp_steps=1,
-             msg_layers=2, node_layers=2, jastrow_hidden=32, jastrow_layers=2,
-             bf_scale_init=0.05, device="cpu", dtype=torch.float64):
+def make_net(
+    N,
+    omega,
+    node_hidden=64,
+    edge_hidden=64,
+    n_mp_steps=1,
+    msg_layers=2,
+    node_layers=2,
+    jastrow_hidden=32,
+    jastrow_layers=2,
+    bf_scale_init=0.05,
+    device="cpu",
+    dtype=torch.float64,
+):
     """Create a UnifiedCTNN with the given hyperparameters."""
-    net = UnifiedCTNN(
-        d=2,
-        n_particles=N,
-        omega=omega,
-        node_hidden=node_hidden,
-        edge_hidden=edge_hidden,
-        msg_layers=msg_layers,
-        node_layers=node_layers,
-        n_mp_steps=n_mp_steps,
-        act="silu",
-        jastrow_hidden=jastrow_hidden,
-        jastrow_layers=jastrow_layers,
-        bf_scale_init=bf_scale_init,
-    ).to(device).to(dtype)
+    net = (
+        UnifiedCTNN(
+            d=2,
+            n_particles=N,
+            omega=omega,
+            node_hidden=node_hidden,
+            edge_hidden=edge_hidden,
+            msg_layers=msg_layers,
+            node_layers=node_layers,
+            n_mp_steps=n_mp_steps,
+            act="silu",
+            jastrow_hidden=jastrow_hidden,
+            jastrow_layers=jastrow_layers,
+            bf_scale_init=bf_scale_init,
+        )
+        .to(device)
+        .to(dtype)
+    )
     n_params = sum(p.numel() for p in net.parameters())
     print(f"  UnifiedCTNN params: {n_params:,}")
     sys.stdout.flush()
@@ -244,17 +261,28 @@ def make_net(N, omega, node_hidden=64, edge_hidden=64, n_mp_steps=1,
 # Experiments
 # ────────────────────────────────────────────────────────────────────
 
+
 def experiment_2e_sanity(device="cpu"):
     """2e ω=1.0 sanity check. Target: E=3.0"""
     N, omega = 2, 1.0
     dtype = torch.float64
     C_occ, params = setup_system(N, omega, device=device, dtype=dtype)
-    net = make_net(N, omega, node_hidden=64, edge_hidden=64,
-                   jastrow_hidden=32, jastrow_layers=2, device=device, dtype=dtype)
+    net = make_net(
+        N,
+        omega,
+        node_hidden=64,
+        edge_hidden=64,
+        jastrow_hidden=32,
+        jastrow_layers=2,
+        device=device,
+        dtype=dtype,
+    )
 
     # Adam: 300 epochs, residual objective, exact Laplacian
     net, opt, hist = run_adam(
-        net, C_occ, params,
+        net,
+        C_occ,
+        params,
         n_epochs=300,
         lr=5e-4,
         N_collocation=600,
@@ -267,7 +295,9 @@ def experiment_2e_sanity(device="cpu"):
 
     # SR: 100 steps
     net = run_sr(
-        net, C_occ, params,
+        net,
+        C_occ,
+        params,
         n_steps=100,
         step_size=0.01,
         max_param_step=0.01,
@@ -281,7 +311,9 @@ def experiment_2e_sanity(device="cpu"):
 
     E = eval2["E_mean"]
     flag = " ⚠ BELOW GS!" if E < 3.0 else ""
-    print(f"\n  *** 2e RESULT: E = {E:.5f}  (target 3.00000, err = {abs(E-3.0)/3.0*100:.2f}%){flag} ***")
+    print(
+        f"\n  *** 2e RESULT: E = {E:.5f}  (target 3.00000, err = {abs(E-3.0)/3.0*100:.2f}%){flag} ***"
+    )
     sys.stdout.flush()
     return net, eval2
 
@@ -291,14 +323,25 @@ def experiment_6e_unified(device="cpu"):
     N, omega = 6, 0.5
     dtype = torch.float64
     C_occ, params = setup_system(N, omega, device=device, dtype=dtype)
-    net = make_net(N, omega, node_hidden=128, edge_hidden=128,
-                   msg_layers=2, node_layers=3,
-                   jastrow_hidden=64, jastrow_layers=2,
-                   bf_scale_init=0.05, device=device, dtype=dtype)
+    net = make_net(
+        N,
+        omega,
+        node_hidden=128,
+        edge_hidden=128,
+        msg_layers=2,
+        node_layers=3,
+        jastrow_hidden=64,
+        jastrow_layers=2,
+        bf_scale_init=0.05,
+        device=device,
+        dtype=dtype,
+    )
 
     # Phase 1: Adam, residual objective, fixed sampler, exact Laplacian
     net, opt, hist = run_adam(
-        net, C_occ, params,
+        net,
+        C_occ,
+        params,
         n_epochs=500,
         lr=3e-4,
         N_collocation=1200,
@@ -311,7 +354,9 @@ def experiment_6e_unified(device="cpu"):
 
     # Phase 2: SR fine-tuning
     net = run_sr(
-        net, C_occ, params,
+        net,
+        C_occ,
+        params,
         n_steps=200,
         step_size=0.008,
         max_param_step=0.008,
@@ -326,7 +371,9 @@ def experiment_6e_unified(device="cpu"):
     E = eval2["E_mean"]
     target = 11.78484
     flag = " ⚠ BELOW GS!" if E < target else ""
-    print(f"\n  *** 6e RESULT: E = {E:.5f}  (target {target:.5f}, err = {abs(E-target)/target*100:.2f}%){flag} ***")
+    print(
+        f"\n  *** 6e RESULT: E = {E:.5f}  (target {target:.5f}, err = {abs(E-target)/target*100:.2f}%){flag} ***"
+    )
     sys.stdout.flush()
     return net, eval2
 

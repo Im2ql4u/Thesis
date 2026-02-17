@@ -675,10 +675,10 @@ For $N{=}6$, phase-aligned $(1,5)$ and $(0,6)$ sectors show comparable order
 ($|\Phi_5|\!\approx\!0.48$, $|\Phi_6|\!\approx\!0.52$) with $\lambda_\phi\!\approx\!0.29$—a single-ring rotating Wigner molecule.
 For $N{=}12$, $(3,9)$ frames have strong order 
 ($|\Phi_3|\!\approx\!0.67$, $|\Phi_9|\!\approx\!0.50$) and small $\lambda_\phi$ ($\sim\!0.24$–$0.26$).
-$(2,10)$ exhibits very tight inner order ($|\Phi_2|\!\approx\!0.73$) with a softer outer ring ($|\Phi_{10}|\!\approx\!0.42$), and $(1,11)$ has weak outer order and a softly vibrating center—precisely the \emph{rotating Wigner molecule} (RWM) picture of fluctuating orientations across near-degenerate shellings.\cite{Egger_1999,Manninen2007metalclustersquantumdots}
+$(2,10)$ exhibits very tight inner order ($|\Phi_2|\!\approx\!0.73$) with a softer outer ring ($|\Phi_{10}|\!\approx\!0.42$), and $(1,11)$ has weak outer order and a softly vibrating center—precisely the \emph{rotating Wigner molecule} (RWM) picture of fluctuating orientations across near-degenerate shellings.\cite{Egger_1999,manninen2007metalclustersquantumdots}
 
 \subsection{Scaling check and two-body benchmarks ($N=2$)}
-\label{subsec:n2-scaling}
+\label{subsec:n2-scaling-theory}
 
 To connect with the classical strong‐coupling limit we fit 
 \begin{equation}
@@ -705,7 +705,7 @@ $\gamma$ and $\lambda_\phi$ shrink, shell gaps sharpen, and shell-resolved $|\Ph
 For $N{=}6$ this manifests as a single-ring RWM with $(1,5)$–$(0,6)$ near-degeneracy; 
 for $N{=}12$ as a two-shell RWM with modal $(3,9)$ but sizable $(2,10)$ and $(1,11)$ weights.
 Classical shelling and near-degeneracies in finite Coulomb clusters\cite{schweigert1994spectralpropertieschargedparticles,Kong_2002}
-and quantum Wigner markers in parabolic dots\cite{Egger_1999,Manninen2007metalclustersquantumdots,Filinov_2001,Mazars_2008}
+and quantum Wigner markers in parabolic dots\cite{Egger_1999,manninen2007metalclustersquantumdots,Filinov_2001,Mazars_2008}
 provide the theoretical backdrop for reading these plots.
 
 % ------------------------------------------------------------
@@ -818,7 +818,7 @@ $D=\{(x_i,y_i)\}_{i=1}^n$. The corresponding \textbf{empirical risk} is
   \hat{\mathcal{R}}(\theta) = \frac{1}{n}\sum_{i=1}^n \ell(f_\theta(x_i),y_i).
 \end{equation}
 This setup is known as \emph{empirical risk minimization (ERM)}, and it underlies 
-virtually all modern machine learning methods \cite{Berner_2022}.  
+virtually all modern machine learning methods \cite{Berner_Grohs_Kutyniok_Petersen_2022}.  
 
 \subsection{Types of learning}
 Depending on the information provided in the dataset, learning problems are 
@@ -909,7 +909,7 @@ The update rule is then
 SGD introduces randomness into the optimization trajectory. 
 Paradoxically, this noise often \emph{helps}: it prevents the algorithm 
 from getting trapped in poor local minima and can improve generalization 
-through an implicit regularization effect \cite{wu2022alignmentpropertysgdnoise,Berner_2022}.  
+through an implicit regularization effect \cite{wu2022alignmentpropertysgdnoise,Berner_Grohs_Kutyniok_Petersen_2022}.  
 
 \subsection{Momentum and adaptive methods}
 Plain gradient descent treats all directions in parameter space equally.  
@@ -1189,7 +1189,7 @@ Key takeaways include:
 \end{itemize}
 
 Initialization and activation choice thus form an inseparable pair: together 
-they determine whether information propagates stably through the network. This will be discussed further in the context of physics-informed models in Chapter~\ref{ch:pinns}.
+they determine whether information propagates stably through the network. This will be discussed further in the context of physics-informed models in Chapter~\ref{ch:trial_wavefunction}\textbf{\textcolor{red}{[CHECK: was ch:pinns---verify correct target]}}.
 
 
 \section{Modern mathematics}
@@ -1232,7 +1232,7 @@ $\|f-g\|_\infty<\varepsilon$ \cite{Cybenko1989}. The result concerns
 bounds on the number of units required, rates of approximation, or
 generalization guarantees.
 
-In practice, depth is introduced for efficiency, not for universality. By composing intermediate features, additional layers often reduce the number of units required to attain a target accuracy. For certain target classes, there are known separations where a one-hidden-layer network needs exponentially many neurons to match the accuracy achievable with a deep architecture of polynomial size. Hence modern models leverage depth primarily for parameter efficiency and a stronger inductive bias (via hierarchical feature reuse), while width remains the lever for raw capacity \cite{Berner_2022}.
+In practice, depth is introduced for efficiency, not for universality. By composing intermediate features, additional layers often reduce the number of units required to attain a target accuracy. For certain target classes, there are known separations where a one-hidden-layer network needs exponentially many neurons to match the accuracy achievable with a deep architecture of polynomial size. Hence modern models leverage depth primarily for parameter efficiency and a stronger inductive bias (via hierarchical feature reuse), while width remains the lever for raw capacity \cite{Berner_Grohs_Kutyniok_Petersen_2022}.
 \subsection{Curse of dimensionality}
 
 Classical approximation theory predicts that uniformly approximating a generic

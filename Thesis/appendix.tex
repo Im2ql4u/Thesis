@@ -528,3 +528,530 @@ statistical difficulty of SR through heavy-tailed local-energy fluctuations
 %   note   = {See Sec.~2.4 (Cusp conditions), Eq.~(2.27) and the 2D specialization giving
 %             $\partial_r J/J = C$ (antiparallel) and $\partial_r J/J = C/3$ (parallel).}
 % }
+
+
+% =========================================================
+% APPENDIX C: The Collocation--Backflow Catch-22
+% =========================================================
+\chapter{The collocation--backflow catch-22}
+\label{app:catch22}
+
+This appendix formalizes a structural difficulty encountered when training
+backflow transformations under collocation (strong residual) objectives
+and presents extensive numerical evidence for the $N{=}6$, $\omega{=}0.5$
+quantum dot.
+The core observation is a \emph{catch-22}: backflow's learning signal is
+concentrated near the nodal surface, but
+the local energy diverges there for any imperfect wavefunction, and any
+sampling strategy that includes these points produces
+gradients with unbounded variance.
+The result is an irreducible accuracy floor that is absent
+under VMC\,+\,SR training of the same ansatz.
+
+\section{Setup and notation}
+\label{app:catch22:setup}
+
+We consider a Slater--Jastrow--backflow ans\"atz of the form
+\begin{equation}
+\Psi_\theta(\mathbf R)
+=\det\tilde S_\uparrow(\mathbf R;\theta_{\mathrm{BF}})
+ \;\det\tilde S_\downarrow(\mathbf R;\theta_{\mathrm{BF}})
+ \;\exp\bigl(J(\mathbf R;\theta_J)\bigr),
+\label{eq:c22:ansatz}
+\end{equation}
+where $\tilde S_\sigma$ is the Slater matrix evaluated at backflow-shifted
+coordinates $\tilde{\mathbf r}_i = \mathbf r_i + \Delta\mathbf
+x_i(\mathbf R;\theta_{\mathrm{BF}})$, $J$ is a neural Jastrow factor
+(PINN), and $\theta=(\theta_J,\theta_{\mathrm{BF}})$ are trainable
+parameters.
+A CTNN message-passing network produces the backflow shifts $\Delta\mathbf x_i$.
+
+We train by minimizing the \emph{screened collocation} objective
+\begin{equation}
+\mathcal L(\theta)
+=\operatorname{Var}_{\mathcal S}\!\bigl[E_L(\mathbf R;\theta)\bigr],
+\qquad
+E_L=\frac{\hat H\Psi_\theta}{\Psi_\theta},
+\label{eq:c22:loss}
+\end{equation}
+where the collocation set $\mathcal S$ is obtained by
+importance-sampling from a Gaussian proposal~$q$
+and retaining the top-$K$ points ranked by $|\Psi_\theta|^2/q$
+(``screened collocation'').
+This top-$K$ selection naturally suppresses near-node configurations
+where $|\Psi|^2\approx 0$.
+
+
+\section{The divergence of $E_L$ near nodes}
+\label{app:catch22:divergence}
+
+The local energy decomposes as
+\begin{equation}
+E_L
+= -\frac12\frac{\nabla^2\Psi}{\Psi}+V
+= -\frac12\Bigl[
+  \nabla^2 J + |\nabla J|^2
+  + 2\,\nabla J\cdot\frac{\nabla D}{D}
+  + \frac{\nabla^2 D}{D}
+\Bigr]+V,
+\label{eq:c22:EL_decomp}
+\end{equation}
+where $D:=\det\tilde S_\uparrow\det\tilde S_\downarrow$ and
+the last term $\nabla^2 D/D$ contains second derivatives of the
+backflow shifts $\nabla^2\Delta\mathbf x_i$ amplified by the
+inverse determinant.
+
+\paragraph{For the exact wavefunction, $E_L$ is constant.}
+If $\Psi$ is an eigenstate, $E_L=E$ everywhere, and the apparent
+$D^{-1}$ singularity is cancelled by the numerator vanishing at the same
+rate as the denominator.
+Concretely, for a smooth wavefunction with a simple node at surface
+$\mathcal N$, both $D$ and $\nabla^2 D$ vanish linearly in the
+signed distance~$d$ from~$\mathcal N$:
+\begin{equation}
+D(\mathbf R) = \mathcal O(d),
+\qquad
+\nabla^2 D(\mathbf R) = \mathcal O(d),
+\qquad
+\frac{\nabla^2 D}{D}\;\text{is finite on }\mathcal N.
+\label{eq:c22:exact_cancel}
+\end{equation}
+
+\paragraph{For an approximate wavefunction, the cancellation generically fails.}
+During training, the backflow parameters $\theta_{\mathrm{BF}}$ are
+imperfect: the \emph{learned} nodal surface $\mathcal N_\theta$ (where
+$D(\cdot;\theta)=0$) does not coincide with the \emph{true} nodal surface.
+Let $d_\theta$ denote the signed distance from the learned node and $d^*$
+that from the true node.
+Near a point where $d_\theta\approx 0$ but $d^*\neq 0$, the determinant
+$D\sim d_\theta\to 0$ while the kinetic contributions from the Jastrow and
+potential terms remain finite:
+\begin{equation}
+E_L(\mathbf R)
+\supset
+\frac{\nabla^2 D(\mathbf R;\theta)}{D(\mathbf R;\theta)}
+\sim \frac{c}{d_\theta}\to\pm\infty
+\qquad\text{as }d_\theta\to 0,\ d^*\neq 0,
+\label{eq:c22:EL_div}
+\end{equation}
+for some configuration-dependent constant $c\neq 0$.
+Conversely, near a point on the true node ($d^*=0$) but off the learned node
+($d_\theta\neq 0$), $\Psi\sim d^*\to 0$ and the wavefunction assigns
+vanishing weight.
+The pathology \eqref{eq:c22:EL_div} is therefore not an artifact of the
+nodal structure itself---it is a property of \emph{mismatched} nodes,
+and is worst precisely when backflow still has something to learn.
+
+
+\section{The geometric mismatch argument}
+\label{app:catch22:mismatch}
+
+We now show that the variance of the local energy (and hence of the
+training gradients) generically diverges for imperfect backflow parameters.
+
+Consider the contribution to $\operatorname{Var}[E_L]$ from a
+neighborhood $U_\varepsilon$ of the learned nodal surface:
+\begin{equation}
+\operatorname{Var}[E_L]
+\ge
+\int_{U_\varepsilon}
+|\Psi(\mathbf R;\theta)|^2\,
+\bigl(E_L(\mathbf R;\theta)-\bar E\bigr)^2\,
+d\mathbf R.
+\label{eq:c22:var_lb}
+\end{equation}
+When the node is ``simple'' ($D$ vanishes linearly), we have
+\begin{align}
+|\Psi|^2 &\sim d_\theta^2, &
+E_L^2 &\sim d_\theta^{-2\alpha},
+\label{eq:c22:scaling}
+\end{align}
+where $\alpha$ characterises the severity of the mismatch.
+For the generic case where the numerator
+$\nabla^2 D$ does \emph{not} vanish on $\mathcal N_\theta$
+(because $\mathcal N_\theta\neq\mathcal N^*$),
+one has $\alpha=1$ so that $E_L^2\sim d_\theta^{-2}$.
+
+In $D$-dimensional configuration space, the volume element in a
+tubular neighborhood of a codimension-1 surface scales as
+$dV\sim d_\theta^0\,d\sigma\,dd_\theta$.
+Thus the integrand in \eqref{eq:c22:var_lb} behaves as
+\begin{equation}
+|\Psi|^2\cdot E_L^2\cdot dV
+\sim
+d_\theta^2\cdot d_\theta^{-2}\cdot dd_\theta
+= dd_\theta,
+\label{eq:c22:integrand}
+\end{equation}
+which is just integrable (logarithmically).
+But the key observation is that this is the \emph{best case}.
+In practice, the mismatch between $\mathcal N_\theta$ and $\mathcal N^*$
+is not uniform: there exist regions where the surfaces cross at angles,
+creating pockets where $|d^*|/|d_\theta|$ is large
+(the true wavefunction is non-negligible while the learned determinant
+is near-zero), and there the $E_L^2$ spike is not compensated by $|\Psi|^2$
+suppression.
+
+More concretely, the gradient
+$\partial\mathcal L/\partial\theta_{\mathrm{BF}}$ involves terms of the form
+\begin{equation}
+\frac{\partial E_L}{\partial\theta_{\mathrm{BF}}}
+\;\supset\;
+\frac{1}{D}\frac{\partial(\nabla^2 D)}{\partial\theta_{\mathrm{BF}}}
+\;-\;
+\frac{\nabla^2 D}{D^2}
+\frac{\partial D}{\partial\theta_{\mathrm{BF}}},
+\label{eq:c22:grad_EL}
+\end{equation}
+both of which diverge as $D\to 0$.
+Even in the marginal case where $\mathrm{Var}[E_L]$ is finite,
+the \emph{gradient variance} (which involves these higher-order poles)
+generically diverges, making gradient-based optimisation impossible at
+points near the learned node.
+
+
+\section{The catch-22}
+\label{app:catch22:statement}
+
+The preceding analysis reveals a three-sided dilemma:
+
+\begin{enumerate}
+\item \textbf{Backflow learns at the node.}
+  The purpose of backflow is to reshape the nodal surface of the Slater
+  determinant.
+  The gradient signal $\partial E_L/\partial\theta_{\mathrm{BF}}$
+  is largest where the backflow shifts actually change which side of the
+  node a configuration point lies on, i.e., where $D\approx 0$.
+
+\item \textbf{$E_L$ diverges at the node for imperfect $\theta$.}
+  As shown in \S\ref{app:catch22:divergence}--\ref{app:catch22:mismatch},
+  the local energy and its parameter gradient contain poles of the form
+  $D^{-1}$ and $D^{-2}$ whenever the learned node does not coincide with
+  the exact node. The resulting gradient variance is unbounded.
+
+\item \textbf{Good collocation sampling must avoid the node.}
+  Under screened collocation, the top-$K$ selection ranks points by
+  $|\Psi|^2/q\propto D^2 e^{2J}/q$.
+  Since $D^2\to 0$ at the node, near-node points are systematically
+  excluded from the training batch. This is \emph{protective}---it
+  prevents gradient explosion---but it also removes the points
+  where backflow's learning signal lives.
+\end{enumerate}
+
+\noindent
+A ``catch-22'' emerges:
+\begin{quote}
+\emph{Including near-node points gives divergent, noisy gradients and
+backflow shrinks defensively or diverges.
+Excluding them gives stable training but removes backflow's learning signal.
+In either regime, collocation cannot effectively train backflow beyond an
+accuracy floor set by the Jastrow (PINN) quality alone.}
+\end{quote}
+
+
+\section{Why VMC\,+\,SR escapes}
+\label{app:catch22:vmc}
+
+Under VMC, the sampling distribution \emph{is} $|\Psi_\theta|^2$, which
+assigns vanishing measure to the nodal surface.
+Near-node configurations are never sampled, eliminating the $D^{-1}$
+singularity from the gradient estimator.
+However, VMC \emph{still optimises the node position} through a
+subtle mechanism:
+
+\paragraph{Indirect nodal information through bulk correlations.}
+The variational energy
+$\langle E_L\rangle_{|\Psi|^2}$ is sensitive to nodal position because
+shifting the node changes the wavefunction \emph{everywhere}
+(through normalisation and through the functional form of $D$).
+The SR force vector
+$g_i=\mathrm{Cov}_{|\Psi|^2}[E_L,O_i]$
+(where $O_i=\partial_{\theta_i}\log\Psi$)
+receives contributions from the \emph{bulk}---regions where both
+$|\Psi|^2$ and $E_L$ are well-behaved---that are
+\emph{correlated with} nodal position but do not require evaluating $E_L$
+at the node.
+
+\paragraph{SR amplifies the signal.}
+The Fisher metric $S_{ij}=\mathrm{Cov}[O_i,O_j]$ captures how sensitive
+$\log\Psi$ is to each parameter direction.
+By solving $(S+\varepsilon I)\,\delta\theta=-g$, SR
+amplifies exactly those subtle bulk signals that encode nodal information,
+compensating for the fact that the node itself has zero weight under
+$|\Psi|^2$.
+
+\paragraph{Core asymmetry.}
+VMC obtains nodal information \emph{indirectly} through a well-conditioned
+integral (the covariance $g_i$ is finite because $E_L$ is sampled away
+from the node); collocation tries to obtain it \emph{directly} through
+a divergent pointwise quantity ($E_L$ evaluated near the node).
+This asymmetry is fundamental and cannot be resolved by
+sampling tricks, loss modifications, or gradient preconditioning
+within the collocation framework.
+
+
+\section{Experimental evidence}
+\label{app:catch22:experiments}
+
+We present a systematic study for $N{=}6$ electrons in a 2D harmonic trap
+with $\omega{=}0.5$ (DMC reference: $E_{\mathrm{DMC}}=11.78484(6)$
+\cite{Pederiva2000-QD-DMC}).
+The ans\"atz uses a PINN Jastrow (${\sim}15{,}000$ parameters)
+and a CTNN backflow network (${\sim}8{,}600$ parameters) with
+$\mathrm{bf\_scale}=0.7$.
+All energies are evaluated via MCMC with 15\,000 samples after
+burn-in.
+
+\subsection{Baseline: PINN alone vs.\ PINN\,+\,CTNN}
+\label{app:catch22:baseline}
+
+\begin{table}[htbp]
+\centering
+\caption{Baseline collocation results for $N{=}6$, $\omega{=}0.5$.
+``PINN only'' trains without backflow; ``PINN\,+\,CTNN joint'' trains both
+networks from scratch for 300 epochs with $\mathrm{bf\_scale}=0.7$.
+The backflow provides only a marginal improvement of ${\sim}0.1$ percentage
+points.}
+\label{tab:c22:baseline}
+\begin{tabular}{l c c c}
+\toprule
+Configuration & $E$ (Ha) & $\sigma_E$ & err (\%) \\
+\midrule
+PINN only (300 ep) & 11.834 & 0.003 & 0.42 \\
+PINN\,+\,CTNN joint (300 ep) & 11.823 & 0.003 & 0.33 \\
+PINN\,+\,CTNN separate opt & 11.822 & 0.003 & 0.32 \\
+\midrule
+DMC reference & 11.78484 & --- & 0.00 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The backflow reduces the error from $0.42\%$ to $0.32$--$0.33\%$, far short
+of the $< 0.01\%$ accuracy achievable with VMC\,+\,SR on the same ansatz
+(Table~\ref{tab:energies}).
+
+\subsection{Sampling strategies}
+\label{app:catch22:sampling}
+
+We tested multiple strategies to bring near-node information into the
+collocation batch, hoping to give the backflow a stronger learning signal.
+
+\begin{table}[htbp]
+\centering
+\caption{Effect of sampling strategy on collocation accuracy.
+All experiments use 50-epoch fine-tuning from the best
+collocation checkpoint ($0.35\%$), except ``hard-smooth (scratch)''
+which trains 300 epochs from random initialisation.}
+\label{tab:c22:sampling}
+\begin{tabular}{l l c c}
+\toprule
+Method & Description & err (\%) & Outcome \\
+\midrule
+Top-$K$ baseline & standard screened collocation & 0.35 & stable \\
+Hard mining + Huber & top-$K$ of residuals & 0.41 & neutral \\
+Hard mining + smoothness & + $\|\nabla^2\Delta x\|^2$ penalty & 0.38 & slight help \\
+SIR (single proposal) & $|\Psi|^2$-reweighted resampling & 0.47 & worse \\
+SIR (mixture) & Gaussian mixture proposal & 0.44 & worse \\
+Gumbel top-$K$ & stochastic top-$K$ selection & 5.00 & catastrophic \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Every strategy that includes more near-node points
+(SIR, Gumbel) produced \emph{worse} results---consistent with the
+catch-22: the additional points carry divergent $E_L$ values that
+corrupt the gradient.
+Gumbel top-$K$ (which replaces deterministic selection with stochastic
+Gumbel-softmax) was catastrophic, with early stopping triggered by
+rapid energy divergence.
+
+\subsection{Loss modifications}
+\label{app:catch22:loss}
+
+\begin{table}[htbp]
+\centering
+\caption{Effect of loss function modifications.
+The hybrid loss adds a mean-energy (variational) term;
+the det filter discards points with small $|\det\tilde S|$.}
+\label{tab:c22:loss}
+\begin{tabular}{l l c c}
+\toprule
+Method & Description & err (\%) & Outcome \\
+\midrule
+Variance loss (baseline) & Huber on $E_L-\bar E$ & 0.33 & best collocation \\
+Hybrid anneal & $\beta\cdot\text{Var}+(1{-}\beta)\cdot\text{Mean}$,
+  $\beta\!:\!0.7{\to}0.15$ & 2.59 & catastrophic \\
+Gumbel + hybrid & stochastic top-$K$ + hybrid & 5.00 & catastrophic \\
+Hybrid + det filter & $\beta{=}0.2$ fixed + $|\det|$ filter & 24.75 & broken \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The mean-energy gradient $\nabla_\theta\langle E_L\rangle_{\mathcal S}$
+under biased collocation sampling does \emph{not} equal the VMC gradient---the
+sampling distribution is not $|\Psi|^2$---so the variational principle
+does not hold, and the backflow drifts to large,
+unphysical shifts ($|\Delta\mathbf x|\approx 0.83$, versus ${\sim}0.23$
+under variance-only training).
+The variance loss's implicit constraint on backflow magnitude is
+\emph{protective}, not pathological.
+
+\subsection{Gradient regularisation}
+\label{app:catch22:regularisation}
+
+We attacked the divergence sources in $E_L$ directly:
+
+\begin{table}[htbp]
+\centering
+\caption{Regularisation of the $E_L$ singularity (50-epoch
+fine-tune from $0.35\%$ checkpoint). Each modification smooths or clips
+one of the divergent contributions to $E_L$.}
+\label{tab:c22:reg}
+\begin{tabular}{l l c c}
+\toprule
+Method & Modification & err (\%) & Outcome \\
+\midrule
+Soft Coulomb & $1/r\to 1/\sqrt{r^2+\varepsilon^2}$,
+  $\varepsilon{=}0.2$ & 1.41 & much worse \\
+Regularised det & $\log|D|\to\operatorname{logaddexp}(\log|D|,\,
+  \log\delta)$ & 0.49 & worse \\
+$T$ clipping & $\max(|T|,T_{\max})$, $T_{\max}{=}30$ & 0.43 & neutral \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Soft Coulomb trains on wrong physics ($V$ is no longer the true potential).
+Regularising the determinant distorts the $\log\Psi$ landscape.
+Kinetic energy clipping is neutral because the clipped points are exactly
+those that carried the (noisy) backflow signal.
+None of the regularisations improve upon the baseline.
+
+\subsection{Gradient preconditioning}
+\label{app:catch22:precondition}
+
+\begin{table}[htbp]
+\centering
+\caption{Gradient preconditioning experiments (300-epoch scratch training
+unless noted). K-FAC uses block-diagonal Kronecker-factored Fisher on
+the backflow network only.}
+\label{tab:c22:kfac}
+\begin{tabular}{l c c}
+\toprule
+Method & err (\%) & Outcome \\
+\midrule
+Vanilla Adam & 0.33 & baseline \\
+K-FAC on CTNN & 0.34 & no improvement \\
+K-FAC + smoothness & 0.51 & worse \\
+Variance-minimising pretrain & 0.54 & worse \\
+Adam fine-tune (30 ep, lr$=$1e-4) & 0.34 & no improvement \\
+Adam burst (15 ep, lr$=$3e-4) & 0.56 & worse \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+K-FAC provides a block-diagonal approximation to the Fisher matrix
+and should, in principle, help with the ill-conditioned parameter-space
+geometry.
+In practice, it does not: the conditioning problem is
+\emph{operator-level} (Appendices~\ref{app:laplacian}--\ref{app:coulomb}),
+not merely parameter-space anisotropy, and K-FAC cannot address the
+fundamental divergence in $E_L$.
+
+\subsection{Summary of all interventions}
+\label{app:catch22:summary}
+
+\begin{table}[htbp]
+\centering
+\caption{Complete summary of all collocation-based backflow experiments
+for $N{=}6$, $\omega{=}0.5$.
+No intervention breaks the ${\sim}0.32\%$ accuracy floor.
+For comparison, the same PINN\,+\,CTNN ansatz achieves $< 0.01\%$ under
+VMC\,+\,SR (Table~\ref{tab:energies}).}
+\label{tab:c22:summary}
+\begin{tabular}{l c l}
+\toprule
+Experiment & err (\%) & Category \\
+\midrule
+PINN\,+\,CTNN sep opt (best) & 0.32 & baseline \\
+PINN\,+\,CTNN joint 300 ep & 0.33 & baseline \\
+K-FAC on CTNN & 0.34 & preconditioner \\
+Adam fine-tune 30 ep & 0.34 & optimiser \\
+Top-$K$ baseline (retrained) & 0.35 & sampling \\
+Hard mining + smoothness & 0.38 & sampling \\
+Hard mining + Huber & 0.41 & sampling \\
+PINN only & 0.42 & no backflow \\
+$T$ clipping & 0.43 & regularisation \\
+SIR (mixture) & 0.44 & sampling \\
+SIR (single) & 0.47 & sampling \\
+Regularised det & 0.49 & regularisation \\
+K-FAC + smoothness & 0.51 & preconditioner \\
+Var-min pretrain & 0.54 & pretrain \\
+Adam burst lr$=$3e-4 & 0.56 & optimiser \\
+Soft Coulomb & 1.41 & regularisation \\
+Hybrid loss (annealed) & 2.59 & loss \\
+Gumbel top-$K$ + hybrid & 5.00 & sampling + loss \\
+Hybrid + det filter & 24.75 & loss + filter \\
+\midrule
+\textbf{Same ansatz, VMC\,+\,SR} & $<$\textbf{0.01} &
+  \textbf{variational} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The pattern is striking:
+\begin{itemize}
+\item Every intervention that \emph{includes} more near-node points
+  (SIR, Gumbel) \emph{increases} the error---backflow shrinks
+  defensively under gradient noise or diverges entirely.
+\item Every intervention that \emph{changes} the loss to tolerate
+  near-node contributions (hybrid mean-energy, det filter) produces
+  catastrophic results because the collocation sampling is not $|\Psi|^2$
+  and the variational principle does not apply.
+\item The smoothness penalty $\lambda\|\nabla^2\Delta\mathbf x\|^2$
+  helps modestly (from $0.59\%$ to $0.38\%$ without it vs.\ with it)
+  by damping the $\nabla^2 D/D$ poles, but cannot eliminate the
+  fundamental divergence.
+\item Ironically, the only method that trains backflow effectively is
+  MCMC-based VMC\,+\,SR---which sidesteps the entire collocation
+  framework.
+\end{itemize}
+
+
+\section{Connection to Appendices~\ref{app:laplacian} and \ref{app:coulomb}}
+\label{app:catch22:connection}
+
+The catch-22 is a specific manifestation of the general conditioning
+difficulties analysed in Appendices~\ref{app:laplacian}--\ref{app:coulomb}:
+
+\paragraph{Laplacian stiffness (Appendix~\ref{app:laplacian}).}
+The $k^4$-type amplification of curvature errors
+(\S\ref{app:laplacian:bilap}) is compounded by backflow, because
+$\nabla^2(\det\tilde S)$ introduces second derivatives of
+$\Delta\mathbf x$ that are not present in a fixed-node ansatz.
+These additional high-frequency modes inflate the spectral spread
+of the training operator $L^\ast L$.
+
+\paragraph{Coulomb singularity (Appendix~\ref{app:coulomb}).}
+The $1/r$ Coulomb potential (\S\ref{app:coulomb:setup}) adds a
+singular multiplication operator to $\hat H$.
+Near both the coalescence point ($r_{ij}\to 0$) and the node
+($D\to 0$), $E_L$ contains products of these two singularities,
+and the cusp cancellation (\S\ref{app:coulomb:cusp}) must be
+maintained simultaneously with the nodal cancellation
+\eqref{eq:c22:exact_cancel}.
+In the strong residual squared $\|LE_L\|^2$, these compound
+singularities create an extremely stiff landscape.
+
+\paragraph{The backflow-specific pathology.}
+What distinguishes the backflow catch-22 from the general conditioning
+problem is the \emph{self-referential} nature of the singularity:
+the backflow parameters $\theta_{\mathrm{BF}}$ determine \emph{where}
+the node is, so updating $\theta_{\mathrm{BF}}$ moves the singularity
+in configuration space.
+Under the collocation loss, the gradient pushes $\theta_{\mathrm{BF}}$
+in a direction determined by $E_L$ values at the current collocation
+points, but the resulting node shift invalidates those very points.
+VMC+SR avoids this because it samples from the \emph{current}
+$|\Psi_\theta|^2$ at every step, so the sampling distribution
+co-adapts with the node position.
+

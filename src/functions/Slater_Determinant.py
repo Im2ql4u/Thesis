@@ -639,6 +639,7 @@ def slater_determinant_closed_shell(
     params=None,
     spin: torch.Tensor | None = None,  # (N,) or (B,N) with identical rows
     normalize: bool = True,
+    orbital_perturbation: torch.Tensor | None = None,  # (B,N,n_occ) optional δΨ
 ) -> tuple[torch.Tensor, torch.Tensor]:
     """
     Closed-shell Slater determinant with explicit spin row selection.
@@ -677,7 +678,9 @@ def slater_determinant_closed_shell(
         )
     Psi = torch.matmul(Phi, C_occ)  # (B, N, n_occ)
 
-    # --- select electron rows by spin ---
+    # --- orbital backflow perturbation (multiplicative) ---
+    if orbital_perturbation is not None:
+        Psi = Psi * (1.0 + orbital_perturbation)  # δ: (B, N, n_occ)
     if spin is None:
         spin_vec = torch.cat(
             [

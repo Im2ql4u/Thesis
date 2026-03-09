@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 # =========================
 # Thorough energy evaluation (multi-laplacian + stable sampler)
 # =========================
@@ -7,6 +9,8 @@ import torch
 from tqdm.auto import tqdm
 
 from utils import inject_params
+
+from .Neural_Networks import psi_fn
 
 
 # --------------------
@@ -96,8 +100,8 @@ def _lap_log_fd_central_hutch(psi_log_fn, x, probes=16, eps=1e-3):
 def _lap_log_hvp_hutch(psi_log_fn, x, probes=16):
     x = x.detach().requires_grad_(True)
     with torch.set_grad_enabled(True):
-        l = psi_log_fn(x)
-        g = torch.autograd.grad(l.sum(), x, create_graph=True, retain_graph=True)[0]
+        logpsi = psi_log_fn(x)
+        g = torch.autograd.grad(logpsi.sum(), x, create_graph=True, retain_graph=True)[0]
     B = x.shape[0]
     acc = torch.zeros(B, device=x.device, dtype=x.dtype)
     for _ in range(probes):
@@ -111,9 +115,9 @@ def _lap_log_hvp_hutch(psi_log_fn, x, probes=16):
 def _lap_log_exact(psi_log_fn, x):
     x = x.detach().requires_grad_(True)
     with torch.set_grad_enabled(True):
-        l = psi_log_fn(x)  # (B,)
+        logpsi = psi_log_fn(x)  # (B,)
         g = torch.autograd.grad(
-            l, x, grad_outputs=torch.ones_like(l), create_graph=True, retain_graph=True
+            logpsi, x, grad_outputs=torch.ones_like(logpsi), create_graph=True, retain_graph=True
         )[
             0
         ]  # (B,N,d)
@@ -270,6 +274,7 @@ def evaluate_energy_vmc(
     psi_fn,  # your (f_net, x, C_occ, ...) -> (logψ, ψ)
     compute_coulomb_interaction,  # Physics.py function
     backflow_net=None,
+    orbital_bf_net=None,
     spin=None,
     params=None,  # dict with device, torch_dtype, omega, n_particles, d
     # ---- sampling / batching ----
@@ -320,11 +325,21 @@ def evaluate_energy_vmc(
     f_net.to(device).to(dtype).eval()
     if backflow_net is not None:
         backflow_net.to(device).to(dtype).eval()
+    if orbital_bf_net is not None:
+        orbital_bf_net.to(device).to(dtype).eval()
 
     def psi_log_fn(x):
         if not x.requires_grad:
             x = x.detach().requires_grad_(True)
-        logpsi, _psi = psi_fn(f_net, x, C_occ, backflow_net=backflow_net, spin=spin, params=params)
+        logpsi, _psi = psi_fn(
+            f_net,
+            x,
+            C_occ,
+            backflow_net=backflow_net,
+            orbital_bf_net=orbital_bf_net,
+            spin=spin,
+            params=params,
+        )
         return logpsi  # (B,)
 
     # ω-invariant scaling

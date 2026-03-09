@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import math
 
 import torch
@@ -970,3 +972,229 @@ class UnifiedCTNN(nn.Module):
 
         f = f_nn + cusp  # (B, 1)
         return dx, f
+
+
+# ===========================================================================
+# Orbital Backflow  (modifies orbital matrix, not coordinates)
+# ===========================================================================
+
+
+class OrbitalBackflowNet(nn.Module):
+    """
+    Orbital backflow network — perturbs the orbital *values* rather than
+    the electron coordinates.
+
+    Instead of  x_eff = x + Δx  →  Psi(x_eff),
+    this computes  δΨ(x; θ) with shape (B, N, n_occ) and the caller adds
+    it to the orbital matrix:  Ψ̃ = Φ·C_occ + δΨ.
+
+    Architecture:  same copresheaf / graph-style backbone as CTNNBackflowNet
+    (node embed → edge embed → transport maps → update → readout)
+    but the final head outputs n_occ values per electron instead of d
+    coordinate shifts.
+    """
+
+    def __init__(
+        self,
+        d: int,
+        n_occ: int,
+        *,
+        msg_hidden: int = 64,
+        msg_layers: int = 2,
+        hidden: int = 64,
+        layers: int = 2,
+        act: str = "silu",
+        aggregation: str = "sum",
+        use_spin: bool = True,
+        same_spin_only: bool = False,
+        out_bound: str = "tanh",
+        bf_scale_init: float = 0.05,
+        zero_init_last: bool = True,
+        omega: float = 1.0,
+    ):
+        super().__init__()
+        self.d = d
+        self.n_occ = n_occ
+        self.use_spin = use_spin
+        self.same_spin_only = same_spin_only
+        self.aggregation = aggregation
+        self.out_bound = out_bound
+        self.omega = omega
+
+        # --- activation factory ---
+        def make_act(name: str) -> nn.Module:
+            name = name.lower()
+            if name == "relu":
+                return nn.ReLU()
+            if name == "gelu":
+                return nn.GELU()
+            if name == "tanh":
+                return nn.Tanh()
+            if name in ("silu", "swish"):
+                return nn.SiLU()
+            if name == "mish":
+                return getattr(nn, "Mish", nn.SiLU)()
+            if name == "leakyrelu":
+                return nn.LeakyReLU(0.1)
+            if name in ("identity", "none"):
+                return nn.Identity()
+            raise ValueError(f"Unknown activation '{name}'")
+
+        self._act = make_act(act)
+
+        # ---------- Feature dimensions ----------
+        node_in_dim = d + (1 if use_spin else 0)
+        node_hidden = hidden
+        edge_hidden = msg_hidden
+
+        # ---------- Embeddings ----------
+        self.node_embed = nn.Linear(node_in_dim, node_hidden)
+        edge_in_dim = d + 2  # [r_ij, |r_ij|, |r_ij|^2]
+        self.edge_embed = self._mlp(edge_in_dim, edge_hidden, edge_hidden, msg_layers, self._act)
+
+        # ---------- Copresheaf transport maps ----------
+        self.rho_v_to_e = nn.Linear(node_hidden, edge_hidden, bias=False)
+        self.rho_e_to_v = nn.Linear(edge_hidden, node_hidden, bias=False)
+
+        # ---------- Update MLPs ----------
+        self.edge_update = self._mlp(
+            3 * edge_hidden, edge_hidden, edge_hidden, msg_layers, self._act
+        )
+        self.node_update = self._mlp(2 * node_hidden, node_hidden, node_hidden, layers, self._act)
+
+        # ---------- Orbital head: node features → n_occ orbital corrections ----------
+        self.orb_head = nn.Linear(node_hidden, n_occ)
+
+        # positive learnable scale via softplus
+        self.bf_scale_raw = nn.Parameter(torch.tensor(math.log(math.exp(bf_scale_init) - 1.0)))
+
+        # zero-init the orbital head to start δΨ ≈ 0
+        if zero_init_last:
+            nn.init.zeros_(self.orb_head.weight)
+            nn.init.zeros_(self.orb_head.bias)
+
+        # External scale override (set by training loop, used if not None)
+        self._scale_override: float | None = None
+
+    # ---------- helpers ----------
+
+    def _mlp(self, in_dim: int, hid: int, out_dim: int, num_layers: int, act: nn.Module):
+        assert num_layers >= 1
+        mods: list[nn.Module] = []
+        if num_layers == 1:
+            mods.append(nn.Linear(in_dim, out_dim))
+        else:
+            mods.append(nn.Linear(in_dim, hid))
+            mods.append(act)
+            for _ in range(num_layers - 2):
+                mods.append(nn.Linear(hid, hid))
+                mods.append(act)
+            mods.append(nn.Linear(hid, out_dim))
+        return nn.Sequential(*mods)
+
+    @property
+    def bf_scale(self):
+        return F.softplus(self.bf_scale_raw)
+
+    def _aggregate(self, msgs: torch.Tensor) -> torch.Tensor:
+        if self.aggregation == "sum":
+            return msgs.sum(dim=2)
+        if self.aggregation == "mean":
+            return msgs.mean(dim=2)
+        if self.aggregation == "max":
+            return msgs.max(dim=2).values
+        raise ValueError(f"Unknown aggregation '{self.aggregation}'")
+
+    # ---------- forward ----------
+
+    def forward(
+        self,
+        x: torch.Tensor,
+        spin: torch.Tensor | None = None,
+        *,
+        scale_override: float | None = None,
+    ) -> torch.Tensor:
+        """
+        x:    (B, N, d)
+        spin: (N,) or (B, N) with {0,1}
+        scale_override: if given, use this instead of the learned bf_scale
+
+        returns δΨ: (B, N, n_occ) — orbital perturbations
+        """
+        B, N, d = x.shape
+        assert d == self.d
+        x_sc = x * (self.omega**0.5)
+
+        # -------- node input features --------
+        if self.use_spin and spin is not None:
+            if spin.ndim == 1:
+                spin_feat = spin.view(1, N, 1).to(x.dtype).expand(B, N, 1)
+            else:
+                spin_feat = spin.view(B, N, 1).to(x.dtype)
+            node_in = torch.cat([x_sc, spin_feat], dim=-1)
+        else:
+            node_in = x_sc
+
+        h_v = self.node_embed(node_in)  # (B,N,hidden)
+
+        # -------- edge geometry --------
+        r = x_sc.unsqueeze(2) - x_sc.unsqueeze(1)  # (B,N,N,d)
+        r2 = (r**2).sum(dim=-1, keepdim=True)  # (B,N,N,1)
+        r1 = torch.sqrt(r2 + 1e-12)  # (B,N,N,1)
+
+        edge_in = torch.cat([r, r1, r2], dim=-1)  # (B,N,N,d+2)
+        h_e = self.edge_embed(edge_in)  # (B,N,N,edge_hidden)
+
+        # -------- spin edge mask --------
+        if self.use_spin and spin is not None:
+            if spin.ndim == 1:
+                s_i = spin.view(1, N, 1, 1).to(x.dtype).expand(B, N, N, 1)
+                s_j = spin.view(1, 1, N, 1).to(x.dtype).expand(B, N, N, 1)
+            else:
+                s_i = spin.view(B, N, 1, 1).to(x.dtype).expand(B, N, N, 1)
+                s_j = spin.view(B, 1, N, 1).to(x.dtype).expand(B, N, N, 1)
+            same = (s_i == s_j).to(x.dtype)
+            weight = same if self.same_spin_only else torch.ones_like(same)
+        else:
+            weight = torch.ones_like(r[..., :1])
+
+        eye = torch.eye(N, device=x.device, dtype=x.dtype).view(1, N, N, 1)
+        weight = weight * (1.0 - eye)
+
+        # -------- node → edge transport --------
+        h_v_i = h_v.unsqueeze(2).expand(B, N, N, h_v.shape[-1])
+        h_v_j = h_v.unsqueeze(1).expand(B, N, N, h_v.shape[-1])
+        v_i_to_e = self.rho_v_to_e(h_v_i)
+        v_j_to_e = self.rho_v_to_e(h_v_j)
+
+        edge_update_in = torch.cat([h_e, v_i_to_e, v_j_to_e], dim=-1)
+        h_e_new = self.edge_update(edge_update_in)
+
+        # -------- edge → node transport --------
+        msgs_e_to_v = self.rho_e_to_v(h_e_new)
+        msgs_e_to_v = msgs_e_to_v * weight
+        m_v = self._aggregate(msgs_e_to_v)
+
+        # -------- node update with residual --------
+        node_update_in = torch.cat([h_v, m_v], dim=-1)
+        delta_h = self.node_update(node_update_in)
+        h_v = h_v + delta_h
+
+        # -------- map to orbital corrections δΨ --------
+        dPsi = self.orb_head(h_v)  # (B, N, n_occ)
+
+        if self.out_bound == "tanh":
+            dPsi = torch.tanh(dPsi)
+        elif self.out_bound != "identity":
+            raise ValueError(f"Unknown out_bound '{self.out_bound}'")
+
+        scale = (
+            scale_override
+            if scale_override is not None
+            else (
+                self._scale_override
+                if self._scale_override is not None
+                else F.softplus(self.bf_scale_raw)
+            )
+        )
+        return dPsi * scale

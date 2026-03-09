@@ -250,7 +250,6 @@ def sample_psi2_batch(
 
 
 # --- define compute_local_energy_batch (with SR fallbacks) ---
-import torch
 
 
 def _hutch_lap_logpsi(psi_log_fn, x, probes=8, fd_eps=1e-4):
@@ -463,7 +462,6 @@ def forward_taps(
         )
         gamma = same_spin * gamma_para + (1.0 - same_spin) * gamma_apara  # (B,P,1)
 
-        ell = torch.as_tensor(f_net.cusp_len, dtype=x.dtype, device=x.device).view(1, 1, 1)
         pair_u = gamma * r * torch.exp(-r)  # (B,P,1)
         cusp_sum = pair_u.sum(dim=1)  # (B,1)
 
@@ -1441,15 +1439,14 @@ def run_compact_analysis(
         cusp_bf = taps_bf["cusp"].view(-1)
         mask_fin = torch.isfinite(delta_E_on_bf) & torch.isfinite(base_bf) & torch.isfinite(cusp_bf)
         if mask_fin.any():
-            corr_dE_base = float(
+            corr_dE_base = float(  # noqa: F841
                 torch.corrcoef(torch.stack([delta_E_on_bf[mask_fin], base_bf[mask_fin]]))[0, 1]
             )
-            corr_dE_cusp = float(
+            corr_dE_cusp = float(  # noqa: F841
                 torch.corrcoef(torch.stack([delta_E_on_bf[mask_fin], cusp_bf[mask_fin]]))[0, 1]
             )
         else:
-            corr_dE_base = float("nan")
-            corr_dE_cusp = float("nan")
+            pass  # no finite samples
 
         # Near-field concentration of |ΔE|
         def _near_field_delta_share(
@@ -1640,11 +1637,16 @@ def run_compact_analysis(
     if backflow_net is not None:
         print(f"[with BF] Energy: E≈{mu_bf:.6f}  (±{se_bf:.6f} se)  std={sd_bf:.6f}")
     print(
-        f"Branch Δout (no-BF): ψ={ablation_nb['psi']:.3f}, φ={ablation_nb['phi']:.3f}, extras={ablation_nb['extras']:.3f}"
+        f"Branch Δout (no-BF): ψ={ablation_nb['psi']:.3f}, "
+        f"φ={ablation_nb['phi']:.3f}, "
+        f"extras={ablation_nb['extras']:.3f}"
     )
     print(f"Means (out, cusp, base | no-BF): {cusp_means_nb}")
     print(
-        f"Eff. rank (features | no-BF) = {float(svd_nb['effective_rank']):.3f} | Eff. rank (ρ_in | no-BF) = {float(res_pc_nb['pca_eff_rank']):.3f}"
+        f"Eff. rank (features | no-BF) = "
+        f"{float(svd_nb['effective_rank']):.3f} | "
+        f"Eff. rank (ρ_in | no-BF) = "
+        f"{float(res_pc_nb['pca_eff_rank']):.3f}"
     )
     print("PC ablation rel-MAE (PC vs random | no-BF):")
     for k, r_pc, r_rd in zip(res_pc_nb["k"].tolist(), rel_pc_nb, rel_rand_nb, strict=False):
@@ -1662,33 +1664,42 @@ def run_compact_analysis(
     )
     for row in nf_nb["rows"]:
         print(
-            f"[Near-field q | no-BF] q={row['q']:.0%}  share={row['share']:.3f}  count={row['count']}  frac={row['frac']:.5f}"
+            f"[Near-field q | no-BF] q={row['q']:.0%}  "
+            f"share={row['share']:.3f}  "
+            f"count={row['count']}  frac={row['frac']:.5f}"
         )
 
     if backflow_net is not None:
         print("\n--- Backflow vs No-Backflow (PINN context) ---")
         print(
-            f"ΔE (mean±se) on BF samples: {backflow_report['energies']['mean_delta']:.6f} ± {backflow_report['energies']['se_delta']:.6f} "
-            f"(std {backflow_report['energies']['std_delta']:.6f}, finite {backflow_report['energies']['nfinite_delta']}/{backflow_report['energies']['ntotal_delta']})"
+            f"ΔE (mean±se) on BF samples: "
+            f"{backflow_report['energies']['mean_delta']:.6f} "
+            f"± {backflow_report['energies']['se_delta']:.6f} "
+            f"(std {backflow_report['energies']['std_delta']:.6f}, "
+            f"finite {backflow_report['energies']['nfinite_delta']}/"
+            f"{backflow_report['energies']['ntotal_delta']})"
         )
         print(f"PC1 cosine(noBF,BF) = {backflow_report['pc1_alignment']['cosine']:.6f}")
         print(f"ΔZ effective rank ≈ {backflow_report['deltaZ_eff_rank']:.3f}")
         for row in backflow_report["near_field_delta"]:
             print(
-                f"[Near-field ΔE | BF] q={row['q']:.0%}  share={row['share']:.3f}  count={row['count']}  frac={row['frac']:.5f}"
+                f"[Near-field ΔE | BF] q={row['q']:.0%}  "
+                f"share={row['share']:.3f}  "
+                f"count={row['count']}  frac={row['frac']:.5f}"
             )
 
         # --- BF network proper ---
         bf = backflow_report["bf_network"]
         print("\n--- BackflowNet (Δx/messages) ---")
         print(
-            f"Eff-rank(Δx)={bf['ranks']['disp_eff_rank']:.3f}  PR(Δx)={bf['ranks']['disp_pr_rank']:.3f} | "
-            f"Eff-rank(msg)={bf['ranks']['msg_eff_rank']:.3f}  PR(msg)={bf['ranks']['msg_pr_rank']:.3f}"
+            f"Eff-rank(Δx)={bf['ranks']['disp_eff_rank']:.3f}  "
+            f"PR(Δx)={bf['ranks']['disp_pr_rank']:.3f} | "
+            f"Eff-rank(msg)={bf['ranks']['msg_eff_rank']:.3f}  "
+            f"PR(msg)={bf['ranks']['msg_pr_rank']:.3f}"
         )
-        print(
-            f"PCA(Δx) eff-rank={backflow_report['bf_network']['pca_disp']['eff_rank']:.3f} "
-            f"| expvar top-4={ [round(float(x),6) for x in backflow_report['bf_network']['pca_disp']['expvar_top8'][:4]] }"
-        )
+        pca_disp = backflow_report["bf_network"]["pca_disp"]
+        expvar4 = [round(float(x), 6) for x in pca_disp["expvar_top8"][:4]]
+        print(f"PCA(Δx) eff-rank={pca_disp['eff_rank']:.3f} " f"| expvar top-4={expvar4}")
         print("PC ablation rel-||·|| (Δx):")
         for k, r_pc, r_rd in zip(
             bf["pc_ablation"]["k"],
@@ -1707,7 +1718,9 @@ def run_compact_analysis(
         )
         for row in bf["near_field_dx2"]:
             print(
-                f"[Near-field ||Δx||²] q={row['q']:.0%}  share={row['share']:.3f}  count={row['count']}  frac={row['frac']:.5f}"
+                f"[Near-field ||Δx||²] q={row['q']:.0%}  "
+                f"share={row['share']:.3f}  "
+                f"count={row['count']}  frac={row['frac']:.5f}"
             )
 
     # =========================== BUILD OUTPUT JSON ===========================

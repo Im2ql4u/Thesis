@@ -1,0 +1,19 @@
+Major cleanup + orbital backflow implementation + experiment report
+
+Cleanup:
+- Remove ~45 dead run scripts, dead notebooks, dead function modules
+- Remove all old model checkpoints (~261MB)
+- Remove dead result directories (logs, csvs, eigenstate_sweep, etc.)
+- Update .gitignore (ignore *.pt, results/arch_colloc/*.log)
+
+New features:
+- OrbitalBackflowNet: copresheaf GNN for orbital matrix perturbation
+- Multiplicative orbital backflow with scheduled bf_scale ramp
+- Training, evaluation, and architecture comparison scripts
+- jastrow_architectures.py: CTNNJastrowVCycle and variants
+
+Key results (N=6, w=1.0, E_DMC=20.15932):
+- Jastrow only (V-cycle): E=20.188 (+0.14%)
+- + MLP coord backflow:   E=20.179 (+0.10%)
+- + CTNN coord backflow:  E=20.173 (+0.07%)
+- + Orbital BF (mult):    E=20.189 (probe, ep100, still training)

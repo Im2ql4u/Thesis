@@ -1,5 +1,6 @@
-# stable_training.py — capped-simplex sampler, clean, shape-safe
+from __future__ import annotations
 
+# stable_training.py — capped-simplex sampler, clean, shape-safe
 import math
 from typing import Literal
 
@@ -279,6 +280,7 @@ def psi_fn(
     C_occ: torch.Tensor,
     *,
     backflow_net: nn.Module | None = None,
+    orbital_bf_net: nn.Module | None = None,
     spin: torch.Tensor | None = None,
     params=None,
 ):
@@ -305,6 +307,24 @@ def psi_fn(
             x_config=x_eff, C_occ=C_occ, params=params, spin=spin_bn, normalize=True
         )
         logpsi = logabs.view(-1) + f.squeeze(-1)
+        psi = sign.view(-1) * torch.exp(logpsi)
+        return logpsi, psi
+
+    # ------------------------------------------------------------------
+    # Orbital backflow path: δΨ perturbs orbital matrix at original x
+    # ------------------------------------------------------------------
+    if orbital_bf_net is not None:
+        dPsi = orbital_bf_net(x_batch, spin=spin_bn)  # (B, N, n_occ)
+        sign, logabs = slater_determinant_closed_shell(
+            x_config=x_batch,
+            C_occ=C_occ,
+            params=params,
+            spin=spin_bn,
+            normalize=True,
+            orbital_perturbation=dPsi,
+        )
+        f = f_net(x_batch, spin=spin_bn).squeeze(-1)  # (B,)
+        logpsi = logabs.view(-1) + f
         psi = sign.view(-1) * torch.exp(logpsi)
         return logpsi, psi
 

@@ -1,0 +1,26 @@
+{
+  "created": "2026-03-14 12:22",
+  "purpose": "N=6 low-omega jastrow transfer probes while keeping N=6 BF hardfocus run alive",
+  "source_reference": "Thesis/results.tex",
+  "provisional_refs": {
+    "0.001": 0.140832,
+    "0.01": 0.69036,
+    "0.1": 3.55388
+  },
+  "jobs": [
+    {
+      "tag": "n6_o0p001_jas_transfer_s42",
+      "gpu": 3,
+      "omega": 0.001,
+      "mode": "jastrow",
+      "init": "default N=6 pretrained jastrow"
+    },
+    {
+      "tag": "n6_o0p01_jas_transfer_s42",
+      "gpu": 5,
+      "omega": 0.01,
+      "mode": "jastrow",
+      "init": "default N=6 pretrained jastrow"
+    }
+  ]
+}

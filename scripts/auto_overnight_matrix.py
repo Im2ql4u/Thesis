@@ -233,7 +233,8 @@ def make_n12_jastrow_jobs(targets, gpus, jas_epochs):
     Uses --no-pretrained because ctnn_vcycle.pt is N=6 only.
     """
     jobs = []
-    gpu_idx = 2  # start after the 2 N=6 BF slots
+    phase_a_gpus = gpus[1:] if len(gpus) > 1 else gpus
+    gpu_idx = 0
     for target in targets:
         n, om = target["key"]
         if n == 6 and om == 1.0:
@@ -241,7 +242,7 @@ def make_n12_jastrow_jobs(targets, gpus, jas_epochs):
         for seed in (11, 22):
             jobs.append(Job(
                 name="%s_jas_s%d" % (_tag(n, om), seed),
-                gpu=gpus[gpu_idx % len(gpus)],
+                gpu=phase_a_gpus[gpu_idx % len(phase_a_gpus)],
                 target_key=(n, om),
                 stage="jastrow",
                 args=[

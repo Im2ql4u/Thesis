@@ -187,36 +187,44 @@ def _tag(n, om):
 
 
 def make_n6_bf_jobs(gpus, bf_epochs):
-    """N=6 BF runs. No --no-pretrained: loads bf_ctnn_vcycle.pt automatically.
-    This replicates the recipe that produced bf_hardfocus_v1b.pt (E=20.161).
-    Two seeds for statistical confidence.
+    """N=6 BF continuation matching bf_hardfocus_v1b recipe exactly.
+
+    Historical best run chain:
+      bf_joint_reinf_v3.pt -> bf_resume_lr_v1.pt -> bf_hardfocus_v1b.pt
+    The hardfocus stage resumed from bf_resume_lr_v1.pt with pure REINFORCE
+    settings and larger collocation batch.
     """
-    jobs = []
-    for seed_idx, seed in enumerate((42, 99)):
-        jobs.append(Job(
-            name="n6_o1p0_bf_repro_s%d" % seed,
-            gpu=gpus[seed_idx % len(gpus)],
+    resume_ckpt = RESULTS_DIR / "bf_resume_lr_v1.pt"
+    if not resume_ckpt.exists():
+        print("[WARN] Missing %s; falling back to bf_ctnn_vcycle init path" % resume_ckpt)
+    args = [
+        "--mode", "bf",
+        "--n-elec", "6",
+        "--omega", "1.0",
+        "--epochs", str(bf_epochs),
+        "--n-coll", "6144",
+        "--oversample", "8",
+        "--micro-batch", "512",
+        "--lr", "2e-4",
+        "--lr-jas", "2e-5",
+        "--grad-clip", "1.0",
+        "--clip-el", "5.0",
+        "--direct-weight", "0.0",
+        "--vmc-every", "50",
+        "--seed", "42",
+    ]
+    if resume_ckpt.exists():
+        args += ["--resume", str(resume_ckpt)]
+
+    return [
+        Job(
+            name="n6_o1p0_bf_hardfocus_repro_s42",
+            gpu=gpus[0],
             target_key=(6, 1.0),
             stage="bf",
-            args=[
-                "--mode", "bf",
-                "--n-elec", "6",
-                "--omega", "1.0",
-                # NO --no-pretrained: loads bf_ctnn_vcycle.pt (jas+bf init at E=20.19)
-                "--epochs", str(bf_epochs),
-                "--n-coll", "4096",
-                "--oversample", "8",
-                "--micro-batch", "512",
-                "--lr", "5e-4",
-                "--lr-jas", "5e-5",
-                "--grad-clip", "1.0",
-                "--clip-el", "4.0",          # "hardfocus" — the key ingredient
-                "--direct-weight", "0.1",    # default hybrid weight
-                "--vmc-every", "50",
-                "--seed", str(seed),
-            ],
-        ))
-    return jobs
+            args=args,
+        )
+    ]
 
 
 def make_n12_jastrow_jobs(targets, gpus, jas_epochs):

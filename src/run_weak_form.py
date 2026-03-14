@@ -775,6 +775,71 @@ def main():
             print(f"    WARNING: could not load {what} (shape mismatch): {e}")
             return False
 
+    def build_backflow_from_config(bfc):
+        return CTNNBackflowNet(
+            d=bfc["d"],
+            msg_hidden=bfc["msg_hidden"],
+            msg_layers=bfc["msg_layers"],
+            hidden=bfc["hidden"],
+            layers=bfc["layers"],
+            act=bfc["act"],
+            aggregation=bfc["aggregation"],
+            use_spin=bfc["use_spin"],
+            same_spin_only=bfc["same_spin_only"],
+            out_bound=bfc["out_bound"],
+            bf_scale_init=bfc["bf_scale_init"],
+            zero_init_last=bfc["zero_init_last"],
+            omega=OMEGA,
+        ).to(DEVICE).to(DTYPE)
+
+    def maybe_load_bf_from_ckpt(module, ckpt_obj, what, *, required=False):
+        if "bf_state" not in ckpt_obj:
+            msg = f"{what} has no bf_state"
+            if required:
+                raise RuntimeError(msg)
+            print(f"    WARNING: {msg}")
+            return module, False
+
+        # Prefer architecture-aware load first when config is present (or can be
+        # inferred from canonical pretrained BF), to avoid noisy mismatch warnings.
+        if "bf_config" in ckpt_obj:
+            try:
+                rebuilt = build_backflow_from_config(ckpt_obj["bf_config"])
+                loaded_cfg = try_load_state(rebuilt, ckpt_obj["bf_state"], f"{what}(cfg-first)")
+                if loaded_cfg:
+                    return rebuilt, True
+            except Exception as e:
+                print(f"    WARNING: could not use bf_config for {what}: {e}")
+        else:
+            bf_ckpt_path = RESULTS_DIR / "bf_ctnn_vcycle.pt"
+            if bf_ckpt_path.exists():
+                try:
+                    base = torch.load(bf_ckpt_path, map_location=DEVICE)
+                    if "bf_config" in base:
+                        rebuilt = build_backflow_from_config(base["bf_config"])
+                        loaded_base = try_load_state(rebuilt, ckpt_obj["bf_state"], f"{what}(base-config)")
+                        if loaded_base:
+                            return rebuilt, True
+                except Exception as e:
+                    print(f"    WARNING: could not use base bf_config fallback for {what}: {e}")
+
+        loaded = try_load_state(module, ckpt_obj["bf_state"], what)
+        if loaded:
+            return module, True
+
+        if "bf_config" in ckpt_obj:
+            try:
+                rebuilt = build_backflow_from_config(ckpt_obj["bf_config"])
+                loaded2 = try_load_state(rebuilt, ckpt_obj["bf_state"], f"{what}(rebuilt)")
+                if loaded2:
+                    return rebuilt, True
+            except Exception as e:
+                print(f"    WARNING: could not rebuild backflow for {what}: {e}")
+
+        if required:
+            raise RuntimeError(f"Failed to load required backflow state from {what}")
+        return module, False
+
     def maybe_load_jas_from_ckpt(module, ckpt_obj, what):
         if "jas_state" in ckpt_obj:
             return try_load_state(module, ckpt_obj["jas_state"], what)
@@ -802,41 +867,30 @@ def main():
     if a.mode == "bf":
         backflow_net = build_default_backflow()
 
-        if not a.no_pretrained:
+        if a.resume:
+            print("  Resume requested: skipping optional pretrained BF+Jastrow init")
+        elif not a.no_pretrained:
             bf_ckpt_path = RESULTS_DIR / "bf_ctnn_vcycle.pt"
             if bf_ckpt_path.exists():
                 print(f"  Trying pretrained BF+Jastrow init from {bf_ckpt_path}")
                 ckpt = torch.load(bf_ckpt_path, map_location=DEVICE)
                 maybe_load_jas_from_ckpt(f_net, ckpt, "pretrained jas")
-                if "bf_state" in ckpt:
-                    loaded = try_load_state(backflow_net, ckpt["bf_state"], "pretrained bf")
-                    if not loaded and "bf_config" in ckpt:
-                        bfc = ckpt["bf_config"]
-                        try:
-                            backflow_net = CTNNBackflowNet(
-                                d=bfc["d"], msg_hidden=bfc["msg_hidden"], msg_layers=bfc["msg_layers"],
-                                hidden=bfc["hidden"], layers=bfc["layers"], act=bfc["act"],
-                                aggregation=bfc["aggregation"], use_spin=bfc["use_spin"],
-                                same_spin_only=bfc["same_spin_only"], out_bound=bfc["out_bound"],
-                                bf_scale_init=bfc["bf_scale_init"], zero_init_last=bfc["zero_init_last"],
-                                omega=OMEGA,
-                            ).to(DEVICE).to(DTYPE)
-                            try_load_state(backflow_net, ckpt["bf_state"], "pretrained bf(rebuilt)")
-                        except Exception as e:
-                            print(f"    WARNING: fallback bf rebuild failed: {e}")
+                backflow_net, _ = maybe_load_bf_from_ckpt(
+                    backflow_net, ckpt, "pretrained bf", required=False
+                )
 
         if a.init_jas:
             print(f"  Init Jastrow from {a.init_jas}")
             jckpt = torch.load(a.init_jas, map_location=DEVICE)
-            maybe_load_jas_from_ckpt(f_net, jckpt, "init jas")
+            if not maybe_load_jas_from_ckpt(f_net, jckpt, "init jas"):
+                raise RuntimeError(f"Failed to load required Jastrow init from {a.init_jas}")
 
         if a.init_bf:
             print(f"  Init Backflow from {a.init_bf}")
             bckpt = torch.load(a.init_bf, map_location=DEVICE)
-            if "bf_state" in bckpt:
-                try_load_state(backflow_net, bckpt["bf_state"], "init bf")
-            else:
-                print("    WARNING: init-bf checkpoint has no bf_state")
+            backflow_net, _ = maybe_load_bf_from_ckpt(
+                backflow_net, bckpt, "init bf", required=True
+            )
 
         n_bf = sum(p.numel() for p in backflow_net.parameters())
         n_jas = sum(p.numel() for p in f_net.parameters())
@@ -917,10 +971,13 @@ def main():
             npf_net.load_state_dict(rckpt["pf_state"])
             print(f"    Loaded pf_state")
         if "bf_state" in rckpt and backflow_net is not None:
-            backflow_net.load_state_dict(rckpt["bf_state"])
+            backflow_net, _ = maybe_load_bf_from_ckpt(
+                backflow_net, rckpt, "resume bf", required=True
+            )
             print(f"    Loaded bf_state")
         if "jas_state" in rckpt:
-            try_load_state(f_net, rckpt["jas_state"], "resume jas")
+            if not try_load_state(f_net, rckpt["jas_state"], "resume jas"):
+                raise RuntimeError(f"Failed to load required Jastrow state from resume checkpoint: {a.resume}")
             print("    Loaded jas_state")
 
     sys.stdout.flush()

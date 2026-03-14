@@ -732,7 +732,8 @@ def train_weak_form(
             backflow_net.load_state_dict(best_vmc_state["bf_state"])
         if npf_net is not None and "pf_state" in best_vmc_state:
             npf_net.load_state_dict(best_vmc_state["pf_state"])
-        print(f"  Restored VMC-best E={best_vmc_E:.5f} err={best_vmc_err * 100:.3f}%")
+        _err_str = f"{best_vmc_err * 100:.3f}%" if math.isfinite(best_vmc_err) else "nan%"
+        print(f"  Restored VMC-best E={best_vmc_E:.5f} err={_err_str}")
     elif best_state:
         f_net.load_state_dict(best_state["jas_state"])
         if backflow_net is not None and "bf_state" in best_state:

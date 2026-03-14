@@ -7,6 +7,7 @@ from typing import Literal
 import torch
 from torch import nn
 
+import config
 from utils import inject_params
 
 from .Physics import compute_coulomb_interaction
@@ -58,6 +59,226 @@ def _k_shell_layout(B, N, d, omega, device, dtype, K=None):
         occ = torch.ones(K, dtype=torch.float32) / K
 
     return radii_aho.float(), occ.float()
+
+
+def lookup_dmc_energy(n_particles: int, omega: float, *, allow_missing: bool = False) -> float:
+    """Resolve reference DMC energy from central config table.
+
+    Uses omega snapping implemented in `config._lookup_dmc_energy`.
+    """
+    try:
+        return float(config._lookup_dmc_energy(int(n_particles), float(omega)))
+    except Exception:
+        if allow_missing:
+            return float("nan")
+        raise
+
+
+def safe_percent_err(E: float, E_ref: float) -> float:
+    if not math.isfinite(float(E_ref)) or float(E_ref) == 0.0:
+        return float("nan")
+    return (float(E) - float(E_ref)) / abs(float(E_ref)) * 100.0
+
+
+def compute_grad_logpsi(psi_log_fn, x: torch.Tensor):
+    """Compute ∇log|Ψ(x)| and |∇logΨ|² with first derivatives only."""
+    x = x.detach().requires_grad_(True)
+    lp = psi_log_fn(x)
+    g = torch.autograd.grad(lp.sum(), x, create_graph=True)[0]
+    g2 = (g**2).sum(dim=(1, 2))
+    return g, g2
+
+
+def weak_form_local_energy(psi_log_fn, x: torch.Tensor, omega: float, params):
+    """Compute weak-form local energy integrand ẽ(x)=½|∇logΨ|²+V(x)."""
+    _, g2 = compute_grad_logpsi(psi_log_fn, x)
+    B = x.shape[0]
+    T_weak = 0.5 * g2
+    V = 0.5 * omega**2 * (x**2).sum(dim=(1, 2)) + compute_coulomb_interaction(
+        x, params=params
+    ).view(B)
+    return T_weak + V
+
+
+def sample_gauss(n: int, n_elec: int, dim: int, omega: float, *, device, dtype, sigma_f: float = 1.3):
+    s = sigma_f / math.sqrt(float(omega))
+    x = torch.randn(n, n_elec, dim, device=device, dtype=dtype) * s
+    Nd = n_elec * dim
+    lq = -0.5 * Nd * math.log(2 * math.pi * s**2) - x.reshape(n, -1).pow(2).sum(-1) / (2 * s**2)
+    return x, lq
+
+
+def sample_mixture(
+    n: int,
+    n_elec: int,
+    dim: int,
+    omega: float,
+    *,
+    device,
+    dtype,
+    sigma_fs=(0.8, 1.3, 2.0),
+):
+    """Sample from a Gaussian mixture, return (x, log_q)."""
+    nc = len(sigma_fs)
+    xs, lqs = [], []
+    for i, sf in enumerate(sigma_fs):
+        ni = n // nc if i < nc - 1 else n - (n // nc) * (nc - 1)
+        xi, lqi = sample_gauss(ni, n_elec, dim, omega, device=device, dtype=dtype, sigma_f=sf)
+        xs.append(xi)
+        lqs.append(lqi)
+    x_all = torch.cat(xs)
+    lq_all = torch.cat(lqs)
+    perm = torch.randperm(x_all.shape[0], device=x_all.device)
+    return x_all[perm[:n]], lq_all[perm[:n]]
+
+
+@torch.no_grad()
+def importance_resample(
+    psi_log_fn,
+    n_keep: int,
+    n_elec: int,
+    dim: int,
+    omega: float,
+    *,
+    device,
+    dtype,
+    n_cand_mult: int = 8,
+    sigma_fs=(0.8, 1.3, 2.0),
+    min_pair_cutoff: float = 0.0,
+):
+    """Multinomial resampling from q to approximate |Ψ|² samples."""
+    n_cand = n_cand_mult * n_keep
+    x_all, lq_all = sample_mixture(
+        n_cand,
+        n_elec,
+        dim,
+        omega,
+        device=device,
+        dtype=dtype,
+        sigma_fs=sigma_fs,
+    )
+
+    if min_pair_cutoff > 0:
+        mp = _pairwise_rmin(x_all)
+        keep = mp >= min_pair_cutoff
+        if int(keep.sum().item()) >= n_keep:
+            x_all = x_all[keep]
+            lq_all = lq_all[keep]
+
+    lp2 = []
+    for i in range(0, len(x_all), 4096):
+        lp2.append(2.0 * psi_log_fn(x_all[i : i + 4096]))
+    lp2 = torch.cat(lp2)
+
+    log_w = lp2 - lq_all
+    log_w = log_w - log_w.max()
+    w = torch.exp(log_w)
+    probs = w / w.sum()
+
+    ess = (w.sum() ** 2 / (w**2).sum()).item()
+    idx = torch.multinomial(probs, n_keep, replacement=True)
+    return x_all[idx].clone(), ess
+
+
+def colloc_fd_loss(
+    psi_log_fn,
+    x: torch.Tensor,
+    omega: float,
+    params,
+    *,
+    h: float = 0.01,
+    huber_delta: float = 0.0,
+    lp_prev: torch.Tensor | None = None,
+    prox_mu: float = 0.0,
+):
+    """Finite-difference collocation loss using graph-safe forward differences."""
+    x = x.detach()
+    B, N, d = x.shape
+    Nd = N * d
+    x_flat = x.reshape(B, Nd)
+    lp0 = psi_log_fn(x)
+
+    h2_inv = 1.0 / (h * h)
+    h2_inv_grad = 1.0 / (2.0 * h)
+    lap_fd = torch.zeros(B, device=x.device, dtype=x.dtype)
+    g2_fd = torch.zeros(B, device=x.device, dtype=x.dtype)
+
+    for i in range(Nd):
+        ei = torch.zeros(1, Nd, device=x.device, dtype=x.dtype)
+        ei[0, i] = h
+        xp = (x_flat + ei).reshape(B, N, d)
+        xm = (x_flat - ei).reshape(B, N, d)
+
+        lp_p = psi_log_fn(xp)
+        lp_m = psi_log_fn(xm)
+
+        lap_fd = lap_fd + (lp_p + lp_m - 2.0 * lp0) * h2_inv
+        gi = (lp_p - lp_m) * h2_inv_grad
+        g2_fd = g2_fd + gi * gi
+
+    V = 0.5 * omega**2 * (x**2).sum(dim=(1, 2)) + compute_coulomb_interaction(
+        x, params=params
+    ).view(B)
+    E_L = -0.5 * (lap_fd + g2_fd) + V
+
+    E_mean = E_L.mean()
+    if huber_delta > 0:
+        resid = E_L - E_mean.detach()
+        L = torch.nn.functional.huber_loss(
+            resid, torch.zeros_like(resid), delta=huber_delta, reduction="mean"
+        )
+    else:
+        L = ((E_L - E_mean) ** 2).mean()
+
+    if lp_prev is not None and prox_mu > 0:
+        L = L + prox_mu * ((lp0 - lp_prev) ** 2).mean()
+
+    return L, E_mean.item(), E_L.detach(), L.item()
+
+
+def rayleigh_hybrid_loss(
+    psi_log_fn,
+    x: torch.Tensor,
+    omega: float,
+    params,
+    *,
+    direct_weight: float = 0.1,
+    clip_el: float = 5.0,
+):
+    """Hybrid REINFORCE + direct weak-form gradient loss."""
+    x = x.detach().requires_grad_(True)
+    lp = psi_log_fn(x)
+
+    g = torch.autograd.grad(lp.sum(), x, create_graph=True)[0]
+    g2 = (g**2).sum(dim=(1, 2))
+
+    B = x.shape[0]
+    V = 0.5 * omega**2 * (x**2).sum(dim=(1, 2)) + compute_coulomb_interaction(
+        x, params=params
+    ).view(B)
+
+    e_weak = 0.5 * g2 + V
+
+    g_flat = g.reshape(B, -1)
+    Nd = g_flat.shape[1]
+    lap = torch.zeros(B, device=x.device, dtype=x.dtype)
+    for i in range(Nd):
+        gg = torch.autograd.grad(g_flat[:, i].sum(), x, retain_graph=True, create_graph=False)[0]
+        lap = lap + gg.reshape(B, -1)[:, i]
+
+    E_L = (-0.5 * (lap + g2.detach()) + V).detach()
+
+    med = E_L.median()
+    mad = (E_L - med).abs().median()
+    if mad > 0 and clip_el > 0:
+        E_L = E_L.clamp(med - clip_el * mad, med + clip_el * mad)
+
+    R = E_L.mean()
+    L_reinforce = 2.0 * ((E_L - R) * lp).mean()
+    L_direct = direct_weight * e_weak.mean()
+    L = L_reinforce + L_direct
+
+    return L, R.item(), E_L.detach(), e_weak.detach()
 
 
 @torch.no_grad()

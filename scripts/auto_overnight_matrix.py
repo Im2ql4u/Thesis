@@ -30,7 +30,7 @@ import torch
 
 
 ROOT = Path(__file__).resolve().parent.parent
-RUN_SCRIPT = ROOT / "src" / "run_weak_form.py"
+RUN_SCRIPT = ROOT / "src" / "run_collocation.py"
 RESULTS_DIR = ROOT / "results" / "arch_colloc"
 
 # Existing pretrained checkpoints for N=6 ω=1.0

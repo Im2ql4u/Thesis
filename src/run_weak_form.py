@@ -43,7 +43,14 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import config
 from functions.Energy import evaluate_energy_vmc
-from functions.Neural_Networks import psi_fn
+from functions.Neural_Networks import (
+    colloc_fd_loss as nn_colloc_fd_loss,
+    importance_resample as nn_importance_resample,
+    lookup_dmc_energy,
+    psi_fn,
+    rayleigh_hybrid_loss as nn_rayleigh_hybrid_loss,
+    safe_percent_err as nn_safe_percent_err,
+)
 from functions.Physics import compute_coulomb_interaction
 from functions.Slater_Determinant import evaluate_basis_functions_torch_batch_2d
 from jastrow_architectures import CTNNJastrowVCycle
@@ -63,18 +70,11 @@ DIM = 2
 OMEGA = 1.0
 E_DMC = 20.15932
 
-DEFAULT_DMC = {
-    (6, 1.0): 20.15932,
-}
-
 RESULTS_DIR = Path(__file__).resolve().parent.parent / "results" / "arch_colloc"
 
 
 def default_dmc(n_elec, omega):
-    key = (int(n_elec), float(omega))
-    if key in DEFAULT_DMC:
-        return DEFAULT_DMC[key]
-    return float("nan")
+    return lookup_dmc_energy(int(n_elec), float(omega), allow_missing=True)
 
 
 def _choose_basis_dims(n_occ):
@@ -83,9 +83,7 @@ def _choose_basis_dims(n_occ):
 
 
 def safe_percent_err(E, E_ref):
-    if not math.isfinite(E_ref) or E_ref == 0.0:
-        return float("nan")
-    return (E - E_ref) / abs(E_ref) * 100.0
+    return nn_safe_percent_err(E, E_ref)
 
 
 def setup(n_elec=None, omega=None, e_dmc=None):
@@ -209,34 +207,18 @@ def importance_resample(
       ∂R/∂θ = 2⟨(ẽ-R)·∂logΨ/∂θ⟩ + ⟨∂ẽ/∂θ⟩
     estimated as a simple sample mean (no importance weights needed).
     """
-    n_cand = n_cand_mult * n_keep
-    x_all, lq_all = sample_mixture(n_cand, omega, sigma_fs)
-
-    # Optional near-overlap exclusion to reduce Coulomb singular tails.
-    if min_pair_cutoff > 0:
-        mp = _min_pair_distance(x_all)
-        keep = mp >= min_pair_cutoff
-        if int(keep.sum().item()) >= n_keep:
-            x_all = x_all[keep]
-            lq_all = lq_all[keep]
-
-    # Compute log importance weights
-    lp2 = []
-    for i in range(0, len(x_all), 4096):
-        lp2.append(2.0 * psi_log_fn(x_all[i:i + 4096]))
-    lp2 = torch.cat(lp2)
-
-    log_w = lp2 - lq_all  # log(|Ψ|²/q)
-    log_w = log_w - log_w.max()  # numerical stability
-    w = torch.exp(log_w)
-    probs = w / w.sum()
-
-    # ESS of the proposal → target matching
-    ess = (w.sum() ** 2 / (w ** 2).sum()).item()
-
-    # Multinomial resampling (with replacement) → approx |Ψ|² samples
-    idx = torch.multinomial(probs, n_keep, replacement=True)
-    return x_all[idx].clone(), ess
+    return nn_importance_resample(
+        psi_log_fn,
+        n_keep,
+        N_ELEC,
+        DIM,
+        omega,
+        device=DEVICE,
+        dtype=DTYPE,
+        n_cand_mult=n_cand_mult,
+        sigma_fs=sigma_fs,
+        min_pair_cutoff=min_pair_cutoff,
+    )
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -267,58 +249,16 @@ def colloc_fd_loss(psi_log_fn, x, omega, params, h=0.01,
 
     Returns (L, E_mean, E_L_det, var_EL).
     """
-    x = x.detach()  # inputs are fixed collocation points
-    B, N, d = x.shape
-    Nd = N * d
-    x_flat = x.reshape(B, Nd)
-
-    # Evaluate logΨ at original points (in graph w.r.t. θ)
-    lp0 = psi_log_fn(x)  # (B,)
-
-    # Component-by-component FD Laplacian and gradient-squared
-    h2_inv = 1.0 / (h * h)
-    h2_inv_grad = 1.0 / (2.0 * h)
-    lap_fd = torch.zeros(B, device=x.device, dtype=x.dtype)
-    g2_fd = torch.zeros(B, device=x.device, dtype=x.dtype)
-
-    for i in range(Nd):
-        ei = torch.zeros(1, Nd, device=x.device, dtype=x.dtype)
-        ei[0, i] = h
-        xp = (x_flat + ei).reshape(B, N, d)
-        xm = (x_flat - ei).reshape(B, N, d)
-
-        lp_p = psi_log_fn(xp)  # (B,) — in graph
-        lp_m = psi_log_fn(xm)  # (B,) — in graph
-
-        # ∂²logΨ/∂x_i²  (centered FD)
-        lap_fd = lap_fd + (lp_p + lp_m - 2.0 * lp0) * h2_inv
-        # (∂logΨ/∂x_i)²  (centered FD)
-        gi = (lp_p - lp_m) * h2_inv_grad
-        g2_fd = g2_fd + gi * gi
-
-    # Potential energy (detached — doesn't depend on θ)
-    V = 0.5 * omega ** 2 * (x ** 2).sum(dim=(1, 2)) + compute_coulomb_interaction(
-        x, params=params
-    ).view(B)
-
-    # E_L = -½(∇²logΨ + |∇logΨ|²) + V  — IN THE GRAPH via forward passes!
-    E_L = -0.5 * (lap_fd + g2_fd) + V  # (B,)
-
-    # Loss
-    E_mean = E_L.mean()
-    if huber_delta > 0:
-        resid = E_L - E_mean.detach()
-        L = torch.nn.functional.huber_loss(
-            resid, torch.zeros_like(resid), delta=huber_delta, reduction="mean"
-        )
-    else:
-        L = ((E_L - E_mean) ** 2).mean()  # variance
-
-    # Proximal penalty: keep logΨ close to its pre-step values
-    if lp_prev is not None and prox_mu > 0:
-        L = L + prox_mu * ((lp0 - lp_prev) ** 2).mean()
-
-    return L, E_mean.item(), E_L.detach(), L.item()
+    return nn_colloc_fd_loss(
+        psi_log_fn,
+        x,
+        omega,
+        params,
+        h=h,
+        huber_delta=huber_delta,
+        lp_prev=lp_prev,
+        prox_mu=prox_mu,
+    )
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -345,49 +285,14 @@ def rayleigh_hybrid_loss(psi_log_fn, x, omega, params, direct_weight=0.1,
 
     Returns (L, EL_mean, EL_det, e_weak_det).
     """
-    x = x.detach().requires_grad_(True)
-    lp = psi_log_fn(x)  # (B,) — in graph (for REINFORCE through logΨ)
-
-    # First gradient with create_graph (for direct term through g²)
-    g = torch.autograd.grad(lp.sum(), x, create_graph=True)[0]  # (B,N,d)
-    g2 = (g ** 2).sum(dim=(1, 2))  # (B,) — in graph
-
-    B = x.shape[0]
-    V = 0.5 * omega ** 2 * (x ** 2).sum(dim=(1, 2)) + compute_coulomb_interaction(
-        x, params=params
-    ).view(B)
-
-    # Weak-form energy (in graph for direct gradient of kinetic energy)
-    e_weak = 0.5 * g2 + V  # (B,) — in graph
-
-    # ── Laplacian (NOT in backward graph — create_graph=False) ──
-    g_flat = g.reshape(B, -1)  # (B, N*d)
-    Nd = g_flat.shape[1]
-    lap = torch.zeros(B, device=x.device, dtype=x.dtype)
-    for i in range(Nd):
-        gg = torch.autograd.grad(g_flat[:, i].sum(), x,
-                                 retain_graph=True, create_graph=False)[0]
-        lap = lap + gg.reshape(B, -1)[:, i]
-
-    # E_L = -½(∇²logΨ + |∇logΨ|²) + V — detached, forward-only
-    E_L = (-0.5 * (lap + g2.detach()) + V).detach()  # (B,) detached
-
-    # Robust clipping: remove outliers using median absolute deviation
-    med = E_L.median()
-    mad = (E_L - med).abs().median()
-    if mad > 0 and clip_el > 0:
-        E_L = E_L.clamp(med - clip_el * mad, med + clip_el * mad)
-
-    R = E_L.mean()  # baseline
-
-    # ── Dual loss ──
-    # REINFORCE: 2⟨(E_L - R̄)·logΨ⟩  → gradient = 2⟨(E_L-R)·∂logΨ/∂θ⟩
-    L_reinforce = 2.0 * ((E_L - R) * lp).mean()
-    # Direct:    β·mean(ẽ)           → gradient = β·⟨½·∂g²/∂θ⟩
-    L_direct = direct_weight * e_weak.mean()
-    L = L_reinforce + L_direct
-
-    return L, R.item(), E_L.detach(), e_weak.detach()
+    return nn_rayleigh_hybrid_loss(
+        psi_log_fn,
+        x,
+        omega,
+        params,
+        direct_weight=direct_weight,
+        clip_el=clip_el,
+    )
 
 
 # ═══════════════════════════════════════════════════════════════

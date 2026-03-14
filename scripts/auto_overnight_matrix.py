@@ -245,7 +245,8 @@ def make_n12_jastrow_jobs(targets, gpus, jas_epochs):
                     "--n-coll", "4096",
                     "--oversample", "8",
                     "--micro-batch", "512",
-                    "--lr", "3e-4",          # slightly lower for jastrow stability
+                    # In jastrow-only mode only lr_jas matters (not --lr which controls BF/pfaffian)
+                    "--lr-jas", "3e-4",
                     "--grad-clip", "1.0",
                     "--clip-el", "0.0",      # no clipping during initial jastrow
                     "--direct-weight", "0.1",

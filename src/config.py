@@ -63,8 +63,10 @@ _ACTIVATIONS = {
 # Reference DMC energies
 # ---------------------------------------------------------------------
 DMC_ENERGIES: dict[int, dict[float, float]] = {
-    2: {0.01: 0.07384, 0.1: 0.44079, 0.28: 1.02164, 0.5: 1.65977, 1.0: 3.00000},
-    6: {0.01: 0.8, 0.1: 3.55385, 0.28: 7.60019, 0.5: 11.78484, 1.0: 20.15932},
+    2: {0.001: 0.00730, 0.01: 0.07384, 0.1: 0.44079, 0.28: 1.02164, 0.5: 1.65977, 1.0: 3.00000},
+    # N=6: 0.001 and 0.01 values confirmed from weak-form probe runs (2026-03).
+    # 0.69036 for ω=0.01 and 0.140832 for ω=0.001 replace old placeholders (0.8, missing).
+    6: {0.001: 0.140832, 0.01: 0.69036, 0.1: 3.55385, 0.28: 7.60019, 0.5: 11.78484, 1.0: 20.15932},
     12: {0.01: 2.0, 0.1: 12.26984, 0.28: 25.63577, 0.5: 39.15960, 1.0: 65.70010},
     20: {0.1: 29.97790, 0.28: 61.92680, 0.5: 93.87520, 1.0: 155.88220},
 }
@@ -138,7 +140,9 @@ class Config:
     # compute policy
     device: str = _default_device()
     dtype: str = "float64"
-    seed: int | None = 0
+    # Default to None so config.update() does not silently reseed RNG streams.
+    # Callers that want deterministic behavior should pass an explicit seed.
+    seed: int | None = None
 
     # training / architecture
     hidden_dim: int = 64

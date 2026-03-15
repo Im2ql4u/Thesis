@@ -145,6 +145,9 @@ def importance_resample(
     n_cand_mult: int = 8,
     sigma_fs=(0.8, 1.3, 2.0),
     min_pair_cutoff: float = 0.0,
+    weight_temp: float = 1.0,
+    logw_clip_q: float = 0.0,
+    return_stats: bool = False,
 ):
     """Multinomial resampling from q to approximate |Ψ|² samples."""
     n_cand = n_cand_mult * n_keep
@@ -170,14 +173,44 @@ def importance_resample(
         lp2.append(2.0 * psi_log_fn(x_all[i : i + 4096]))
     lp2 = torch.cat(lp2)
 
-    log_w = lp2 - lq_all
-    log_w = log_w - log_w.max()
-    w = torch.exp(log_w)
+    log_w_raw = lp2 - lq_all
+
+    # Optional upper-tail clipping in log-weight space to reduce rare-sample dominance.
+    log_w_eff = log_w_raw
+    clip_thr = None
+    if 0.0 < float(logw_clip_q) < 1.0:
+        clip_thr = torch.quantile(log_w_raw, torch.tensor(float(logw_clip_q), device=log_w_raw.device, dtype=log_w_raw.dtype))
+        log_w_eff = torch.minimum(log_w_raw, clip_thr)
+
+    # Optional tempering: alpha<1 flattens weights and improves ESS.
+    alpha = float(weight_temp)
+    if alpha <= 0.0:
+        raise ValueError(f"weight_temp must be >0, got {alpha}")
+    log_w_eff = alpha * log_w_eff
+
+    log_w_norm = log_w_eff - log_w_eff.max()
+    w = torch.exp(log_w_norm)
     probs = w / w.sum()
 
-    ess = (w.sum() ** 2 / (w**2).sum()).item()
+    w_raw = torch.exp(log_w_raw - log_w_raw.max())
+    ess_raw = (w_raw.sum() ** 2 / (w_raw**2).sum()).item()
+    ess_eff = (w.sum() ** 2 / (w**2).sum()).item()
     idx = torch.multinomial(probs, n_keep, replacement=True)
-    return x_all[idx].clone(), ess
+    if not return_stats:
+        return x_all[idx].clone(), ess_eff
+
+    topk = min(10, int(probs.numel()))
+    top_probs = torch.topk(probs, k=topk).values
+    stats = {
+        "ess_raw": float(ess_raw),
+        "ess_eff": float(ess_eff),
+        "top1_mass": float(top_probs[0].item()) if topk > 0 else 0.0,
+        "top10_mass": float(top_probs.sum().item()) if topk > 0 else 0.0,
+        "logw_clip_q": float(logw_clip_q),
+        "logw_clip_thr": float(clip_thr.item()) if clip_thr is not None else None,
+        "weight_temp": float(alpha),
+    }
+    return x_all[idx].clone(), ess_eff, stats
 
 
 def colloc_fd_loss(
@@ -244,6 +277,7 @@ def rayleigh_hybrid_loss(
     *,
     direct_weight: float = 0.1,
     clip_el: float = 5.0,
+    reward_qtrim: float = 0.0,
 ):
     """Hybrid REINFORCE + direct weak-form gradient loss."""
     x = x.detach().requires_grad_(True)
@@ -273,12 +307,32 @@ def rayleigh_hybrid_loss(
     if mad > 0 and clip_el > 0:
         E_L = E_L.clamp(med - clip_el * mad, med + clip_el * mad)
 
-    R = E_L.mean()
-    L_reinforce = 2.0 * ((E_L - R) * lp).mean()
-    L_direct = direct_weight * e_weak.mean()
+    # Optional quantile trimming to reduce gradient noise from heavy E_L tails.
+    # Trimming is applied consistently to both REINFORCE reward and direct term.
+    if reward_qtrim > 0.0 and E_L.numel() > 20:
+        q = float(max(0.0, min(0.49, reward_qtrim)))
+        lo = torch.quantile(E_L, q)
+        hi = torch.quantile(E_L, 1.0 - q)
+        m = (E_L >= lo) & (E_L <= hi)
+        if int(m.sum().item()) >= 8:
+            E_eff = E_L[m]
+            lp_eff = lp[m]
+            ew_eff = e_weak[m]
+        else:
+            E_eff = E_L
+            lp_eff = lp
+            ew_eff = e_weak
+    else:
+        E_eff = E_L
+        lp_eff = lp
+        ew_eff = e_weak
+
+    R = E_eff.mean()
+    L_reinforce = 2.0 * ((E_eff - R) * lp_eff).mean()
+    L_direct = direct_weight * ew_eff.mean()
     L = L_reinforce + L_direct
 
-    return L, R.item(), E_L.detach(), e_weak.detach()
+    return L, R.item(), E_eff.detach(), ew_eff.detach()
 
 
 @torch.no_grad()

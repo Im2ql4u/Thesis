@@ -22,6 +22,14 @@ Each entry answers: what was decided, what the alternatives were, why this was c
 
 ## Decisions
 
+### [2026-03-15] — Disable implicit config reseeding and require explicit run seed threading
+
+**Decision:** Set `Config.seed` default to `None` and pass run seed explicitly from trainer CLI into `config.update(...)` call sites that need deterministic behavior.
+**Alternatives considered:** Keep `Config.seed=0` default and rely on each script to reseed after every config update; maintain mixed behavior where some runners silently reseed and others do not.
+**Reasoning:** Implicit reseeding from config updates can overwrite caller-provided seeds and collapse intended seed diversity across runs, invalidating robustness conclusions. Explicit seed threading makes seeding intent auditable and avoids hidden RNG resets.
+**Constraints introduced:** Any runner requiring deterministic seeds must pass `seed=<value>` into `config.update(...)` explicitly; new scripts can no longer assume config updates preserve external RNG state.
+**Confidence:** high
+
 ### [2026-03-15] — Keep close-pair samples and control influence instead of deleting them
 
 **Decision:** Preserve near-coalescence configurations in collocation training and stabilize them through adaptive sampling/reweighting controls (ESS floor resampling, stratified replay, and BF short-range regularization) rather than removing close-pair samples from the training set.

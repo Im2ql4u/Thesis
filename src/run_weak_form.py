@@ -86,7 +86,15 @@ def safe_percent_err(E, E_ref):
     return nn_safe_percent_err(E, E_ref)
 
 
-def setup(n_elec=None, omega=None, e_dmc=None):
+def finite_or(v, default=float("nan")):
+    try:
+        fv = float(v)
+    except Exception:
+        return default
+    return fv if math.isfinite(fv) else default
+
+
+def setup(n_elec=None, omega=None, e_dmc=None, seed=None):
     N = int(N_ELEC if n_elec is None else n_elec)
     d = DIM
     om = float(OMEGA if omega is None else omega)
@@ -97,6 +105,7 @@ def setup(n_elec=None, omega=None, e_dmc=None):
     config.update(
         omega=om, n_particles=N, d=d, L=L, n_grid=80,
         nx=nx, ny=ny, basis="cart", device=DEVICE, dtype="float64",
+        seed=seed,
     )
     energies = sorted([(om * (ix + iy + 1), ix, iy) for ix in range(nx) for iy in range(ny)])
     C = np.zeros((nx * ny, n_occ))
@@ -196,6 +205,9 @@ def importance_resample(
     n_cand_mult=8,
     sigma_fs=(0.8, 1.3, 2.0),
     min_pair_cutoff=0.0,
+    weight_temp=1.0,
+    logw_clip_q=0.0,
+    return_stats=False,
 ):
     """Multinomial resampling: sample from q, resample ∝ |Ψ|²/q.
 
@@ -218,6 +230,9 @@ def importance_resample(
         n_cand_mult=n_cand_mult,
         sigma_fs=sigma_fs,
         min_pair_cutoff=min_pair_cutoff,
+        weight_temp=weight_temp,
+        logw_clip_q=logw_clip_q,
+        return_stats=return_stats,
     )
 
 
@@ -423,6 +438,8 @@ def train_weak_form(
     ess_oversample_max=0,
     ess_oversample_step=2,
     ess_resample_tries=1,
+    resample_weight_temp=1.0,
+    resample_logw_clip_q=0.0,
     replay_frac=0.0,
     replay_top_frac=0.25,
     replay_stratified=False,
@@ -436,6 +453,7 @@ def train_weak_form(
     patience=300,
     vmc_every=50,
     vmc_n=10000,
+    vmc_select_n=0,
     bf_warmup=0,
     n_elec=None,
     omega=None,
@@ -535,6 +553,9 @@ def train_weak_form(
         print("  ESS adaptive sampler: "
               f"floor={ess_floor_ratio:.3f} oversample={oversample}->{max(oversample, int(ess_oversample_max))} "
               f"step={int(max(1, ess_oversample_step))} tries={int(max(1, ess_resample_tries))}")
+    if resample_weight_temp != 1.0 or resample_logw_clip_q > 0:
+        print("  Resample regularization: "
+              f"temp={resample_weight_temp:.3f} logw_clip_q={resample_logw_clip_q:.4f}")
     if rollback_decay < 1.0:
         print("  Instability rollback: "
               f"decay={rollback_decay:.3f} err_pct>{rollback_err_pct:.2f} jump_sigma={rollback_jump_sigma:.1f}")
@@ -557,6 +578,7 @@ def train_weak_form(
     max_oversample = int(max(curr_oversample, ess_oversample_max if ess_oversample_max > 0 else curr_oversample))
     ess_step = int(max(1, ess_oversample_step))
     n_resample_tries = int(max(1, ess_resample_tries))
+    last_rs_stats = {}
 
     # Save initial state for ESS-gated rollback
     def _save_state():
@@ -589,14 +611,18 @@ def train_weak_form(
         X = None
         ess = 0.0
         for _ in range(n_resample_tries):
-            X, ess = importance_resample(
+            rs = importance_resample(
                 psi_log_sample_fn,
                 n_coll,
                 omega,
                 n_cand_mult=used_oversample,
                 sigma_fs=sigma_fs,
                 min_pair_cutoff=min_pair_cutoff,
+                weight_temp=resample_weight_temp,
+                logw_clip_q=resample_logw_clip_q,
+                return_stats=True,
             )
+            X, ess, last_rs_stats = rs
             if target_ess <= 0 or ess >= target_ess:
                 break
             if used_oversample >= max_oversample:
@@ -768,6 +794,12 @@ def train_weak_form(
             dt=epdt,
             loss=ep_loss,
             oversample=curr_oversample,
+            ess_raw=finite_or(last_rs_stats.get("ess_raw")),
+            ess_eff=finite_or(last_rs_stats.get("ess_eff")),
+            rs_top1_mass=finite_or(last_rs_stats.get("top1_mass")),
+            rs_top10_mass=finite_or(last_rs_stats.get("top10_mass")),
+            rs_logw_clip_thr=finite_or(last_rs_stats.get("logw_clip_thr")),
+            rs_temp=finite_or(last_rs_stats.get("weight_temp")),
             cusp_pen=ep_cusp_pen,
             replay_min_pair_mean=replay_min_pair_mean,
             replay_r_mean=replay_r_mean,
@@ -823,15 +855,41 @@ def train_weak_form(
                 vE = float(vp["E_mean"])
                 vErr = abs(vE - E_ref) / abs(E_ref) if math.isfinite(E_ref) and E_ref != 0 else float("nan")
                 entry.update(vmc_E=vE, vmc_err=vErr)
+                vSelE = None
+                vSelErr = None
+                if vmc_select_n > 0:
+                    vp_sel = evaluate_energy_vmc(
+                        f_net,
+                        C_dummy if npf_net is not None else C_occ,
+                        psi_fn=_psi_wrap if npf_net is not None else psi_fn,
+                        compute_coulomb_interaction=compute_coulomb_interaction,
+                        backflow_net=None if npf_net is not None else backflow_net,
+                        params=params,
+                        n_samples=vmc_select_n,
+                        batch_size=512,
+                        sampler_steps=60,
+                        sampler_step_sigma=0.10,
+                        lap_mode="exact",
+                        persistent=True,
+                        sampler_burn_in=250,
+                        sampler_thin=2,
+                        progress=False,
+                    )
+                    vSelE = float(vp_sel["E_mean"])
+                    vSelErr = abs(vSelE - E_ref) / abs(E_ref) if math.isfinite(E_ref) and E_ref != 0 else float("nan")
+                    entry.update(vmc_sel_E=vSelE, vmc_sel_err=vSelErr)
                 # When E_ref is NaN (no DMC reference), fall back to minimizing vE directly
                 if math.isfinite(E_ref) and E_ref != 0:
-                    if math.isfinite(vErr) and vErr < best_vmc_err:
-                        best_vmc_err = vErr
-                        best_vmc_E = vE
+                    metric = vSelErr if vSelErr is not None and math.isfinite(vSelErr) else vErr
+                    metric_E = vSelE if vSelE is not None and math.isfinite(vSelE) else vE
+                    if math.isfinite(metric) and metric < best_vmc_err:
+                        best_vmc_err = metric
+                        best_vmc_E = metric_E
                         best_vmc_state = _save_state()
                 else:
-                    if best_vmc_E is None or vE < best_vmc_E:
-                        best_vmc_E = vE
+                    metric_E = vSelE if vSelE is not None and math.isfinite(vSelE) else vE
+                    if best_vmc_E is None or metric_E < best_vmc_E:
+                        best_vmc_E = metric_E
                         best_vmc_state = _save_state()
             except Exception as e:
                 print(f"  VMC probe failed: {e}")
@@ -848,6 +906,8 @@ def train_weak_form(
             vs = ""
             if "vmc_E" in entry:
                 vs = f"  vmc={entry['vmc_E']:.4f}({entry['vmc_err'] * 100:.2f}%)"
+                if "vmc_sel_E" in entry:
+                    vs += f" sel={entry['vmc_sel_E']:.4f}({entry['vmc_sel_err'] * 100:.2f}%)"
             eta = epdt * (n_epochs - ep - 1) / 60
             print(
                 f"  [{ep:4d}] E={Em:.4f}±{Es:.3f} var={Ev:.2e} ESS={ess:.0f} "
@@ -926,6 +986,10 @@ def main():
                     help="Oversample increment when ESS falls below floor")
     ap.add_argument("--ess-resample-tries", type=int, default=1,
                     help="Resampling attempts per epoch when ESS floor is active")
+    ap.add_argument("--resample-weight-temp", type=float, default=1.0,
+                    help="Importance-weight tempering exponent (alpha); <1 flattens spikes")
+    ap.add_argument("--resample-logw-clip-q", type=float, default=0.0,
+                    help="Upper quantile for clipping log-weights before resampling (0=off)")
     ap.add_argument("--replay-frac", type=float, default=0.0,
                     help="Fraction of collocation batch replayed from prior hard samples")
     ap.add_argument("--replay-top-frac", type=float, default=0.25,
@@ -959,6 +1023,8 @@ def main():
     # Eval
     ap.add_argument("--vmc-every", type=int, default=50)
     ap.add_argument("--vmc-n", type=int, default=10000)
+    ap.add_argument("--vmc-select-n", type=int, default=0,
+                    help="Optional additional VMC samples for checkpoint selection at probe epochs (0=off)")
     ap.add_argument("--n-eval", type=int, default=30000)
     # Misc
     ap.add_argument("--seed", type=int, default=42)
@@ -992,7 +1058,7 @@ def main():
         torch.cuda.manual_seed_all(a.seed)
 
     RESULTS_DIR.mkdir(parents=True, exist_ok=True)
-    C_occ, params, nx, ny = setup(n_elec=N_ELEC, omega=OMEGA, e_dmc=E_DMC)
+    C_occ, params, nx, ny = setup(n_elec=N_ELEC, omega=OMEGA, e_dmc=E_DMC, seed=a.seed)
     n_basis = nx * ny
     n_occ = N_ELEC // 2
 
@@ -1260,6 +1326,8 @@ def main():
         ess_oversample_max=a.ess_oversample_max,
         ess_oversample_step=a.ess_oversample_step,
         ess_resample_tries=a.ess_resample_tries,
+        resample_weight_temp=a.resample_weight_temp,
+        resample_logw_clip_q=a.resample_logw_clip_q,
         replay_frac=a.replay_frac,
         replay_top_frac=a.replay_top_frac,
         replay_stratified=a.replay_stratified,
@@ -1274,6 +1342,7 @@ def main():
         e_ref=E_DMC,
         print_every=10, patience=a.patience,
         vmc_every=a.vmc_every, vmc_n=a.vmc_n, tag=a.tag,
+        vmc_select_n=a.vmc_select_n,
     )
 
     # ── Final heavy VMC eval ──

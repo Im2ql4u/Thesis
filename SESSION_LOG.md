@@ -25,6 +25,17 @@ The model reads this at session start. Write it as if you are handing off to you
 
 ## Log
 
+### [2026-03-15] — Fixed seed-path reset bug and launched stability-first tail-control campaign
+
+**Goal:** Eliminate suspected cross-run seed collapse, add tail-stability controls to weak-form training, and launch a focused campaign to test stability over generality.
+**What was done:** Patched `src/config.py` so default `seed=None` (no implicit reseed), threaded CLI seed through `setup(..., seed=...)` in `src/run_weak_form.py`, and verified empirically that post-setup RNG streams differ for seed 11 vs 22; added resampling controls (`--resample-weight-temp`, `--resample-logw-clip-q`) and optional checkpoint tie-break eval (`--vmc-select-n`) in `src/run_weak_form.py` and `src/functions/Neural_Networks.py` with added history diagnostics (`ess_raw`, top-mass metrics, clipping threshold); added orchestrator `scripts/stability_core_campaign.py` and launched it in tmux (`hybrid:stability_core`) with structured `plan/results/summary` outputs and runtime ETA.
+**What was not done:** Did not yet complete the new stability campaign or aggregate final conclusions from it.
+**Issues encountered:** The earlier seed behavior was indeed being overwritten by config updates when seed was not passed; this explained suspicious cross-seed similarity risk.
+**Workarounds in place:** Stability campaign includes explicit resample regularization and probe-selection tie-break for controlled variants while keeping baseline variants unchanged.
+**Implicit assumptions made:** N=6 high/low-omega targeted runs are sufficient to validate whether tail regularization improves stability before reintroducing broader N/omega generalization goals.
+**Next action:** Monitor `outputs/*_stability_core_campaign/summary.json` and compare baseline vs regularized variants on final heavy-VMC error, probe-final gap, ESS medians, and rollback count.
+**Open questions:** Whether reduced weight spikiness translates to better final-heavy ranking consistency and whether low-omega BF remains dominated by near-coalescence gradient noise even after tempering/clipping.
+
 ### [2026-03-15] — Implemented and fast-validated four trainer stability controls
 
 **Goal:** Roll out practical stability controls requested after the long-campaign analysis: adaptive ESS sampling, automatic rollback with LR decay, stratified hard-region replay, and BF short-range cusp-preserving regularization.

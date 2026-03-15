@@ -266,7 +266,7 @@ def colloc_fd_loss(psi_log_fn, x, omega, params, h=0.01,
 # ═══════════════════════════════════════════════════════════════
 
 def rayleigh_hybrid_loss(psi_log_fn, x, omega, params, direct_weight=0.1,
-                         clip_el=5.0):
+                         clip_el=5.0, reward_qtrim=0.0):
     """Hybrid REINFORCE + weak-form direct gradient.
 
     Uses E_L (with Laplacian, FORWARD-ONLY) for low-variance REINFORCE
@@ -292,6 +292,7 @@ def rayleigh_hybrid_loss(psi_log_fn, x, omega, params, direct_weight=0.1,
         params,
         direct_weight=direct_weight,
         clip_el=clip_el,
+        reward_qtrim=reward_qtrim,
     )
 
 
@@ -320,6 +321,76 @@ def compute_EL_monitor(psi_log_fn, x, omega, params, n_max=256):
     return float("nan"), float("nan"), float("nan")
 
 
+@torch.no_grad()
+def _geometry_invariants(x):
+    """Permutation-invariant geometry descriptors for replay stratification."""
+    B, N, _ = x.shape
+    dmat = torch.cdist(x, x, p=2.0)
+    eye = torch.eye(N, device=x.device, dtype=torch.bool).unsqueeze(0)
+    dmat = dmat.masked_fill(eye, float("inf"))
+    min_pair = dmat.amin(dim=(1, 2))
+    r_mean = x.norm(dim=-1).mean(dim=1)
+    com_r = x.mean(dim=1).norm(dim=-1)
+    return min_pair, r_mean, com_r
+
+
+@torch.no_grad()
+def _geometry_bucket_ids(x, n_bins=3):
+    """2D quantile buckets on (min_pair, r_mean) invariants."""
+    n_bins = int(max(2, n_bins))
+    min_pair, r_mean, _ = _geometry_invariants(x)
+    if x.shape[0] < n_bins * 2:
+        return torch.zeros(x.shape[0], dtype=torch.long, device=x.device), 1
+
+    q = torch.linspace(0.0, 1.0, n_bins + 1, device=x.device, dtype=x.dtype)[1:-1]
+    th_min = torch.quantile(min_pair, q)
+    th_rm = torch.quantile(r_mean, q)
+    b0 = torch.bucketize(min_pair, th_min)
+    b1 = torch.bucketize(r_mean, th_rm)
+    bucket_ids = b0 * n_bins + b1
+    return bucket_ids, n_bins * n_bins
+
+
+@torch.no_grad()
+def _stratified_topk_indices(scores, bucket_ids, k):
+    """Select approximately top-k by score, balanced across non-empty buckets."""
+    dev = scores.device
+    scores_cpu = scores.detach().cpu()
+    buckets_cpu = bucket_ids.detach().cpu()
+    n = int(scores_cpu.numel())
+    k = int(max(1, min(int(k), n)))
+
+    uniq = torch.unique(buckets_cpu)
+    if uniq.numel() <= 1:
+        return torch.topk(scores_cpu, k=k).indices.to(dev)
+
+    picks = []
+    for b in uniq.tolist():
+        idx = torch.nonzero(buckets_cpu == b, as_tuple=False).view(-1)
+        if idx.numel() == 0:
+            continue
+        kb = max(1, int(round(float(k) * float(idx.numel()) / float(n))))
+        kb = min(kb, int(idx.numel()))
+        sb = scores_cpu[idx]
+        sel = idx[torch.topk(sb, k=kb).indices]
+        picks.append(sel)
+
+    if len(picks) == 0:
+        return torch.topk(scores_cpu, k=k).indices.to(dev)
+
+    out = torch.cat(picks)
+    if out.numel() > k:
+        out = out[torch.topk(scores_cpu[out], k=k).indices]
+    elif out.numel() < k:
+        mask = torch.ones(n, dtype=torch.bool)
+        mask[out] = False
+        rest = torch.nonzero(mask, as_tuple=False).view(-1)
+        if rest.numel() > 0:
+            need = min(k - int(out.numel()), int(rest.numel()))
+            out = torch.cat([out, rest[torch.topk(scores_cpu[rest], k=need).indices]])
+    return out.to(dev)
+
+
 # ═══════════════════════════════════════════════════════════════
 #  Training loop
 # ═══════════════════════════════════════════════════════════════
@@ -340,6 +411,7 @@ def train_weak_form(
     grad_clip=1.0,
     direct_weight=0.1,
     clip_el=0.0,
+    reward_qtrim=0.0,
     loss_type="reinforce",
     fd_h=0.01,
     fd_huber_delta=0.0,
@@ -347,6 +419,19 @@ def train_weak_form(
     min_ess=0,
     sigma_fs=(0.8, 1.3, 2.0),
     min_pair_cutoff=0.0,
+    ess_floor_ratio=0.0,
+    ess_oversample_max=0,
+    ess_oversample_step=2,
+    ess_resample_tries=1,
+    replay_frac=0.0,
+    replay_top_frac=0.25,
+    replay_stratified=False,
+    replay_geo_bins=3,
+    rollback_decay=1.0,
+    rollback_err_pct=0.0,
+    rollback_jump_sigma=0.0,
+    bf_cusp_reg=0.0,
+    bf_cusp_radius_aho=0.30,
     print_every=10,
     patience=300,
     vmc_every=50,
@@ -441,7 +526,20 @@ def train_weak_form(
               f"  h={fd_h}  huber_δ={fd_huber_delta}  prox_μ={prox_mu}")
     else:
         print(f"  HYBRID loss: REINFORCE(E_L, no-backprop-lap) + direct(½g², β={direct_weight})"
-              f"  clip_el={clip_el}")
+              f"  clip_el={clip_el}  reward_qtrim={reward_qtrim}")
+    if replay_frac > 0:
+        print(f"  Hard-sample replay: frac={replay_frac:.2f} top_frac={replay_top_frac:.2f}")
+        if replay_stratified:
+            print(f"    Stratified replay: geometry buckets={int(max(2, replay_geo_bins))}x{int(max(2, replay_geo_bins))}")
+    if ess_floor_ratio > 0:
+        print("  ESS adaptive sampler: "
+              f"floor={ess_floor_ratio:.3f} oversample={oversample}->{max(oversample, int(ess_oversample_max))} "
+              f"step={int(max(1, ess_oversample_step))} tries={int(max(1, ess_resample_tries))}")
+    if rollback_decay < 1.0:
+        print("  Instability rollback: "
+              f"decay={rollback_decay:.3f} err_pct>{rollback_err_pct:.2f} jump_sigma={rollback_jump_sigma:.1f}")
+    if bf_cusp_reg > 0 and backflow_net is not None:
+        print(f"  BF cusp regularizer: λ={bf_cusp_reg:.3e} radius={bf_cusp_radius_aho:.2f} a_ho")
     sys.stdout.flush()
 
     t0 = time.time()
@@ -452,6 +550,13 @@ def train_weak_form(
     best_vmc_E = None
     no_imp = 0
     n_ess_reject = 0
+    n_rollbacks = 0
+    replay_X = None
+    prev_stable_E = None
+    curr_oversample = int(max(1, oversample))
+    max_oversample = int(max(curr_oversample, ess_oversample_max if ess_oversample_max > 0 else curr_oversample))
+    ess_step = int(max(1, ess_oversample_step))
+    n_resample_tries = int(max(1, ess_resample_tries))
 
     # Save initial state for ESS-gated rollback
     def _save_state():
@@ -479,14 +584,37 @@ def train_weak_form(
             if net is not None:
                 net.eval()
 
-        X, ess = importance_resample(
-            psi_log_sample_fn,
-            n_coll,
-            omega,
-            n_cand_mult=oversample,
-            sigma_fs=sigma_fs,
-            min_pair_cutoff=min_pair_cutoff,
-        )
+        target_ess = ess_floor_ratio * float(n_coll) if ess_floor_ratio > 0 else 0.0
+        used_oversample = curr_oversample
+        X = None
+        ess = 0.0
+        for _ in range(n_resample_tries):
+            X, ess = importance_resample(
+                psi_log_sample_fn,
+                n_coll,
+                omega,
+                n_cand_mult=used_oversample,
+                sigma_fs=sigma_fs,
+                min_pair_cutoff=min_pair_cutoff,
+            )
+            if target_ess <= 0 or ess >= target_ess:
+                break
+            if used_oversample >= max_oversample:
+                break
+            used_oversample = min(max_oversample, used_oversample + ess_step)
+        curr_oversample = used_oversample
+
+        if replay_frac > 0 and replay_X is not None and replay_X.numel() > 0:
+            n_rep = int(min(n_coll - 1, round(replay_frac * n_coll)))
+            if n_rep > 0:
+                n_new = n_coll - n_rep
+                if replay_X.shape[0] >= n_rep:
+                    idx = torch.randperm(replay_X.shape[0], device=replay_X.device)[:n_rep]
+                    rep = replay_X[idx]
+                else:
+                    ridx = torch.randint(0, replay_X.shape[0], (n_rep,), device=replay_X.device)
+                    rep = replay_X[ridx]
+                X = torch.cat([X[:n_new], rep], dim=0)
 
         # ── ESS gate: skip step if ESS too low (revert to last good state) ──
         if min_ess > 0 and ess < min_ess:
@@ -512,6 +640,7 @@ def train_weak_form(
         opt.zero_grad(set_to_none=True)
         nmb = max(1, math.ceil(n_coll / micro_batch))
         ep_loss = 0.0
+        ep_cusp_pen = 0.0
         all_EL = []
         all_e_weak = []
 
@@ -533,7 +662,23 @@ def train_weak_form(
                     psi_log_fn, xb, omega, params,
                     direct_weight=direct_weight,
                     clip_el=clip_el,
+                    reward_qtrim=reward_qtrim,
                 )
+
+            if bf_cusp_reg > 0 and backflow_net is not None:
+                dx_b = backflow_net(xb, spin=spin)
+                rij = xb.unsqueeze(2) - xb.unsqueeze(1)
+                r2 = (rij * rij).sum(dim=-1, keepdim=True)
+                ddx = dx_b.unsqueeze(2) - dx_b.unsqueeze(1)
+                ddx2 = (ddx * ddx).sum(dim=-1, keepdim=True)
+                rc = float(bf_cusp_radius_aho) / math.sqrt(float(omega))
+                w_close = torch.exp(-r2 / (rc * rc + 1e-12))
+                eye = torch.eye(xb.shape[1], device=xb.device, dtype=xb.dtype).view(1, xb.shape[1], xb.shape[1], 1)
+                w_close = w_close * (1.0 - eye)
+                cusp_pen = ((ddx2 / (r2 + 1e-12)) * w_close).sum() / (w_close.sum() + 1e-12)
+                L = L + bf_cusp_reg * cusp_pen
+                ep_cusp_pen += float(cusp_pen.detach().item()) / nmb
+
             (L / nmb).backward()
             ep_loss += L.item() / nmb
             all_EL.append(EL_det)
@@ -550,8 +695,84 @@ def train_weak_form(
         Ev = EL_all.var().item()   # E_L variance
         Es = EL_all.std().item()
 
+        unstable = False
+        unstable_msg = ""
+        if not (math.isfinite(Em) and math.isfinite(Ev) and math.isfinite(Es)):
+            unstable = True
+            unstable_msg = "non-finite epoch stats"
+
+        err_now = safe_percent_err(Em, E_ref)
+        if (not unstable and rollback_err_pct > 0 and math.isfinite(err_now)
+                and abs(err_now) > rollback_err_pct):
+            unstable = True
+            unstable_msg = f"|err|={abs(err_now):.2f}% > {rollback_err_pct:.2f}%"
+
+        if (not unstable and rollback_jump_sigma > 0 and prev_stable_E is not None
+                and math.isfinite(prev_stable_E)):
+            jump = abs(Em - prev_stable_E)
+            jump_ref = max(1e-6, rollback_jump_sigma * max(Es, 1e-3))
+            if jump > jump_ref:
+                unstable = True
+                unstable_msg = f"jump={jump:.3e} > {jump_ref:.3e}"
+
+        if unstable:
+            _restore_state(last_good_state)
+            n_rollbacks += 1
+            if rollback_decay < 1.0:
+                for gi, g in enumerate(opt.param_groups):
+                    g["lr"] = max(g["lr"] * rollback_decay, 1e-7)
+                    if gi < len(sch.base_lrs):
+                        sch.base_lrs[gi] = max(sch.base_lrs[gi] * rollback_decay, 1e-7)
+            if ep % print_every == 0 or ep == 0:
+                print(f"  [{ep:4d}] rollback: {unstable_msg} (count={n_rollbacks}, lr_decay={rollback_decay:.3f})")
+                sys.stdout.flush()
+            continue
+        prev_stable_E = Em
+
+        if replay_frac > 0 and EL_all.numel() >= 16:
+            n_valid = int(min(X.shape[0], EL_all.shape[0]))
+            if n_valid >= 16:
+                X_replay = X[:n_valid]
+                EL_replay = EL_all[:n_valid]
+                resid = (EL_replay - EL_replay.mean()).abs()
+                k = int(max(8, min(n_valid, round(replay_top_frac * n_valid))))
+                if replay_stratified:
+                    bucket_ids, _ = _geometry_bucket_ids(X_replay, n_bins=replay_geo_bins)
+                    top_idx = _stratified_topk_indices(resid, bucket_ids, k)
+                else:
+                    top_idx = torch.topk(resid, k=k).indices
+                replay_X = X_replay[top_idx].detach().clone()
+
+        replay_min_pair_mean = float("nan")
+        replay_r_mean = float("nan")
+        replay_bucket_entropy = float("nan")
+        if replay_X is not None and replay_X.numel() > 0:
+            rp_min_pair, rp_r_mean, _ = _geometry_invariants(replay_X)
+            replay_min_pair_mean = float(rp_min_pair.mean().item())
+            replay_r_mean = float(rp_r_mean.mean().item())
+            if replay_stratified:
+                replay_bucket_ids, n_bucket_total = _geometry_bucket_ids(replay_X, n_bins=replay_geo_bins)
+                counts = torch.bincount(replay_bucket_ids.detach().cpu(), minlength=n_bucket_total).to(torch.float64)
+                probs = counts / counts.sum().clamp_min(1.0)
+                nz = probs > 0
+                ent = -(probs[nz] * torch.log(probs[nz])).sum().item()
+                replay_bucket_entropy = float(ent / math.log(max(2, n_bucket_total)))
+
         epdt = time.time() - ept0
-        entry = dict(ep=ep, E=Em, var_EL=Ev, ess=ess, dt=epdt, loss=ep_loss)
+        entry = dict(
+            ep=ep,
+            E=Em,
+            var_EL=Ev,
+            ess=ess,
+            ess_target=target_ess,
+            dt=epdt,
+            loss=ep_loss,
+            oversample=curr_oversample,
+            cusp_pen=ep_cusp_pen,
+            replay_min_pair_mean=replay_min_pair_mean,
+            replay_r_mean=replay_r_mean,
+            replay_bucket_entropy=replay_bucket_entropy,
+        )
 
         hist.append(entry)
 
@@ -566,6 +787,11 @@ def train_weak_form(
         # Update last-good state for ESS rollback
         if min_ess > 0:
             last_good_state = _save_state()
+        if target_ess > 0:
+            if ess < target_ess and curr_oversample < max_oversample:
+                curr_oversample = min(max_oversample, curr_oversample + ess_step)
+            elif ess > 1.6 * target_ess and curr_oversample > oversample:
+                curr_oversample = max(oversample, curr_oversample - 1)
 
         # ── VMC probe ──
         if vmc_every > 0 and ep > 0 and ep % vmc_every == 0:
@@ -676,6 +902,8 @@ def main():
                     help="β for direct gradient term (0=pure REINFORCE, 1=full dual)")
     ap.add_argument("--clip-el", type=float, default=0.0,
                     help="E_L clipping in MAD units (0=off, 5=moderate, 3=aggressive)")
+    ap.add_argument("--reward-qtrim", type=float, default=0.0,
+                    help="Trim REINFORCE reward tails by quantiles q..1-q (0=off)")
     ap.add_argument("--loss-type", choices=["reinforce", "fd-colloc"], default="reinforce",
                     help="reinforce: REINFORCE with E_L reward, fd-colloc: FD-Laplacian collocation (per-sample grad)")
     ap.add_argument("--fd-h", type=float, default=0.01,
@@ -690,6 +918,32 @@ def main():
                     help="Gaussian-mixture sigmas for proposal, comma-separated")
     ap.add_argument("--min-pair-cutoff", type=float, default=0.0,
                     help="Drop candidate samples with min pair distance below cutoff (0=off)")
+    ap.add_argument("--ess-floor-ratio", type=float, default=0.0,
+                    help="Adaptive resample target as fraction of n_coll ESS (0=off)")
+    ap.add_argument("--ess-oversample-max", type=int, default=0,
+                    help="Max oversample multiplier for adaptive ESS resampling (0=use --oversample)")
+    ap.add_argument("--ess-oversample-step", type=int, default=2,
+                    help="Oversample increment when ESS falls below floor")
+    ap.add_argument("--ess-resample-tries", type=int, default=1,
+                    help="Resampling attempts per epoch when ESS floor is active")
+    ap.add_argument("--replay-frac", type=float, default=0.0,
+                    help="Fraction of collocation batch replayed from prior hard samples")
+    ap.add_argument("--replay-top-frac", type=float, default=0.25,
+                    help="Top residual fraction retained in replay buffer")
+    ap.add_argument("--replay-stratified", action="store_true",
+                    help="Stratify replay by invariant geometry buckets")
+    ap.add_argument("--replay-geo-bins", type=int, default=3,
+                    help="Quantile bins per invariant axis for stratified replay")
+    ap.add_argument("--rollback-decay", type=float, default=1.0,
+                    help="LR decay factor applied on instability rollback (1=off)")
+    ap.add_argument("--rollback-err-pct", type=float, default=0.0,
+                    help="Rollback if |epoch err| exceeds this percent threshold (0=off)")
+    ap.add_argument("--rollback-jump-sigma", type=float, default=0.0,
+                    help="Rollback if epoch E jump exceeds jump_sigma * std(E_L) (0=off)")
+    ap.add_argument("--bf-cusp-reg", type=float, default=0.0,
+                    help="Penalty weight to keep BF relative displacement smooth at short range")
+    ap.add_argument("--bf-cusp-radius-aho", type=float, default=0.30,
+                    help="Short-range radius in oscillator units for BF cusp regularizer")
     # Pfaffian args
     ap.add_argument("--K-det", type=int, default=1)
     ap.add_argument("--K-emb", type=int, default=32)
@@ -994,6 +1248,7 @@ def main():
         grad_clip=a.grad_clip,
         direct_weight=a.direct_weight,
         clip_el=a.clip_el,
+        reward_qtrim=a.reward_qtrim,
         loss_type=a.loss_type,
         fd_h=a.fd_h,
         fd_huber_delta=a.fd_huber_delta,
@@ -1001,6 +1256,19 @@ def main():
         min_ess=a.min_ess,
         sigma_fs=sigma_fs,
         min_pair_cutoff=a.min_pair_cutoff,
+        ess_floor_ratio=a.ess_floor_ratio,
+        ess_oversample_max=a.ess_oversample_max,
+        ess_oversample_step=a.ess_oversample_step,
+        ess_resample_tries=a.ess_resample_tries,
+        replay_frac=a.replay_frac,
+        replay_top_frac=a.replay_top_frac,
+        replay_stratified=a.replay_stratified,
+        replay_geo_bins=a.replay_geo_bins,
+        rollback_decay=a.rollback_decay,
+        rollback_err_pct=a.rollback_err_pct,
+        rollback_jump_sigma=a.rollback_jump_sigma,
+        bf_cusp_reg=a.bf_cusp_reg,
+        bf_cusp_radius_aho=a.bf_cusp_radius_aho,
         n_elec=N_ELEC,
         omega=OMEGA,
         e_ref=E_DMC,

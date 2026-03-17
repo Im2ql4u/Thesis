@@ -1055,3 +1055,247 @@ VMC+SR avoids this because it samples from the \emph{current}
 $|\Psi_\theta|^2$ at every step, so the sampling distribution
 co-adapts with the node position.
 
+
+% =========================================================
+% APPENDIX D: Post-Catch-22 Experimental History and Philosophy
+% =========================================================
+\chapter{Post-catch-22 experimental history and philosophy}
+\label{app:postcatch22}
+
+This appendix documents the full experimental program executed after the
+backflow catch-22 analysis in Appendix~\ref{app:catch22}. The goal here is not
+to present a single best number, but to make explicit the strategy, the failed
+branches, the partial recoveries, and the current status for difficult regimes
+($\omega\in\{0.01,0.001\}$ and larger $N$).
+
+\section{Program-level philosophy}
+\label{app:postcatch22:philosophy}
+
+After establishing that naive collocation backflow training can stall on nodal
+pathologies, the project moved to a pragmatic philosophy:
+\begin{enumerate}
+\item Preserve physically strong ans\"atze (Slater--Jastrow--backflow), but
+  treat optimisation and sampling design as first-class objects.
+\item Replace one-shot ``hero runs'' with staged continuation and transfer:
+  first solve easier regimes, then warm-start harder ones.
+\item Separate claims by evidence tier: online probe, restored VMC-best, and
+  final heavy exact VMC evaluation.
+\item Record negative results as signal: many variants that look plausible
+  theoretically fail in practice because of gradient-noise geometry.
+\end{enumerate}
+
+Operationally, this produced a sequence of campaign scripts rather than a
+single training script. The scripts define matrices of controlled variants over
+sampling, loss, architecture, and preconditioning.
+
+\section{What was tried (complete family map)}
+\label{app:postcatch22:families}
+
+This section groups all post-catch-22 explorations by mechanism.
+
+\subsection{Sampling schemes}
+\label{app:postcatch22:sampling}
+
+The following sampling and batch-formation ideas were tested:
+\begin{itemize}
+\item Gaussian and Gaussian-mixture proposal sampling with
+  $\sigma_f$-mixtures scaled by $1/\sqrt{\omega}$.
+\item Oversample-then-resample pipelines (importance-resampled collocation)
+  with effective-sample-size diagnostics.
+\item ESS-adaptive oversampling, including floor-triggered retries and
+  oversample growth.
+\item Weight regularisation during resampling: temperature scaling and
+  log-weight quantile clipping.
+\item Geometry-aware replay/hard-sample buffers (in regime-policy and
+  robustness-style campaigns).
+\item Coalescence-focused diagnostics and regularisation campaigns for
+  $N=6,\,\omega=0.01$.
+\end{itemize}
+
+Most important empirical conclusion: for low $\omega$, regularising the
+resampling distribution (ESS control and top-mass reduction) was beneficial,
+while hard cusp gating alone had negligible effect at the tested scale.
+
+\subsection{Architecture families}
+\label{app:postcatch22:architectures}
+
+The architecture search did not only vary width/depth; it also compared model
+classes:
+\begin{itemize}
+\item Jastrow-only families (CTNN variants, V-cycle forms, and alternatives)
+  for robust baselines.
+\item Standard BF+Jastrow CTNN coordinate backflow (the most consistently
+  competitive family in this phase).
+\item Wider/deeper BF variants to test whether capacity or optimisation was the
+  bottleneck.
+\item Neural-Pfaffian branches were retained as exploratory alternatives, but
+  were not the leading branch in the post-catch-22 campaign sequence.
+\end{itemize}
+
+The main pattern was that optimisation quality dominated architectural novelty:
+moderately sized BF+Jastrow models with stable training often outperformed more
+ambitious variants with weaker optimisation geometry.
+
+\subsection{Loss functions and objective styles}
+\label{app:postcatch22:losses}
+
+Three objective styles were actively explored:
+\begin{enumerate}
+\item FD-collocation residual variants (finite-difference Laplacian paths,
+  with optional Huber/proximal terms).
+\item Hybrid weak-form objective combining REINFORCE-style score-function
+  gradient with an optional direct weak-form term.
+\item Pure REINFORCE weak-form setting (hybrid with direct weight set to zero),
+  which became the dominant reliable mode for key runs.
+\end{enumerate}
+
+Crucially, the Laplacian term used to compute local-energy reward is kept in
+the forward reward path, while optimisation uses score-function gradients with
+robust clipping/selection controls. This was one of the practical stability
+levers after the catch-22 findings.
+
+\subsection{Optimiser and preconditioning styles}
+\label{app:postcatch22:optimisers}
+
+The project tested progressively richer preconditioning:
+\begin{itemize}
+\item Adam baselines and continuation schedules.
+\item Diagonal Fisher natural-gradient variants (multiple sweep rounds).
+\item Full SR-style preconditioners in collocation runs (Woodbury and CG modes)
+  with damping annealing, trust-region controls, and parameter-change caps.
+\item CG-SR campaigns with staged continuation across $(N,\omega)$ targets.
+\end{itemize}
+
+Empirically, SR-style preconditioning in CG mode became central for transferring
+performance from solved regimes to harder ones.
+
+\subsection{Training styles}
+\label{app:postcatch22:styles}
+
+The workflow evolved from isolated runs to structured orchestration:
+\begin{itemize}
+\item Single-run sweeps (natgrad and architecture sweeps).
+\item Wave-based cascade campaigns with checkpoint inheritance.
+\item Long-running asynchronous campaigns where follow-up jobs launch from best
+  available checkpoints.
+\item Regime-aware policy campaigns and seed-robustness protocols for
+  reproducibility diagnostics.
+\item Stabilisation campaigns targeting known failure regimes (high $N$, low
+  $\omega$).
+\end{itemize}
+
+\section{Campaign chronology and key outcomes}
+\label{app:postcatch22:chronology}
+
+\subsection{Natural-gradient sweeps}
+\label{app:postcatch22:natgrad}
+
+The natural-gradient program (baseline/high-LR/low-damping controls and
+continuations) established that diagonal Fisher alone was not sufficient for all
+hard regimes, but identified stable hyperparameter corridors and motivated the
+move to SR-style CG preconditioning.
+
+\subsection{SR sweep and refinement}
+\label{app:postcatch22:sr}
+
+Woodbury and CG SR variants were benchmarked, then refined with lower LR,
+larger SR subsamples, damping anneals, and tighter trust controls. These runs
+substantially improved reliability near the best $N=6,\omega=1.0$ basin and
+provided the best warm-start sources for cross-regime transfer.
+
+\subsection{Generalisation runs across $\omega$}
+\label{app:postcatch22:generalize}
+
+The SR generalisation campaign showed the strongest and weakest transfer cases
+simultaneously:
+\begin{itemize}
+\item $N=6,\omega=1.0$ and $N=6,\omega=0.5$ reached near-DMC quality.
+\item $N=6,\omega=0.1$ from scratch remained far from DMC, confirming that low
+  $\omega$ requires transfer/cascade rather than cold-start SR.
+\end{itemize}
+
+This directly motivated multi-wave cascade campaigns.
+
+\subsection{Cascade campaigns}
+\label{app:postcatch22:cascade}
+
+Cascade campaigns implemented structured inheritance:
+\begin{equation}
+\omega=1.0 \rightarrow 0.5 \rightarrow 0.1 \rightarrow 0.01 \rightarrow 0.001,
+\end{equation}
+and similarly along particle count for selected branches.
+
+The strongest concrete successes to date in this phase include:
+\begin{itemize}
+\item $N=6,\omega=1.0$: final near-DMC performance
+  ($E=20.16167\pm0.00181$, error $+0.012\%$).
+\item $N=6,\omega=0.5$: essentially DMC-level agreement
+  ($E=11.78466\pm0.00199$, error $-0.002\%$).
+\item $N=6,\omega=0.1$: major improvement from failed scratch regimes to
+  transfer-level performance (best completed transfer around
+  $E=3.56525\pm0.00046$, error $+0.321\%$).
+\item $N=12,\omega=1.0$: near-DMC transfer success
+  ($E=65.70699\pm0.00595$, error $+0.010\%$).
+\end{itemize}
+
+\subsection{Coalescence-focused matrix}
+\label{app:postcatch22:coalescence}
+
+The $2\times2\times3$ coalescence matrix (hard cusp gate on/off,
+regularised-resampling on/off, three seeds) provided a useful controlled test:
+\begin{itemize}
+\item Hard cusp gating alone produced no measurable improvement over baseline.
+\item Resampling regularisation was consistently beneficial:
+  ESS and top-mass diagnostics improved sharply, and mean final error
+  improved relative to unregularised variants.
+\end{itemize}
+
+This result narrowed the practical hypothesis space: in the tested low-$\omega$
+setting, sampling regularisation mattered more than structural hard gating.
+
+\section{Current frontier: low-$\omega$ and high-$N$ stabilisation}
+\label{app:postcatch22:frontier}
+
+The current unresolved front remains the combination of extreme correlation
+regimes and larger particle count:
+\begin{itemize}
+\item $\omega\in\{0.01,0.001\}$: transfer helps, but reliability and
+  reproducibility are not yet at the same confidence level as
+  $\omega\in\{1.0,0.5,0.1\}$.
+\item $N\ge 20$: memory pressure, architecture-capacity constraints, and higher
+  gradient noise make training significantly less stable than $N\in\{6,12\}$.
+\end{itemize}
+
+Dedicated stabilisation runs introduced stricter SR trust constraints,
+heavier damping, ESS-adaptive sampling, rollback controls, and explicit
+process-level relaunch hygiene for GPU memory contention. These changes improved
+operational stability but have not yet closed the full accuracy gap for the
+hardest targets.
+
+\section{Interpretive summary}
+\label{app:postcatch22:summary}
+
+The post-catch-22 phase supports six robust conclusions.
+\begin{enumerate}
+\item The collocation program is not a single recipe but a coupled system:
+  sampling, objective, and preconditioning must be tuned jointly.
+\item Transfer/cascade is not optional for difficult regimes; it is the primary
+  mechanism by which low-$\omega$ performance becomes attainable.
+\item SR-style preconditioning is central for stable progress beyond early
+  Adam-only basins.
+\item Diagnostic metrics (ESS, top-mass concentration, rollback counts,
+  probe-final gaps) are essential; scalar final energy alone is insufficient
+  for method development.
+\item Several intuitively attractive interventions (e.g., hard cusp gating in
+  this tested range) did not deliver gains, and documenting these negatives
+  was necessary to avoid circular search.
+\item The method now demonstrates near-DMC quality in multiple nontrivial
+  targets, but the strongest claims must still be bounded to regimes where
+  repeated campaign evidence exists.
+\end{enumerate}
+
+From a thesis perspective, the philosophical shift was from
+``find one better architecture'' to
+``engineer a reliable optimisation-and-sampling pipeline that makes physically
+good ans\"atze trainable across regimes.''
+

@@ -22,6 +22,14 @@ Each entry answers: what was decided, what the alternatives were, why this was c
 
 ## Decisions
 
+### [2026-03-17] — For hard-regime stabilisation, use non-blocking ESS gating early and rely on adaptive resampling + trust constraints
+
+**Decision:** In early hard-regime runs (low $\omega$, high $N$), keep `min_ess` non-blocking (`0`) and disable strict epoch-level rollback error thresholds, while retaining ESS-floor adaptive oversampling, tempered/clipped resampling weights, and SR trust-region/max-step constraints.
+**Alternatives considered:** Hard-gate low-ESS epochs (`min_ess>0`) and aggressive rollback on initial large error percentages from epoch 0.
+**Reasoning:** Early hard-regime states naturally begin far from DMC; strict blocking and rollback thresholds caused repeated epoch-0 rollbacks/stalls without meaningful progress. Adaptive resampling and SR trust controls already constrain update pathology while allowing optimisation to move.
+**Constraints introduced:** Future hard-regime campaign templates should not use strict `min_ess` gates or tight rollback-err thresholds at run start; if reintroduced, they must be staged/annealed rather than fixed from epoch 0.
+**Confidence:** medium-high
+
 ### [2026-03-15] — Disable implicit config reseeding and require explicit run seed threading
 
 **Decision:** Set `Config.seed` default to `None` and pass run seed explicitly from trainer CLI into `config.update(...)` call sites that need deterministic behavior.

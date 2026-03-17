@@ -6,6 +6,25 @@ The model reads this at session start. Write it as if you are handing off to you
 
 ---
 
+### [2026-03-17] — CG-SR campaign: sampling fix, heavier eval, N=20 fit
+
+**Goal:** Fix three blockers (low-ω sampling failure, probe-eval gap, N=20 OOM), then launch a 12-hour 3-phase campaign across N={6,12,20} and ω={0.1,0.5,1.0}.
+**What was done:**
+1. Added omega-dependent auto-widening of Gaussian mixture `sigma_fs` in `run_weak_form.py` (lines 1230-1238) — ω≤0.15 gets (0.4,0.7,1.0,1.5,2.5,4.0), ω≤0.05 gets even wider.
+2. Increased VMC eval quality: final eval burn_in 400→800, thin 3→5, sampler_steps 80→120; probes burn_in 200→400, thin 2→3, sampler_steps 40→60.
+3. Wrote `scripts/cgsr_campaign.py` — 3-phase orchestrator (verify→main→refine), 8 GPUs, 24 total jobs.
+4. First launch: N=20 OOMed (CTNN backflow needs 4.69 GiB for edge features at N=20 on 11GB GPU). Killed, patched N=20 to use `--bf-hidden 64 --bf-layers 2 --micro-batch 128 --n-coll 1024`. Relaunched.
+5. Confirmed auto sigma_fs working: N=6 ω=0.1 shows `[auto] omega=0.1 < 0.5 → widened sigma_fs to (0.4, 0.7, 1.0, 1.5, 2.5, 4.0)`.
+6. Early Phase 1 results: N=6 ω=1.0 at +0.02% (epoch 30), N=6 ω=0.5 at +0.84%.
+**What was not done:** Final campaign results pending (12h runtime). DECISIONS.md not updated (no new architectural decisions, only parameter tuning).
+**Issues encountered:** N=20 CTNN backflow OOM on 11GB GPU — edge update concatenation requires O(N²×hidden) memory. Fixed with smaller arch.
+**Workarounds in place:** N=20 uses bf-hidden=64/2 layers (vs default 128/3) — may limit accuracy ceiling. Proper fix would be chunked/sparse message passing.
+**Implicit assumptions made:** Phase 2/3 resume logic assumes Phase 1 checkpoints save to `results/arch_colloc/{tag}.pt`. Duplicate campaign outputs from first aborted launch exist in `outputs/2026-03-17_0018_cgsr_campaign/`.
+**Next action:** Monitor campaign completion. After 12h, analyze results table, identify which targets reached <0.1% of DMC, and determine next steps for remaining gaps.
+**Open questions:** Will the heavier final eval actually close the probe-eval gap? Can N=20 with reduced architecture get within 5% of DMC?
+
+---
+
 ## Format
 
 ```
@@ -24,6 +43,17 @@ The model reads this at session start. Write it as if you are handing off to you
 ---
 
 ## Log
+
+### [2026-03-17] — Added thesis appendix on post-catch-22 campaign history and launched stabilized hard-regime rollout
+
+**Goal:** Write a full thesis appendix that documents all post-catch-22 experimentation (sampling, losses, architectures, training styles), then push a structured stabilisation rollout for low-omega/high-N regimes.
+**What was done:** Appended a new chapter to `Thesis/appendix.tex` (`app:postcatch22`) covering philosophy, full experiment-family map, chronology, major outcomes, and current frontier; created `scripts/stabilize_hard_regimes.py` and launched a 3-job hard-regime campaign (N=6 ω=0.1, N=12 ω=0.5, N=20 ω=1.0) with stricter SR trust limits, ESS-adaptive resampling, tempered importance weights, and rollback guards; identified and fixed first-launch stalls/OOM by relaxing overly strict `min_ess`/rollback error thresholds and killing stale GPU workers before relaunch.
+**What was not done:** Did not complete the hard-regime campaign to final metrics yet; the new appendix is complete but still awaits integrated discussion in main-results chapters.
+**Issues encountered:** OOM on relaunch due to stale worker processes occupying GPU memory; early hard-regime settings (`min_ess` + rollback error threshold) were too strict and caused epoch-0 rollback stalls on some branches.
+**Workarounds in place:** Relaunched corrected v2 jobs with stale workers terminated and non-blocking ESS gating (`min_ess=0`) while retaining ESS-adaptive oversampling and trust-region controls.
+**Implicit assumptions made:** Current campaign summaries and logs are treated as authoritative for post-catch chronology; where branches are still running, claims were explicitly bounded as provisional.
+**Next action:** Monitor stabilized hard-regime jobs through at least first 50-100 epochs and compare against cascade baselines on trend, ESS/top-mass, rollback count, and VMC probe drift.
+**Open questions:** Whether N=12 ω=0.5 and N=20 ω=1.0 can improve materially under strict SR with tempered resampling, and whether ω=0.01/0.001 require an intermediate cascade stage beyond current transfer chain.
 
 ### [2026-03-15] — Fixed seed-path reset bug and launched stability-first tail-control campaign
 

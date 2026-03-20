@@ -1230,6 +1230,12 @@ def main():
                     help="Optional checkpoint path to initialize backflow (expects bf_state)")
     a = ap.parse_args()
 
+    # Low-omega regimes are empirically unstable with SR/Fisher preconditioning.
+    # Force Adam in this regime even if --natural-grad is requested.
+    if a.natural_grad and float(a.omega) <= 0.1:
+        print(f"  WARNING: disabling natural gradient for low-omega run (omega={a.omega}).")
+        a.natural_grad = False
+
     global N_ELEC, OMEGA, E_DMC
     N_ELEC = int(a.n_elec)
     OMEGA = float(a.omega)

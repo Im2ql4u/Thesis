@@ -358,3 +358,361 @@ channel implemented by BackflowNet. The success of this decomposition in
 capturing both energies and detailed Wigner-molecule structure suggests that
 similar architectures may be effective for other strongly correlated finite
 fermion systems.
+
+
+%% ═══════════════════════════════════════════════════════════════════════
+%% SECTION:  Discussion of collocation-assisted training
+%% ═══════════════════════════════════════════════════════════════════════
+
+\section{Discussion of collocation-assisted training}
+\label{sec:collocation-discussion}
+
+The collocation experiments reported in Sec.~\ref{sec:collocation}
+demonstrate that a purely importance-sampled, MCMC-free training pipeline
+can produce wavefunctions of near-DMC accuracy for moderate particle
+numbers and confinement strengths, while revealing systematic limitations
+at large~$N$ and ultra-weak confinement.
+This section interprets these findings, identifies the mechanisms behind
+successes and failures, and discusses their broader implications.
+
+
+\subsection{The central result: MCMC-free training to DMC accuracy}
+
+The most significant finding is that collocation training---using only
+analytic Gaussian proposals and importance resampling, with no Markov
+chain at any stage of optimisation---achieves $+0.009\%$ accuracy
+relative to DMC for $N{=}6$ at $\omega{=}1.0$, and
+$+0.018\%$ for $N{=}12$ at the same confinement.
+These errors are comparable to the statistical uncertainty of the DMC
+references themselves and are achieved with a training budget that is
+modest by neural-network VMC standards.
+
+This result is non-trivial because the prevailing assumption in the
+neural quantum state community is that accurate wavefunction
+optimisation requires equilibrated MCMC sampling from $|\Psi|^2$
+throughout training.
+The collocation approach sidesteps this by treating the local energy as a
+\emph{reward signal} in a REINFORCE policy gradient, drawing points from
+a fixed analytic distribution and reweighting them.
+The price is higher gradient variance (because the proposal only
+partially overlaps $|\Psi|^2$), but this is compensated by the
+absence of autocorrelation, burn-in, and mixing overhead.
+
+For $N{=}6$ across all five confinement strengths tested
+($\omega \in \{1.0, 0.5, 0.1, 0.01, 0.001\}$), the worst collocation
+error is $+0.244\%$ at $\omega{=}0.001$, where electrons are
+separated by ${\sim}100$ oscillator lengths in a 12-dimensional
+configuration space.
+That a simple Gaussian mixture with three width components can maintain
+usable overlap with $|\Psi|^2$ at such extreme aspect ratios
+speaks to the effectiveness of the $1/\omega$ scaling in the proposal
+width and to the robustness of the importance-resampling pipeline.
+
+
+\subsection{Why REINFORCE succeeds where residual losses fail}
+\label{sec:colloc-why-reinforce}
+
+The catch-22 analysis (Appendix~\ref{app:catch22}) identified a
+fundamental obstacle for direct PDE-residual training of the
+many-body Schr\"odinger equation: the backflow learning signal is
+concentrated near nodes and coalescence points where the local energy
+$E_L$ diverges, but these are precisely the configurations where
+second-derivative pathways are ill-conditioned.
+Backpropagating through the Laplacian in such regions produces
+pathological gradients that destabilise training.
+
+The REINFORCE formulation resolves this by construction.
+The Laplacian enters only through the \emph{reward} (the local energy
+in Eq.~\ref{eq:el}), and gradients act exclusively on the score
+function $\nabla_\theta \log|\Psi|$.
+The score function is typically smooth even near nodes (where $\Psi$
+changes sign but $\log|\Psi|$ merely diverges logarithmically, and the
+gradient $\nabla_\theta \log|\Psi|$ remains bounded for the neural
+architectures used).
+This decoupling---using the Laplacian for \emph{signal} but not for
+\emph{gradient flow}---is what allows the collocation pipeline to train
+backflow and Jastrow parameters stably in regimes where direct residual
+minimisation fails.
+
+The superiority of pure REINFORCE ($\beta{=}0$) over the hybrid
+objective ($\beta{>}0$) has a related explanation.
+The direct weak-form term $\tilde{E} = \tfrac{1}{2}\|\nabla\log\Psi\|^2 + V$
+is cheaper to evaluate (no Laplacian needed) but minimises a different
+functional: it drives the wavefunction toward low kinetic energy rather
+than low total energy.
+At nonzero~$\beta$, the resulting gradient conflict between the two
+objectives manifests as oscillatory behaviour in the energy, with the
+REINFORCE term pulling toward the variational minimum and the direct
+term pulling toward a kinetic-energy minimum that is generally
+distinct.
+
+
+\subsection{The sampling bottleneck and its regime dependence}
+\label{sec:colloc-sampling-discussion}
+
+The central limitation of collocation training is that
+importance-sampling quality degrades systematically with particle
+number and with decreasing confinement.
+This degradation is governed by two competing effects:
+\begin{enumerate}
+\item \textbf{Dimensionality.} The configuration space is $Nd$-dimensional.
+  A Gaussian proposal in $Nd$ dimensions has an overlap with
+  $|\Psi|^2$ that shrinks exponentially with~$Nd$ unless the proposal
+  is well matched to the target distribution.
+  For $N{=}6$ ($Nd{=}12$), a three-component mixture is sufficient;
+  for $N{=}20$ ($Nd{=}40$), it is marginal.
+\item \textbf{Correlation structure.} At low~$\omega$, the many-body
+  wavefunction develops strong inter-particle correlations
+  (Wigner-molecule structure) that make $|\Psi|^2$ highly
+  non-Gaussian: it concentrates on shell-like geometries with specific
+  inter-particle spacings.
+  An isotropic Gaussian proposal has no mechanism to capture this
+  structure.
+\end{enumerate}
+
+The ESS quantifies this overlap.
+Empirically, the ESS per epoch scales roughly as:
+\begin{itemize}
+\item $N{=}6$: ESS $\sim 50$--$500$ at $\omega{=}1.0$, $\sim 5$--$50$
+  at $\omega{=}0.01$, $\sim 2$--$10$ at $\omega{=}0.001$.
+\item $N{=}12$: ESS $\sim 30$--$200$ at $\omega{=}1.0$, $\sim 5$--$15$
+  at $\omega{=}0.1$, $\sim 1$ at $\omega{=}0.01$ (training fails).
+\item $N{=}20$: ESS $\sim 2$--$15$ at $\omega{=}1.0$, $\sim 1$--$5$ at
+  $\omega{=}0.1$.
+\end{itemize}
+When the ESS approaches~$1$, the importance-weighted batch degenerates
+to a single effective sample, and the REINFORCE gradient becomes
+essentially a random vector.
+The ESS-adaptive oversampling mechanism delays this collapse but cannot
+prevent it: eventually, the number of proposal samples needed to
+maintain a given ESS grows exponentially, making the approach
+intractable.
+
+This explains the systematic pattern in Table~\ref{tab:collocation}:
+accuracy degrades smoothly from excellent ($+0.009\%$) at
+$(N{=}6, \omega{=}1.0)$ to poor ($+5.68\%$) at
+$(N{=}20, \omega{=}0.1)$, following the trajectory of ESS collapse.
+
+
+\subsection{The optimiser regime boundary}
+\label{sec:colloc-optim-discussion}
+
+The sharp failure of natural-gradient preconditioning (CG-SR) below
+$\omega \lesssim 0.01$ reveals an important structural feature of the
+optimisation landscape.
+
+The Fisher information matrix $F_{ij} = \EE[\partial_i \log|\Psi|^2
+\cdot \partial_j \log|\Psi|^2]$ characterises the curvature of
+parameter space as seen by the wavefunction.
+In strong confinement ($\omega \ge 0.1$), the wavefunction is compact
+and all parameters contribute to its structure in a comparable
+manner: $F$ is well-conditioned and its inverse provides an effective
+preconditioning of the gradient.
+
+At ultra-weak confinement ($\omega \le 0.01$), two effects conspire to
+make $F$ ill-conditioned:
+\begin{enumerate}
+\item \textbf{Scale separation.} The wavefunction extends over
+  ${\sim}1/\sqrt{\omega}$ oscillator lengths, creating a large
+  separation between the scale of the Jastrow correlator and the
+  scale of the orbital envelope.
+  Parameters controlling short-range correlations (cusp, pair features)
+  contribute very differently to $F$ than parameters controlling
+  long-range structure (orbital widths, backflow offsets).
+\item \textbf{Sampling starvation.} The Fisher matrix is estimated from
+  importance-resampled points.
+  When the ESS is low, the estimate of $F$ is dominated by a few
+  high-weight samples, making it noisy and rank-deficient.
+  Tikhonov damping can stabilise the inversion, but at the cost of
+  washing out the very curvature information that motivates natural
+  gradients.
+\end{enumerate}
+
+Adam, by contrast, maintains per-parameter adaptive learning rates
+using only first and second moment estimates of the gradient.
+It makes no attempt to model parameter-space curvature globally,
+and therefore does not fail when the curvature is pathological.
+The price is slower convergence in well-conditioned regimes
+(where CG-SR can take larger, more informed steps), but the
+benefit is robustness in ill-conditioned regimes where CG-SR
+diverges.
+
+This regime boundary has practical implications for future work:
+any natural-gradient or second-order method applied to weakly
+confined many-body systems must explicitly address the
+conditioning of the Fisher or Hessian matrix in the
+low-overlap regime.
+
+
+\subsection{Why Langevin refinement fails}
+\label{sec:colloc-langevin-discussion}
+
+The Langevin proposal-refinement strategy was motivated by a
+natural intuition: if the Gaussian proposal has poor overlap
+with $|\Psi|^2$, then evolving samples toward high-$|\Psi|^2$
+regions via the score function $\nabla_{\mathbf{R}}\log|\Psi|^2$
+before resampling should improve overlap.
+
+The failure of this approach reveals a subtlety that is well
+known in the MCMC literature but easy to overlook in the
+importance-sampling context: $K$ steps of overdamped Langevin
+dynamics from an out-of-equilibrium starting distribution
+produce a distribution that is neither the proposal~$q$ nor
+the target~$|\Psi|^2$, but an intermediate non-equilibrium
+distribution that depends sensitively on $K$ and on the step
+size~$\varepsilon$.
+
+In the importance-resampling framework, the weights are computed
+as $w_i = |\Psi(\mathbf{R}_i)|^2 / q(\mathbf{R}_i)$, which is
+only correct if the samples $\mathbf{R}_i$ are actually drawn
+from $q$.
+After $K$ Langevin steps, the effective sampling distribution
+$\tilde{q}$ differs from~$q$, but the weights are still computed
+using~$q$---introducing a systematic bias in the estimated
+gradient.
+This bias is not merely noise: it systematically pushes the
+wavefunction toward regions favoured by the Langevin dynamics,
+creating a positive-feedback loop in which the wavefunction
+concentrates further around the Langevin-biased distribution.
+
+The result is dramatic: at $N{=}20$, $\omega{=}0.1$, Langevin
+refinement produced a wavefunction with $+153\%$ error, compared
+to $+5.7\%$ from standard importance resampling.
+Even at $N{=}6$, $\omega{=}0.001$, where the overlap problem is
+less severe, Langevin added $+0.06\%$ of additional error.
+
+The correct resolution would require either (i)~running the
+Langevin chain to equilibrium ($K \to \infty$, equivalent to
+MCMC and defeating the purpose), (ii)~a Metropolis--Hastings
+correction at each step (also MCMC), or
+(iii)~computing annealed importance-sampling weights that account
+for the non-equilibrium path
+(computationally expensive and technically involved).
+None of these is practical within the collocation paradigm.
+
+
+\subsection{Architectural trade-offs at scale}
+\label{sec:colloc-arch-discussion}
+
+The reversal of the backflow advantage at $N{=}20$ highlights an
+important architectural trade-off.
+The copresheaf backflow network (\texttt{CTNNBackflowNet})
+stores edge features of size
+$\mathcal{O}(N^2 \times h_{\text{bf}})$, which at $N{=}20$ with
+$h_{\text{bf}}{=}128$ requires ${\sim}10\times$ the memory of the
+Jastrow-only network.
+This forces a choice: reduce $h_{\text{bf}}$ (losing expressivity),
+reduce the collocation budget (losing gradient quality), or reduce
+the oversampling factor (losing ESS).
+All three options degrade the result.
+
+The Jastrow-only network, with ${\sim}25$k parameters and
+$\mathcal{O}(N^2)$ edge cost (no hidden-dimension multiplier),
+permits full-size collocation budgets ($n_{\text{coll}}{=}4096$,
+oversample${=}8$--$16$) even at $N{=}20$.
+The resulting gradient is less noisy, and the simpler loss landscape
+(fewer parameters) makes optimisation more reliable.
+
+This does not mean that backflow is unnecessary at $N{=}20$; it
+means that the current training pipeline cannot supply enough
+gradient signal to train backflow effectively at this scale.
+The implication is that scaling collocation to larger systems
+requires either (i)~memory-efficient backflow architectures
+(e.g.\ sparse attention, low-rank message passing), or
+(ii)~improved sampling that provides higher ESS at constant
+computational cost.
+
+
+\subsection{Comparison with MCMC-based results}
+\label{sec:colloc-comparison}
+
+A direct comparison with the SR-refined results in
+Table~\ref{tab:energies} illuminates the relative strengths of the
+two approaches:
+\begin{itemize}
+\item At $(N{=}6, \omega{=}1.0)$, collocation ($+0.009\%$) matches
+  the SR-refined result ($+0.026$--$0.048\%$ range for $N{=}6$) and
+  is competitive with or slightly better than it.
+  This is the regime where collocation is most effective, because
+  the configuration space is low-dimensional and the Gaussian proposal
+  overlaps well with $|\Psi|^2$.
+\item At $(N{=}12, \omega{=}0.1)$, collocation ($+0.122\%$) is
+  roughly $2$--$4{\times}$ worse than SR ($+0.040\%$ in
+  Table~\ref{tab:energies}).
+  Here the sampling bottleneck is beginning to bite, and the MCMC
+  sampler's ability to draw equilibrated samples from $|\Psi|^2$
+  gives it a clear advantage.
+\item At $N{=}20$, collocation results ($+1.4$--$5.7\%$) are
+  significantly worse than what an MCMC-based approach would be
+  expected to achieve, reflecting the exponential ESS degradation in
+  40 dimensions.
+\end{itemize}
+
+The SR pipeline also has its own scaling challenges: MCMC mixing
+times grow with particle number and correlation strength, and the
+SR step itself requires solving a $P{\times}P$ linear system
+($P{=}$number of parameters).
+But these challenges manifest at much larger $N$ than the collocation
+ESS collapse, because the MCMC sampler adapts to $|\Psi|^2$
+throughout training rather than relying on a fixed proposal.
+
+The practical conclusion is that collocation is competitive with MCMC
+for $N \lesssim 12$ and $\omega \gtrsim 0.01$, and that the two
+approaches are complementary: collocation for fast, parallelisable
+pretraining and exploration, MCMC for final refinement at larger $N$
+or lower $\omega$.
+
+
+\subsection{Implications and future directions}
+\label{sec:colloc-future}
+
+The collocation experiments have several implications for the
+broader effort to apply neural wavefunctions to many-body
+quantum systems.
+
+\paragraph{MCMC is not necessary for training.}
+The demonstration that REINFORCE with importance resampling can
+match DMC accuracy for $N{=}6,12$ challenges the assumption that
+MCMC is essential for neural wavefunction optimisation.
+This opens the door to fully parallel training pipelines that
+scale efficiently on modern hardware, particularly GPUs with
+large batch sizes.
+
+\paragraph{The proposal distribution is the bottleneck.}
+The systematic pattern of ESS collapse with increasing $N$ and
+decreasing $\omega$ identifies the proposal distribution as the
+critical component to improve.
+Possible directions include normalising flows trained to approximate
+$|\Psi|^2$, diffusion-model proposals, or variational inference
+techniques that can adapt the proposal to the evolving wavefunction
+during training.
+
+\paragraph{Natural gradients require careful conditioning.}
+The CG-SR failure at low~$\omega$ is not specific to collocation:
+any natural-gradient method applied to weakly confined systems will
+encounter the same ill-conditioning.
+This suggests that preconditioning strategies (block-diagonal Fisher
+approximations, Kronecker-factored curvature, or adaptive damping
+schedules) deserve attention in the neural quantum state context.
+
+\paragraph{Backflow scaling needs architectural innovation.}
+The $\mathcal{O}(N^2 \times h_{\text{bf}})$ memory scaling of
+current backflow networks limits their applicability beyond
+$N{\approx}12$.
+Memory-efficient architectures---sparse message passing, low-rank
+approximations, or local backflow corrections that avoid
+all-to-all edge features---are needed to extend the collocation
+approach to larger systems while retaining the nodal-surface
+corrections that backflow provides.
+
+\paragraph{Collocation as a pretraining stage.}
+Perhaps the most practical near-term use of collocation is as a
+fast pretraining stage that conditions the wavefunction before
+MCMC-based refinement.
+The collocation-trained checkpoints already contain useful
+structural information (orbital shapes, Jastrow correlations,
+approximate nodal surfaces) that accelerates subsequent SR
+convergence.
+This two-stage protocol---collocation pretraining followed by SR
+polish---combines the embarrassing parallelism of collocation with
+the asymptotic accuracy of MCMC-based methods.

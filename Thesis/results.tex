@@ -851,3 +851,498 @@ all coincide within the same narrow $\omega$ window, providing a sharp
 quantitative trajectory from localized Wigner molecule to the denser,
 more weakly ordered liquid
 state~\cite{Egger_1999,Filinov_2001,schweigert1994spectralpropertieschargedparticles,Kong_2002}.
+
+
+%% ═══════════════════════════════════════════════════════════════════════
+%% SECTION:  Collocation-assisted training
+%% ═══════════════════════════════════════════════════════════════════════
+
+\section{Collocation-assisted training}
+\label{sec:collocation}
+
+The results in
+Sections~\ref{sec:energy-overview}--\ref{sec:wigner-molecule}
+rely on a two-phase protocol in which a residual-loss pretraining
+stage conditions the ansatz, followed by a stochastic-reconfiguration
+(SR) refinement phase that uses Markov-chain Monte Carlo (MCMC) sampling
+from $|\Psi|^2$ to optimise the variational energy.
+This section reports a complementary investigation: can an accurate
+many-body wavefunction be trained \emph{without any MCMC sampling
+during training}, using instead a purely importance-sampled collocation
+approach?
+
+The motivation is threefold.
+First, MCMC introduces autocorrelation, burn-in overhead, and
+mixing timescales that grow with particle number and correlation
+strength---particularly problematic at low~$\omega$ where the
+wavefunction support is diffuse.
+Second, a collocation-only pipeline is embarrassingly parallel:
+each batch is drawn independently from a fixed analytic proposal,
+eliminating the sequential dependence inherent in MCMC chains.
+Third, collocation exposes the optimisation geometry more
+directly, making it a useful laboratory for understanding which
+architectural and sampling choices are load-bearing.
+
+The key finding is that collocation training with the same
+Slater--Jastrow--backflow ansatz achieves near-DMC accuracy for
+$N\in\{6,12\}$ and establishes preliminary but improving results
+for $N{=}20$, while revealing a rich landscape of what works and
+what fails across regimes.
+
+
+\subsection{Training methodology}
+\label{sec:colloc-method}
+
+\subsubsection{Objective function}
+
+The collocation objective replaces the VMC gradient estimator with
+a REINFORCE-style policy gradient that treats the local energy
+$E_L(\mathbf{R})$ as a reward signal:
+\begin{equation}
+\nabla_\theta \langle E \rangle
+\;=\; 2\,\EE_{\mathbf{R}\sim|\Psi_\theta|^2}\!\bigl[
+  \bigl(E_L(\mathbf{R})-b\bigr)\,
+  \nabla_\theta \log|\Psi_\theta(\mathbf{R})|\bigr],
+\label{eq:reinforce}
+\end{equation}
+where $b$ is a variance-reducing baseline (running mean of $E_L$),
+and the local energy is
+\begin{equation}
+E_L(\mathbf{R})
+= -\tfrac{1}{2}
+  \bigl[\Delta\log\Psi(\mathbf{R})
+       + \|\nabla\log\Psi(\mathbf{R})\|^2\bigr]
+  + V(\mathbf{R}).
+\label{eq:el}
+\end{equation}
+The crucial implementation choice is that the Laplacian
+$\Delta\log\Psi$ enters the \emph{reward} but is \emph{not}
+differentiated through: gradients $\nabla_\theta$ act only on
+the score function $\nabla_\theta\log|\Psi|$.
+This avoids the ill-conditioned second-derivative pathways
+identified in the catch-22 analysis (Appendix~\ref{app:catch22})
+while preserving the full local-energy signal for optimisation.
+
+Two robustness mechanisms stabilise the gradient:
+\begin{enumerate}
+\item \textbf{Local-energy clipping} (\texttt{clip\_el}).
+  Outlier local energies are clipped relative to a robust
+  location--scale estimate (median and MAD), with a typical
+  threshold of $5\sigma$.
+  This prevents rare pathological configurations (e.g.\ near
+  nodes or coalescence points) from dominating the gradient.
+\item \textbf{Reward quantile trimming} (\texttt{reward\_qtrim}).
+  The most extreme rewards are symmetrically trimmed before
+  computing the policy gradient, reducing sensitivity to
+  heavy-tailed noise.
+\end{enumerate}
+
+An optional direct weak-form term
+$\beta\,\EE[\tilde{E}]$ with
+$\tilde{E}=\tfrac{1}{2}\|\nabla\log\Psi\|^2+V$ was also explored,
+but the historically successful runs set $\beta=0$ (pure REINFORCE).
+A finite-difference collocation residual loss was additionally tested
+but proved more brittle and less competitive than the REINFORCE
+objective (see~\S\ref{sec:colloc-negatives}).
+
+
+\subsubsection{Proposal distribution and importance resampling}
+\label{sec:colloc-sampling}
+
+Because MCMC is avoided, the collocation points must be drawn from
+an analytic proposal distribution $q(\mathbf{R})$ and reweighted
+to approximate sampling from $|\Psi_\theta|^2$.
+The proposal is a mixture of isotropic Gaussians centered at the
+trap minimum:
+\begin{equation}
+q(\mathbf{R})
+= \frac{1}{K}\sum_{k=1}^{K}
+  \mathcal{N}\!\bigl(\mathbf{R};\,0,\,
+  \sigma_{f,k}^2/\omega\,\cdot\,I_{Nd}\bigr),
+\qquad
+\sigma_f \in \{0.8,\,1.3,\,2.0\},
+\label{eq:proposal}
+\end{equation}
+where the $1/\omega$ scaling ensures that the proposal width
+tracks the harmonic-oscillator length scale $\ell=1/\sqrt{\omega}$.
+The three components provide coverage of the inner core
+($\sigma_f{=}0.8$), the bulk ($1.3$), and the tails ($2.0$).
+
+From this proposal, $M = m \times n_{\text{coll}}$ candidate points
+are drawn (typically $m{=}8$--$16$), and importance weights are
+computed:
+\begin{equation}
+w_i = \frac{|\Psi_\theta(\mathbf{R}_i)|^2}{q(\mathbf{R}_i)},
+\qquad
+p_i = \frac{w_i}{\sum_j w_j}.
+\label{eq:is-weights}
+\end{equation}
+The final training batch of $n_{\text{coll}}$ points is obtained
+by multinomial resampling according to $\{p_i\}$.
+
+The quality of this procedure is monitored through the effective
+sample size (ESS):
+\begin{equation}
+\text{ESS}
+= \frac{\bigl(\sum_i w_i\bigr)^2}{\sum_i w_i^2},
+\label{eq:ess}
+\end{equation}
+which measures how many independent samples the importance-weighted
+batch is worth.
+When $q$ has poor overlap with $|\Psi|^2$---as happens at large~$N$
+or small~$\omega$---the ESS can collapse toward~1, concentrating all
+weight on a single sample and destroying the gradient signal.
+
+Two additional weight-space controls were developed to manage this:
+\begin{itemize}
+\item \textbf{Weight tempering.}
+  The importance weights are raised to a fractional power
+  $\alpha < 1$ before normalisation, flattening the weight
+  distribution and increasing the effective ESS at the cost of
+  introducing a controlled bias.
+\item \textbf{Log-weight clipping.}
+  The upper tail of $\log w$ is clipped at a specified quantile
+  (e.g.\ the 99th percentile), preventing a single extreme sample
+  from dominating the batch.
+\end{itemize}
+
+
+\subsubsection{ESS-adaptive oversampling}
+
+For difficult regimes where the ESS is persistently low, an adaptive
+mechanism was introduced: if the achieved ESS falls below a specified
+floor (e.g.\ $0.1\%$ of the batch), the oversampling multiplier~$m$ is
+increased in steps of~$2$ up to a maximum (typically~$16$),
+and the resampling is retried.
+This allows the system to automatically allocate more proposal
+samples when the overlap with $|\Psi|^2$ is poor, without manual
+tuning per regime.
+
+
+\subsubsection{Instability rollback}
+
+An instability-rollback mechanism monitors two quantities between
+successive checkpoints: the absolute relative error from the DMC
+reference, and the magnitude of energy jumps in units of the
+running standard deviation.
+If either exceeds a threshold, the model is reverted to the previous
+checkpoint and the learning rate is decayed by a factor
+(typically $0.85$--$0.92$).
+This prevents catastrophic divergence in regimes where gradient
+noise is high, at the cost of slower progress.
+
+
+\subsubsection{Optimiser comparison: Adam vs.\ CG-SR}
+
+Two optimiser families were compared extensively.
+\textbf{Adam} (with separate learning rates for the Jastrow and
+backflow parameters, typically $\text{lr}=5{\times}10^{-4}$ and
+$\text{lr}_{\text{jas}}=5{\times}10^{-5}$) provided stable
+convergence across all regimes and was the most robust default.
+
+\textbf{Conjugate-gradient stochastic reconfiguration}
+(CG-SR)---a natural-gradient method that preconditions the gradient
+with the inverse Fisher information matrix, solved approximately
+via conjugate gradients with Tikhonov damping---produced faster
+convergence and better final energies at moderate-to-strong
+confinement ($\omega \ge 0.1$).
+However, CG-SR was found to be catastrophically unstable for
+ultra-low~$\omega$ ($\le 0.01$): the Fisher matrix becomes
+extremely ill-conditioned in the weakly confined regime, causing
+parameter updates to diverge regardless of damping schedule
+(\S\ref{sec:colloc-negatives}).
+
+
+\subsubsection{Cascade warm-start}
+\label{sec:colloc-cascade}
+
+A crucial strategy for difficult regimes was \emph{cascade
+warm-starting}: networks trained at one confinement strength are
+used to initialise training at a neighboring, more difficult value.
+A typical cascade follows the sequence
+\begin{equation}
+\omega: 1.0 \;\to\; 0.5 \;\to\; 0.1 \;\to\; 0.01 \;\to\; 0.001,
+\end{equation}
+where each stage inherits both the Jastrow and (when applicable)
+backflow parameters from the converged checkpoint of the previous
+stage.
+This exploits the observation that the geometric correlation
+patterns learned at higher~$\omega$ transfer effectively to lower
+confinement, providing a far better starting point than random
+initialisation.
+
+
+\subsection{Architecture variants}
+\label{sec:colloc-architectures}
+
+Three ansatz families were explored within the collocation
+framework, all built on the same Slater--Jastrow core:
+$\Psi(\mathbf{R}) = \det[\phi_i(\mathbf{r}_j + \Delta\mathbf{r}_j)]
+\cdot e^{J(\mathbf{R})}$.
+
+\paragraph{Jastrow-only (no backflow).}
+The Jastrow factor is parameterised by a graph neural network
+(\texttt{CTNNJastrowVCycle}) with ${\sim}25\text{k}$ parameters.
+It operates on node features (single-particle orbital values) and
+edge features (pairwise distances with soft-core regularisation).
+The V-cycle variant uses a coarse-to-fine message-passing scheme.
+This family was the fastest to train and the most robust, serving
+both as a standalone ansatz and as an initialiser for backflow runs.
+
+\paragraph{Coordinate backflow + Jastrow (BF).}
+The \texttt{CTNNBackflowNet} adds a copresheaf-style message-passing
+network that predicts electron displacement vectors
+$\Delta\mathbf{r}_j$ fed into the Slater determinant.
+Edge features in the backflow network scale as
+$\mathcal{O}(N^2 \times h_{\text{bf}})$ where $h_{\text{bf}}$ is
+the hidden dimension, creating a memory bottleneck at large~$N$.
+For $N{=}6$ and $N{=}12$, the default $h_{\text{bf}}{=}128$
+was used (total ${\sim}49\text{k}$ parameters); for $N{=}20$,
+reduced variants with $h_{\text{bf}}\in\{48,64\}$ were necessary.
+The BF+Jastrow family produced the best results at $N{=}6$ and
+$N{=}12$.
+
+\paragraph{Neural Pfaffian.}
+The Pfaffian ansatz replaces the Slater determinant with a more
+general antisymmetric form $\text{Pf}[A_{ij}]$, which in principle
+offers richer nodal topology.
+Representative results: $E{=}20.261\pm0.004$ and
+$E{=}20.245\pm0.005$ at $N{=}6$, $\omega{=}1.0$ (both ${\sim}0.4\%$
+above DMC), compared to $+0.009\%$ for BF+Jastrow.
+The Pfaffian's greater expressivity was not exploitable within the
+current training pipeline; the simpler BF+Jastrow family
+consistently outperformed it.
+
+
+\subsection{Results}
+\label{sec:colloc-results}
+
+Table~\ref{tab:collocation} presents the best energies achieved by
+collocation-assisted training across all $(N,\omega)$ combinations
+studied.
+All energies are evaluated by independent VMC with
+${\sim}30\text{k}$ MCMC samples after training (a ``heavy evaluation''),
+ensuring that the reported numbers are not biased by the
+training-time importance sampling.
+
+\begin{table}[htbp]
+  \centering
+  \caption{Best ground-state energies from collocation-assisted training.
+  All values are heavy VMC-evaluated (${\sim}30\text{k}$ samples) at the
+  best checkpoint selected during training.
+  DMC references as in Table~\ref{tab:energies}; entries without DMC data
+  are marked ``---''.
+  Architecture: J~=~Jastrow-only, BF~=~backflow+Jastrow.
+  Parentheses denote $1\sigma$ statistical uncertainty on the last
+  digit(s).}
+  \label{tab:collocation}
+  \begin{tabular}{c c c c c c}
+    \toprule
+    $N$ & $\omega$ & DMC (Ref.) & Collocation & \%\,err & Arch \\
+    \midrule
+    6 & 1.0   & $20.15932(8)$  & $20.1613(23)$  & $+0.009$ & BF \\
+      & 0.5   & $11.78484(6)$  & $11.7847(20)$  & $-0.002$ & BF \\
+      & 0.1   & $3.55385(5)$   & $3.5571(4)$    & $+0.091$ & BF \\
+      & 0.01  & $0.69036$      & $0.69141(8)$   & $+0.151$ & BF \\
+      & 0.001 & $0.140832$     & $0.14118(1)$   & $+0.244$ & BF \\
+    \midrule
+    12 & 1.0   & $65.7001(1)$  & $65.712(4)$    & $+0.018$ & BF \\
+       & 0.5   & $39.1596(1)$  & $39.171(4)$    & $+0.028$ & BF \\
+       & 0.1   & $12.2698(1)$  & $12.285(1)$    & $+0.122$ & BF \\
+    \midrule
+    20 & 1.0   & $155.882(1)$  & $158.14(2)$    & $+1.45$  & J \\
+       & 0.5   & $93.875(1)$   & $96.45(3)$     & $+2.74$  & J \\
+       & 0.1   & $29.978(1)$   & $31.68(1)$     & $+5.68$  & J \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\paragraph{$N{=}6$: near-DMC accuracy across all~$\omega$.}
+For six electrons, collocation training achieves DMC-level accuracy
+at $\omega\ge 0.5$ (errors $\lesssim 0.01\%$, within statistical
+uncertainty of DMC) and remains within $0.1$--$0.25\%$ of DMC even
+at the most extreme confinements $\omega\in\{0.01,0.001\}$ where
+electrons are separated by ${\sim}30$--$100$ oscillator lengths.
+The best result at $\omega{=}1.0$ is
+$E{=}20.1613\pm 0.0023$, corresponding to an error of $+0.009\%$,
+which is essentially indistinguishable from DMC.
+
+These results are achieved entirely without MCMC during training.
+The only MCMC appears in the final heavy evaluation, where it
+serves to certify rather than to train the wavefunction.
+The training itself uses $4096$ importance-resampled collocation
+points per epoch with an oversampling factor of~$8$, requiring
+${\sim}32\text{k}$ proposal evaluations per gradient step---modest
+compared to the ${\sim}3{\times}10^3$ MCMC samples per step in the
+SR-based approach.
+
+The best $N{=}6$ result at $\omega{=}1.0$ was obtained through a
+three-stage continuation chain (see~\S\ref{sec:colloc-cascade}):
+an initial BF+Jastrow joint REINFORCE run (900~epochs,
+$\text{lr}{=}5{\times}10^{-4}$), followed by a low-LR continuation
+(750~epochs, $\text{lr}{=}3{\times}10^{-4}$), and a final
+hard-focus stage (500~epochs, $\text{lr}{=}2{\times}10^{-4}$).
+Each stage inherited the full checkpoint from the previous one.
+The monotonic improvement across stages---$+0.08\%$,
+$+0.05\%$, $+0.009\%$---demonstrates that patient multi-stage
+polishing is effective within the collocation framework.
+
+\paragraph{$N{=}12$: sub-$0.03\%$ at strong confinement.}
+For twelve electrons, the BF+Jastrow collocation results track DMC
+closely at $\omega\ge 0.5$, with errors of $+0.018\%$ and
+$+0.028\%$ at $\omega{=}1.0$ and $0.5$ respectively.
+At $\omega{=}0.1$ the error increases to $+0.122\%$, reflecting the
+growing difficulty of importance sampling in 24~dimensions at weak
+confinement.
+The ESS at $\omega{=}0.1$ is typically $5$--$15$ per epoch
+(out of $4096$ kept points), indicating that the Gaussian mixture
+proposal still maintains usable overlap with~$|\Psi|^2$.
+
+Attempts to extend to $\omega\le 0.01$ at $N{=}12$ were
+unsuccessful: both direct starts and cascade warm-starts from
+$\omega{=}0.1$ failed to converge, with the ESS collapsing to~$1$
+and the rollback mechanism rejecting all gradient updates.
+This marks the boundary of the current collocation approach for
+$N{=}12$.
+
+\paragraph{$N{=}20$: first results with room to improve.}
+For twenty electrons in two dimensions (40-dimensional
+configuration space), the importance-sampling challenge becomes
+acute.
+The Gaussian mixture proposal has rapidly diminishing overlap with
+$|\Psi|^2$, and the ESS is typically $2$--$15$ per epoch even at
+$\omega{=}1.0$.
+
+The results in Table~\ref{tab:collocation} represent the first
+collocation-trained wavefunctions for $N{=}20$ quantum dots.
+A notable finding is that the Jastrow-only architecture
+outperforms backflow at this particle number: the best BF result
+at $\omega{=}1.0$ achieved only $+18\%$ error (with
+$h_{\text{bf}}{=}64$), while the Jastrow-only ansatz reached
+$+1.45\%$.
+This reversal occurs because backflow's
+$\mathcal{O}(N^2 \times h_{\text{bf}})$ memory scaling forces
+a severe reduction in hidden dimension, collocation budget, or
+oversampling---all of which degrade gradient quality more than the
+additional expressivity compensates.
+
+The $N{=}20$ energies were obtained by polishing pretrained
+Jastrow checkpoints with reduced learning rates
+($\text{lr}{=}1{\times}10^{-4}$, $5{\times}10^{-5}$) and larger
+collocation budgets ($n_{\text{coll}}{=}4096$--$8192$).
+These polishing runs improved the $\omega{=}1.0$ result from
+$+2.6\%$ to $+1.45\%$ in ${\sim}400$ epochs, and the
+$\omega{=}0.5$ result from $+7.0\%$ to $+2.74\%$.
+Training is ongoing and further improvement is expected.
+
+
+\subsection{What worked and what did not}
+\label{sec:colloc-negatives}
+
+The collocation programme explored a large space of methods.
+This section documents the key positive and negative findings.
+
+\paragraph{Positive: pure REINFORCE over mixed objectives.}
+Setting $\beta{=}0$ in the hybrid loss (pure REINFORCE, no direct
+weak-form term) was consistently more stable and produced better
+final energies than any nonzero~$\beta$.
+The direct term
+$\tilde{E}{=}\tfrac{1}{2}\|\nabla\log\Psi\|^2{+}V$ provided
+a cheaper but noisier gradient signal; at $\beta{>}0$ it interfered
+with the REINFORCE gradient by pulling toward a local-kinetic
+minimum that did not correspond to the variational minimum.
+
+\paragraph{Positive: cascade warm-start for low~$\omega$.}
+Cold-start training at $\omega{=}0.01$ never converged for
+$N{\ge}6$.
+Cascade initialisation from $\omega{=}0.1$ made the
+$\omega{=}0.01$ regime accessible, reducing the initial error from
+${\sim}30\%$ (random init) to ${\sim}5\%$ (warm-started) and enabling
+subsequent optimisation to reach $+0.15\%$ within ${\sim}1000$ epochs.
+
+\paragraph{Positive: ESS-adaptive oversampling + rollback.}
+The combination of ESS-adaptive oversampling (automatically
+increasing the proposal budget when overlap is poor) and
+instability rollback (reverting to a good checkpoint when the
+energy spikes) was essential for the ultra-low-$\omega$ results.
+Without these mechanisms, training at $\omega{=}0.001$ diverged
+within a few hundred epochs.
+
+\paragraph{Negative: CG-SR at ultra-low~$\omega$.}
+Natural-gradient preconditioning via CG-SR produced excellent results
+at $\omega\ge 0.1$ (fastest convergence, best final energies for
+$N{=}6,12$).
+However, at $\omega\le 0.01$ the Fisher information matrix becomes
+extremely ill-conditioned: the eigenvalues span many orders of
+magnitude because the wavefunction's sensitivity to parameters
+varies enormously across the diffuse, weakly confined state.
+CG-SR updates in this regime produced errors of $+4$--$36\%$
+for $N{=}6$ at $\omega{=}0.01$ and $\omega{=}0.001$, compared to
+$+0.15\%$ and $+0.24\%$ from Adam with per-parameter adaptive
+learning rates.
+This demonstrates a sharp \emph{optimiser regime boundary}: natural
+gradients are beneficial when the Fisher matrix is well-conditioned,
+but catastrophically wrong when it is not.
+
+\paragraph{Negative: Langevin proposal refinement.}
+To address the ESS catastrophe at high~$N$, we implemented
+overdamped Langevin dynamics on the proposal samples:
+$\mathbf{R}' = \mathbf{R} + \varepsilon\,\nabla_{\mathbf{R}}
+\log|\Psi(\mathbf{R})|^2 + \sqrt{2\varepsilon}\,\boldsymbol\eta$,
+applied for $K{=}10$--$20$ steps before importance resampling.
+The intent was to push proposal samples toward high-$|\Psi|^2$
+regions without running a full MCMC chain.
+
+This approach was systematically worse than standard importance
+resampling in every configuration tested:
+\begin{itemize}
+\item $N{=}20$, $\omega{=}0.1$: Langevin VMC error $+153\%$ vs.\
+  standard $+5.7\%$ (catastrophic divergence).
+\item $N{=}20$, $\omega{=}1.0$: Langevin $+5.2\%$ vs.\ standard
+  $+1.5\%$.
+\item $N{=}6$, $\omega{=}0.001$: Langevin $+0.30\%$ vs.\ Adam
+  $+0.24\%$.
+\end{itemize}
+The failure mechanism is that $K{=}10$--$20$ Langevin steps from a
+Gaussian starting point in $Nd{=}40$ dimensions do not equilibrate
+to $|\Psi|^2$.
+The resulting non-equilibrium sample distribution biases the
+REINFORCE gradient, which in turn pushes the wavefunction to
+concentrate further around the biased distribution---a
+positive-feedback loop that rapidly destroys the ansatz.
+Langevin refinement would require either much longer chains
+($K{\gtrsim}100$, negating the computational advantage over MCMC) or
+a Metropolis--Hastings acceptance step (reintroducing MCMC).
+
+\paragraph{Negative: finite-difference residual loss.}
+The FD collocation loss, which computes $E_L$ via graph-safe
+finite differences and penalises its spread, was tested extensively.
+Representative BF results at $N{=}6$, $\omega{=}1.0$:
+$E{=}20.204\pm0.002$ ($+0.22\%$), compared to $+0.009\%$ from
+REINFORCE.
+FD training was more sensitive to step-size $h$ and noise in the
+Laplacian estimate, and never matched the REINFORCE objective for
+final accuracy.
+
+\paragraph{Negative: Neural Pfaffian.}
+Despite its richer antisymmetric structure, the Pfaffian ansatz
+underperformed the simpler BF+Jastrow family in all collocation
+experiments.
+The best Pfaffian result at $N{=}6$, $\omega{=}1.0$ was
+$E{=}20.245\pm0.005$ ($+0.43\%$), more than $40{\times}$ worse
+than BF+Jastrow.
+The Pfaffian's larger parameter space amplified the gradient
+noise from importance sampling, making it harder to optimise
+reliably.
+
+\paragraph{Negative: backflow at $N{=}20$.}
+Backflow training at $N{=}20$ was severely limited by memory.
+The edge-feature tensor scales as $\mathcal{O}(N^2 \times h_{\text{bf}})$,
+requiring $h_{\text{bf}}$ to be reduced from $128$ to $48$--$64$
+for $N{=}20$.
+This reduced-capacity backflow achieved only $+18\%$ error at
+$\omega{=}1.0$, compared to $+1.45\%$ for the Jastrow-only ansatz.
+The gradient signal at $N{=}20$ is too noisy for the additional
+backflow parameters to be trained effectively; the simpler Jastrow
+network with its smaller parameter count permits higher
+oversampling and better gradient quality.

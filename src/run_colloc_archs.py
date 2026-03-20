@@ -12,6 +12,7 @@ Target: < 30 min total wall time.
 import argparse
 import json
 import math
+import os
 import sys
 import time
 from pathlib import Path
@@ -35,7 +36,13 @@ from jastrow_architectures import (
     TriadicDeepSetJastrow,
 )
 
-DEVICE = "cpu"
+_manual = os.environ.get("CUDA_MANUAL_DEVICE")
+if _manual is not None and torch.cuda.is_available():
+    DEVICE = f"cuda:{_manual}" if _manual.isdigit() else _manual
+elif torch.cuda.is_available():
+    DEVICE = "cuda:0"
+else:
+    DEVICE = "cpu"
 DTYPE = torch.float64
 N_ELEC = 6
 DIM = 2
@@ -61,7 +68,7 @@ def setup():
         nx=nx,
         ny=ny,
         basis="cart",
-        device="cpu",
+        device=DEVICE,
         dtype="float64",
     )
     energies = sorted([(OMEGA * (ix + iy + 1), ix, iy) for ix in range(nx) for iy in range(ny)])

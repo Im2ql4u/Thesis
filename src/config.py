@@ -246,7 +246,13 @@ def _apply_seed_policy(cfg: Config) -> None:
 
 def _maybe_set_auto_energy(cfg: Config) -> Config:
     if isinstance(cfg.E, str) and cfg.E == "auto":
-        E_val = _lookup_dmc_energy(cfg.n_particles, cfg.omega)
+        try:
+            E_val = _lookup_dmc_energy(cfg.n_particles, cfg.omega)
+        except KeyError as exc:
+            # Allow training to proceed even when no table reference exists.
+            # Downstream code already treats non-finite E_ref as "err disabled".
+            print(f"[config] Warning: {exc}; setting E=nan for this run")
+            E_val = float("nan")
         return replace(cfg, E=E_val)
     return cfg
 

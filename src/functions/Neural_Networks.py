@@ -132,6 +132,53 @@ def sample_mixture(
     return x_all[perm[:n]], lq_all[perm[:n]]
 
 
+def eval_mixture_logq(x, n_elec, dim, omega, sigma_fs):
+    """Evaluate log-density of the Gaussian mixture at arbitrary points.
+
+    x: (B, n_elec, dim)
+    Returns: (B,) log q(x)
+    """
+    nc = len(sigma_fs)
+    Nd = n_elec * dim
+    x_flat = x.reshape(x.shape[0], -1)  # (B, Nd)
+    log_components = []
+    for sf in sigma_fs:
+        s = sf / math.sqrt(float(omega))
+        log_norm = -0.5 * Nd * math.log(2 * math.pi * s ** 2)
+        log_exp = -x_flat.pow(2).sum(-1) / (2 * s ** 2)
+        log_components.append(log_norm + log_exp)
+    log_stack = torch.stack(log_components, dim=-1)  # (B, K)
+    return torch.logsumexp(log_stack, dim=-1) - math.log(nc)
+
+
+def langevin_refine_samples(x, psi_log_fn, n_steps, step_size, chunk=1024, grad_clip=1.0):
+    """Push samples toward high-|Ψ|² regions via overdamped Langevin dynamics.
+
+    x: (B, N, d)  psi_log_fn: (B, N, d) → (B,) log|Ψ|
+    n_steps: Langevin steps   step_size: ε
+    grad_clip: per-sample gradient norm clipping threshold
+    """
+    for _ in range(n_steps):
+        grads = []
+        for i in range(0, x.shape[0], chunk):
+            xc = x[i : i + chunk].detach().requires_grad_(True)
+            lp = psi_log_fn(xc)
+            g = torch.autograd.grad(lp.sum(), xc)[0]
+            grads.append(g.detach())
+        grad = torch.cat(grads, dim=0)  # (B, N, d)
+        # Per-sample gradient norm clipping to prevent explosion near nodes
+        gnorm = grad.flatten(1).norm(dim=1, keepdim=True).unsqueeze(-1)  # (B,1,1)
+        grad = grad * (grad_clip / gnorm.clamp(min=grad_clip))
+        noise = torch.randn_like(x)
+        # Overdamped Langevin: x' = x + ε·∇log|Ψ|² + √(2ε)·η
+        x = x.detach() + step_size * 2.0 * grad + (2.0 * step_size) ** 0.5 * noise
+        # Replace any NaN/Inf samples with fresh noise
+        bad = torch.isnan(x).any(dim=-1).any(dim=-1) | torch.isinf(x).any(dim=-1).any(dim=-1)
+        if bad.any():
+            x[bad] = torch.randn_like(x[bad])
+    return x.detach()
+
+
 @torch.no_grad()
 def importance_resample(
     psi_log_fn,
@@ -147,9 +194,15 @@ def importance_resample(
     min_pair_cutoff: float = 0.0,
     weight_temp: float = 1.0,
     logw_clip_q: float = 0.0,
+    langevin_steps: int = 0,
+    langevin_step_size: float = 0.01,
     return_stats: bool = False,
 ):
-    """Multinomial resampling from q to approximate |Ψ|² samples."""
+    """Multinomial resampling from q to approximate |Ψ|² samples.
+
+    If langevin_steps > 0, proposal samples are first refined via
+    overdamped Langevin dynamics toward |Ψ|², then re-weighted.
+    """
     n_cand = n_cand_mult * n_keep
     x_all, lq_all = sample_mixture(
         n_cand,
@@ -168,12 +221,28 @@ def importance_resample(
             x_all = x_all[keep]
             lq_all = lq_all[keep]
 
+    # Optional Langevin refinement: push samples toward |Ψ|²
+    if langevin_steps > 0:
+        with torch.enable_grad():
+            x_all = langevin_refine_samples(
+                x_all, psi_log_fn, langevin_steps, langevin_step_size
+            )
+        # After Langevin, samples are approximately |Ψ|²-distributed.
+        # Use flat proposal (uniform log_q) so resampling selects by |Ψ|² only.
+        lq_all = torch.zeros(x_all.shape[0], device=x_all.device, dtype=x_all.dtype)
+
     lp2 = []
     for i in range(0, len(x_all), 4096):
         lp2.append(2.0 * psi_log_fn(x_all[i : i + 4096]))
     lp2 = torch.cat(lp2)
 
     log_w_raw = lp2 - lq_all
+
+    # Guard against NaN/Inf in log-weights (can happen after Langevin)
+    bad_w = torch.isnan(log_w_raw) | torch.isinf(log_w_raw)
+    if bad_w.any():
+        log_w_raw = log_w_raw.clone()
+        log_w_raw[bad_w] = log_w_raw[~bad_w].min() if (~bad_w).any() else 0.0
 
     # Optional upper-tail clipping in log-weight space to reduce rare-sample dominance.
     log_w_eff = log_w_raw
@@ -191,6 +260,9 @@ def importance_resample(
     log_w_norm = log_w_eff - log_w_eff.max()
     w = torch.exp(log_w_norm)
     probs = w / w.sum()
+    # Final NaN guard — fall back to uniform if probs are degenerate
+    if torch.isnan(probs).any() or probs.sum() == 0:
+        probs = torch.ones_like(probs) / probs.numel()
 
     w_raw = torch.exp(log_w_raw - log_w_raw.max())
     ess_raw = (w_raw.sum() ** 2 / (w_raw**2).sum()).item()

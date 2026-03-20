@@ -6,6 +6,39 @@ The model reads this at session start. Write it as if you are handing off to you
 
 ---
 
+### [2026-03-19/20] — Langevin sampling attempt, N=20 polish campaign, negative Langevin result
+
+**Goal:** (1) Implement and test Langevin-guided proposal sampling to address the ESS catastrophe at high N + low ω; (2) Push N=20 accuracy at ω=1.0, 0.5, 0.1 by polishing best Jastrow checkpoints; (3) Attempt N=12 at low omega (ω=0.05, ω=0.01).
+
+**What was done:**
+- Implemented `langevin_refine_samples()` in [src/functions/Neural_Networks.py](src/functions/Neural_Networks.py) — overdamped Langevin dynamics (x' = x + ε·∇log|Ψ|² + √(2ε)·η) applied to proposal samples before importance resampling.
+- Fixed three crash bugs: (a) `@torch.no_grad()` decorator on `importance_resample` blocked autograd — wrapped Langevin call with `torch.enable_grad()`; (b) `eval_mixture_logq` at Langevin-shifted positions gave q≈0, crashing multinomial — switched to flat proposal after Langevin; (c) step size `ε/ω` exploded at low ω (ε=10 for ω=0.001) — removed 1/ω scaling, added per-sample gradient norm clipping and NaN guards.
+- Added CLI flags `--langevin-steps` and `--langevin-step-size` to [src/run_weak_form.py](src/run_weak_form.py).
+- Ran campaign v3 across 8 GPUs testing both Langevin and non-Langevin polish approaches.
+
+**Key result — Langevin is negative:** Across all tested configurations, Langevin sampling performed worse than standard importance resampling:
+- N=20 ω=0.1: Langevin VMC **+152%** vs non-Langevin **+5.4%** (catastrophic — short Langevin chains create biased sampling that destroys the wavefunction)
+- N=20 ω=1.0: Langevin VMC +5.2% vs non-Langevin **+1.3%**
+- N=6 ω=0.001: Langevin VMC +0.30% vs Adam baseline **+0.22%**
+The root issue: K=10-20 Langevin steps from a Gaussian mixture starting point do NOT equilibrate to |Ψ|² in 40 dimensions. The biased sample distribution gives biased gradients, which push the wavefunction toward matching the biased distribution → positive feedback loop.
+
+**Key result — N=20 polish works extremely well:** Simply resuming from best Jastrow checkpoints with lower LR produced dramatic improvements:
+- N=20 ω=1.0: **+2.63% → +1.32%** (VMC), final eval +1.45%. New record.
+- N=20 ω=0.5: **+7.0% → +2.38%** (VMC). New record.
+- N=20 ω=0.1: **+5.9% → +5.44%** (VMC). Modest improvement, possibly at Jastrow capacity limit.
+
+**What was not done:** N=12 at ω=0.05 and ω=0.01 did not converge (fresh start at +28%, cascade at +280%). N=20 at ω≤0.01 not attempted.
+
+**Still running:** Ultra-polish of N=20 ω=1.0 (GPU 0, n-coll=8192, lr=5e-5), four N=20 polish runs at ω=0.5 and ω=0.1, N=12 ω=0.05 fresh start. See `outputs/2026-03-19_1909_campaign_v3/logs/`.
+
+**Implicit assumptions made:** The flat proposal (lq=0) after Langevin is theoretically correct only when the Langevin chain fully equilibrates. With K=10-20 steps, it's a poor approximation.
+
+**Next action:** Monitor ultra-polish; if N=20 ω=1.0 goes below 1%, cascade to ω=0.5 and ω=0.1. For N=12 low omega, may need BF architecture with careful warm-start (not Jastrow-only). Consider whether Langevin is worth pursuing with much longer chains (K=100+) or should be abandoned.
+
+**Open questions:** Why does simple LR reduction + polish work so well for N=20? The checkpoints from jastrow_transfer campaigns (March 14) were undertrained — the network had capacity but hadn't converged. Is the Jastrow architecture hitting its limit at N=20 ω=0.1 (+5.4%), or would even more patient training push it lower?
+
+---
+
 ### [2026-03-17] — CG-SR campaign: sampling fix, heavier eval, N=20 fit
 
 **Goal:** Fix three blockers (low-ω sampling failure, probe-eval gap, N=20 OOM), then launch a 12-hour 3-phase campaign across N={6,12,20} and ω={0.1,0.5,1.0}.

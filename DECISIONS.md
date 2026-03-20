@@ -22,6 +22,22 @@ Each entry answers: what was decided, what the alternatives were, why this was c
 
 ## Decisions
 
+### [2026-03-19] — Abandon Langevin proposal refinement; stick with Gaussian mixture + importance resampling
+
+**Decision:** Do not use Langevin dynamics to refine proposal samples before importance resampling. Keep the standard Gaussian mixture proposal with ESS-adaptive oversampling.
+**Alternatives considered:** (a) Langevin refinement with K=10-20 steps (tested and failed); (b) Longer Langevin chains K=100+ (too expensive — negates collocation advantage); (c) MALA with Metropolis correction (also expensive); (d) Normalizing flow as proposal (not implemented, high complexity).
+**Reasoning:** Short Langevin chains produce non-equilibrium samples that bias the gradient signal. At N=20 ω=0.1, this caused +152% VMC error (catastrophic divergence). The bias creates a positive feedback loop where the wavefunction concentrates around the Langevin-biased region. Meanwhile, simple polishing of existing checkpoints with lower LR produces much better results (+1.3% vs +5.2% at N=20 ω=1.0).
+**Constraints introduced:** The code for Langevin remains in the codebase (`--langevin-steps`, `--langevin-step-size`) but should not be used in production runs. Future sampling improvements should explore proper MCMC (if willing to accept the cost) or better proposal distributions (wider/adaptive sigma_fs, mixture of checkpoints).
+**Confidence:** high
+
+### [2026-03-19] — For N=20, use Jastrow-only architecture (not backflow)
+
+**Decision:** For N=20 collocation training, use the Jastrow-only ansatz instead of CTNNBackflowNet.
+**Alternatives considered:** BF with bf-hidden=128 (OOM), BF with bf-hidden=64 (converged to +18%, then stuck), BF with bf-hidden=48 (not tested alone).
+**Reasoning:** Jastrow-only reaches +1.3% at ω=1.0 vs backflow's +18%. The BF architecture at N=20 has O(N²×hidden) edge features that consume most of the GPU memory, leaving little room for collocation points and oversampling. The Jastrow network is 3-4× smaller and allows higher n-coll and oversample settings, which directly improve gradient quality. The BF's additional capacity is not utilized because the gradient signal is too noisy at N=20.
+**Constraints introduced:** The N=20 results cannot benefit from electron correlation beyond what the Jastrow factor captures. Future work could revisit BF once a strong Jastrow checkpoint provides a warm-start.
+**Confidence:** medium-high (BF with proper warm-start from Jastrow might eventually help)
+
 ### [2026-03-17] — For hard-regime stabilisation, use non-blocking ESS gating early and rely on adaptive resampling + trust constraints
 
 **Decision:** In early hard-regime runs (low $\omega$, high $N$), keep `min_ess` non-blocking (`0`) and disable strict epoch-level rollback error thresholds, while retaining ESS-floor adaptive oversampling, tempered/clipped resampling weights, and SR trust-region/max-step constraints.

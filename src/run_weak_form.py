@@ -53,8 +53,8 @@ from functions.Neural_Networks import (
 )
 from functions.Physics import compute_coulomb_interaction
 from functions.Slater_Determinant import evaluate_basis_functions_torch_batch_2d
-from jastrow_architectures import CTNNJastrowVCycle
-from PINN import CTNNBackflowNet
+from jastrow_architectures import CTNNJastrowVCycle, CTNNJastrow
+from PINN import CTNNBackflowNet, UnifiedCTNN
 
 # ─── Constants ───
 _manual = os.environ.get("CUDA_MANUAL_DEVICE")
@@ -207,17 +207,15 @@ def importance_resample(
     min_pair_cutoff=0.0,
     weight_temp=1.0,
     logw_clip_q=0.0,
+    langevin_steps=0,
+    langevin_step_size=0.01,
     return_stats=False,
 ):
     """Multinomial resampling: sample from q, resample ∝ |Ψ|²/q.
 
     Returns points approximately distributed as |Ψ|², without MCMC.
-    This avoids the double-weighting problem of the old approach
-    (top-k selection + |Ψ|² weights in loss = |Ψ|⁴ effective weighting).
-
-    With resampled points, the Rayleigh quotient gradient is:
-      ∂R/∂θ = 2⟨(ẽ-R)·∂logΨ/∂θ⟩ + ⟨∂ẽ/∂θ⟩
-    estimated as a simple sample mean (no importance weights needed).
+    If langevin_steps > 0, proposal samples are first refined via
+    overdamped Langevin dynamics toward |Ψ|² before resampling.
     """
     return nn_importance_resample(
         psi_log_fn,
@@ -232,6 +230,8 @@ def importance_resample(
         min_pair_cutoff=min_pair_cutoff,
         weight_temp=weight_temp,
         logw_clip_q=logw_clip_q,
+        langevin_steps=langevin_steps,
+        langevin_step_size=langevin_step_size,
         return_stats=return_stats,
     )
 
@@ -406,6 +406,33 @@ def _stratified_topk_indices(scores, bucket_ids, k):
     return out.to(dev)
 
 
+@torch.no_grad()
+def _bf_coalescence_diag(backflow_net, x, spin, omega, q=0.10):
+    """Return mean ||Δx_i-Δx_j||/r_ij over smallest-r quantile and its cutoff."""
+    if backflow_net is None or x is None or x.numel() == 0:
+        return float("nan"), float("nan")
+    xs = x[: min(256, x.shape[0])]
+    dx = backflow_net(xs, spin=spin)
+
+    rij = torch.cdist(xs, xs, p=2.0) * (float(omega) ** 0.5)
+    dd = dx.unsqueeze(2) - dx.unsqueeze(1)
+    ddn = torch.sqrt((dd * dd).sum(dim=-1) + 1e-12)
+
+    B, N, _ = xs.shape
+    mask = ~torch.eye(N, device=xs.device, dtype=torch.bool).unsqueeze(0).expand(B, -1, -1)
+    rvals = rij[mask]
+    dvals = ddn[mask]
+    if rvals.numel() == 0:
+        return float("nan"), float("nan")
+
+    rcut = torch.quantile(rvals, torch.tensor(float(q), device=rvals.device, dtype=rvals.dtype)).item()
+    hard = rvals <= rcut
+    if hard.sum().item() == 0:
+        return float("nan"), float(rcut)
+    ratio = (dvals[hard] / rvals[hard].clamp_min(1e-10)).mean().item()
+    return float(ratio), float(rcut)
+
+
 # ═══════════════════════════════════════════════════════════════
 #  Training loop
 # ═══════════════════════════════════════════════════════════════
@@ -440,6 +467,8 @@ def train_weak_form(
     ess_resample_tries=1,
     resample_weight_temp=1.0,
     resample_logw_clip_q=0.0,
+    langevin_steps=0,
+    langevin_step_size=0.01,
     replay_frac=0.0,
     replay_top_frac=0.25,
     replay_stratified=False,
@@ -449,6 +478,7 @@ def train_weak_form(
     rollback_jump_sigma=0.0,
     bf_cusp_reg=0.0,
     bf_cusp_radius_aho=0.30,
+    bf_diag_q=0.10,
     print_every=10,
     patience=300,
     vmc_every=50,
@@ -459,6 +489,21 @@ def train_weak_form(
     omega=None,
     e_ref=None,
     tag="weak_form",
+    # ── Natural gradient / SR ──
+    natural_grad=False,
+    sr_mode="diagonal",
+    fisher_damping=1e-3,
+    fisher_damping_end=0.0,
+    fisher_damping_anneal=0,
+    fisher_ema=0.95,
+    fisher_probes=4,
+    fisher_subsample=256,
+    fisher_max=1e6,
+    nat_momentum=0.9,
+    sr_max_param_change=0.1,
+    sr_trust_region=1.0,
+    sr_cg_iters=15,
+    sr_center=True,
 ):
     omega = float(OMEGA if omega is None else omega)
     n_elec = int(N_ELEC if n_elec is None else n_elec)
@@ -529,7 +574,46 @@ def train_weak_form(
     print(f"  Jastrow params: {n_jas:,} (lr={lr_jas})")
     print(f"  Total trainable: {sum(p.numel() for p in all_trainable):,}")
 
-    opt = torch.optim.Adam(trainable_groups)
+    fisher_precond = None
+    if natural_grad:
+        opt = torch.optim.SGD(trainable_groups, momentum=nat_momentum)
+        if sr_mode == "woodbury":
+            from sr_preconditioner import WoodburySR
+            fisher_precond = WoodburySR(
+                all_trainable,
+                damping=fisher_damping,
+                damping_end=fisher_damping_end,
+                damping_anneal_epochs=fisher_damping_anneal,
+                max_param_change=sr_max_param_change,
+                trust_region=sr_trust_region,
+                subsample=fisher_subsample,
+                center_gradients=sr_center,
+            )
+        elif sr_mode == "cg":
+            from sr_preconditioner import CGSR
+            fisher_precond = CGSR(
+                all_trainable,
+                damping=fisher_damping,
+                damping_end=fisher_damping_end,
+                damping_anneal_epochs=fisher_damping_anneal,
+                n_cg_iters=sr_cg_iters,
+                max_param_change=sr_max_param_change,
+                trust_region=sr_trust_region,
+                subsample=fisher_subsample,
+                center_gradients=sr_center,
+            )
+        else:  # diagonal
+            from fisher_preconditioner import DiagonalFisherPreconditioner
+            fisher_precond = DiagonalFisherPreconditioner(
+                all_trainable,
+                damping=fisher_damping,
+                ema_decay=fisher_ema,
+                n_probes=fisher_probes,
+                subsample=fisher_subsample,
+                max_fisher=fisher_max,
+            )
+    else:
+        opt = torch.optim.Adam(trainable_groups)
 
     def lr_lambda(ep):
         lr_min_abs = lr * lr_min_frac
@@ -537,7 +621,8 @@ def train_weak_form(
 
     sch = torch.optim.lr_scheduler.LambdaLR(opt, [lr_lambda] * len(trainable_groups))
 
-    print(f"  Training: {n_epochs} ep, {n_coll} samples, LR={lr}")
+    opt_name = "SGD+Fisher" if natural_grad else "Adam"
+    print(f"  Training: {n_epochs} ep, {n_coll} samples, LR={lr} opt={opt_name}")
     if loss_type == "fd-colloc":
         loss_str = "Huber" if fd_huber_delta > 0 else "Var"
         print(f"  FD-COLLOC loss: {loss_str}(E_L) via FD Laplacian"
@@ -556,11 +641,25 @@ def train_weak_form(
     if resample_weight_temp != 1.0 or resample_logw_clip_q > 0:
         print("  Resample regularization: "
               f"temp={resample_weight_temp:.3f} logw_clip_q={resample_logw_clip_q:.4f}")
+    if langevin_steps > 0:
+        print(f"  Langevin proposal refinement: {langevin_steps} steps, "
+              f"ε={langevin_step_size:.4f}")
     if rollback_decay < 1.0:
         print("  Instability rollback: "
               f"decay={rollback_decay:.3f} err_pct>{rollback_err_pct:.2f} jump_sigma={rollback_jump_sigma:.1f}")
     if bf_cusp_reg > 0 and backflow_net is not None:
         print(f"  BF cusp regularizer: λ={bf_cusp_reg:.3e} radius={bf_cusp_radius_aho:.2f} a_ho")
+    if natural_grad:
+        print(f"  Natural gradient ({sr_mode}): damping={fisher_damping:.1e} "
+              f"subsample={fisher_subsample} momentum={nat_momentum}")
+        if sr_mode == "diagonal":
+            print(f"    Diagonal: ema={fisher_ema:.3f} probes={fisher_probes}")
+        elif sr_mode == "woodbury":
+            print(f"    Woodbury: max_Δθ={sr_max_param_change} trust_r={sr_trust_region}")
+        elif sr_mode == "cg":
+            print(f"    CG: iters={sr_cg_iters} max_Δθ={sr_max_param_change} trust_r={sr_trust_region}")
+        if fisher_damping_anneal > 0:
+            print(f"    Damping anneal: {fisher_damping:.1e} → {fisher_damping_end:.1e} over {fisher_damping_anneal} epochs")
     sys.stdout.flush()
 
     t0 = time.time()
@@ -587,6 +686,8 @@ def train_weak_form(
             st["bf_state"] = {k: v.clone() for k, v in backflow_net.state_dict().items()}
         if npf_net is not None:
             st["pf_state"] = {k: v.clone() for k, v in npf_net.state_dict().items()}
+        if fisher_precond is not None:
+            st["fisher_state"] = fisher_precond.state_dict()
         return st
 
     def _restore_state(st):
@@ -595,6 +696,8 @@ def train_weak_form(
             backflow_net.load_state_dict(st["bf_state"])
         if npf_net is not None and "pf_state" in st:
             npf_net.load_state_dict(st["pf_state"])
+        if fisher_precond is not None and "fisher_state" in st:
+            fisher_precond.load_state_dict(st["fisher_state"])
 
     last_good_state = _save_state()
 
@@ -620,6 +723,8 @@ def train_weak_form(
                 min_pair_cutoff=min_pair_cutoff,
                 weight_temp=resample_weight_temp,
                 logw_clip_q=resample_logw_clip_q,
+                langevin_steps=langevin_steps,
+                langevin_step_size=langevin_step_size,
                 return_stats=True,
             )
             X, ess, last_rs_stats = rs
@@ -651,6 +756,8 @@ def train_weak_form(
                       f"{n_ess_reject} rejects total)")
                 sys.stdout.flush()
             continue
+
+        fisher_stats = {}
 
         # ── Pre-compute logΨ for proximal penalty (before gradient step) ──
         lp_prev_all = None
@@ -709,6 +816,11 @@ def train_weak_form(
             ep_loss += L.item() / nmb
             all_EL.append(EL_det)
             all_e_weak.append(ew_det)
+
+        # ── Natural gradient: update Fisher estimate and precondition ──
+        if fisher_precond is not None:
+            fisher_stats = fisher_precond.update(psi_log_fn, X, all_trainable)
+            fisher_precond.precondition(all_trainable)
 
         if grad_clip > 0:
             nn.utils.clip_grad_norm_(all_trainable, grad_clip)
@@ -772,6 +884,8 @@ def train_weak_form(
         replay_min_pair_mean = float("nan")
         replay_r_mean = float("nan")
         replay_bucket_entropy = float("nan")
+        bf_coal_ratio_q = float("nan")
+        bf_coal_rcut_q = float("nan")
         if replay_X is not None and replay_X.numel() > 0:
             rp_min_pair, rp_r_mean, _ = _geometry_invariants(replay_X)
             replay_min_pair_mean = float(rp_min_pair.mean().item())
@@ -783,6 +897,11 @@ def train_weak_form(
                 nz = probs > 0
                 ent = -(probs[nz] * torch.log(probs[nz])).sum().item()
                 replay_bucket_entropy = float(ent / math.log(max(2, n_bucket_total)))
+
+        if backflow_net is not None:
+            bf_coal_ratio_q, bf_coal_rcut_q = _bf_coalescence_diag(
+                backflow_net, X, spin, omega, q=bf_diag_q
+            )
 
         epdt = time.time() - ept0
         entry = dict(
@@ -804,7 +923,15 @@ def train_weak_form(
             replay_min_pair_mean=replay_min_pair_mean,
             replay_r_mean=replay_r_mean,
             replay_bucket_entropy=replay_bucket_entropy,
+            bf_coal_ratio_q=bf_coal_ratio_q,
+            bf_coal_rcut_q=bf_coal_rcut_q,
         )
+        if fisher_precond is not None and fisher_precond._n_updates > 0:
+            entry.update(
+                fisher_mean=fisher_stats.get("fisher_mean", float("nan")),
+                fisher_max=fisher_stats.get("fisher_max", float("nan")),
+                fisher_median=fisher_stats.get("fisher_median", float("nan")),
+            )
 
         hist.append(entry)
 
@@ -840,8 +967,8 @@ def train_weak_form(
                         f_net, C_dummy, psi_fn=_psi_wrap,
                         compute_coulomb_interaction=compute_coulomb_interaction,
                         params=params, n_samples=vmc_n, batch_size=512,
-                        sampler_steps=40, sampler_step_sigma=0.12, lap_mode="exact",
-                        persistent=True, sampler_burn_in=200, sampler_thin=2, progress=False,
+                        sampler_steps=60, sampler_step_sigma=0.12, lap_mode="exact",
+                        persistent=True, sampler_burn_in=400, sampler_thin=3, progress=False,
                     )
                 else:
                     vp = evaluate_energy_vmc(
@@ -849,8 +976,8 @@ def train_weak_form(
                         compute_coulomb_interaction=compute_coulomb_interaction,
                         backflow_net=backflow_net, params=params,
                         n_samples=vmc_n, batch_size=512,
-                        sampler_steps=40, sampler_step_sigma=0.12, lap_mode="exact",
-                        persistent=True, sampler_burn_in=200, sampler_thin=2, progress=False,
+                        sampler_steps=60, sampler_step_sigma=0.12, lap_mode="exact",
+                        persistent=True, sampler_burn_in=400, sampler_thin=3, progress=False,
                     )
                 vE = float(vp["E_mean"])
                 vErr = abs(vE - E_ref) / abs(E_ref) if math.isfinite(E_ref) and E_ref != 0 else float("nan")
@@ -990,6 +1117,10 @@ def main():
                     help="Importance-weight tempering exponent (alpha); <1 flattens spikes")
     ap.add_argument("--resample-logw-clip-q", type=float, default=0.0,
                     help="Upper quantile for clipping log-weights before resampling (0=off)")
+    ap.add_argument("--langevin-steps", type=int, default=0,
+                    help="Langevin refinement steps on proposal samples (0=off)")
+    ap.add_argument("--langevin-step-size", type=float, default=0.01,
+                    help="Langevin step size (auto-scaled by 1/omega)")
     ap.add_argument("--replay-frac", type=float, default=0.0,
                     help="Fraction of collocation batch replayed from prior hard samples")
     ap.add_argument("--replay-top-frac", type=float, default=0.25,
@@ -1008,6 +1139,14 @@ def main():
                     help="Penalty weight to keep BF relative displacement smooth at short range")
     ap.add_argument("--bf-cusp-radius-aho", type=float, default=0.30,
                     help="Short-range radius in oscillator units for BF cusp regularizer")
+    ap.add_argument("--bf-hard-cusp-gate", action="store_true",
+                    help="Apply structural gate to suppress BF displacement near coalescence")
+    ap.add_argument("--bf-cusp-gate-radius-aho", type=float, default=0.30,
+                    help="Radius (a_ho units) for hard BF cusp gate")
+    ap.add_argument("--bf-cusp-gate-power", type=float, default=2.0,
+                    help="Exponent for hard BF cusp gate; >=2 gives smooth near-zero suppression")
+    ap.add_argument("--bf-diag-q", type=float, default=0.10,
+                    help="Quantile for BF coalescence ratio diagnostics")
     # Pfaffian args
     ap.add_argument("--K-det", type=int, default=1)
     ap.add_argument("--K-emb", type=int, default=32)
@@ -1035,6 +1174,54 @@ def main():
                     help="Trap frequency")
     ap.add_argument("--e-dmc", type=float, default=float("nan"),
                     help="Reference DMC energy for error reporting; NaN disables err-based model selection")
+    # Natural gradient
+    ap.add_argument("--natural-grad", action="store_true",
+                    help="Use diagonal Fisher preconditioning (natural gradient) instead of Adam")
+    ap.add_argument("--sr-mode", choices=["diagonal", "woodbury", "cg"], default="diagonal",
+                    help="SR mode: diagonal=Hutchinson diagonal, woodbury=exact Woodbury, cg=CG solve")
+    ap.add_argument("--fisher-damping", type=float, default=1e-3,
+                    help="Tikhonov damping for Fisher/SR (1e-4 to 1e-2)")
+    ap.add_argument("--fisher-damping-end", type=float, default=0.0,
+                    help="Final damping after annealing (0=no anneal, use for woodbury/cg)")
+    ap.add_argument("--fisher-damping-anneal", type=int, default=0,
+                    help="Epochs over which to anneal damping (0=constant)")
+    ap.add_argument("--fisher-ema", type=float, default=0.95,
+                    help="EMA decay for running Fisher estimate (diagonal mode only)")
+    ap.add_argument("--fisher-probes", type=int, default=4,
+                    help="Hutchinson probes per Fisher update (diagonal mode only)")
+    ap.add_argument("--fisher-subsample", type=int, default=256,
+                    help="Collocation points subsampled for Fisher/SR estimation")
+    ap.add_argument("--fisher-max", type=float, default=1e6,
+                    help="Upper clamp for Fisher diagonal entries (diagonal mode only)")
+    ap.add_argument("--nat-momentum", type=float, default=0.9,
+                    help="SGD momentum when using natural gradient")
+    ap.add_argument("--sr-max-param-change", type=float, default=0.1,
+                    help="Max per-parameter change per step (woodbury/cg mode)")
+    ap.add_argument("--sr-trust-region", type=float, default=1.0,
+                    help="Trust region radius for SR update norm (woodbury/cg mode)")
+    ap.add_argument("--sr-cg-iters", type=int, default=15,
+                    help="CG iterations for cg mode")
+    ap.add_argument("--sr-center", action="store_true", default=True,
+                    help="Center per-sample gradients (subtract mean O) in SR")
+    # Architecture
+    ap.add_argument("--jas-arch", choices=["vcycle", "ctnn"], default="vcycle",
+                    help="Jastrow architecture: vcycle=CTNNJastrowVCycle, ctnn=CTNNJastrow")
+    ap.add_argument("--jas-hidden", type=int, default=0,
+                    help="Jastrow node/edge hidden dim (0=arch default: vcycle=24, ctnn=64)")
+    ap.add_argument("--jas-mp-steps", type=int, default=0,
+                    help="Jastrow message-passing steps (0=arch default: vcycle n_down/n_up=1, ctnn=2)")
+    ap.add_argument("--jas-readout-hidden", type=int, default=64,
+                    help="Jastrow readout MLP hidden dim")
+    ap.add_argument("--bf-hidden", type=int, default=128,
+                    help="Backflow node hidden dim")
+    ap.add_argument("--bf-msg-hidden", type=int, default=0,
+                    help="Backflow message hidden dim (0=same as --bf-hidden)")
+    ap.add_argument("--bf-layers", type=int, default=3,
+                    help="Backflow update MLP layers")
+    ap.add_argument("--unified", action="store_true",
+                    help="Use UnifiedCTNN (shared backbone for BF+Jastrow) instead of separate networks")
+    ap.add_argument("--unified-mp-steps", type=int, default=2,
+                    help="UnifiedCTNN message-passing iterations")
     ap.add_argument("--no-pretrained", action="store_true",
                     help="Do not load default pretrained initialization checkpoints")
     ap.add_argument("--init-jas", type=str, default=None,
@@ -1051,6 +1238,9 @@ def main():
     sigma_fs = tuple(float(s) for s in a.sigma_fs.split(",") if s.strip())
     if len(sigma_fs) == 0:
         raise ValueError("--sigma-fs must contain at least one value")
+    # Note: sigma_fs values are in oscillator-length units.
+    # sample_gauss already scales by 1/sqrt(omega), so defaults (0.8,1.3,2.0)
+    # are appropriate for all omega — no auto-widening needed.
 
     torch.manual_seed(a.seed)
     np.random.seed(a.seed)
@@ -1063,20 +1253,34 @@ def main():
     n_occ = N_ELEC // 2
 
     def build_jastrow_model():
-        return CTNNJastrowVCycle(
-            n_particles=N_ELEC, d=DIM, omega=OMEGA,
-            node_hidden=24, edge_hidden=24, bottleneck_hidden=12,
-            n_down=1, n_up=1, msg_layers=1, node_layers=1,
-            readout_hidden=64, readout_layers=2, act="silu",
-        ).to(DEVICE).to(DTYPE)
+        if a.jas_arch == "ctnn":
+            jh = a.jas_hidden if a.jas_hidden > 0 else 64
+            jmp = a.jas_mp_steps if a.jas_mp_steps > 0 else 2
+            return CTNNJastrow(
+                n_particles=N_ELEC, d=DIM, omega=OMEGA,
+                node_hidden=jh, edge_hidden=jh,
+                n_mp_steps=jmp, msg_layers=2, node_layers=2,
+                readout_hidden=a.jas_readout_hidden, readout_layers=2, act="silu",
+            ).to(DEVICE).to(DTYPE)
+        else:  # vcycle (default)
+            jh = a.jas_hidden if a.jas_hidden > 0 else 24
+            jmp = a.jas_mp_steps if a.jas_mp_steps > 0 else 1
+            return CTNNJastrowVCycle(
+                n_particles=N_ELEC, d=DIM, omega=OMEGA,
+                node_hidden=jh, edge_hidden=jh, bottleneck_hidden=max(jh // 2, 8),
+                n_down=jmp, n_up=jmp, msg_layers=1, node_layers=1,
+                readout_hidden=a.jas_readout_hidden, readout_layers=2, act="silu",
+            ).to(DEVICE).to(DTYPE)
+
+    bf_msg_h = a.bf_msg_hidden if a.bf_msg_hidden > 0 else a.bf_hidden
 
     def build_default_backflow():
         return CTNNBackflowNet(
             d=DIM,
-            msg_hidden=128,
+            msg_hidden=bf_msg_h,
             msg_layers=2,
-            hidden=128,
-            layers=3,
+            hidden=a.bf_hidden,
+            layers=a.bf_layers,
             act="silu",
             aggregation="sum",
             use_spin=True,
@@ -1085,6 +1289,22 @@ def main():
             bf_scale_init=0.05,
             zero_init_last=True,
             omega=OMEGA,
+            hard_cusp_gate=a.bf_hard_cusp_gate,
+            cusp_gate_radius_aho=a.bf_cusp_gate_radius_aho,
+            cusp_gate_power=a.bf_cusp_gate_power,
+        ).to(DEVICE).to(DTYPE)
+
+    def build_unified_model():
+        uh = a.bf_hidden
+        return UnifiedCTNN(
+            n_particles=N_ELEC, d=DIM, omega=OMEGA,
+            node_hidden=uh, edge_hidden=uh,
+            msg_layers=2, node_layers=3,
+            n_mp_steps=a.unified_mp_steps,
+            act="silu", aggregation="sum",
+            use_spin=True, same_spin_only=False,
+            out_bound="tanh", bf_scale_init=0.05, zero_init_last=True,
+            jastrow_hidden=a.jas_readout_hidden, jastrow_layers=2,
         ).to(DEVICE).to(DTYPE)
 
     def try_load_state(module, state, what):
@@ -1110,6 +1330,9 @@ def main():
             bf_scale_init=bfc["bf_scale_init"],
             zero_init_last=bfc["zero_init_last"],
             omega=OMEGA,
+            hard_cusp_gate=bfc.get("hard_cusp_gate", False),
+            cusp_gate_radius_aho=bfc.get("cusp_gate_radius_aho", 0.30),
+            cusp_gate_power=bfc.get("cusp_gate_power", 2.0),
         ).to(DEVICE).to(DTYPE)
 
     def maybe_load_bf_from_ckpt(module, ckpt_obj, what, *, required=False):
@@ -1328,6 +1551,8 @@ def main():
         ess_resample_tries=a.ess_resample_tries,
         resample_weight_temp=a.resample_weight_temp,
         resample_logw_clip_q=a.resample_logw_clip_q,
+        langevin_steps=a.langevin_steps,
+        langevin_step_size=a.langevin_step_size,
         replay_frac=a.replay_frac,
         replay_top_frac=a.replay_top_frac,
         replay_stratified=a.replay_stratified,
@@ -1337,12 +1562,27 @@ def main():
         rollback_jump_sigma=a.rollback_jump_sigma,
         bf_cusp_reg=a.bf_cusp_reg,
         bf_cusp_radius_aho=a.bf_cusp_radius_aho,
+        bf_diag_q=a.bf_diag_q,
         n_elec=N_ELEC,
         omega=OMEGA,
         e_ref=E_DMC,
         print_every=10, patience=a.patience,
         vmc_every=a.vmc_every, vmc_n=a.vmc_n, tag=a.tag,
         vmc_select_n=a.vmc_select_n,
+        natural_grad=a.natural_grad,
+        sr_mode=a.sr_mode,
+        fisher_damping=a.fisher_damping,
+        fisher_damping_end=a.fisher_damping_end,
+        fisher_damping_anneal=a.fisher_damping_anneal,
+        fisher_ema=a.fisher_ema,
+        fisher_probes=a.fisher_probes,
+        fisher_subsample=a.fisher_subsample,
+        fisher_max=a.fisher_max,
+        nat_momentum=a.nat_momentum,
+        sr_max_param_change=a.sr_max_param_change,
+        sr_trust_region=a.sr_trust_region,
+        sr_cg_iters=a.sr_cg_iters,
+        sr_center=a.sr_center,
     )
 
     # ── Final heavy VMC eval ──
@@ -1364,8 +1604,8 @@ def main():
                 f_net, C_dummy, psi_fn=_psi_wrap,
                 compute_coulomb_interaction=compute_coulomb_interaction,
                 params=params, n_samples=a.n_eval, batch_size=512,
-                sampler_steps=80, sampler_step_sigma=0.08, lap_mode="exact",
-                persistent=True, sampler_burn_in=400, sampler_thin=3, progress=True,
+                sampler_steps=120, sampler_step_sigma=0.08, lap_mode="exact",
+                persistent=True, sampler_burn_in=800, sampler_thin=5, progress=True,
             )
         else:
             vmc = evaluate_energy_vmc(
@@ -1373,8 +1613,8 @@ def main():
                 compute_coulomb_interaction=compute_coulomb_interaction,
                 backflow_net=backflow_net, params=params,
                 n_samples=a.n_eval, batch_size=512,
-                sampler_steps=80, sampler_step_sigma=0.08, lap_mode="exact",
-                persistent=True, sampler_burn_in=400, sampler_thin=3, progress=True,
+                sampler_steps=120, sampler_step_sigma=0.08, lap_mode="exact",
+                persistent=True, sampler_burn_in=800, sampler_thin=5, progress=True,
             )
         E = float(vmc["E_mean"])
         se = float(vmc["E_stderr"])

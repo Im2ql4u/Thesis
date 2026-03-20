@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import math
 
 import torch
@@ -435,6 +433,9 @@ class CTNNBackflowNet(nn.Module):
         bf_scale_init: float = 0.05,
         zero_init_last: bool = True,
         omega: float = 1.0,
+        hard_cusp_gate: bool = False,
+        cusp_gate_radius_aho: float = 0.30,
+        cusp_gate_power: float = 2.0,
     ):
         super().__init__()
         self.d = d
@@ -443,6 +444,9 @@ class CTNNBackflowNet(nn.Module):
         self.aggregation = aggregation
         self.out_bound = out_bound
         self.omega = omega
+        self.hard_cusp_gate = bool(hard_cusp_gate)
+        self.cusp_gate_radius_aho = float(cusp_gate_radius_aho)
+        self.cusp_gate_power = float(cusp_gate_power)
 
         # --- activation factory (same semantics as your original) ---
         def make_act(name: str) -> nn.Module:
@@ -647,6 +651,18 @@ class CTNNBackflowNet(nn.Module):
             pass
         else:
             raise ValueError(f"Unknown out_bound '{self.out_bound}'")
+
+        # Enforce short-range suppression by construction:
+        # gate_i -> 0 as nearest-neighbor distance -> 0, gate_i -> 1 in mid/far field.
+        if self.hard_cusp_gate:
+            dmat = torch.cdist(x, x, p=2.0) * (self.omega**0.5)
+            eye = torch.eye(N, device=x.device, dtype=torch.bool).unsqueeze(0)
+            dmat = dmat.masked_fill(eye, float("inf"))
+            rmin = dmat.amin(dim=2).clamp_min(1e-12)
+            rc = max(1e-6, self.cusp_gate_radius_aho)
+            p = max(1.0, self.cusp_gate_power)
+            gate = 1.0 - torch.exp(-torch.pow(rmin / rc, p))
+            dx = dx * gate.unsqueeze(-1)
 
         # enforce zero center-of-mass shift
         dx = dx - dx.mean(dim=1, keepdim=True)

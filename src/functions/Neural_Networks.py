@@ -231,9 +231,21 @@ def importance_resample(
         # Use flat proposal (uniform log_q) so resampling selects by |Ψ|² only.
         lq_all = torch.zeros(x_all.shape[0], device=x_all.device, dtype=x_all.dtype)
 
+    # Use smaller evaluation chunks for larger electron counts to avoid OOM.
+    if x_all.ndim >= 3:
+        n_elec_est = int(x_all.shape[1])
+    else:
+        n_elec_est = int(x_all.shape[1] // 2)
+    if n_elec_est >= 20:
+        eval_chunk = 512
+    elif n_elec_est >= 12:
+        eval_chunk = 1024
+    else:
+        eval_chunk = 4096
+
     lp2 = []
-    for i in range(0, len(x_all), 4096):
-        lp2.append(2.0 * psi_log_fn(x_all[i : i + 4096]))
+    for i in range(0, len(x_all), eval_chunk):
+        lp2.append(2.0 * psi_log_fn(x_all[i : i + eval_chunk]))
     lp2 = torch.cat(lp2)
 
     log_w_raw = lp2 - lq_all

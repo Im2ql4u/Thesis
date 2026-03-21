@@ -1,0 +1,2334 @@
+{
+  "selection_rule": "keep abs(err_pct) <= 0.1 from parsed logs",
+  "date": "2026-03-21",
+  "inventory_source": "outputs/model_quality_inventory_2026-03-21.json",
+  "curated_folder": "results/curated_low_error_0p1pct_2026-03-21",
+  "kept_models": [
+    {
+      "file": "results/curated_low_error_0p1pct_2026-03-21/w1_n6w05_hisamp.pt",
+      "source_log": "outputs/2026-03-17_0851_cascade_campaign/wave_1/logs/w1_n6w05_hisamp.log",
+      "n": 6,
+      "omega": 0.5,
+      "e_dmc": 11.78484,
+      "energy": 11.78466,
+      "sigma": 0.00199,
+      "err_pct": -0.002,
+      "abs_err_pct": 0.002,
+      "training_details": {
+        "mode": "bf",
+        "tag": "w1_n6w05_hisamp",
+        "train_config": "600 ep, 4096 samples, LR=0.005 opt=SGD+Fisher",
+        "loss_config": "REINFORCE(E_L, no-backprop-lap) + direct(\u00bdg\u00b2, \u03b2=0.0)  clip_el=3.0  reward_qtrim=0.0",
+        "rollback_config": null,
+        "resume_from": "/itf-fi-ml/home/aleksns/Thesis_repo/results/arch_colloc/camp_n6w05_fix.pt",
+        "system_config": "N=6, omega=0.5, basis=3x3 (n_basis=9, n_occ=3)"
+      }
+    },
+    {
+      "file": "results/curated_low_error_0p1pct_2026-03-21/v4_n2w05_precision.pt",
+      "source_log": "outputs/2026-03-20_1209_campaign_v4/logs/v4_n2w05_precision.log",
+      "n": 2,
+      "omega": 0.5,
+      "e_dmc": 1.65977,
+      "energy": 1.6597,
+      "sigma": 0.00038,
+      "err_pct": -0.004,
+      "abs_err_pct": 0.004,
+      "training_details": {
+        "mode": "bf",
+        "tag": "v4_n2w05_precision",
+        "train_config": "10000 ep, 8192 samples, LR=0.0001 opt=SGD+Fisher",
+        "loss_config": "REINFORCE(E_L, no-backprop-lap) + direct(\u00bdg\u00b2, \u03b2=0.0)  clip_el=5.0  reward_qtrim=0.005",
+        "rollback_config": null,
+        "resume_from": "results/arch_colloc/v4_n2w05_bf.pt",
+        "system_config": "N=2, omega=0.5, basis=3x3 (n_basis=9, n_occ=1)"
+      }
+    },
+    {
+      "file": "results/curated_low_error_0p1pct_2026-03-21/v4_n2w1_bf.pt",
+      "source_log": "outputs/2026-03-20_1209_campaign_v4/logs/v4_n2w1_bf.log",
+      "n": 2,
+      "omega": 1.0,
+      "e_dmc": 3.0,
+      "energy": 2.99989,
+      "sigma": 0.00131,
+      "err_pct": -0.004,
+      "abs_err_pct": 0.004,
+      "training_details": {
+        "mode": "bf",
+        "tag": "v4_n2w1_bf",
+        "train_config": "2000 ep, 2048 samples, LR=0.0005 opt=Adam",
+        "loss_config": "REINFORCE(E_L, no-backprop-lap) + direct(\u00bdg\u00b2, \u03b2=0.0)  clip_el=5.0  reward_qtrim=0.01",
+        "rollback_config": null,
+        "resume_from": null,
+        "system_config": "N=2, omega=1.0, basis=3x3 (n_basis=9, n_occ=1)"
+      }
+    },
+    {
+      "file": "results/curated_low_error_0p1pct_2026-03-21/v7_n2w01_exact.pt",
+      "source_log": "outputs/2026-03-21_1151_campaign_v7_n2_exact_n12_continue/logs/v7_n2w01_exact.log",
+      "n": 2,
+      "omega": 0.1,
+      "e_dmc": 0.44079,
+      "energy": 0.44081,
+      "sigma": 0.00015,
+      "err_pct": 0.004,
+      "abs_err_pct": 0.004,
+      "training_details": {
+        "mode": "bf",
+        "tag": "v7_n2w01_exact",
+        "train_config": "3400 ep, 4096 samples, LR=8e-05 opt=Adam",
+        "loss_config": "REINFORCE(E_L, no-backprop-lap) + direct(\u00bdg\u00b2, \u03b2=0.0)  clip_el=4.0  reward_qtrim=0.01",
+        "rollback_config": "decay=0.960 err_pct>0.00 jump_sigma=4.0",
+        "resume_from": "/itf-fi-ml/home/aleksns/Thesis_repo/results/arch_colloc/v4_n2w01_bf.pt",
+        "system_config": "N=2, omega=0.1, basis=3x3 (n_basis=9, n_occ=1)"
+      }
+    },
+    {
+      "file": "results/curated_low_error_0p1pct_2026-03-21/adam_control_v1.pt",
+      "source_log": "outputs/2026-03-15_1909_natgrad_sweep/logs/adam_control_v1.log",
+      "n": 6,
+      "omega": 1.0,
+      "e_dmc": 20.15932,
+      "energy": 20.16119,
+      "sigma": 0.00483,
+      "err_pct": 0.009,
+      "abs_err_pct": 0.009,
+      "training_details": {
+        "mode": "bf",
+        "tag": "adam_control_v1",
+        "train_config": "500 ep, 4096 samples, LR=0.0005 opt=Adam",
+        "loss_config": "REINFORCE(E_L, no-backprop-lap) + direct(\u00bdg\u00b2, \u03b2=0.0)  clip_el=5.0  reward_qtrim=0.0",
+        "rollback_config": null,
+        "resume_from": "/itf-fi-ml/home/aleksns/Thesis_repo/results/arch_colloc/bf_ctnn_vcycle.pt",
+        "system_config": "N=6, omega=1.0, basis=3x3 (n_basis=9, n_occ=3)"
+      }
+    },
+    {
+      "file": "results/curated_low_error_0p1pct_2026-03-21/v7_n12w1_continue.pt",
+      "source_log": "outputs/2026-03-21_1151_campaign_v7_n2_exact_n12_continue/logs/v7_n12w1_continue.log",
+      "n": 12,
+      "omega": 1.0,
+      "e_dmc": 65.7001,
+      "energy": 65.70601,
+      "sigma": 0.00449,
+      "err_pct": 0.009,
+      "abs_err_pct": 0.009,
+      "training_details": {
+        "mode": "bf",
+        "tag": "v7_n12w1_continue",
+        "train_config": "2600 ep, 4096 samples, LR=0.0001 opt=Adam",
+        "loss_config": "REINFORCE(E_L, no-backprop-lap) + direct(\u00bdg\u00b2, \u03b2=0.0)  clip_el=3.0  reward_qtrim=0.01",
+        "rollback_config": "decay=0.950 err_pct>4.00 jump_sigma=3.5",
+        "resume_from": "/itf-fi-ml/home/aleksns/Thesis_repo/results/arch_colloc/long_n12w1.pt",
+        "system_config": "N=12, omega=1.0, basis=3x3 (n_basis=9, n_occ=6)"
+      }
+    },
+    {
+      "file": "results/curated_low_error_0p1pct_2026-03-21/w1_n12w1_xfer.pt",
+      "source_log": "outputs/2026-03-17_0851_cascade_campaign/wave_1/logs/w1_n12w1_xfer.log",
+      "n": 12,
+      "omega": 1.0,
+      "e_dmc": 65.7001,
+      "energy": 65.70699,
+      "sigma": 0.00595,
+      "err_pct": 0.01,
+      "abs_err_pct": 0.01,
+      "training_details": {
+        "mode": "bf",
+        "tag": "w1_n12w1_xfer",
+        "train_config": "800 ep, 4096 samples, LR=0.005 opt=SGD+Fisher",
+        "loss_config": "REINFORCE(E_L, no-backprop-lap) + direct(\u00bdg\u00b2, \u03b2=0.0)  clip_el=5.0  reward_qtrim=0.0",
+        "rollback_config": null,
+        "resume_from": null,
+        "system_config": "N=12, omega=1.0, basis=3x3 (n_basis=9, n_occ=6)"
+      }
+    },
+    {
+      "file": "results/curated_low_error_0p1pct_2026-03-21/bf_hardfocus_v1b.pt",
+      "source_log": "results/arch_colloc/bf_hardfocus_v1b.log",
+      "n": 6,
+      "omega": 1.0,
+      "e_dmc": 20.15932,
+      "energy": 20.16131,
+      "sigma": 0.00234,
+      "err_pct": 0.01,
+      "abs_err_pct": 0.01,
+      "training_details": {
+        "mode": "bf",
+        "tag": "bf_hardfocus_v1b",
+        "train_config": "500 ep, 6144 samples, LR=0.0002",
+        "loss_config": "REINFORCE(E_L, no-backprop-lap) + direct(\u00bdg\u00b2, \u03b2=0.0)  clip_el=5.0",
+        "rollback_config": null,
+        "resume_from": "results/arch_colloc/bf_resume_lr_v1.pt",
+        "system_config": null
+      }
+    },
+    {
+      "file": "results/curated_low_error_0p1pct_2026-03-21/bf_micro_v4.pt",
+      "source_log": "results/arch_colloc/bf_micro_v4.log",
+      "n": 6,
+      "omega": 1.0,
+      "e_dmc": 20.15932,
+      "energy": 20.16155,
+      "sigma": 0.00396,
+      "err_pct": 0.011,
+      "abs_err_pct": 0.011,
+      "training_details": {
+        "mode": "bf",
+        "tag": "bf_micro_v4",
+        "train_config": "200 ep, 6144 samples, LR=5e-05",
+        "loss_config": null,
+        "rollback_config": null,
+        "resume_from": "results/arch_colloc/bf_hardfocus_v1b.pt",
+        "system_config": null
+      }
+    },
+    {
+      "file": "results/curated_low_error_0p1pct_2026-03-21/camp_n6w1_verify.pt",
+      "source_log": "outputs/2026-03-17_0031_cgsr_campaign/phase1_verify/logs/camp_n6w1_verify.log",
+      "n": 6,
+      "omega": 1.0,
+      "e_dmc": 20.15932,
+      "energy": 20.16167,
+      "sigma": 0.00181,
+      "err_pct": 0.012,
+      "abs_err_pct": 0.012,
+      "training_details": {
+        "mode": "bf",
+        "tag": "camp_n6w1_verify",
+        "train_config": "400 ep, 4096 samples, LR=0.01 opt=SGD+Fisher",
+        "loss_config": "REINFORCE(E_L, no-backprop-lap) + direct(\u00bdg\u00b2, \u03b2=0.0)  clip_el=5.0  reward_qtrim=0.0",
+        "rollback_config": null,
+        "resume_from": "/itf-fi-ml/home/aleksns/Thesis_repo/results/arch_colloc/sr_cg_anneal_v1.pt",
+        "system_config": "N=6, omega=1.0, basis=3x3 (n_basis=9, n_occ=3)"
+      }
+    },
+    {
+      "file": "results/curated_low_error_0p1pct_2026-03-21/camp2_n6w1_main.pt",
+      "source_log": "outputs/2026-03-17_0031_cgsr_campaign/phase2_main/logs/camp2_n6w1_main.log",
+      "n": 6,
+      "omega": 1.0,
+      "e_dmc": 20.15932,
+      "energy": 20.16211,
+      "sigma": 0.00167,
+      "err_pct": 0.014,
+      "abs_err_pct": 0.014,
+      "training_details": {
+        "mode": "bf",
+        "tag": "camp2_n6w1_main",
+        "train_config": "1200 ep, 8192 samples, LR=0.005 opt=SGD+Fisher",
+        "loss_config": "REINFORCE(E_L, no-backprop-lap) + direct(\u00bdg\u00b2, \u03b2=0.0)  clip_el=3.0  reward_qtrim=0.0",
+        "rollback_config": null,
+        "resume_from": "/itf-fi-ml/home/aleksns/Thesis_repo/results/arch_colloc/camp_n6w1_verify.pt",
+        "system_config": "N=6, omega=1.0, basis=3x3 (n_basis=9, n_occ=3)"
+      }
+    },
+    {
+      "file": "results/curated_low_error_0p1pct_2026-03-21/bf_micro_v1.pt",
+      "source_log": "results/arch_colloc/bf_micro_v1.log",
+      "n": 6,
+      "omega": 1.0,
+      "e_dmc": 20.15932,
+      "energy": 20.16227,
+      "sigma": 0.00687,
+      "err_pct": 0.015,
+      "abs_err_pct": 0.015,
+      "training_details": {
+        "mode": "bf",
+        "tag": "bf_micro_v1",
+        "train_config": "160 ep, 6144 samples, LR=5e-05",
+        "loss_config": "REINFORCE(E_L, no-backprop-lap) + direct(\u00bdg\u00b2, \u03b2=0.0)  clip_el=4.0",
+        "rollback_config": null,
+        "resume_from": "results/arch_colloc/bf_hardfocus_v1b.pt",
+        "system_config": null
+      }
+    },
+    {
+      "file": "results/curated_low_error_0p1pct_2026-03-21/v4_n2w1_precision.pt",
+      "source_log": "outputs/2026-03-20_1209_campaign_v4/logs/v4_n2w1_precision.log",
+      "n": 2,
+      "omega": 1.0,
+      "e_dmc": 3.0,
+      "energy": 2.99951,
+      "sigma": 0.00098,
+      "err_pct": -0.016,
+      "abs_err_pct": 0.016,
+      "training_details": {
+        "mode": "bf",
+        "tag": "v4_n2w1_precision",
+        "train_config": "10000 ep, 8192 samples, LR=0.0001 opt=SGD+Fisher",
+        "loss_config": "REINFORCE(E_L, no-backprop-lap) + direct(\u00bdg\u00b2, \u03b2=0.0)  clip_el=5.0  reward_qtrim=0.005",
+        "rollback_config": null,
+        "resume_from": "results/arch_colloc/v4_n2w1_bf.pt",
+        "system_config": "N=2, omega=1.0, basis=3x3 (n_basis=9, n_occ=1)"
+      }
+    },
+    {
+      "file": "results/curated_low_error_0p1pct_2026-03-21/long_n12w1.pt",
+      "source_log": "outputs/2026-03-17_1816_long_campaign/logs/long_n12w1.log",
+      "n": 12,
+      "omega": 1.0,
+      "e_dmc": 65.7001,
+      "energy": 65.71208,
+      "sigma": 0.00387,
+      "err_pct": 0.018,
+      "abs_err_pct": 0.018,
+      "training_details": {
+        "mode": "bf",
+        "tag": "long_n12w1",
+        "train_config": "1500 ep, 4096 samples, LR=0.0005 opt=SGD+Fisher",
+        "loss_config": "REINFORCE(E_L, no-backprop-lap) + direct(\u00bdg\u00b2, \u03b2=0.0)  clip_el=3.0  reward_qtrim=0.0",
+        "rollback_config": null,
+        "resume_from": "/itf-fi-ml/home/aleksns/Thesis_repo/results/arch_colloc/w1_n12w1_xfer.pt",
+        "system_config": "N=12, omega=1.0, basis=3x3 (n_basis=9, n_occ=6)"
+      }
+    },
+    {
+      "file": "results/curated_low_error_0p1pct_2026-03-21/n12w05_cascade.pt",
+      "source_log": "outputs/2026-03-17_1538_cascade_low_omega/logs/n12w05_cascade.log",
+      "n": 12,
+      "omega": 0.5,
+      "e_dmc": 39.1596,
+      "energy": 39.16896,
+      "sigma": 0.00417,
+      "err_pct": 0.024,
+      "abs_err_pct": 0.024,
+      "training_details": {
+        "mode": "bf",
+        "tag": "n12w05_cascade",
+        "train_config": "1500 ep, 4096 samples, LR=0.005 opt=SGD+Fisher",
+        "loss_config": "REINFORCE(E_L, no-backprop-lap) + direct(\u00bdg\u00b2, \u03b2=0.0)  clip_el=3.0  reward_qtrim=0.0",
+        "rollback_config": null,
+        "resume_from": null,
+        "system_config": "N=12, omega=0.5, basis=3x3 (n_basis=9, n_occ=6)"
+      }
+    },
+    {
+      "file": "results/curated_low_error_0p1pct_2026-03-21/v7_n2w1_exact.pt",
+      "source_log": "outputs/2026-03-21_1151_campaign_v7_n2_exact_n12_continue/logs/v7_n2w1_exact.log",
+      "n": 2,
+      "omega": 1.0,
+      "e_dmc": 3.0,
+      "energy": 3.00072,
+      "sigma": 0.00069,
+      "err_pct": 0.024,
+      "abs_err_pct": 0.024,
+      "training_details": {
+        "mode": "bf",
+        "tag": "v7_n2w1_exact",
+        "train_config": "3000 ep, 4096 samples, LR=0.0001 opt=Adam",
+        "loss_config": "REINFORCE(E_L, no-backprop-lap) + direct(\u00bdg\u00b2, \u03b2=0.0)  clip_el=4.0  reward_qtrim=0.01",
+        "rollback_config": "decay=0.960 err_pct>2.00 jump_sigma=3.5",
+        "resume_from": "/itf-fi-ml/home/aleksns/Thesis_repo/results/arch_colloc/v4_n2w1_bf.pt",
+        "system_config": "N=2, omega=1.0, basis=3x3 (n_basis=9, n_occ=1)"
+      }
+    },
+    {
+      "file": "results/curated_low_error_0p1pct_2026-03-21/long_n12w05.pt",
+      "source_log": "outputs/2026-03-17_1816_long_campaign/logs/long_n12w05.log",
+      "n": 12,
+      "omega": 0.5,
+      "e_dmc": 39.1596,
+      "energy": 39.1706,
+      "sigma": 0.00355,
+      "err_pct": 0.028,
+      "abs_err_pct": 0.028,
+      "training_details": {
+        "mode": "bf",
+        "tag": "long_n12w05",
+        "train_config": "1500 ep, 4096 samples, LR=0.0005 opt=SGD+Fisher",
+        "loss_config": "REINFORCE(E_L, no-backprop-lap) + direct(\u00bdg\u00b2, \u03b2=0.0)  clip_el=3.0  reward_qtrim=0.0",
+        "rollback_config": null,
+        "resume_from": "/itf-fi-ml/home/aleksns/Thesis_repo/results/arch_colloc/n12w05_cascade.pt",
+        "system_config": "N=12, omega=0.5, basis=3x3 (n_basis=9, n_occ=6)"
+      }
+    },
+    {
+      "file": "results/curated_low_error_0p1pct_2026-03-21/sr_cg_anneal_v1.pt",
+      "source_log": "outputs/2026-03-16_1037_sr_sweep/logs/sr_cg_anneal_v1.log",
+      "n": 6,
+      "omega": 1.0,
+      "e_dmc": 20.15932,
+      "energy": 20.16521,
+      "sigma": 0.00234,
+      "err_pct": 0.029,
+      "abs_err_pct": 0.029,
+      "training_details": {
+        "mode": "bf",
+        "tag": "sr_cg_anneal_v1",
+        "train_config": "600 ep, 4096 samples, LR=0.01 opt=SGD+Fisher",
+        "loss_config": "REINFORCE(E_L, no-backprop-lap) + direct(\u00bdg\u00b2, \u03b2=0.0)  clip_el=5.0  reward_qtrim=0.0",
+        "rollback_config": null,
+        "resume_from": "/itf-fi-ml/home/aleksns/Thesis_repo/results/arch_colloc/adam_to_natgrad_v2.pt",
+        "system_config": "N=6, omega=1.0, basis=3x3 (n_basis=9, n_occ=3)"
+      }
+    },
+    {
+      "file": "results/curated_low_error_0p1pct_2026-03-21/long_n6w1.pt",
+      "source_log": "outputs/2026-03-17_1816_long_campaign/logs/long_n6w1.log",
+      "n": 6,
+      "omega": 1.0,
+      "e_dmc": 20.15932,
+      "energy": 20.16549,
+      "sigma": 0.00105,
+      "err_pct": 0.031,
+      "abs_err_pct": 0.031,
+      "training_details": {
+        "mode": "bf",
+        "tag": "long_n6w1",
+        "train_config": "800 ep, 8192 samples, LR=0.0003 opt=SGD+Fisher",
+        "loss_config": "REINFORCE(E_L, no-backprop-lap) + direct(\u00bdg\u00b2, \u03b2=0.0)  clip_el=3.0  reward_qtrim=0.0",
+        "rollback_config": null,
+        "resume_from": "/itf-fi-ml/home/aleksns/Thesis_repo/results/arch_colloc/camp_n6w1_verify.pt",
+        "system_config": "N=6, omega=1.0, basis=3x3 (n_basis=9, n_occ=3)"
+      }
+    },
+    {
+      "file": "results/curated_low_error_0p1pct_2026-03-21/sr_refine_clip_v1.pt",
+      "source_log": "outputs/2026-03-16_1230_sr_refine/logs/sr_refine_clip_v1.log",
+      "n": 6,
+      "omega": 1.0,
+      "e_dmc": 20.15932,
+      "energy": 20.16575,
+      "sigma": 0.00227,
+      "err_pct": 0.032,
+      "abs_err_pct": 0.032,
+      "training_details": {
+        "mode": "bf",
+        "tag": "sr_refine_clip_v1",
+        "train_config": "500 ep, 8192 samples, LR=0.002 opt=SGD+Fisher",
+        "loss_config": "REINFORCE(E_L, no-backprop-lap) + direct(\u00bdg\u00b2, \u03b2=0.0)  clip_el=3.0  reward_qtrim=0.0",
+        "rollback_config": null,
+        "resume_from": "/itf-fi-ml/home/aleksns/Thesis_repo/results/arch_colloc/sr_cg_anneal_v1.pt",
+        "system_config": "N=6, omega=1.0, basis=3x3 (n_basis=9, n_occ=3)"
+      }
+    },
+    {
+      "file": "results/curated_low_error_0p1pct_2026-03-21/v7_n2w001_exact.pt",
+      "source_log": "outputs/2026-03-21_1151_campaign_v7_n2_exact_n12_continue/logs/v7_n2w001_exact.log",
+      "n": 2,
+      "omega": 0.01,
+      "e_dmc": 0.07384,
+      "energy": 0.07386,
+      "sigma": 2e-05,
+      "err_pct": 0.032,
+      "abs_err_pct": 0.032,
+      "training_details": {
+        "mode": "bf",
+        "tag": "v7_n2w001_exact",
+        "train_config": "3600 ep, 4096 samples, LR=8e-05 opt=Adam",
+        "loss_config": "REINFORCE(E_L, no-backprop-lap) + direct(\u00bdg\u00b2, \u03b2=0.0)  clip_el=4.0  reward_qtrim=0.01",
+        "rollback_config": "decay=0.960 err_pct>0.00 jump_sigma=4.5",
+        "resume_from": "/itf-fi-ml/home/aleksns/Thesis_repo/results/arch_colloc/v4_n2w001_bf.pt",
+        "system_config": "N=2, omega=0.01, basis=3x3 (n_basis=9, n_occ=1)"
+      }
+    },
+    {
+      "file": "results/curated_low_error_0p1pct_2026-03-21/long_n6w05.pt",
+      "source_log": "outputs/2026-03-17_1816_long_campaign/logs/long_n6w05.log",
+      "n": 6,
+      "omega": 0.5,
+      "e_dmc": 11.78484,
+      "energy": 11.78912,
+      "sigma": 0.00073,
+      "err_pct": 0.036,
+      "abs_err_pct": 0.036,
+      "training_details": {
+        "mode": "bf",
+        "tag": "long_n6w05",
+        "train_config": "800 ep, 8192 samples, LR=0.0003 opt=SGD+Fisher",
+        "loss_config": "REINFORCE(E_L, no-backprop-lap) + direct(\u00bdg\u00b2, \u03b2=0.0)  clip_el=3.0  reward_qtrim=0.0",
+        "rollback_config": null,
+        "resume_from": "/itf-fi-ml/home/aleksns/Thesis_repo/results/arch_colloc/w1_n6w05_hisamp.pt",
+        "system_config": "N=6, omega=0.5, basis=3x3 (n_basis=9, n_occ=3)"
+      }
+    },
+    {
+      "file": "results/curated_low_error_0p1pct_2026-03-21/proto_stabilized_n6_o1p0_s11.pt",
+      "source_log": "outputs/2026-03-14_1443_robustness_protocol/logs/proto_stabilized_n6_o1p0_s11.log",
+      "n": 6,
+      "omega": 1.0,
+      "e_dmc": 20.15932,
+      "energy": 20.16688,
+      "sigma": 0.0039,
+      "err_pct": 0.038,
+      "abs_err_pct": 0.038,
+      "training_details": {
+        "mode": "bf",
+        "tag": "proto_stabilized_n6_o1p0_s11",
+        "train_config": "180 ep, 4096 samples, LR=0.0002",
+        "loss_config": "REINFORCE(E_L, no-backprop-lap) + direct(\u00bdg\u00b2, \u03b2=0.0)  clip_el=5.0  reward_qtrim=0.02",
+        "rollback_config": null,
+        "resume_from": "results/arch_colloc/bf_resume_lr_v1.pt",
+        "system_config": "N=6, omega=1.0, basis=3x3 (n_basis=9, n_occ=3)"
+      }
+    },
+    {
+      "file": "results/curated_low_error_0p1pct_2026-03-21/proto_stabilized_n6_o1p0_s22.pt",
+      "source_log": "outputs/2026-03-14_1443_robustness_protocol/logs/proto_stabilized_n6_o1p0_s22.log",
+      "n": 6,
+      "omega": 1.0,
+      "e_dmc": 20.15932,
+      "energy": 20.16688,
+      "sigma": 0.0039,
+      "err_pct": 0.038,
+      "abs_err_pct": 0.038,
+      "training_details": {
+        "mode": "bf",
+        "tag": "proto_stabilized_n6_o1p0_s22",
+        "train_config": "180 ep, 4096 samples, LR=0.0002",
+        "loss_config": "REINFORCE(E_L, no-backprop-lap) + direct(\u00bdg\u00b2, \u03b2=0.0)  clip_el=5.0  reward_qtrim=0.02",
+        "rollback_config": null,
+        "resume_from": "results/arch_colloc/bf_resume_lr_v1.pt",
+        "system_config": "N=6, omega=1.0, basis=3x3 (n_basis=9, n_occ=3)"
+      }
+    },
+    {
+      "file": "results/curated_low_error_0p1pct_2026-03-21/proto_stabilized_n6_o1p0_s42.pt",
+      "source_log": "outputs/2026-03-14_1443_robustness_protocol/logs/proto_stabilized_n6_o1p0_s42.log",
+      "n": 6,
+      "omega": 1.0,
+      "e_dmc": 20.15932,
+      "energy": 20.16688,
+      "sigma": 0.0039,
+      "err_pct": 0.038,
+      "abs_err_pct": 0.038,
+      "training_details": {
+        "mode": "bf",
+        "tag": "proto_stabilized_n6_o1p0_s42",
+        "train_config": "180 ep, 4096 samples, LR=0.0002",
+        "loss_config": "REINFORCE(E_L, no-backprop-lap) + direct(\u00bdg\u00b2, \u03b2=0.0)  clip_el=5.0  reward_qtrim=0.02",
+        "rollback_config": null,
+        "resume_from": "results/arch_colloc/bf_resume_lr_v1.pt",
+        "system_config": "N=6, omega=1.0, basis=3x3 (n_basis=9, n_occ=3)"
+      }
+    },
+    {
+      "file": "results/curated_low_error_0p1pct_2026-03-21/camp_bf_transfer_stabilized_n6_o1p0_s11.pt",
+      "source_log": "outputs/2026-03-14_1633_long_trainer_campaign/logs/camp_bf_transfer_stabilized_n6_o1p0_s11.log",
+      "n": 6,
+      "omega": 1.0,
+      "e_dmc": 20.15932,
+      "energy": 20.16688,
+      "sigma": 0.0039,
+      "err_pct": 0.038,
+      "abs_err_pct": 0.038,
+      "training_details": {
+        "mode": "bf",
+        "tag": "camp_bf_transfer_stabilized_n6_o1p0_s11",
+        "train_config": "180 ep, 4096 samples, LR=0.0002",
+        "loss_config": "REINFORCE(E_L, no-backprop-lap) + direct(\u00bdg\u00b2, \u03b2=0.0)  clip_el=5.0  reward_qtrim=0.02",
+        "rollback_config": null,
+        "resume_from": "/itf-fi-ml/home/aleksns/Thesis_repo/results/arch_colloc/bf_resume_lr_v1.pt",
+        "system_config": "N=6, omega=1.0, basis=3x3 (n_basis=9, n_occ=3)"
+      }
+    },
+    {
+      "file": "results/curated_low_error_0p1pct_2026-03-21/camp_bf_transfer_stabilized_n6_o1p0_s22.pt",
+      "source_log": "outputs/2026-03-14_1633_long_trainer_campaign/logs/camp_bf_transfer_stabilized_n6_o1p0_s22.log",
+      "n": 6,
+      "omega": 1.0,
+      "e_dmc": 20.15932,
+      "energy": 20.16688,
+      "sigma": 0.0039,
+      "err_pct": 0.038,
+      "abs_err_pct": 0.038,
+      "training_details": {
+        "mode": "bf",
+        "tag": "camp_bf_transfer_stabilized_n6_o1p0_s22",
+        "train_config": "180 ep, 4096 samples, LR=0.0002",
+        "loss_config": "REINFORCE(E_L, no-backprop-lap) + direct(\u00bdg\u00b2, \u03b2=0.0)  clip_el=5.0  reward_qtrim=0.02",
+        "rollback_config": null,
+        "resume_from": "/itf-fi-ml/home/aleksns/Thesis_repo/results/arch_colloc/bf_resume_lr_v1.pt",
+        "system_config": "N=6, omega=1.0, basis=3x3 (n_basis=9, n_occ=3)"
+      }
+    },
+    {
+      "file": "results/curated_low_error_0p1pct_2026-03-21/adam_to_natgrad_v2.pt",
+      "source_log": "outputs/2026-03-15_1958_natgrad_sweep_v2/logs/adam_to_natgrad_v2.log",
+      "n": 6,
+      "omega": 1.0,
+      "e_dmc": 20.15932,
+      "energy": 20.16692,
+      "sigma": 0.00301,
+      "err_pct": 0.038,
+      "abs_err_pct": 0.038,
+      "training_details": {
+        "mode": "bf",
+        "tag": "adam_to_natgrad_v2",
+        "train_config": "600 ep, 6144 samples, LR=0.01 opt=SGD+Fisher",
+        "loss_config": "REINFORCE(E_L, no-backprop-lap) + direct(\u00bdg\u00b2, \u03b2=0.0)  clip_el=5.0  reward_qtrim=0.0",
+        "rollback_config": null,
+        "resume_from": "/itf-fi-ml/home/aleksns/Thesis_repo/results/arch_colloc/adam_control_v1.pt",
+        "system_config": "N=6, omega=1.0, basis=3x3 (n_basis=9, n_occ=3)"
+      }
+    },
+    {
+      "file": "results/curated_low_error_0p1pct_2026-03-21/w1_n6w05_refine.pt",
+      "source_log": "outputs/2026-03-17_0851_cascade_campaign/wave_1/logs/w1_n6w05_refine.log",
+      "n": 6,
+      "omega": 0.5,
+      "e_dmc": 11.78484,
+      "energy": 11.7893,
+      "sigma": 0.00142,
+      "err_pct": 0.038,
+      "abs_err_pct": 0.038,
+      "training_details": {
+        "mode": "bf",
+        "tag": "w1_n6w05_refine",
+        "train_config": "600 ep, 8192 samples, LR=0.003 opt=SGD+Fisher",
+        "loss_config": "REINFORCE(E_L, no-backprop-lap) + direct(\u00bdg\u00b2, \u03b2=0.0)  clip_el=3.0  reward_qtrim=0.0",
+        "rollback_config": null,
+        "resume_from": "/itf-fi-ml/home/aleksns/Thesis_repo/results/arch_colloc/camp_n6w05_fix.pt",
+        "system_config": "N=6, omega=0.5, basis=3x3 (n_basis=9, n_occ=3)"
+      }
+    },
+    {
+      "file": "results/curated_low_error_0p1pct_2026-03-21/regime_high_H_n6_o1p0_s11.pt",
+      "source_log": "outputs/2026-03-15_1122_regime_policy_campaign_tmux/logs/regime_high_H_n6_o1p0_s11.log",
+      "n": 6,
+      "omega": 1.0,
+      "e_dmc": 20.15932,
+      "energy": 20.16747,
+      "sigma": 0.00306,
+      "err_pct": 0.04,
+      "abs_err_pct": 0.04,
+      "training_details": {
+        "mode": "bf",
+        "tag": "regime_high_H_n6_o1p0_s11",
+        "train_config": "1200 ep, 4096 samples, LR=0.0005",
+        "loss_config": "REINFORCE(E_L, no-backprop-lap) + direct(\u00bdg\u00b2, \u03b2=0.0)  clip_el=5.0  reward_qtrim=0.02",
+        "rollback_config": "decay=0.800 err_pct>25.00 jump_sigma=8.0",
+        "resume_from": null,
+        "system_config": "N=6, omega=1.0, basis=3x3 (n_basis=9, n_occ=3)"
+      }
+    },
+    {
+      "file": "results/curated_low_error_0p1pct_2026-03-21/v4_n2w05_bf.pt",
+      "source_log": "outputs/2026-03-20_1209_campaign_v4/logs/v4_n2w05_bf.log",
+      "n": 2,
+      "omega": 0.5,
+      "e_dmc": 1.65977,
+      "energy": 1.65911,
+      "sigma": 0.00075,
+      "err_pct": -0.04,
+      "abs_err_pct": 0.04,
+      "training_details": {
+        "mode": "bf",
+        "tag": "v4_n2w05_bf",
+        "train_config": "2000 ep, 2048 samples, LR=0.0005 opt=Adam",
+        "loss_config": "REINFORCE(E_L, no-backprop-lap) + direct(\u00bdg\u00b2, \u03b2=0.0)  clip_el=5.0  reward_qtrim=0.01",
+        "rollback_config": null,
+        "resume_from": null,
+        "system_config": "N=2, omega=0.5, basis=3x3 (n_basis=9, n_occ=1)"
+      }
+    },
+    {
+      "file": "results/curated_low_error_0p1pct_2026-03-21/natgrad_lowdamp_v1.pt",
+      "source_log": "outputs/2026-03-15_1909_natgrad_sweep/logs/natgrad_lowdamp_v1.log",
+      "n": 6,
+      "omega": 1.0,
+      "e_dmc": 20.15932,
+      "energy": 20.16756,
+      "sigma": 0.00313,
+      "err_pct": 0.041,
+      "abs_err_pct": 0.041,
+      "training_details": {
+        "mode": "bf",
+        "tag": "natgrad_lowdamp_v1",
+        "train_config": "500 ep, 4096 samples, LR=0.03 opt=SGD+Fisher",
+        "loss_config": "REINFORCE(E_L, no-backprop-lap) + direct(\u00bdg\u00b2, \u03b2=0.0)  clip_el=5.0  reward_qtrim=0.0",
+        "rollback_config": null,
+        "resume_from": "/itf-fi-ml/home/aleksns/Thesis_repo/results/arch_colloc/bf_ctnn_vcycle.pt",
+        "system_config": "N=6, omega=1.0, basis=3x3 (n_basis=9, n_occ=3)"
+      }
+    },
+    {
+      "file": "results/curated_low_error_0p1pct_2026-03-21/bf_micro_v6.pt",
+      "source_log": "results/arch_colloc/bf_micro_v6.log",
+      "n": 6,
+      "omega": 1.0,
+      "e_dmc": 20.15932,
+      "energy": 20.16783,
+      "sigma": 0.0024,
+      "err_pct": 0.042,
+      "abs_err_pct": 0.042,
+      "training_details": {
+        "mode": "bf",
+        "tag": "bf_micro_v6",
+        "train_config": "200 ep, 8192 samples, LR=2.5e-05",
+        "loss_config": "REINFORCE(E_L, no-backprop-lap) + direct(\u00bdg\u00b2, \u03b2=0.0)  clip_el=3.0",
+        "rollback_config": null,
+        "resume_from": "results/arch_colloc/bf_hardfocus_v1b.pt",
+        "system_config": null
+      }
+    },
+    {
+      "file": "results/curated_low_error_0p1pct_2026-03-21/bf_var_v1.pt",
+      "source_log": "results/arch_colloc/bf_var_v1.log",
+      "n": 6,
+      "omega": 1.0,
+      "e_dmc": 20.15932,
+      "energy": 20.16777,
+      "sigma": 0.00597,
+      "err_pct": 0.042,
+      "abs_err_pct": 0.042,
+      "training_details": {
+        "mode": "bf",
+        "tag": "bf_var_v1",
+        "train_config": "300 ep, 6144 samples, LR=8e-05",
+        "loss_config": null,
+        "rollback_config": null,
+        "resume_from": "results/arch_colloc/bf_hardfocus_v1b.pt",
+        "system_config": null
+      }
+    },
+    {
+      "file": "results/curated_low_error_0p1pct_2026-03-21/bf_micro_v2.pt",
+      "source_log": "results/arch_colloc/bf_micro_v2.log",
+      "n": 6,
+      "omega": 1.0,
+      "e_dmc": 20.15932,
+      "energy": 20.16872,
+      "sigma": 0.00281,
+      "err_pct": 0.047,
+      "abs_err_pct": 0.047,
+      "training_details": {
+        "mode": "bf",
+        "tag": "bf_micro_v2",
+        "train_config": "220 ep, 6144 samples, LR=3e-05",
+        "loss_config": "REINFORCE(E_L, no-backprop-lap) + direct(\u00bdg\u00b2, \u03b2=0.0)  clip_el=3.5",
+        "rollback_config": null,
+        "resume_from": "results/arch_colloc/bf_hardfocus_v1b.pt",
+        "system_config": null
+      }
+    },
+    {
+      "file": "results/curated_low_error_0p1pct_2026-03-21/natgrad_cont_v2.pt",
+      "source_log": "outputs/2026-03-15_1958_natgrad_sweep_v2/logs/natgrad_cont_v2.log",
+      "n": 6,
+      "omega": 1.0,
+      "e_dmc": 20.15932,
+      "energy": 20.16998,
+      "sigma": 0.00314,
+      "err_pct": 0.053,
+      "abs_err_pct": 0.053,
+      "training_details": {
+        "mode": "bf",
+        "tag": "natgrad_cont_v2",
+        "train_config": "800 ep, 6144 samples, LR=0.01 opt=SGD+Fisher",
+        "loss_config": "REINFORCE(E_L, no-backprop-lap) + direct(\u00bdg\u00b2, \u03b2=0.0)  clip_el=5.0  reward_qtrim=0.0",
+        "rollback_config": null,
+        "resume_from": "/itf-fi-ml/home/aleksns/Thesis_repo/results/arch_colloc/natgrad_base_v1.pt",
+        "system_config": "N=6, omega=1.0, basis=3x3 (n_basis=9, n_occ=3)"
+      }
+    },
+    {
+      "file": "results/curated_low_error_0p1pct_2026-03-21/stab_reg_hi_n6_o1p0_s11.pt",
+      "source_log": "outputs/2026-03-15_1453_stability_core_campaign/logs/stab_reg_hi_n6_o1p0_s11.log",
+      "n": 6,
+      "omega": 1.0,
+      "e_dmc": 20.15932,
+      "energy": 20.17016,
+      "sigma": 0.00363,
+      "err_pct": 0.054,
+      "abs_err_pct": 0.054,
+      "training_details": {
+        "mode": "bf",
+        "tag": "stab_reg_hi_n6_o1p0_s11",
+        "train_config": "700 ep, 4096 samples, LR=0.0005",
+        "loss_config": "REINFORCE(E_L, no-backprop-lap) + direct(\u00bdg\u00b2, \u03b2=0.0)  clip_el=5.0  reward_qtrim=0.02",
+        "rollback_config": "decay=0.800 err_pct>25.00 jump_sigma=8.0",
+        "resume_from": null,
+        "system_config": "N=6, omega=1.0, basis=3x3 (n_basis=9, n_occ=3)"
+      }
+    },
+    {
+      "file": "results/curated_low_error_0p1pct_2026-03-21/natgrad_highlr_v1.pt",
+      "source_log": "outputs/2026-03-15_1909_natgrad_sweep/logs/natgrad_highlr_v1.log",
+      "n": 6,
+      "omega": 1.0,
+      "e_dmc": 20.15932,
+      "energy": 20.17029,
+      "sigma": 0.00418,
+      "err_pct": 0.054,
+      "abs_err_pct": 0.054,
+      "training_details": {
+        "mode": "bf",
+        "tag": "natgrad_highlr_v1",
+        "train_config": "500 ep, 4096 samples, LR=0.1 opt=SGD+Fisher",
+        "loss_config": "REINFORCE(E_L, no-backprop-lap) + direct(\u00bdg\u00b2, \u03b2=0.0)  clip_el=5.0  reward_qtrim=0.0",
+        "rollback_config": null,
+        "resume_from": "/itf-fi-ml/home/aleksns/Thesis_repo/results/arch_colloc/bf_ctnn_vcycle.pt",
+        "system_config": "N=6, omega=1.0, basis=3x3 (n_basis=9, n_occ=3)"
+      }
+    },
+    {
+      "file": "results/curated_low_error_0p1pct_2026-03-21/bf_resume_lr_v1.pt",
+      "source_log": "results/arch_colloc/bf_resume_lr_v1.log",
+      "n": 6,
+      "omega": 1.0,
+      "e_dmc": 20.15932,
+      "energy": 20.17011,
+      "sigma": 0.00257,
+      "err_pct": 0.054,
+      "abs_err_pct": 0.054,
+      "training_details": {
+        "mode": "bf",
+        "tag": "bf_resume_lr_v1",
+        "train_config": "500 ep, 4096 samples, LR=0.0002",
+        "loss_config": "REINFORCE(E_L, no-backprop-lap) + direct(\u00bdg\u00b2, \u03b2=0.0)  clip_el=5.0",
+        "rollback_config": null,
+        "resume_from": "results/arch_colloc/bf_joint_reinf_v3.pt",
+        "system_config": null
+      }
+    },
+    {
+      "file": "results/curated_low_error_0p1pct_2026-03-21/n6_o1p0_bf_hardfocus_repro_s42.pt",
+      "source_log": "outputs/2026-03-14_1216_overnight_auto/logs/n6_o1p0_bf_hardfocus_repro_s42.log",
+      "n": 6,
+      "omega": 1.0,
+      "e_dmc": 20.15932,
+      "energy": 20.17065,
+      "sigma": 0.00258,
+      "err_pct": 0.056,
+      "abs_err_pct": 0.056,
+      "training_details": {
+        "mode": "bf",
+        "tag": "n6_o1p0_bf_hardfocus_repro_s42",
+        "train_config": "500 ep, 6144 samples, LR=0.0002",
+        "loss_config": "REINFORCE(E_L, no-backprop-lap) + direct(\u00bdg\u00b2, \u03b2=0.0)  clip_el=5.0",
+        "rollback_config": null,
+        "resume_from": "/itf-fi-ml/home/aleksns/Thesis_repo/results/arch_colloc/bf_resume_lr_v1.pt",
+        "system_config": "N=6, omega=1.0, basis=3x3 (n_basis=9, n_occ=3)"
+      }
+    },
+    {
+      "file": "results/curated_low_error_0p1pct_2026-03-21/weak_form.pt",
+      "source_log": "outputs/2026-03-16_1729_sr_generalize/logs/sr_n6w05_v1.log",
+      "n": 6,
+      "omega": 0.5,
+      "e_dmc": 11.78484,
+      "energy": 11.79185,
+      "sigma": 0.00215,
+      "err_pct": 0.059,
+      "abs_err_pct": 0.059,
+      "training_details": {
+        "mode": "bf",
+        "tag": "weak_form",
+        "train_config": "400 ep, 4096 samples, LR=0.003 opt=SGD+Fisher",
+        "loss_config": "REINFORCE(E_L, no-backprop-lap) + direct(\u00bdg\u00b2, \u03b2=0.0)  clip_el=5.0  reward_qtrim=0.0",
+        "rollback_config": null,
+        "resume_from": "/itf-fi-ml/home/aleksns/Thesis_repo/results/arch_colloc/n6_w05_natgrad_v2.pt",
+        "system_config": "N=6, omega=0.5, basis=3x3 (n_basis=9, n_occ=3)"
+      }
+    },
+    {
+      "file": "results/curated_low_error_0p1pct_2026-03-21/bf_micro_v3.pt",
+      "source_log": "results/arch_colloc/bf_micro_v3.log",
+      "n": 6,
+      "omega": 1.0,
+      "e_dmc": 20.15932,
+      "energy": 20.17116,
+      "sigma": 0.00254,
+      "err_pct": 0.059,
+      "abs_err_pct": 0.059,
+      "training_details": {
+        "mode": "bf",
+        "tag": "bf_micro_v3",
+        "train_config": "220 ep, 6144 samples, LR=4e-05",
+        "loss_config": "REINFORCE(E_L, no-backprop-lap) + direct(\u00bdg\u00b2, \u03b2=0.0)  clip_el=4.5",
+        "rollback_config": null,
+        "resume_from": "results/arch_colloc/bf_hardfocus_v1b.pt",
+        "system_config": null
+      }
+    },
+    {
+      "file": "results/curated_low_error_0p1pct_2026-03-21/bf_resume_ess_v1.pt",
+      "source_log": "results/arch_colloc/bf_resume_ess_v1.log",
+      "n": 6,
+      "omega": 1.0,
+      "e_dmc": 20.15932,
+      "energy": 20.17135,
+      "sigma": 0.00248,
+      "err_pct": 0.06,
+      "abs_err_pct": 0.06,
+      "training_details": {
+        "mode": "bf",
+        "tag": "bf_resume_ess_v1",
+        "train_config": "500 ep, 6144 samples, LR=0.0003",
+        "loss_config": "REINFORCE(E_L, no-backprop-lap) + direct(\u00bdg\u00b2, \u03b2=0.0)  clip_el=5.0",
+        "rollback_config": null,
+        "resume_from": "results/arch_colloc/bf_joint_reinf_v3.pt",
+        "system_config": null
+      }
+    },
+    {
+      "file": "results/curated_low_error_0p1pct_2026-03-21/stab_base_hi_n6_o1p0_s22.pt",
+      "source_log": "outputs/2026-03-15_1453_stability_core_campaign/logs/stab_base_hi_n6_o1p0_s22.log",
+      "n": 6,
+      "omega": 1.0,
+      "e_dmc": 20.15932,
+      "energy": 20.17168,
+      "sigma": 0.00411,
+      "err_pct": 0.061,
+      "abs_err_pct": 0.061,
+      "training_details": {
+        "mode": "bf",
+        "tag": "stab_base_hi_n6_o1p0_s22",
+        "train_config": "700 ep, 4096 samples, LR=0.0005",
+        "loss_config": "REINFORCE(E_L, no-backprop-lap) + direct(\u00bdg\u00b2, \u03b2=0.0)  clip_el=5.0  reward_qtrim=0.02",
+        "rollback_config": "decay=0.800 err_pct>25.00 jump_sigma=8.0",
+        "resume_from": null,
+        "system_config": "N=6, omega=1.0, basis=3x3 (n_basis=9, n_occ=3)"
+      }
+    },
+    {
+      "file": "results/curated_low_error_0p1pct_2026-03-21/v8_n2w05_finetune.pt",
+      "source_log": "outputs/2026-03-21_1151_campaign_v7_n2_exact_n12_continue/logs/v8_n2w05_finetune.log",
+      "n": 2,
+      "omega": 0.5,
+      "e_dmc": 1.65977,
+      "energy": 1.6587,
+      "sigma": 0.00057,
+      "err_pct": -0.064,
+      "abs_err_pct": 0.064,
+      "training_details": {
+        "mode": "bf",
+        "tag": "v8_n2w05_finetune",
+        "train_config": "1000 ep, 4096 samples, LR=0.0005 opt=Adam",
+        "loss_config": "REINFORCE(E_L, no-backprop-lap) + direct(\u00bdg\u00b2, \u03b2=0.1)  clip_el=0.0  reward_qtrim=0.0",
+        "rollback_config": "decay=0.970 err_pct>2.00 jump_sigma=3.5",
+        "resume_from": "results/arch_colloc/v7_n2w05_exact.pt",
+        "system_config": "N=2, omega=0.5, basis=3x3 (n_basis=9, n_occ=1)"
+      }
+    },
+    {
+      "file": "results/curated_low_error_0p1pct_2026-03-21/sr_n6w1_best_v2.pt",
+      "source_log": "outputs/2026-03-16_1959_sr_gen_v2/logs/sr_n6w1_best_v2.log",
+      "n": 6,
+      "omega": 1.0,
+      "e_dmc": 20.15932,
+      "energy": 20.1728,
+      "sigma": 0.00219,
+      "err_pct": 0.067,
+      "abs_err_pct": 0.067,
+      "training_details": {
+        "mode": "bf",
+        "tag": "sr_n6w1_best_v2",
+        "train_config": "600 ep, 4096 samples, LR=0.01 opt=SGD+Fisher",
+        "loss_config": "REINFORCE(E_L, no-backprop-lap) + direct(\u00bdg\u00b2, \u03b2=0.0)  clip_el=5.0  reward_qtrim=0.0",
+        "rollback_config": null,
+        "resume_from": "/itf-fi-ml/home/aleksns/Thesis_repo/results/arch_colloc/sr_cg_anneal_v1.pt",
+        "system_config": "N=6, omega=1.0, basis=3x3 (n_basis=9, n_occ=3)"
+      }
+    },
+    {
+      "file": "results/curated_low_error_0p1pct_2026-03-21/proto_baseline_n6_o1p0_s11.pt",
+      "source_log": "outputs/2026-03-14_1443_robustness_protocol/logs/proto_baseline_n6_o1p0_s11.log",
+      "n": 6,
+      "omega": 1.0,
+      "e_dmc": 20.15932,
+      "energy": 20.17309,
+      "sigma": 0.00442,
+      "err_pct": 0.068,
+      "abs_err_pct": 0.068,
+      "training_details": {
+        "mode": "bf",
+        "tag": "proto_baseline_n6_o1p0_s11",
+        "train_config": "180 ep, 4096 samples, LR=0.0002",
+        "loss_config": "REINFORCE(E_L, no-backprop-lap) + direct(\u00bdg\u00b2, \u03b2=0.0)  clip_el=5.0  reward_qtrim=0.0",
+        "rollback_config": null,
+        "resume_from": "results/arch_colloc/bf_resume_lr_v1.pt",
+        "system_config": "N=6, omega=1.0, basis=3x3 (n_basis=9, n_occ=3)"
+      }
+    },
+    {
+      "file": "results/curated_low_error_0p1pct_2026-03-21/proto_baseline_n6_o1p0_s22.pt",
+      "source_log": "outputs/2026-03-14_1443_robustness_protocol/logs/proto_baseline_n6_o1p0_s22.log",
+      "n": 6,
+      "omega": 1.0,
+      "e_dmc": 20.15932,
+      "energy": 20.17309,
+      "sigma": 0.00442,
+      "err_pct": 0.068,
+      "abs_err_pct": 0.068,
+      "training_details": {
+        "mode": "bf",
+        "tag": "proto_baseline_n6_o1p0_s22",
+        "train_config": "180 ep, 4096 samples, LR=0.0002",
+        "loss_config": "REINFORCE(E_L, no-backprop-lap) + direct(\u00bdg\u00b2, \u03b2=0.0)  clip_el=5.0  reward_qtrim=0.0",
+        "rollback_config": null,
+        "resume_from": "results/arch_colloc/bf_resume_lr_v1.pt",
+        "system_config": "N=6, omega=1.0, basis=3x3 (n_basis=9, n_occ=3)"
+      }
+    },
+    {
+      "file": "results/curated_low_error_0p1pct_2026-03-21/proto_baseline_n6_o1p0_s42.pt",
+      "source_log": "outputs/2026-03-14_1443_robustness_protocol/logs/proto_baseline_n6_o1p0_s42.log",
+      "n": 6,
+      "omega": 1.0,
+      "e_dmc": 20.15932,
+      "energy": 20.17309,
+      "sigma": 0.00442,
+      "err_pct": 0.068,
+      "abs_err_pct": 0.068,
+      "training_details": {
+        "mode": "bf",
+        "tag": "proto_baseline_n6_o1p0_s42",
+        "train_config": "180 ep, 4096 samples, LR=0.0002",
+        "loss_config": "REINFORCE(E_L, no-backprop-lap) + direct(\u00bdg\u00b2, \u03b2=0.0)  clip_el=5.0  reward_qtrim=0.0",
+        "rollback_config": null,
+        "resume_from": "results/arch_colloc/bf_resume_lr_v1.pt",
+        "system_config": "N=6, omega=1.0, basis=3x3 (n_basis=9, n_occ=3)"
+      }
+    },
+    {
+      "file": "results/curated_low_error_0p1pct_2026-03-21/camp_bf_transfer_baseline_n6_o1p0_s11.pt",
+      "source_log": "outputs/2026-03-14_1633_long_trainer_campaign/logs/camp_bf_transfer_baseline_n6_o1p0_s11.log",
+      "n": 6,
+      "omega": 1.0,
+      "e_dmc": 20.15932,
+      "energy": 20.17309,
+      "sigma": 0.00442,
+      "err_pct": 0.068,
+      "abs_err_pct": 0.068,
+      "training_details": {
+        "mode": "bf",
+        "tag": "camp_bf_transfer_baseline_n6_o1p0_s11",
+        "train_config": "180 ep, 4096 samples, LR=0.0002",
+        "loss_config": "REINFORCE(E_L, no-backprop-lap) + direct(\u00bdg\u00b2, \u03b2=0.0)  clip_el=5.0  reward_qtrim=0.0",
+        "rollback_config": null,
+        "resume_from": "/itf-fi-ml/home/aleksns/Thesis_repo/results/arch_colloc/bf_resume_lr_v1.pt",
+        "system_config": "N=6, omega=1.0, basis=3x3 (n_basis=9, n_occ=3)"
+      }
+    },
+    {
+      "file": "results/curated_low_error_0p1pct_2026-03-21/camp_bf_transfer_baseline_n6_o1p0_s22.pt",
+      "source_log": "outputs/2026-03-14_1633_long_trainer_campaign/logs/camp_bf_transfer_baseline_n6_o1p0_s22.log",
+      "n": 6,
+      "omega": 1.0,
+      "e_dmc": 20.15932,
+      "energy": 20.17309,
+      "sigma": 0.00442,
+      "err_pct": 0.068,
+      "abs_err_pct": 0.068,
+      "training_details": {
+        "mode": "bf",
+        "tag": "camp_bf_transfer_baseline_n6_o1p0_s22",
+        "train_config": "180 ep, 4096 samples, LR=0.0002",
+        "loss_config": "REINFORCE(E_L, no-backprop-lap) + direct(\u00bdg\u00b2, \u03b2=0.0)  clip_el=5.0  reward_qtrim=0.0",
+        "rollback_config": null,
+        "resume_from": "/itf-fi-ml/home/aleksns/Thesis_repo/results/arch_colloc/bf_resume_lr_v1.pt",
+        "system_config": "N=6, omega=1.0, basis=3x3 (n_basis=9, n_occ=3)"
+      }
+    },
+    {
+      "file": "results/curated_low_error_0p1pct_2026-03-21/v4_n2w01_bf.pt",
+      "source_log": "outputs/2026-03-20_1209_campaign_v4/logs/v4_n2w01_bf.log",
+      "n": 2,
+      "omega": 0.1,
+      "e_dmc": 0.44079,
+      "energy": 0.44111,
+      "sigma": 0.00024,
+      "err_pct": 0.072,
+      "abs_err_pct": 0.072,
+      "training_details": {
+        "mode": "bf",
+        "tag": "v4_n2w01_bf",
+        "train_config": "2000 ep, 2048 samples, LR=0.0005 opt=Adam",
+        "loss_config": "REINFORCE(E_L, no-backprop-lap) + direct(\u00bdg\u00b2, \u03b2=0.0)  clip_el=5.0  reward_qtrim=0.01",
+        "rollback_config": null,
+        "resume_from": null,
+        "system_config": "N=2, omega=0.1, basis=3x3 (n_basis=9, n_occ=1)"
+      }
+    },
+    {
+      "file": "results/curated_low_error_0p1pct_2026-03-21/stab_base_hi_n6_o1p0_s11.pt",
+      "source_log": "outputs/2026-03-15_1453_stability_core_campaign/logs/stab_base_hi_n6_o1p0_s11.log",
+      "n": 6,
+      "omega": 1.0,
+      "e_dmc": 20.15932,
+      "energy": 20.17485,
+      "sigma": 0.00304,
+      "err_pct": 0.077,
+      "abs_err_pct": 0.077,
+      "training_details": {
+        "mode": "bf",
+        "tag": "stab_base_hi_n6_o1p0_s11",
+        "train_config": "700 ep, 4096 samples, LR=0.0005",
+        "loss_config": "REINFORCE(E_L, no-backprop-lap) + direct(\u00bdg\u00b2, \u03b2=0.0)  clip_el=5.0  reward_qtrim=0.02",
+        "rollback_config": "decay=0.800 err_pct>25.00 jump_sigma=8.0",
+        "resume_from": null,
+        "system_config": "N=6, omega=1.0, basis=3x3 (n_basis=9, n_occ=3)"
+      }
+    },
+    {
+      "file": "results/curated_low_error_0p1pct_2026-03-21/bf_joint_reinf_v3.pt",
+      "source_log": "results/arch_colloc/bf_joint_reinf_v3.log",
+      "n": 6,
+      "omega": 1.0,
+      "e_dmc": 20.15932,
+      "energy": 20.17546,
+      "sigma": 0.00249,
+      "err_pct": 0.08,
+      "abs_err_pct": 0.08,
+      "training_details": {
+        "mode": "bf",
+        "tag": "bf_joint_reinf_v3",
+        "train_config": "900 ep, 4096 samples, LR=0.0005",
+        "loss_config": "REINFORCE(E_L, no-backprop-lap) + direct(\u00bdg\u00b2, \u03b2=0.0)  clip_el=5.0",
+        "rollback_config": null,
+        "resume_from": null,
+        "system_config": null
+      }
+    },
+    {
+      "file": "results/curated_low_error_0p1pct_2026-03-21/sr_cg_lr5e3_v1.pt",
+      "source_log": "outputs/2026-03-16_1037_sr_sweep/logs/sr_cg_lr5e3_v1.log",
+      "n": 6,
+      "omega": 1.0,
+      "e_dmc": 20.15932,
+      "energy": 20.17557,
+      "sigma": 0.00308,
+      "err_pct": 0.081,
+      "abs_err_pct": 0.081,
+      "training_details": {
+        "mode": "bf",
+        "tag": "sr_cg_lr5e3_v1",
+        "train_config": "600 ep, 4096 samples, LR=0.005 opt=SGD+Fisher",
+        "loss_config": "REINFORCE(E_L, no-backprop-lap) + direct(\u00bdg\u00b2, \u03b2=0.0)  clip_el=5.0  reward_qtrim=0.0",
+        "rollback_config": null,
+        "resume_from": "/itf-fi-ml/home/aleksns/Thesis_repo/results/arch_colloc/adam_to_natgrad_v2.pt",
+        "system_config": "N=6, omega=1.0, basis=3x3 (n_basis=9, n_occ=3)"
+      }
+    },
+    {
+      "file": "results/curated_low_error_0p1pct_2026-03-21/sr_refine_alt_v1.pt",
+      "source_log": "outputs/2026-03-16_1230_sr_refine/logs/sr_refine_alt_v1.log",
+      "n": 6,
+      "omega": 1.0,
+      "e_dmc": 20.15932,
+      "energy": 20.17559,
+      "sigma": 0.00365,
+      "err_pct": 0.081,
+      "abs_err_pct": 0.081,
+      "training_details": {
+        "mode": "bf",
+        "tag": "sr_refine_alt_v1",
+        "train_config": "600 ep, 8192 samples, LR=0.003 opt=SGD+Fisher",
+        "loss_config": "REINFORCE(E_L, no-backprop-lap) + direct(\u00bdg\u00b2, \u03b2=0.0)  clip_el=5.0  reward_qtrim=0.0",
+        "rollback_config": null,
+        "resume_from": "/itf-fi-ml/home/aleksns/Thesis_repo/results/arch_colloc/sr_cg_lr5e3_v1.pt",
+        "system_config": "N=6, omega=1.0, basis=3x3 (n_basis=9, n_occ=3)"
+      }
+    },
+    {
+      "file": "results/curated_low_error_0p1pct_2026-03-21/bf_micro_v5.pt",
+      "source_log": "results/arch_colloc/bf_micro_v5.log",
+      "n": 6,
+      "omega": 1.0,
+      "e_dmc": 20.15932,
+      "energy": 20.17632,
+      "sigma": 0.00264,
+      "err_pct": 0.084,
+      "abs_err_pct": 0.084,
+      "training_details": {
+        "mode": "bf",
+        "tag": "bf_micro_v5",
+        "train_config": "220 ep, 6144 samples, LR=4e-05",
+        "loss_config": "REINFORCE(E_L, no-backprop-lap) + direct(\u00bdg\u00b2, \u03b2=0.0)  clip_el=4.0",
+        "rollback_config": null,
+        "resume_from": "results/arch_colloc/bf_hardfocus_v1b.pt",
+        "system_config": null
+      }
+    },
+    {
+      "file": "results/curated_low_error_0p1pct_2026-03-21/sr_refine_careful_v1.pt",
+      "source_log": "outputs/2026-03-16_1230_sr_refine/logs/sr_refine_careful_v1.log",
+      "n": 6,
+      "omega": 1.0,
+      "e_dmc": 20.15932,
+      "energy": 20.17652,
+      "sigma": 0.00217,
+      "err_pct": 0.085,
+      "abs_err_pct": 0.085,
+      "training_details": {
+        "mode": "bf",
+        "tag": "sr_refine_careful_v1",
+        "train_config": "600 ep, 8192 samples, LR=0.002 opt=SGD+Fisher",
+        "loss_config": "REINFORCE(E_L, no-backprop-lap) + direct(\u00bdg\u00b2, \u03b2=0.0)  clip_el=5.0  reward_qtrim=0.0",
+        "rollback_config": null,
+        "resume_from": "/itf-fi-ml/home/aleksns/Thesis_repo/results/arch_colloc/sr_cg_anneal_v1.pt",
+        "system_config": "N=6, omega=1.0, basis=3x3 (n_basis=9, n_occ=3)"
+      }
+    },
+    {
+      "file": "results/curated_low_error_0p1pct_2026-03-21/hybrid_bf_v2.pt",
+      "source_log": "results/arch_colloc/hybrid_bf_v2.log",
+      "n": 6,
+      "omega": 1.0,
+      "e_dmc": 20.15932,
+      "energy": 20.17668,
+      "sigma": 0.00236,
+      "err_pct": 0.086,
+      "abs_err_pct": 0.086,
+      "training_details": {
+        "mode": "bf",
+        "tag": "hybrid_bf_v2",
+        "train_config": "800 ep, 4096 samples, LR=0.0005",
+        "loss_config": "REINFORCE(E_L, no-backprop-lap) + direct(\u00bdg\u00b2, \u03b2=0.0)",
+        "rollback_config": null,
+        "resume_from": null,
+        "system_config": null
+      }
+    },
+    {
+      "file": "results/curated_low_error_0p1pct_2026-03-21/20260318_0858_n6w01_keep.pt",
+      "source_log": "outputs/2026-03-18_0858_n20_w01_to_w001_transfer/logs/20260318_0858_n6w01_keep.log",
+      "n": 6,
+      "omega": 0.1,
+      "e_dmc": 3.55385,
+      "energy": 3.55709,
+      "sigma": 0.00037,
+      "err_pct": 0.091,
+      "abs_err_pct": 0.091,
+      "training_details": {
+        "mode": "bf",
+        "tag": "20260318_0858_n6w01_keep",
+        "train_config": "1800 ep, 8192 samples, LR=0.001 opt=SGD+Fisher",
+        "loss_config": "REINFORCE(E_L, no-backprop-lap) + direct(\u00bdg\u00b2, \u03b2=0.0)  clip_el=3.0  reward_qtrim=0.0",
+        "rollback_config": null,
+        "resume_from": "/itf-fi-ml/home/aleksns/Thesis_repo/results/arch_colloc/long_n6w01.pt",
+        "system_config": "N=6, omega=0.1, basis=3x3 (n_basis=9, n_occ=3)"
+      }
+    },
+    {
+      "file": "results/curated_low_error_0p1pct_2026-03-21/20260318_1149_n6w01_keep.pt",
+      "source_log": "outputs/2026-03-18_1149_n20_w01_to_w001_transfer/logs/20260318_1149_n6w01_keep.log",
+      "n": 6,
+      "omega": 0.1,
+      "e_dmc": 3.55385,
+      "energy": 3.55709,
+      "sigma": 0.00037,
+      "err_pct": 0.091,
+      "abs_err_pct": 0.091,
+      "training_details": {
+        "mode": "bf",
+        "tag": "20260318_1149_n6w01_keep",
+        "train_config": "1800 ep, 8192 samples, LR=0.001 opt=SGD+Fisher",
+        "loss_config": "REINFORCE(E_L, no-backprop-lap) + direct(\u00bdg\u00b2, \u03b2=0.0)  clip_el=3.0  reward_qtrim=0.0",
+        "rollback_config": null,
+        "resume_from": "/itf-fi-ml/home/aleksns/Thesis_repo/results/arch_colloc/long_n6w01.pt",
+        "system_config": "N=6, omega=0.1, basis=3x3 (n_basis=9, n_occ=3)"
+      }
+    },
+    {
+      "file": "results/curated_low_error_0p1pct_2026-03-21/n6_w05_natgrad_v2.pt",
+      "source_log": "outputs/2026-03-15_1958_natgrad_sweep_v2/logs/n6_w05_natgrad_v2.log",
+      "n": 6,
+      "omega": 0.5,
+      "e_dmc": 11.78484,
+      "energy": 11.79607,
+      "sigma": 0.00239,
+      "err_pct": 0.095,
+      "abs_err_pct": 0.095,
+      "training_details": {
+        "mode": "bf",
+        "tag": "n6_w05_natgrad_v2",
+        "train_config": "600 ep, 4096 samples, LR=0.03 opt=SGD+Fisher",
+        "loss_config": "REINFORCE(E_L, no-backprop-lap) + direct(\u00bdg\u00b2, \u03b2=0.0)  clip_el=5.0  reward_qtrim=0.0",
+        "rollback_config": null,
+        "resume_from": null,
+        "system_config": "N=6, omega=0.5, basis=3x3 (n_basis=9, n_occ=3)"
+      }
+    },
+    {
+      "file": "results/curated_low_error_0p1pct_2026-03-21/bf_more_v1.pt",
+      "source_log": "results/arch_colloc/bf_more_v1.log",
+      "n": 6,
+      "omega": 1.0,
+      "e_dmc": 20.15932,
+      "energy": 20.17844,
+      "sigma": 0.00242,
+      "err_pct": 0.095,
+      "abs_err_pct": 0.095,
+      "training_details": {
+        "mode": "bf",
+        "tag": "bf_more_v1",
+        "train_config": "400 ep, 6144 samples, LR=0.0001",
+        "loss_config": "REINFORCE(E_L, no-backprop-lap) + direct(\u00bdg\u00b2, \u03b2=0.0)  clip_el=5.0",
+        "rollback_config": null,
+        "resume_from": "results/arch_colloc/bf_hardfocus_v1b.pt",
+        "system_config": null
+      }
+    },
+    {
+      "file": "results/curated_low_error_0p1pct_2026-03-21/sr_refine_ultra_v1.pt",
+      "source_log": "outputs/2026-03-16_1230_sr_refine/logs/sr_refine_ultra_v1.log",
+      "n": 6,
+      "omega": 1.0,
+      "e_dmc": 20.15932,
+      "energy": 20.17874,
+      "sigma": 0.0026,
+      "err_pct": 0.096,
+      "abs_err_pct": 0.096,
+      "training_details": {
+        "mode": "bf",
+        "tag": "sr_refine_ultra_v1",
+        "train_config": "800 ep, 8192 samples, LR=0.001 opt=SGD+Fisher",
+        "loss_config": "REINFORCE(E_L, no-backprop-lap) + direct(\u00bdg\u00b2, \u03b2=0.0)  clip_el=5.0  reward_qtrim=0.0",
+        "rollback_config": null,
+        "resume_from": "/itf-fi-ml/home/aleksns/Thesis_repo/results/arch_colloc/sr_cg_anneal_v1.pt",
+        "system_config": "N=6, omega=1.0, basis=3x3 (n_basis=9, n_occ=3)"
+      }
+    },
+    {
+      "file": "results/curated_low_error_0p1pct_2026-03-21/sr_woodbury_lr5e3_v1.pt",
+      "source_log": "outputs/2026-03-16_1037_sr_sweep/logs/sr_woodbury_lr5e3_v1.log",
+      "n": 6,
+      "omega": 1.0,
+      "e_dmc": 20.15932,
+      "energy": 20.17901,
+      "sigma": 0.00276,
+      "err_pct": 0.098,
+      "abs_err_pct": 0.098,
+      "training_details": {
+        "mode": "bf",
+        "tag": "sr_woodbury_lr5e3_v1",
+        "train_config": "600 ep, 4096 samples, LR=0.005 opt=SGD+Fisher",
+        "loss_config": "REINFORCE(E_L, no-backprop-lap) + direct(\u00bdg\u00b2, \u03b2=0.0)  clip_el=5.0  reward_qtrim=0.0",
+        "rollback_config": null,
+        "resume_from": "/itf-fi-ml/home/aleksns/Thesis_repo/results/arch_colloc/adam_to_natgrad_v2.pt",
+        "system_config": "N=6, omega=1.0, basis=3x3 (n_basis=9, n_occ=3)"
+      }
+    },
+    {
+      "file": "results/curated_low_error_0p1pct_2026-03-21/sr_woodbury_anneal_v1.pt",
+      "source_log": "outputs/2026-03-16_1037_sr_sweep/logs/sr_woodbury_anneal_v1.log",
+      "n": 6,
+      "omega": 1.0,
+      "e_dmc": 20.15932,
+      "energy": 20.17927,
+      "sigma": 0.00284,
+      "err_pct": 0.099,
+      "abs_err_pct": 0.099,
+      "training_details": {
+        "mode": "bf",
+        "tag": "sr_woodbury_anneal_v1",
+        "train_config": "600 ep, 4096 samples, LR=0.01 opt=SGD+Fisher",
+        "loss_config": "REINFORCE(E_L, no-backprop-lap) + direct(\u00bdg\u00b2, \u03b2=0.0)  clip_el=5.0  reward_qtrim=0.0",
+        "rollback_config": null,
+        "resume_from": "/itf-fi-ml/home/aleksns/Thesis_repo/results/arch_colloc/adam_to_natgrad_v2.pt",
+        "system_config": "N=6, omega=1.0, basis=3x3 (n_basis=9, n_occ=3)"
+      }
+    },
+    {
+      "file": "results/curated_low_error_0p1pct_2026-03-21/natgrad_base_v1.pt",
+      "source_log": "outputs/2026-03-15_1909_natgrad_sweep/logs/natgrad_base_v1.log",
+      "n": 6,
+      "omega": 1.0,
+      "e_dmc": 20.15932,
+      "energy": 20.17938,
+      "sigma": 0.00417,
+      "err_pct": 0.1,
+      "abs_err_pct": 0.1,
+      "training_details": {
+        "mode": "bf",
+        "tag": "natgrad_base_v1",
+        "train_config": "500 ep, 4096 samples, LR=0.03 opt=SGD+Fisher",
+        "loss_config": "REINFORCE(E_L, no-backprop-lap) + direct(\u00bdg\u00b2, \u03b2=0.0)  clip_el=5.0  reward_qtrim=0.0",
+        "rollback_config": null,
+        "resume_from": "/itf-fi-ml/home/aleksns/Thesis_repo/results/arch_colloc/bf_ctnn_vcycle.pt",
+        "system_config": "N=6, omega=1.0, basis=3x3 (n_basis=9, n_occ=3)"
+      }
+    }
+  ],
+  "deleted_models": [
+    {
+      "file": "/itf-fi-ml/home/aleksns/Thesis_repo/results/arch_colloc/v7_n12w01_continue.pt",
+      "source_log": "outputs/2026-03-21_1151_campaign_v7_n2_exact_n12_continue/logs/v7_n12w01_continue.log",
+      "err_pct": 0.102,
+      "abs_err_pct": 0.102
+    },
+    {
+      "file": "/itf-fi-ml/home/aleksns/Thesis_repo/results/arch_colloc/stab_reg_hi_n6_o1p0_s22.pt",
+      "source_log": "outputs/2026-03-15_1453_stability_core_campaign/logs/stab_reg_hi_n6_o1p0_s22.log",
+      "err_pct": 0.105,
+      "abs_err_pct": 0.105
+    },
+    {
+      "file": "/itf-fi-ml/home/aleksns/Thesis_repo/results/arch_colloc/v4_n2w01_precision.pt",
+      "source_log": "outputs/2026-03-20_1209_campaign_v4/logs/v4_n2w01_precision.log",
+      "err_pct": 0.106,
+      "abs_err_pct": 0.106
+    },
+    {
+      "file": "/itf-fi-ml/home/aleksns/Thesis_repo/results/arch_colloc/camp_bf_transfer_baseline_n12_o1p0_s11.pt",
+      "source_log": "outputs/2026-03-14_1633_long_trainer_campaign/logs/camp_bf_transfer_baseline_n12_o1p0_s11.log",
+      "err_pct": 0.112,
+      "abs_err_pct": 0.112
+    },
+    {
+      "file": "/itf-fi-ml/home/aleksns/Thesis_repo/results/arch_colloc/camp_bf_transfer_baseline_n12_o1p0_s22.pt",
+      "source_log": "outputs/2026-03-14_1633_long_trainer_campaign/logs/camp_bf_transfer_baseline_n12_o1p0_s22.log",
+      "err_pct": 0.112,
+      "abs_err_pct": 0.112
+    },
+    {
+      "file": "/itf-fi-ml/home/aleksns/Thesis_repo/results/arch_colloc/v8_n2w1_finetune.pt",
+      "source_log": "outputs/2026-03-21_1151_campaign_v7_n2_exact_n12_continue/logs/v8_n2w1_finetune.log",
+      "err_pct": 0.112,
+      "abs_err_pct": 0.112
+    },
+    {
+      "file": "/itf-fi-ml/home/aleksns/Thesis_repo/results/arch_colloc/bf_fd_v1.pt",
+      "source_log": "results/arch_colloc/bf_fd_v1.log",
+      "err_pct": 0.112,
+      "abs_err_pct": 0.112
+    },
+    {
+      "file": "/itf-fi-ml/home/aleksns/Thesis_repo/results/arch_colloc/camp_jastrow_transfer_baseline_n2_o1p0_s11.pt",
+      "source_log": "outputs/2026-03-14_1633_long_trainer_campaign/logs/camp_jastrow_transfer_baseline_n2_o1p0_s11.log",
+      "err_pct": 0.115,
+      "abs_err_pct": 0.115
+    },
+    {
+      "file": "/itf-fi-ml/home/aleksns/Thesis_repo/results/arch_colloc/camp_jastrow_transfer_baseline_n2_o1p0_s22.pt",
+      "source_log": "outputs/2026-03-14_1633_long_trainer_campaign/logs/camp_jastrow_transfer_baseline_n2_o1p0_s22.log",
+      "err_pct": 0.115,
+      "abs_err_pct": 0.115
+    },
+    {
+      "file": "/itf-fi-ml/home/aleksns/Thesis_repo/results/arch_colloc/20260318_1149_n12w01_keep.pt",
+      "source_log": "outputs/2026-03-18_1149_n20_w01_to_w001_transfer/logs/20260318_1149_n12w01_keep.log",
+      "err_pct": 0.122,
+      "abs_err_pct": 0.122
+    },
+    {
+      "file": "/itf-fi-ml/home/aleksns/Thesis_repo/results/arch_colloc/v4_n2w001_bf.pt",
+      "source_log": "outputs/2026-03-20_1209_campaign_v4/logs/v4_n2w001_bf.log",
+      "err_pct": 0.122,
+      "abs_err_pct": 0.122
+    },
+    {
+      "file": "/itf-fi-ml/home/aleksns/Thesis_repo/results/arch_colloc/v7_n2w05_exact.pt",
+      "source_log": "outputs/2026-03-21_1151_campaign_v7_n2_exact_n12_continue/logs/v7_n2w05_exact.log",
+      "err_pct": 0.129,
+      "abs_err_pct": 0.129
+    },
+    {
+      "file": "/itf-fi-ml/home/aleksns/Thesis_repo/results/arch_colloc/hybrid_bf_v1.pt",
+      "source_log": "results/arch_colloc/hybrid_bf_v1.log",
+      "err_pct": 0.13,
+      "abs_err_pct": 0.13
+    },
+    {
+      "file": "/itf-fi-ml/home/aleksns/Thesis_repo/results/arch_colloc/arch_wide_bf256_v1.pt",
+      "source_log": "outputs/2026-03-15_2127_arch_natgrad_sweep/logs/arch_wide_bf256_v1.log",
+      "err_pct": 0.133,
+      "abs_err_pct": 0.133
+    },
+    {
+      "file": "/itf-fi-ml/home/aleksns/Thesis_repo/results/arch_colloc/v6_n2w1_bf.pt",
+      "source_log": "outputs/2026-03-21_0841_campaign_v6_n20bf_n2_fewhours/logs/v6_n2w1_bf.log",
+      "err_pct": 0.133,
+      "abs_err_pct": 0.133
+    },
+    {
+      "file": "/itf-fi-ml/home/aleksns/Thesis_repo/results/arch_colloc/v6_n2w05_bf.pt",
+      "source_log": "outputs/2026-03-21_0841_campaign_v6_n20bf_n2_fewhours/logs/v6_n2w05_bf.log",
+      "err_pct": 0.136,
+      "abs_err_pct": 0.136
+    },
+    {
+      "file": "/itf-fi-ml/home/aleksns/Thesis_repo/results/arch_colloc/n6_o1p0_bf_repro_s42.pt",
+      "source_log": "outputs/2026-03-14_1135_overnight_auto/logs/n6_o1p0_bf_repro_s42.log",
+      "err_pct": 0.15,
+      "abs_err_pct": 0.15
+    },
+    {
+      "file": "/itf-fi-ml/home/aleksns/Thesis_repo/results/arch_colloc/n6_o1p0_bf_repro_s99.pt",
+      "source_log": "outputs/2026-03-14_1135_overnight_auto/logs/n6_o1p0_bf_repro_s99.log",
+      "err_pct": 0.15,
+      "abs_err_pct": 0.15
+    },
+    {
+      "file": "/itf-fi-ml/home/aleksns/Thesis_repo/results/arch_colloc/adam_n6w001_polish_C.pt",
+      "source_log": "outputs/2026-03-18_1419_adam_lowomega_refine/logs/adam_n6w001_polish_C.log",
+      "err_pct": 0.151,
+      "abs_err_pct": 0.151
+    },
+    {
+      "file": "/itf-fi-ml/home/aleksns/Thesis_repo/results/arch_colloc/camp_bf_transfer_stabilized_n12_o1p0_s11.pt",
+      "source_log": "outputs/2026-03-14_1633_long_trainer_campaign/logs/camp_bf_transfer_stabilized_n12_o1p0_s11.log",
+      "err_pct": 0.153,
+      "abs_err_pct": 0.153
+    },
+    {
+      "file": "/itf-fi-ml/home/aleksns/Thesis_repo/results/arch_colloc/camp_bf_transfer_stabilized_n12_o1p0_s22.pt",
+      "source_log": "outputs/2026-03-14_1633_long_trainer_campaign/logs/camp_bf_transfer_stabilized_n12_o1p0_s22.log",
+      "err_pct": 0.153,
+      "abs_err_pct": 0.153
+    },
+    {
+      "file": "/itf-fi-ml/home/aleksns/Thesis_repo/results/arch_colloc/long_n12w01_v3.pt",
+      "source_log": "outputs/2026-03-17_1816_long_campaign/logs/long_n12w01_v3.log",
+      "err_pct": 0.155,
+      "abs_err_pct": 0.155
+    },
+    {
+      "file": "/itf-fi-ml/home/aleksns/Thesis_repo/results/arch_colloc/sr_n6w05_fast_v2.pt",
+      "source_log": "outputs/2026-03-16_1959_sr_gen_v2/logs/sr_n6w05_fast_v2.log",
+      "err_pct": 0.16,
+      "abs_err_pct": 0.16
+    },
+    {
+      "file": "/itf-fi-ml/home/aleksns/Thesis_repo/results/arch_colloc/camp_n6w05_fix.pt",
+      "source_log": "outputs/2026-03-17_0031_cgsr_campaign/phase1_verify/logs/camp_n6w05_fix.log",
+      "err_pct": 0.166,
+      "abs_err_pct": 0.166
+    },
+    {
+      "file": "/itf-fi-ml/home/aleksns/Thesis_repo/results/arch_colloc/v8_n2w01_finetune.pt",
+      "source_log": "outputs/2026-03-21_1151_campaign_v7_n2_exact_n12_continue/logs/v8_n2w01_finetune.log",
+      "err_pct": 0.166,
+      "abs_err_pct": 0.166
+    },
+    {
+      "file": "/itf-fi-ml/home/aleksns/Thesis_repo/results/arch_colloc/long_n6w01.pt",
+      "source_log": "outputs/2026-03-17_1816_long_campaign/logs/long_n6w01.log",
+      "err_pct": 0.182,
+      "abs_err_pct": 0.182
+    },
+    {
+      "file": "/itf-fi-ml/home/aleksns/Thesis_repo/results/arch_colloc/stab_reg_lo_n6_o0p01_s11.pt",
+      "source_log": "outputs/2026-03-15_1453_stability_core_campaign/logs/stab_reg_lo_n6_o0p01_s11.log",
+      "err_pct": 0.205,
+      "abs_err_pct": 0.205
+    },
+    {
+      "file": "/itf-fi-ml/home/aleksns/Thesis_repo/results/arch_colloc/coal_g0_r1_n6_o0p01_s11.pt",
+      "source_log": "outputs/2026-03-15_1639_coalescence_gate_campaign/logs/coal_g0_r1_n6_o0p01_s11.log",
+      "err_pct": 0.205,
+      "abs_err_pct": 0.205
+    },
+    {
+      "file": "/itf-fi-ml/home/aleksns/Thesis_repo/results/arch_colloc/coal_g1_r1_n6_o0p01_s11.pt",
+      "source_log": "outputs/2026-03-15_1639_coalescence_gate_campaign/logs/coal_g1_r1_n6_o0p01_s11.log",
+      "err_pct": 0.205,
+      "abs_err_pct": 0.205
+    },
+    {
+      "file": "/itf-fi-ml/home/aleksns/Thesis_repo/results/arch_colloc/arch_big_vcycle48_v1.pt",
+      "source_log": "outputs/2026-03-16_0733_arch_natgrad_sweep/logs/arch_big_vcycle48_v1.log",
+      "err_pct": 0.217,
+      "abs_err_pct": 0.217
+    },
+    {
+      "file": "/itf-fi-ml/home/aleksns/Thesis_repo/results/arch_colloc/bf_fd_v2.pt",
+      "source_log": "results/arch_colloc/bf_fd_v2.log",
+      "err_pct": 0.22,
+      "abs_err_pct": 0.22
+    },
+    {
+      "file": "/itf-fi-ml/home/aleksns/Thesis_repo/results/arch_colloc/coal_g0_r1_n6_o0p01_s22.pt",
+      "source_log": "outputs/2026-03-15_1639_coalescence_gate_campaign/logs/coal_g0_r1_n6_o0p01_s22.log",
+      "err_pct": 0.229,
+      "abs_err_pct": 0.229
+    },
+    {
+      "file": "/itf-fi-ml/home/aleksns/Thesis_repo/results/arch_colloc/coal_g1_r1_n6_o0p01_s22.pt",
+      "source_log": "outputs/2026-03-15_1639_coalescence_gate_campaign/logs/coal_g1_r1_n6_o0p01_s22.log",
+      "err_pct": 0.229,
+      "abs_err_pct": 0.229
+    },
+    {
+      "file": "/itf-fi-ml/home/aleksns/Thesis_repo/results/arch_colloc/n12_o1p0_jas_s11.pt",
+      "source_log": "outputs/2026-03-14_1216_overnight_auto/logs/n12_o1p0_jas_s11.log",
+      "err_pct": 0.242,
+      "abs_err_pct": 0.242
+    },
+    {
+      "file": "/itf-fi-ml/home/aleksns/Thesis_repo/results/arch_colloc/arch_ctnn_jas64_v1.pt",
+      "source_log": "outputs/2026-03-16_0733_arch_natgrad_sweep/logs/arch_ctnn_jas64_v1.log",
+      "err_pct": 0.243,
+      "abs_err_pct": 0.243
+    },
+    {
+      "file": "/itf-fi-ml/home/aleksns/Thesis_repo/results/arch_colloc/regime_low_L_n6_o0p01_s11.pt",
+      "source_log": "outputs/2026-03-15_1122_regime_policy_campaign_tmux/logs/regime_low_L_n6_o0p01_s11.log",
+      "err_pct": 0.244,
+      "abs_err_pct": 0.244
+    },
+    {
+      "file": "/itf-fi-ml/home/aleksns/Thesis_repo/results/arch_colloc/camp2_n6w0001_adam.pt",
+      "source_log": "outputs/2026-03-19_1622_n20_langevin_campaign/logs/camp2_n6w0001_adam.log",
+      "err_pct": 0.244,
+      "abs_err_pct": 0.244
+    },
+    {
+      "file": "/itf-fi-ml/home/aleksns/Thesis_repo/results/arch_colloc/arch_ctnn_jas96_bf192_v1.pt",
+      "source_log": "outputs/2026-03-15_2127_arch_natgrad_sweep/logs/arch_ctnn_jas96_bf192_v1.log",
+      "err_pct": 0.246,
+      "abs_err_pct": 0.246
+    },
+    {
+      "file": "/itf-fi-ml/home/aleksns/Thesis_repo/results/arch_colloc/sr_n6w05_v2.pt",
+      "source_log": "outputs/2026-03-16_1959_sr_gen_v2/logs/sr_n6w05_v2.log",
+      "err_pct": 0.272,
+      "abs_err_pct": 0.272
+    },
+    {
+      "file": "/itf-fi-ml/home/aleksns/Thesis_repo/results/arch_colloc/adam_n6w0001_refine_A.pt",
+      "source_log": "outputs/2026-03-18_1419_adam_lowomega_refine/logs/adam_n6w0001_refine_A.log",
+      "err_pct": 0.277,
+      "abs_err_pct": 0.277
+    },
+    {
+      "file": "/itf-fi-ml/home/aleksns/Thesis_repo/results/arch_colloc/camp_bf_transfer_baseline_n6_o0p01_s11.pt",
+      "source_log": "outputs/2026-03-14_1633_long_trainer_campaign/logs/camp_bf_transfer_baseline_n6_o0p01_s11.log",
+      "err_pct": 0.303,
+      "abs_err_pct": 0.303
+    },
+    {
+      "file": "/itf-fi-ml/home/aleksns/Thesis_repo/results/arch_colloc/camp_bf_transfer_baseline_n6_o0p01_s22.pt",
+      "source_log": "outputs/2026-03-14_1633_long_trainer_campaign/logs/camp_bf_transfer_baseline_n6_o0p01_s22.log",
+      "err_pct": 0.303,
+      "abs_err_pct": 0.303
+    },
+    {
+      "file": "/itf-fi-ml/home/aleksns/Thesis_repo/results/arch_colloc/v3_n6w0001_lang.pt",
+      "source_log": "outputs/2026-03-19_1909_campaign_v3/logs/v3_n6w0001_lang.log",
+      "err_pct": 0.304,
+      "abs_err_pct": 0.304
+    },
+    {
+      "file": "/itf-fi-ml/home/aleksns/Thesis_repo/results/arch_colloc/jas_reinf_v2.pt",
+      "source_log": "results/arch_colloc/jas_reinf_v2.log",
+      "err_pct": 0.306,
+      "abs_err_pct": 0.306
+    },
+    {
+      "file": "/itf-fi-ml/home/aleksns/Thesis_repo/results/arch_colloc/n12_o1p0_bf_s11.pt",
+      "source_log": "outputs/2026-03-14_1216_overnight_auto/logs/n12_o1p0_bf_s11.log",
+      "err_pct": 0.31,
+      "abs_err_pct": 0.31
+    },
+    {
+      "file": "/itf-fi-ml/home/aleksns/Thesis_repo/results/arch_colloc/n12_o1p0_bf_s22.pt",
+      "source_log": "outputs/2026-03-14_1216_overnight_auto/logs/n12_o1p0_bf_s22.log",
+      "err_pct": 0.31,
+      "abs_err_pct": 0.31
+    },
+    {
+      "file": "/itf-fi-ml/home/aleksns/Thesis_repo/results/arch_colloc/v8_n2w001_finetune.pt",
+      "source_log": "outputs/2026-03-21_1151_campaign_v7_n2_exact_n12_continue/logs/v8_n2w001_finetune.log",
+      "err_pct": 0.31,
+      "abs_err_pct": 0.31
+    },
+    {
+      "file": "/itf-fi-ml/home/aleksns/Thesis_repo/results/arch_colloc/regime_high_H_n12_o0p5_s11.pt",
+      "source_log": "outputs/2026-03-15_1122_regime_policy_campaign_tmux/logs/regime_high_H_n12_o0p5_s11.log",
+      "err_pct": 0.315,
+      "abs_err_pct": 0.315
+    },
+    {
+      "file": "/itf-fi-ml/home/aleksns/Thesis_repo/results/arch_colloc/camp_bf_transfer_stabilized_n12_o0p5_s11.pt",
+      "source_log": "outputs/2026-03-14_1633_long_trainer_campaign/logs/camp_bf_transfer_stabilized_n12_o0p5_s11.log",
+      "err_pct": 0.318,
+      "abs_err_pct": 0.318
+    },
+    {
+      "file": "/itf-fi-ml/home/aleksns/Thesis_repo/results/arch_colloc/camp_bf_transfer_stabilized_n12_o0p5_s22.pt",
+      "source_log": "outputs/2026-03-14_1633_long_trainer_campaign/logs/camp_bf_transfer_stabilized_n12_o0p5_s22.log",
+      "err_pct": 0.318,
+      "abs_err_pct": 0.318
+    },
+    {
+      "file": "/itf-fi-ml/home/aleksns/Thesis_repo/results/arch_colloc/coal_g0_r0_n6_o0p01_s22.pt",
+      "source_log": "outputs/2026-03-15_1639_coalescence_gate_campaign/logs/coal_g0_r0_n6_o0p01_s22.log",
+      "err_pct": 0.32,
+      "abs_err_pct": 0.32
+    },
+    {
+      "file": "/itf-fi-ml/home/aleksns/Thesis_repo/results/arch_colloc/coal_g1_r0_n6_o0p01_s22.pt",
+      "source_log": "outputs/2026-03-15_1639_coalescence_gate_campaign/logs/coal_g1_r0_n6_o0p01_s22.log",
+      "err_pct": 0.32,
+      "abs_err_pct": 0.32
+    },
+    {
+      "file": "/itf-fi-ml/home/aleksns/Thesis_repo/results/arch_colloc/w1_n6w01_transfer.pt",
+      "source_log": "outputs/2026-03-17_0851_cascade_campaign/wave_1/logs/w1_n6w01_transfer.log",
+      "err_pct": 0.321,
+      "abs_err_pct": 0.321
+    },
+    {
+      "file": "/itf-fi-ml/home/aleksns/Thesis_repo/results/arch_colloc/long_n12w01.pt",
+      "source_log": "outputs/2026-03-17_1816_long_campaign/logs/long_n12w01.log",
+      "err_pct": 0.331,
+      "abs_err_pct": 0.331
+    },
+    {
+      "file": "/itf-fi-ml/home/aleksns/Thesis_repo/results/arch_colloc/camp_jastrow_transfer_baseline_n2_o0p01_s11.pt",
+      "source_log": "outputs/2026-03-14_1633_long_trainer_campaign/logs/camp_jastrow_transfer_baseline_n2_o0p01_s11.log",
+      "err_pct": 0.333,
+      "abs_err_pct": 0.333
+    },
+    {
+      "file": "/itf-fi-ml/home/aleksns/Thesis_repo/results/arch_colloc/camp_jastrow_transfer_baseline_n2_o0p01_s22.pt",
+      "source_log": "outputs/2026-03-14_1633_long_trainer_campaign/logs/camp_jastrow_transfer_baseline_n2_o0p01_s22.log",
+      "err_pct": 0.333,
+      "abs_err_pct": 0.333
+    },
+    {
+      "file": "/itf-fi-ml/home/aleksns/Thesis_repo/results/arch_colloc/v6_n2w01_bf.pt",
+      "source_log": "outputs/2026-03-21_0841_campaign_v6_n20bf_n2_fewhours/logs/v6_n2w01_bf.log",
+      "err_pct": 0.337,
+      "abs_err_pct": 0.337
+    },
+    {
+      "file": "/itf-fi-ml/home/aleksns/Thesis_repo/results/arch_colloc/camp_bf_transfer_baseline_n12_o0p5_s11.pt",
+      "source_log": "outputs/2026-03-14_1633_long_trainer_campaign/logs/camp_bf_transfer_baseline_n12_o0p5_s11.log",
+      "err_pct": 0.344,
+      "abs_err_pct": 0.344
+    },
+    {
+      "file": "/itf-fi-ml/home/aleksns/Thesis_repo/results/arch_colloc/camp_bf_transfer_baseline_n12_o0p5_s22.pt",
+      "source_log": "outputs/2026-03-14_1633_long_trainer_campaign/logs/camp_bf_transfer_baseline_n12_o0p5_s22.log",
+      "err_pct": 0.344,
+      "abs_err_pct": 0.344
+    },
+    {
+      "file": "/itf-fi-ml/home/aleksns/Thesis_repo/results/arch_colloc/stab_base_lo_n6_o0p01_s11.pt",
+      "source_log": "outputs/2026-03-15_1453_stability_core_campaign/logs/stab_base_lo_n6_o0p01_s11.log",
+      "err_pct": 0.348,
+      "abs_err_pct": 0.348
+    },
+    {
+      "file": "/itf-fi-ml/home/aleksns/Thesis_repo/results/arch_colloc/regime_low_L_n6_o0p001_s11.pt",
+      "source_log": "outputs/2026-03-15_1122_regime_policy_campaign_tmux/logs/regime_low_L_n6_o0p001_s11.log",
+      "err_pct": 0.352,
+      "abs_err_pct": 0.352
+    },
+    {
+      "file": "/itf-fi-ml/home/aleksns/Thesis_repo/results/arch_colloc/n6_o0p01_bf_s42.pt",
+      "source_log": "outputs/2026-03-14_1412_n6_lowomega_bf/logs/n6_o0p01_bf_s42.log",
+      "err_pct": 0.375,
+      "abs_err_pct": 0.375
+    },
+    {
+      "file": "/itf-fi-ml/home/aleksns/Thesis_repo/results/arch_colloc/camp_jastrow_transfer_fast_n2_o1p0_s11.pt",
+      "source_log": "outputs/2026-03-14_1633_long_trainer_campaign/logs/camp_jastrow_transfer_fast_n2_o1p0_s11.log",
+      "err_pct": 0.388,
+      "abs_err_pct": 0.388
+    },
+    {
+      "file": "/itf-fi-ml/home/aleksns/Thesis_repo/results/arch_colloc/camp_jastrow_transfer_fast_n2_o1p0_s22.pt",
+      "source_log": "outputs/2026-03-14_1633_long_trainer_campaign/logs/camp_jastrow_transfer_fast_n2_o1p0_s22.log",
+      "err_pct": 0.388,
+      "abs_err_pct": 0.388
+    },
+    {
+      "file": "/itf-fi-ml/home/aleksns/Thesis_repo/results/arch_colloc/coal_g0_r0_n6_o0p01_s42.pt",
+      "source_log": "outputs/2026-03-15_1639_coalescence_gate_campaign/logs/coal_g0_r0_n6_o0p01_s42.log",
+      "err_pct": 0.389,
+      "abs_err_pct": 0.389
+    },
+    {
+      "file": "/itf-fi-ml/home/aleksns/Thesis_repo/results/arch_colloc/coal_g1_r0_n6_o0p01_s42.pt",
+      "source_log": "outputs/2026-03-15_1639_coalescence_gate_campaign/logs/coal_g1_r0_n6_o0p01_s42.log",
+      "err_pct": 0.389,
+      "abs_err_pct": 0.389
+    },
+    {
+      "file": "/itf-fi-ml/home/aleksns/Thesis_repo/results/arch_colloc/adam_n6w0001_cascade_B.pt",
+      "source_log": "outputs/2026-03-18_1419_adam_lowomega_refine/logs/adam_n6w0001_cascade_B.log",
+      "err_pct": 0.392,
+      "abs_err_pct": 0.392
+    },
+    {
+      "file": "/itf-fi-ml/home/aleksns/Thesis_repo/results/arch_colloc/coal_g0_r1_n6_o0p01_s42.pt",
+      "source_log": "outputs/2026-03-15_1639_coalescence_gate_campaign/logs/coal_g0_r1_n6_o0p01_s42.log",
+      "err_pct": 0.402,
+      "abs_err_pct": 0.402
+    },
+    {
+      "file": "/itf-fi-ml/home/aleksns/Thesis_repo/results/arch_colloc/coal_g1_r1_n6_o0p01_s42.pt",
+      "source_log": "outputs/2026-03-15_1639_coalescence_gate_campaign/logs/coal_g1_r1_n6_o0p01_s42.log",
+      "err_pct": 0.402,
+      "abs_err_pct": 0.402
+    },
+    {
+      "file": "/itf-fi-ml/home/aleksns/Thesis_repo/results/arch_colloc/npf_fd_v6.pt",
+      "source_log": "results/arch_colloc/npf_fd_v6.log",
+      "err_pct": 0.426,
+      "abs_err_pct": 0.426
+    },
+    {
+      "file": "/itf-fi-ml/home/aleksns/Thesis_repo/results/arch_colloc/coal_g0_r0_n6_o0p01_s11.pt",
+      "source_log": "outputs/2026-03-15_1639_coalescence_gate_campaign/logs/coal_g0_r0_n6_o0p01_s11.log",
+      "err_pct": 0.44,
+      "abs_err_pct": 0.44
+    },
+    {
+      "file": "/itf-fi-ml/home/aleksns/Thesis_repo/results/arch_colloc/coal_g1_r0_n6_o0p01_s11.pt",
+      "source_log": "outputs/2026-03-15_1639_coalescence_gate_campaign/logs/coal_g1_r0_n6_o0p01_s11.log",
+      "err_pct": 0.44,
+      "abs_err_pct": 0.44
+    },
+    {
+      "file": "/itf-fi-ml/home/aleksns/Thesis_repo/results/arch_colloc/n6_o0p01_jas_transfer_s42.pt",
+      "source_log": "outputs/2026-03-14_1222_n6_lowomega_probe/logs/n6_o0p01_jas_transfer_s42.log",
+      "err_pct": 0.445,
+      "abs_err_pct": 0.445
+    },
+    {
+      "file": "/itf-fi-ml/home/aleksns/Thesis_repo/results/arch_colloc/camp_jastrow_transfer_baseline_n2_o0p1_s11.pt",
+      "source_log": "outputs/2026-03-14_1633_long_trainer_campaign/logs/camp_jastrow_transfer_baseline_n2_o0p1_s11.log",
+      "err_pct": 0.451,
+      "abs_err_pct": 0.451
+    },
+    {
+      "file": "/itf-fi-ml/home/aleksns/Thesis_repo/results/arch_colloc/camp_jastrow_transfer_baseline_n2_o0p1_s22.pt",
+      "source_log": "outputs/2026-03-14_1633_long_trainer_campaign/logs/camp_jastrow_transfer_baseline_n2_o0p1_s22.log",
+      "err_pct": 0.451,
+      "abs_err_pct": 0.451
+    },
+    {
+      "file": "/itf-fi-ml/home/aleksns/Thesis_repo/results/arch_colloc/n12_o0p5_bf_s11.pt",
+      "source_log": "outputs/2026-03-14_1216_overnight_auto/logs/n12_o0p5_bf_s11.log",
+      "err_pct": 0.466,
+      "abs_err_pct": 0.466
+    },
+    {
+      "file": "/itf-fi-ml/home/aleksns/Thesis_repo/results/arch_colloc/n12_o0p5_bf_s22.pt",
+      "source_log": "outputs/2026-03-14_1216_overnight_auto/logs/n12_o0p5_bf_s22.log",
+      "err_pct": 0.466,
+      "abs_err_pct": 0.466
+    },
+    {
+      "file": "/itf-fi-ml/home/aleksns/Thesis_repo/results/arch_colloc/npf_joint_reinf_v1.pt",
+      "source_log": "results/arch_colloc/npf_joint_reinf_v1.log",
+      "err_pct": 0.503,
+      "abs_err_pct": 0.503
+    },
+    {
+      "file": "/itf-fi-ml/home/aleksns/Thesis_repo/results/arch_colloc/camp_bf_transfer_fast_n6_o0p01_s11.pt",
+      "source_log": "outputs/2026-03-14_1633_long_trainer_campaign/logs/camp_bf_transfer_fast_n6_o0p01_s11.log",
+      "err_pct": 0.504,
+      "abs_err_pct": 0.504
+    },
+    {
+      "file": "/itf-fi-ml/home/aleksns/Thesis_repo/results/arch_colloc/camp_bf_transfer_fast_n6_o0p01_s22.pt",
+      "source_log": "outputs/2026-03-14_1633_long_trainer_campaign/logs/camp_bf_transfer_fast_n6_o0p01_s22.log",
+      "err_pct": 0.504,
+      "abs_err_pct": 0.504
+    },
+    {
+      "file": "/itf-fi-ml/home/aleksns/Thesis_repo/results/arch_colloc/camp_jastrow_transfer_stabilized_n2_o1p0_s11.pt",
+      "source_log": "outputs/2026-03-14_1633_long_trainer_campaign/logs/camp_jastrow_transfer_stabilized_n2_o1p0_s11.log",
+      "err_pct": 0.609,
+      "abs_err_pct": 0.609
+    },
+    {
+      "file": "/itf-fi-ml/home/aleksns/Thesis_repo/results/arch_colloc/camp_jastrow_transfer_stabilized_n2_o1p0_s22.pt",
+      "source_log": "outputs/2026-03-14_1633_long_trainer_campaign/logs/camp_jastrow_transfer_stabilized_n2_o1p0_s22.log",
+      "err_pct": 0.609,
+      "abs_err_pct": 0.609
+    },
+    {
+      "file": "/itf-fi-ml/home/aleksns/Thesis_repo/results/arch_colloc/n12_o0p5_jas_s11.pt",
+      "source_log": "outputs/2026-03-14_1216_overnight_auto/logs/n12_o0p5_jas_s11.log",
+      "err_pct": 0.635,
+      "abs_err_pct": 0.635
+    },
+    {
+      "file": "/itf-fi-ml/home/aleksns/Thesis_repo/results/arch_colloc/camp_bf_transfer_stabilized_n6_o0p01_s11.pt",
+      "source_log": "outputs/2026-03-14_1633_long_trainer_campaign/logs/camp_bf_transfer_stabilized_n6_o0p01_s11.log",
+      "err_pct": 0.649,
+      "abs_err_pct": 0.649
+    },
+    {
+      "file": "/itf-fi-ml/home/aleksns/Thesis_repo/results/arch_colloc/camp_bf_transfer_stabilized_n6_o0p01_s22.pt",
+      "source_log": "outputs/2026-03-14_1633_long_trainer_campaign/logs/camp_bf_transfer_stabilized_n6_o0p01_s22.log",
+      "err_pct": 0.649,
+      "abs_err_pct": 0.649
+    },
+    {
+      "file": "/itf-fi-ml/home/aleksns/Thesis_repo/results/arch_colloc/v4_n2w001_precision.pt",
+      "source_log": "outputs/2026-03-20_1209_campaign_v4/logs/v4_n2w001_precision.log",
+      "err_pct": 0.76,
+      "abs_err_pct": 0.76
+    },
+    {
+      "file": "/itf-fi-ml/home/aleksns/Thesis_repo/results/arch_colloc/npf_fd_v5.pt",
+      "source_log": "results/arch_colloc/npf_fd_v5.log",
+      "err_pct": 1.0,
+      "abs_err_pct": 1.0
+    },
+    {
+      "file": "/itf-fi-ml/home/aleksns/Thesis_repo/results/arch_colloc/long_n12w01_v2.pt",
+      "source_log": "outputs/2026-03-17_1816_long_campaign/logs/long_n12w01_v2.log",
+      "err_pct": 1.122,
+      "abs_err_pct": 1.122
+    },
+    {
+      "file": "/itf-fi-ml/home/aleksns/Thesis_repo/results/arch_colloc/v4_n20w1_bf48.pt",
+      "source_log": "outputs/2026-03-20_1209_campaign_v4/logs/v4_n20w1_bf48.log",
+      "err_pct": 1.324,
+      "abs_err_pct": 1.324
+    },
+    {
+      "file": "/itf-fi-ml/home/aleksns/Thesis_repo/results/arch_colloc/camp_jastrow_transfer_baseline_n20_o1p0_s11.pt",
+      "source_log": "outputs/2026-03-14_1633_long_trainer_campaign/logs/camp_jastrow_transfer_baseline_n20_o1p0_s11.log",
+      "err_pct": 1.39,
+      "abs_err_pct": 1.39
+    },
+    {
+      "file": "/itf-fi-ml/home/aleksns/Thesis_repo/results/arch_colloc/v3_n20w1_ultra.pt",
+      "source_log": "outputs/2026-03-19_1909_campaign_v3/logs/v3_n20w1_ultra.log",
+      "err_pct": 1.428,
+      "abs_err_pct": 1.428
+    },
+    {
+      "file": "/itf-fi-ml/home/aleksns/Thesis_repo/results/arch_colloc/v4_n20w1_bf32.pt",
+      "source_log": "outputs/2026-03-20_1209_campaign_v4/logs/v4_n20w1_bf32.log",
+      "err_pct": 1.442,
+      "abs_err_pct": 1.442
+    },
+    {
+      "file": "/itf-fi-ml/home/aleksns/Thesis_repo/results/arch_colloc/v3_n20w1_polish.pt",
+      "source_log": "outputs/2026-03-19_1909_campaign_v3/logs/v3_n20w1_polish.log",
+      "err_pct": 1.446,
+      "abs_err_pct": 1.446
+    },
+    {
+      "file": "/itf-fi-ml/home/aleksns/Thesis_repo/results/arch_colloc/v5_n20w1_jas_seed11.pt",
+      "source_log": "outputs/2026-03-20_2114_campaign_v5_10h_fix/logs/v5_n20w1_jas_seed11.log",
+      "err_pct": 1.461,
+      "abs_err_pct": 1.461
+    },
+    {
+      "file": "/itf-fi-ml/home/aleksns/Thesis_repo/results/arch_colloc/n6_o0p001_bf_s42.pt",
+      "source_log": "outputs/2026-03-14_1412_n6_lowomega_bf/logs/n6_o0p001_bf_s42.log",
+      "err_pct": 2.049,
+      "abs_err_pct": 2.049
+    },
+    {
+      "file": "/itf-fi-ml/home/aleksns/Thesis_repo/results/arch_colloc/camp_jastrow_transfer_fast_n2_o0p1_s11.pt",
+      "source_log": "outputs/2026-03-14_1633_long_trainer_campaign/logs/camp_jastrow_transfer_fast_n2_o0p1_s11.log",
+      "err_pct": 2.264,
+      "abs_err_pct": 2.264
+    },
+    {
+      "file": "/itf-fi-ml/home/aleksns/Thesis_repo/results/arch_colloc/camp_jastrow_transfer_fast_n2_o0p1_s22.pt",
+      "source_log": "outputs/2026-03-14_1633_long_trainer_campaign/logs/camp_jastrow_transfer_fast_n2_o0p1_s22.log",
+      "err_pct": 2.264,
+      "abs_err_pct": 2.264
+    },
+    {
+      "file": "/itf-fi-ml/home/aleksns/Thesis_repo/results/arch_colloc/n12_w05_natgrad_jas_v2.pt",
+      "source_log": "outputs/2026-03-15_1958_natgrad_sweep_v2/logs/n12_w05_natgrad_jas_v2.log",
+      "err_pct": 2.387,
+      "abs_err_pct": 2.387
+    },
+    {
+      "file": "/itf-fi-ml/home/aleksns/Thesis_repo/results/arch_colloc/camp_jastrow_transfer_stabilized_n2_o0p1_s11.pt",
+      "source_log": "outputs/2026-03-14_1633_long_trainer_campaign/logs/camp_jastrow_transfer_stabilized_n2_o0p1_s11.log",
+      "err_pct": 2.553,
+      "abs_err_pct": 2.553
+    },
+    {
+      "file": "/itf-fi-ml/home/aleksns/Thesis_repo/results/arch_colloc/camp_jastrow_transfer_stabilized_n2_o0p1_s22.pt",
+      "source_log": "outputs/2026-03-14_1633_long_trainer_campaign/logs/camp_jastrow_transfer_stabilized_n2_o0p1_s22.log",
+      "err_pct": 2.553,
+      "abs_err_pct": 2.553
+    },
+    {
+      "file": "/itf-fi-ml/home/aleksns/Thesis_repo/results/arch_colloc/camp_bf_transfer_fast_n6_o0p001_s11.pt",
+      "source_log": "outputs/2026-03-14_1633_long_trainer_campaign/logs/camp_bf_transfer_fast_n6_o0p001_s11.log",
+      "err_pct": 2.646,
+      "abs_err_pct": 2.646
+    },
+    {
+      "file": "/itf-fi-ml/home/aleksns/Thesis_repo/results/arch_colloc/camp_bf_transfer_fast_n6_o0p001_s22.pt",
+      "source_log": "outputs/2026-03-14_1633_long_trainer_campaign/logs/camp_bf_transfer_fast_n6_o0p001_s22.log",
+      "err_pct": 2.646,
+      "abs_err_pct": 2.646
+    },
+    {
+      "file": "/itf-fi-ml/home/aleksns/Thesis_repo/results/arch_colloc/v3_n20w05_polish.pt",
+      "source_log": "outputs/2026-03-19_1909_campaign_v3/logs/v3_n20w05_polish.log",
+      "err_pct": 2.74,
+      "abs_err_pct": 2.74
+    },
+    {
+      "file": "/itf-fi-ml/home/aleksns/Thesis_repo/results/arch_colloc/v4_n20w05_ultra.pt",
+      "source_log": "outputs/2026-03-20_1209_campaign_v4/logs/v4_n20w05_ultra.log",
+      "err_pct": 2.851,
+      "abs_err_pct": 2.851
+    },
+    {
+      "file": "/itf-fi-ml/home/aleksns/Thesis_repo/results/arch_colloc/v3_n20w05_polish2.pt",
+      "source_log": "outputs/2026-03-19_1909_campaign_v3/logs/v3_n20w05_polish2.log",
+      "err_pct": 2.895,
+      "abs_err_pct": 2.895
+    },
+    {
+      "file": "/itf-fi-ml/home/aleksns/Thesis_repo/results/arch_colloc/camp_jastrow_transfer_stabilized_n20_o0p5_s11.pt",
+      "source_log": "outputs/2026-03-14_1633_long_trainer_campaign/logs/camp_jastrow_transfer_stabilized_n20_o0p5_s11.log",
+      "err_pct": 2.955,
+      "abs_err_pct": 2.955
+    },
+    {
+      "file": "/itf-fi-ml/home/aleksns/Thesis_repo/results/arch_colloc/camp_bf_transfer_baseline_n6_o0p001_s11.pt",
+      "source_log": "outputs/2026-03-14_1633_long_trainer_campaign/logs/camp_bf_transfer_baseline_n6_o0p001_s11.log",
+      "err_pct": 3.08,
+      "abs_err_pct": 3.08
+    },
+    {
+      "file": "/itf-fi-ml/home/aleksns/Thesis_repo/results/arch_colloc/camp_bf_transfer_baseline_n6_o0p001_s22.pt",
+      "source_log": "outputs/2026-03-14_1633_long_trainer_campaign/logs/camp_bf_transfer_baseline_n6_o0p001_s22.log",
+      "err_pct": 3.08,
+      "abs_err_pct": 3.08
+    },
+    {
+      "file": "/itf-fi-ml/home/aleksns/Thesis_repo/results/arch_colloc/camp_jastrow_transfer_baseline_n20_o0p5_s11.pt",
+      "source_log": "outputs/2026-03-14_1633_long_trainer_campaign/logs/camp_jastrow_transfer_baseline_n20_o0p5_s11.log",
+      "err_pct": 3.111,
+      "abs_err_pct": 3.111
+    },
+    {
+      "file": "/itf-fi-ml/home/aleksns/Thesis_repo/results/arch_colloc/camp_bf_transfer_stabilized_n6_o0p001_s11.pt",
+      "source_log": "outputs/2026-03-14_1633_long_trainer_campaign/logs/camp_bf_transfer_stabilized_n6_o0p001_s11.log",
+      "err_pct": 3.302,
+      "abs_err_pct": 3.302
+    },
+    {
+      "file": "/itf-fi-ml/home/aleksns/Thesis_repo/results/arch_colloc/camp_bf_transfer_stabilized_n6_o0p001_s22.pt",
+      "source_log": "outputs/2026-03-14_1633_long_trainer_campaign/logs/camp_bf_transfer_stabilized_n6_o0p001_s22.log",
+      "err_pct": 3.302,
+      "abs_err_pct": 3.302
+    },
+    {
+      "file": "/itf-fi-ml/home/aleksns/Thesis_repo/results/arch_colloc/long_n6w001_v2.pt",
+      "source_log": "outputs/2026-03-17_1816_long_campaign/logs/long_n6w001_v2.log",
+      "err_pct": 4.116,
+      "abs_err_pct": 4.116
+    },
+    {
+      "file": "/itf-fi-ml/home/aleksns/Thesis_repo/results/arch_colloc/camp_jastrow_transfer_fast_n2_o0p01_s11.pt",
+      "source_log": "outputs/2026-03-14_1633_long_trainer_campaign/logs/camp_jastrow_transfer_fast_n2_o0p01_s11.log",
+      "err_pct": 4.187,
+      "abs_err_pct": 4.187
+    },
+    {
+      "file": "/itf-fi-ml/home/aleksns/Thesis_repo/results/arch_colloc/camp_jastrow_transfer_fast_n2_o0p01_s22.pt",
+      "source_log": "outputs/2026-03-14_1633_long_trainer_campaign/logs/camp_jastrow_transfer_fast_n2_o0p01_s22.log",
+      "err_pct": 4.187,
+      "abs_err_pct": 4.187
+    },
+    {
+      "file": "/itf-fi-ml/home/aleksns/Thesis_repo/results/arch_colloc/camp_jastrow_transfer_stabilized_n2_o0p01_s11.pt",
+      "source_log": "outputs/2026-03-14_1633_long_trainer_campaign/logs/camp_jastrow_transfer_stabilized_n2_o0p01_s11.log",
+      "err_pct": 4.187,
+      "abs_err_pct": 4.187
+    },
+    {
+      "file": "/itf-fi-ml/home/aleksns/Thesis_repo/results/arch_colloc/camp_jastrow_transfer_stabilized_n2_o0p01_s22.pt",
+      "source_log": "outputs/2026-03-14_1633_long_trainer_campaign/logs/camp_jastrow_transfer_stabilized_n2_o0p01_s22.log",
+      "err_pct": 4.187,
+      "abs_err_pct": 4.187
+    },
+    {
+      "file": "/itf-fi-ml/home/aleksns/Thesis_repo/results/arch_colloc/n6_o0p001_jas_transfer_s42.pt",
+      "source_log": "outputs/2026-03-14_1222_n6_lowomega_probe/logs/n6_o0p001_jas_transfer_s42.log",
+      "err_pct": 4.236,
+      "abs_err_pct": 4.236
+    },
+    {
+      "file": "/itf-fi-ml/home/aleksns/Thesis_repo/results/arch_colloc/v6_n2w001_bf.pt",
+      "source_log": "outputs/2026-03-21_0841_campaign_v6_n20bf_n2_fewhours/logs/v6_n2w001_bf.log",
+      "err_pct": 5.237,
+      "abs_err_pct": 5.237
+    },
+    {
+      "file": "/itf-fi-ml/home/aleksns/Thesis_repo/results/arch_colloc/20260318_0858_n20w01_keep_a.pt",
+      "source_log": "outputs/2026-03-18_0858_n20_w01_to_w001_transfer/logs/20260318_0858_n20w01_keep_a.log",
+      "err_pct": 5.533,
+      "abs_err_pct": 5.533
+    },
+    {
+      "file": "/itf-fi-ml/home/aleksns/Thesis_repo/results/arch_colloc/20260318_1149_n20w01_keep_a.pt",
+      "source_log": "outputs/2026-03-18_1149_n20_w01_to_w001_transfer/logs/20260318_1149_n20w01_keep_a.log",
+      "err_pct": 5.533,
+      "abs_err_pct": 5.533
+    },
+    {
+      "file": "/itf-fi-ml/home/aleksns/Thesis_repo/results/arch_colloc/v3_n20w01_polish2.pt",
+      "source_log": "outputs/2026-03-19_1909_campaign_v3/logs/v3_n20w01_polish2.log",
+      "err_pct": 5.678,
+      "abs_err_pct": 5.678
+    },
+    {
+      "file": "/itf-fi-ml/home/aleksns/Thesis_repo/results/arch_colloc/20260318_0858_n20w01_keep_b.pt",
+      "source_log": "outputs/2026-03-18_0858_n20_w01_to_w001_transfer/logs/20260318_0858_n20w01_keep_b.log",
+      "err_pct": 5.725,
+      "abs_err_pct": 5.725
+    },
+    {
+      "file": "/itf-fi-ml/home/aleksns/Thesis_repo/results/arch_colloc/20260318_1149_n20w01_keep_b.pt",
+      "source_log": "outputs/2026-03-18_1149_n20_w01_to_w001_transfer/logs/20260318_1149_n20w01_keep_b.log",
+      "err_pct": 5.725,
+      "abs_err_pct": 5.725
+    },
+    {
+      "file": "/itf-fi-ml/home/aleksns/Thesis_repo/results/arch_colloc/v4_n20w01_ultra.pt",
+      "source_log": "outputs/2026-03-20_1209_campaign_v4/logs/v4_n20w01_ultra.log",
+      "err_pct": 5.759,
+      "abs_err_pct": 5.759
+    },
+    {
+      "file": "/itf-fi-ml/home/aleksns/Thesis_repo/results/arch_colloc/v3_n20w01_wide.pt",
+      "source_log": "outputs/2026-03-19_1909_campaign_v3/logs/v3_n20w01_wide.log",
+      "err_pct": 5.876,
+      "abs_err_pct": 5.876
+    },
+    {
+      "file": "/itf-fi-ml/home/aleksns/Thesis_repo/results/arch_colloc/v3_n20w01_polish.pt",
+      "source_log": "outputs/2026-03-19_1909_campaign_v3/logs/v3_n20w01_polish.log",
+      "err_pct": 5.999,
+      "abs_err_pct": 5.999
+    },
+    {
+      "file": "/itf-fi-ml/home/aleksns/Thesis_repo/results/arch_colloc/v3_n20w01_fromw05.pt",
+      "source_log": "outputs/2026-03-19_1909_campaign_v3/logs/v3_n20w01_fromw05.log",
+      "err_pct": 6.073,
+      "abs_err_pct": 6.073
+    },
+    {
+      "file": "/itf-fi-ml/home/aleksns/Thesis_repo/results/arch_colloc/v5_n6w0001_adamess.pt",
+      "source_log": "outputs/2026-03-20_2114_campaign_v5_10h_fix/logs/v5_n6w0001_adamess.log",
+      "err_pct": 6.726,
+      "abs_err_pct": 6.726
+    },
+    {
+      "file": "/itf-fi-ml/home/aleksns/Thesis_repo/results/arch_colloc/long_n6w001.pt",
+      "source_log": "outputs/2026-03-17_1816_long_campaign/logs/long_n6w001.log",
+      "err_pct": 6.836,
+      "abs_err_pct": 6.836
+    },
+    {
+      "file": "/itf-fi-ml/home/aleksns/Thesis_repo/results/arch_colloc/20260318_1149_n6w001_xfer_a.pt",
+      "source_log": "outputs/2026-03-18_1149_n20_w01_to_w001_transfer/logs/20260318_1149_n6w001_xfer_a.log",
+      "err_pct": 8.958,
+      "abs_err_pct": 8.958
+    },
+    {
+      "file": "/itf-fi-ml/home/aleksns/Thesis_repo/results/arch_colloc/long_n6w001_v3.pt",
+      "source_log": "outputs/2026-03-17_1816_long_campaign/logs/long_n6w001_v3.log",
+      "err_pct": 9.142,
+      "abs_err_pct": 9.142
+    },
+    {
+      "file": "/itf-fi-ml/home/aleksns/Thesis_repo/results/arch_colloc/n6w001_cascade.pt",
+      "source_log": "outputs/2026-03-17_1538_cascade_low_omega/logs/n6w001_cascade.log",
+      "err_pct": 9.461,
+      "abs_err_pct": 9.461
+    },
+    {
+      "file": "/itf-fi-ml/home/aleksns/Thesis_repo/results/arch_colloc/w1_n6w01_resume.pt",
+      "source_log": "outputs/2026-03-17_0851_cascade_campaign/wave_1/logs/w1_n6w01_resume.log",
+      "err_pct": 10.931,
+      "abs_err_pct": 10.931
+    },
+    {
+      "file": "/itf-fi-ml/home/aleksns/Thesis_repo/results/arch_colloc/v4_n12w008_cascade.pt",
+      "source_log": "outputs/2026-03-20_1209_campaign_v4/logs/v4_n12w008_cascade.log",
+      "err_pct": -14.29,
+      "abs_err_pct": 14.29
+    },
+    {
+      "file": "/itf-fi-ml/home/aleksns/Thesis_repo/results/arch_colloc/camp_jastrow_transfer_baseline_n20_o0p1_s11.pt",
+      "source_log": "outputs/2026-03-14_1633_long_trainer_campaign/logs/camp_jastrow_transfer_baseline_n20_o0p1_s11.log",
+      "err_pct": 16.344,
+      "abs_err_pct": 16.344
+    },
+    {
+      "file": "/itf-fi-ml/home/aleksns/Thesis_repo/results/arch_colloc/w1_n20w1_cont.pt",
+      "source_log": "outputs/2026-03-17_0851_cascade_campaign/wave_1/logs/w1_n20w1_cont.log",
+      "err_pct": 18.536,
+      "abs_err_pct": 18.536
+    },
+    {
+      "file": "/itf-fi-ml/home/aleksns/Thesis_repo/results/arch_colloc/camp_n6w05_hiLR.pt",
+      "source_log": "outputs/2026-03-17_0031_cgsr_campaign/phase1_verify/logs/camp_n6w05_hiLR.log",
+      "err_pct": 19.985,
+      "abs_err_pct": 19.985
+    },
+    {
+      "file": "/itf-fi-ml/home/aleksns/Thesis_repo/results/arch_colloc/camp_n12w1_smoke.pt",
+      "source_log": "outputs/2026-03-17_0031_cgsr_campaign/phase1_verify/logs/camp_n12w1_smoke.log",
+      "err_pct": 20.68,
+      "abs_err_pct": 20.68
+    },
+    {
+      "file": "/itf-fi-ml/home/aleksns/Thesis_repo/results/arch_colloc/n12_o1p0_jas_s22.pt",
+      "source_log": "outputs/2026-03-14_1130_overnight_auto/logs/n12_o1p0_jas_s22.log",
+      "err_pct": 23.026,
+      "abs_err_pct": 23.026
+    },
+    {
+      "file": "/itf-fi-ml/home/aleksns/Thesis_repo/results/arch_colloc/v5_n12w001_bf_cascade.pt",
+      "source_log": "outputs/2026-03-20_2114_campaign_v5_10h_fix/logs/v5_n12w001_bf_cascade.log",
+      "err_pct": 25.055,
+      "abs_err_pct": 25.055
+    },
+    {
+      "file": "/itf-fi-ml/home/aleksns/Thesis_repo/results/arch_colloc/v7_n12w001_cascade.pt",
+      "source_log": "outputs/2026-03-21_1151_campaign_v7_n2_exact_n12_continue/logs/v7_n12w001_cascade.log",
+      "err_pct": 25.431,
+      "abs_err_pct": 25.431
+    },
+    {
+      "file": "/itf-fi-ml/home/aleksns/Thesis_repo/results/arch_colloc/v3_n12w001_fresh.pt",
+      "source_log": "outputs/2026-03-19_1909_campaign_v3/logs/v3_n12w001_fresh.log",
+      "err_pct": 28.537,
+      "abs_err_pct": 28.537
+    },
+    {
+      "file": "/itf-fi-ml/home/aleksns/Thesis_repo/results/arch_colloc/camp2_n6w01_fast.pt",
+      "source_log": "outputs/2026-03-17_0031_cgsr_campaign/phase2_main/logs/camp2_n6w01_fast.log",
+      "err_pct": 30.131,
+      "abs_err_pct": 30.131
+    },
+    {
+      "file": "/itf-fi-ml/home/aleksns/Thesis_repo/results/arch_colloc/20260318_1149_n12w001_xfer_a.pt",
+      "source_log": "outputs/2026-03-18_1149_n20_w01_to_w001_transfer/logs/20260318_1149_n12w001_xfer_a.log",
+      "err_pct": 31.955,
+      "abs_err_pct": 31.955
+    },
+    {
+      "file": "/itf-fi-ml/home/aleksns/Thesis_repo/results/arch_colloc/camp_n20w1_smoke.pt",
+      "source_log": "outputs/2026-03-17_0031_cgsr_campaign/phase1_verify/logs/camp_n20w1_smoke.log",
+      "err_pct": 33.929,
+      "abs_err_pct": 33.929
+    },
+    {
+      "file": "/itf-fi-ml/home/aleksns/Thesis_repo/results/arch_colloc/regime_high_H_n20_o1p0_s11.pt",
+      "source_log": "outputs/2026-03-15_1122_regime_policy_campaign_tmux/logs/regime_high_H_n20_o1p0_s11.log",
+      "err_pct": 35.349,
+      "abs_err_pct": 35.349
+    },
+    {
+      "file": "/itf-fi-ml/home/aleksns/Thesis_repo/results/arch_colloc/long_n6w0001_v2.pt",
+      "source_log": "outputs/2026-03-17_1816_long_campaign/logs/long_n6w0001_v2.log",
+      "err_pct": 36.228,
+      "abs_err_pct": 36.228
+    },
+    {
+      "file": "/itf-fi-ml/home/aleksns/Thesis_repo/results/arch_colloc/long_n6w0001.pt",
+      "source_log": "outputs/2026-03-17_1816_long_campaign/logs/long_n6w0001.log",
+      "err_pct": 36.837,
+      "abs_err_pct": 36.837
+    },
+    {
+      "file": "/itf-fi-ml/home/aleksns/Thesis_repo/results/arch_colloc/camp_n12w05_smoke.pt",
+      "source_log": "outputs/2026-03-17_0031_cgsr_campaign/phase1_verify/logs/camp_n12w05_smoke.log",
+      "err_pct": 36.949,
+      "abs_err_pct": 36.949
+    },
+    {
+      "file": "/itf-fi-ml/home/aleksns/Thesis_repo/results/arch_colloc/n12_o0p5_jas_s22.pt",
+      "source_log": "outputs/2026-03-14_1130_overnight_auto/logs/n12_o0p5_jas_s22.log",
+      "err_pct": 37.915,
+      "abs_err_pct": 37.915
+    },
+    {
+      "file": "/itf-fi-ml/home/aleksns/Thesis_repo/results/arch_colloc/sr_n6w01_v2.pt",
+      "source_log": "outputs/2026-03-16_1959_sr_gen_v2/logs/sr_n6w01_v2.log",
+      "err_pct": 43.676,
+      "abs_err_pct": 43.676
+    },
+    {
+      "file": "/itf-fi-ml/home/aleksns/Thesis_repo/results/arch_colloc/camp2_n6w01_main.pt",
+      "source_log": "outputs/2026-03-17_0031_cgsr_campaign/phase2_main/logs/camp2_n6w01_main.log",
+      "err_pct": 44.58,
+      "abs_err_pct": 44.58
+    },
+    {
+      "file": "/itf-fi-ml/home/aleksns/Thesis_repo/results/arch_colloc/camp_n6w01_hiLR.pt",
+      "source_log": "outputs/2026-03-17_0031_cgsr_campaign/phase1_verify/logs/camp_n6w01_hiLR.log",
+      "err_pct": 48.72,
+      "abs_err_pct": 48.72
+    },
+    {
+      "file": "/itf-fi-ml/home/aleksns/Thesis_repo/results/arch_colloc/n6w0001_cascade.pt",
+      "source_log": "outputs/2026-03-17_1538_cascade_low_omega/logs/n6w0001_cascade.log",
+      "err_pct": 50.819,
+      "abs_err_pct": 50.819
+    },
+    {
+      "file": "/itf-fi-ml/home/aleksns/Thesis_repo/results/arch_colloc/camp_n6w01_sampfix.pt",
+      "source_log": "outputs/2026-03-17_0031_cgsr_campaign/phase1_verify/logs/camp_n6w01_sampfix.log",
+      "err_pct": 52.59,
+      "abs_err_pct": 52.59
+    },
+    {
+      "file": "/itf-fi-ml/home/aleksns/Thesis_repo/results/arch_colloc/regime_low_L_n20_o0p1_s11.pt",
+      "source_log": "outputs/2026-03-15_1122_regime_policy_campaign_tmux/logs/regime_low_L_n20_o0p1_s11.log",
+      "err_pct": 68.608,
+      "abs_err_pct": 68.608
+    },
+    {
+      "file": "/itf-fi-ml/home/aleksns/Thesis_repo/results/arch_colloc/v8_n2w0001_finetune.pt",
+      "source_log": "outputs/2026-03-21_1151_campaign_v7_n2_exact_n12_continue/logs/v8_n2w0001_finetune.log",
+      "err_pct": 88.705,
+      "abs_err_pct": 88.705
+    },
+    {
+      "file": "/itf-fi-ml/home/aleksns/Thesis_repo/results/arch_colloc/v7_n2w0001_exact.pt",
+      "source_log": "outputs/2026-03-21_1151_campaign_v7_n2_exact_n12_continue/logs/v7_n2w0001_exact.log",
+      "err_pct": 88.788,
+      "abs_err_pct": 88.788
+    },
+    {
+      "file": "/itf-fi-ml/home/aleksns/Thesis_repo/results/arch_colloc/v5_n2w0001_precB.pt",
+      "source_log": "outputs/2026-03-20_2114_campaign_v5_10h_fix/logs/v5_n2w0001_precB.log",
+      "err_pct": 88.797,
+      "abs_err_pct": 88.797
+    },
+    {
+      "file": "/itf-fi-ml/home/aleksns/Thesis_repo/results/arch_colloc/v5_n2w0001_precA_seed7.pt",
+      "source_log": "outputs/2026-03-20_2114_campaign_v5_10h_fix/logs/v5_n2w0001_precA_seed7.log",
+      "err_pct": 88.807,
+      "abs_err_pct": 88.807
+    },
+    {
+      "file": "/itf-fi-ml/home/aleksns/Thesis_repo/results/arch_colloc/v5_n2w0001_precA.pt",
+      "source_log": "outputs/2026-03-20_2114_campaign_v5_10h_fix/logs/v5_n2w0001_precA.log",
+      "err_pct": 89.277,
+      "abs_err_pct": 89.277
+    },
+    {
+      "file": "/itf-fi-ml/home/aleksns/Thesis_repo/results/arch_colloc/v4_n2w0001_bf.pt",
+      "source_log": "outputs/2026-03-20_1209_campaign_v4/logs/v4_n2w0001_bf.log",
+      "err_pct": 89.421,
+      "abs_err_pct": 89.421
+    },
+    {
+      "file": "/itf-fi-ml/home/aleksns/Thesis_repo/results/arch_colloc/v4_n12w005_jas.pt",
+      "source_log": "outputs/2026-03-20_1209_campaign_v4/logs/v4_n12w005_jas.log",
+      "err_pct": 278.148,
+      "abs_err_pct": 278.148
+    },
+    {
+      "file": "/itf-fi-ml/home/aleksns/Thesis_repo/results/arch_colloc/v3_n12w005_fresh.pt",
+      "source_log": "outputs/2026-03-19_1909_campaign_v3/logs/v3_n12w005_fresh.log",
+      "err_pct": 307.533,
+      "abs_err_pct": 307.533
+    }
+  ]
+}

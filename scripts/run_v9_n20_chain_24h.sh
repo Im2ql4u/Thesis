@@ -27,24 +27,27 @@ run_job() {
 # N=20 fix: realistic 24h throughput + lower memory pressure.
 run_job v9_n20w1_fix_24h \
   --mode bf --n-elec 20 --omega 1.0 \
-  --epochs 3000 --n-coll 512 --oversample 8 --micro-batch 32 \
-  --lr 2e-4 --lr-jas 2e-4 --direct-weight 0.0 \
+  --epochs 3000 --n-coll 384 --oversample 10 --micro-batch 24 \
+  --lr 1.0e-4 --lr-jas 1.0e-4 --direct-weight 0.0 \
+  --clip-el 4.0 --reward-qtrim 0.01 \
   --rollback-decay 0.98 --rollback-err-pct 0.0 --rollback-jump-sigma 5.0 \
-  --vmc-every 200 --vmc-n 8000 --n-eval 20000 --seed 401 \
+  --vmc-every 600 --vmc-n 2000 --vmc-select-n 512 --n-eval 4000 --seed 401 \
   --resume ${ROOT}/results/arch_colloc/smoke_n20_o1p0.pt --no-pretrained
 
 run_job v9_n20w05_fix_24h \
   --mode bf --n-elec 20 --omega 0.5 \
-  --epochs 3500 --n-coll 512 --oversample 9 --micro-batch 32 \
-  --lr 1.2e-4 --lr-jas 1.2e-4 --direct-weight 0.0 \
+  --epochs 3500 --n-coll 384 --oversample 12 --micro-batch 24 \
+  --lr 8e-5 --lr-jas 8e-5 --direct-weight 0.0 \
+  --clip-el 4.0 --reward-qtrim 0.01 \
   --rollback-decay 0.98 --rollback-err-pct 0.0 --rollback-jump-sigma 5.5 \
-  --vmc-every 200 --vmc-n 8000 --n-eval 20000 --seed 402 \
+  --vmc-every 600 --vmc-n 2000 --vmc-select-n 512 --n-eval 4000 --seed 402 \
   --resume ${ROOT}/results/arch_colloc/smoke_n20_o0p5.pt --no-pretrained
 
 run_job v9_n20w01_fix_24h \
   --mode bf --n-elec 20 --omega 0.1 \
-  --epochs 4000 --n-coll 512 --oversample 10 --micro-batch 32 \
-  --lr 1e-4 --lr-jas 1e-4 --direct-weight 0.0 \
-  --rollback-decay 0.98 --rollback-err-pct 0.0 --rollback-jump-sigma 6.0 \
-  --vmc-every 200 --vmc-n 8000 --n-eval 20000 --seed 403 \
+  --epochs 4500 --n-coll 384 --oversample 14 --micro-batch 24 \
+  --lr 5e-5 --lr-jas 5e-5 --direct-weight 0.0 \
+  --clip-el 4.0 --reward-qtrim 0.02 \
+  --rollback-decay 0.985 --rollback-err-pct 0.0 --rollback-jump-sigma 6.5 \
+  --vmc-every 600 --vmc-n 2000 --vmc-select-n 512 --n-eval 4000 --seed 403 \
   --resume ${ROOT}/results/arch_colloc/camp_jastrow_transfer_stabilized_n20_o0p1_s11.pt --no-pretrained

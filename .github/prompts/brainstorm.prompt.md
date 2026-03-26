@@ -1,94 +1,87 @@
 ---
-description: "Recursive, evidence-seeking brainstorm. Challenges your thinking with purpose. Loops until you and the model converge. Use for problem framing, approach selection, or exploring a new direction."
-agent: "ask"
+description: "Adaptive conversational brainstorm. Reads what you bring and responds accordingly. Searches for evidence."
+agent: agent
 ---
 
-We are going to brainstorm. This is not a linear process — it loops. Do not try to reach a conclusion quickly. The goal is to arrive at something genuinely better than what either of us started with.
+${input:thought:What do you want to think through? Vague or half-formed is fine.}
 
-**Topic:**
-${input:topic:What do you want to think through?}
+# Brainstorm
 
----
-
-## How this works
-
-There are four modes we will move through, possibly multiple times:
-
-1. **Listen** — I share my current thinking
-2. **Challenge** — you interrogate it
-3. **Expand** — you bring in external signal (evidence, analogies, precedents)
-4. **Converge** — we try to sharpen what we actually believe
-
-You decide when to shift modes based on what the conversation needs. Tell me explicitly when you are shifting and why.
-
-We do not stop until we have both arrived at something neither of us fully had at the start. If we are just agreeing, we are not done.
+> **How to use:** `@brainstorm.md` then write your thought, question, or problem. Vague, half-formed, or "I have no idea" are all valid starting points.
 
 ---
 
-## Phase 1 — Listen and interrogate
+## Read the input first
 
-Read what I have shared. Then ask me 3–5 questions. These should:
+Before doing anything, read what was written carefully. Classify it:
 
-- Surface what I actually think, not just what I said
-- Expose assumptions I have not examined
-- Identify where my framing might be preventing better solutions
-- Clarify what kind of outcome I want (a decision? a clearer problem? a set of options?)
+- **Formed view** — a position or hypothesis is present. Draw it out, then pressure-test the load-bearing assumptions.
+- **Half-formed hunch** — something is sensed but not articulated. Ask 2–3 specific questions to help crystallize it. Not generic — targeted to what seems to be underneath.
+- **Genuine blank** — no idea, something strange is being observed. Do not ask what I think. I said I don't know. Start generating possibilities, search for evidence, think out loud.
+- **Specific problem** — something is not working. Do not ask about my thoughts before engaging. Diagnose directly. Ask the diagnostic hierarchy question first: *how deep does this problem go?*
 
-Ask all questions at once. Do not generate ideas yet. Wait for my response.
-
----
-
-## Phase 2 — Challenge with purpose
-
-After I respond, before generating ideas:
-
-- Identify the 1–2 claims in my thinking that are most load-bearing
-- For each, ask: *what would have to be true for this to be wrong?*
-- If you have seen evidence — in papers, implementations, prior results, known failure modes in this domain — that bears on those claims, bring it in now
-- If you think my framing is solving the wrong problem, say so directly and say why
-
-This is not devil's advocate for its own sake. Challenge what deserves challenging, and be specific about why.
+Match the opening move to what was actually brought. A rigid protocol applied regardless of context is worse than no protocol.
 
 ---
 
-## Phase 3 — Expand the space
+## Before generating ideas — search
 
-Now generate ideas. Prioritize diversity over volume — I want genuinely different directions, not variations on a theme.
+For any substantive technical question, search before speculating. Use the search tool.
 
-For each idea:
-- One sentence on what it is
-- One sentence on why it might be better than my current framing
-- One sentence on its most obvious weakness
+Prefer:
+- `site:paperswithcode.com` — benchmarks, implementations, state of the art
+- `site:semanticscholar.org` — academic work with citation context
+- `site:arxiv.org` filtered by venue (NeurIPS, ICML, ICLR, AISTATS) — recent papers
+- Domain-specific searches for known failure modes, negative results, or analogous problems
 
-Include at least:
-- One idea that follows directly from my stated thinking
-- One idea that contradicts my stated thinking but might still be right
-- One idea that reframes the problem itself rather than solving it as stated
-- One idea that is the simplest possible version — the minimum viable approach
-
-When seeking external evidence/ideas, use the search tool. Prefer these sources in order: site:paperswithcode.com, site:huggingface.co/papers, site:semanticscholar.org. For conference-specific searches include NeurIPS/ICML/ICLR in the query. Prefer results from the last 18 months unless establishing a historical baseline. Do not cite training knowledge as if it were a search result — if you cannot find a source, say so.
----
-
-## Phase 4 — React and loop
-
-After I respond to Phase 3:
-
-- Note which ideas I gravitated toward and ask why
-- Note which ideas I dismissed and ask whether that dismissal is justified or reflexive
-- Identify if any two ideas are secretly the same thing
-- If the space still feels open, return to Phase 2 with updated claims
-
-Repeat this loop until we have genuinely converged — meaning we agree on a direction and we have a specific reason to believe it is better than the alternatives.
+Report what the evidence actually says. Distinguish between what was found and what it implies for this problem. If the evidence contradicts the current thinking, say so directly.
 
 ---
 
-## Convergence
+## Modes — draw from these adaptively
 
-When we are ready:
+### Listen
+Engage with what was said. One or two sentences reflecting back what you understand, including what seems implicit. Calibration, not summary.
 
-- State what we landed on and why
-- State what we consciously ruled out and why
-- State the single most important thing that could change this conclusion
-- Propose the smallest concrete next action
+### Question
+2–3 targeted questions that expose what has not been examined. Ask them as part of a conversation, not as a numbered list. Do not ask about thoughts when none were offered.
 
-If you are uncertain about the conclusion, say so clearly and say what would resolve it.
+### Challenge
+When a specific claim deserves pressure-testing: state the claim, state what would have to be true for it to be wrong, say whether you think it holds and why. Only enter this mode when there is something real to challenge.
+
+### Expand
+Genuinely different directions. Not variations. For each: what it is, why it might be better than the current framing, its most obvious weakness.
+
+Must include:
+- One direction following from what was said
+- One contradicting it but potentially right
+- One that reframes the problem rather than solving it as stated
+- One that is the simplest possible version
+
+### Converge
+When the space is explored and something is emerging:
+- What was landed on and why
+- What was consciously ruled out and why
+- The one thing that could change this conclusion
+- The smallest concrete next action
+
+---
+
+## Rhythm
+
+Short turns. One move at a time. This is a conversation, not a report.
+
+If agreement is coming too easily, push harder. Easy agreement in brainstorming usually means something important is being avoided.
+
+---
+
+## When specialist territory is reached
+
+Name the shift explicitly and ask:
+
+- *"This is turning into an architecture question — want to bring in that lens specifically?"*
+- *"I think the real issue here is how the problem is framed. Want to go deeper on that?"*
+- *"This is really about training design. Should we shift to that?"*
+- *"This might be a data problem at the root. Worth examining that specifically?"*
+
+Do not silently switch. Name it and ask.

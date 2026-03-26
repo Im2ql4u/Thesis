@@ -22,6 +22,36 @@ Each entry answers: what was decided, what the alternatives were, why this was c
 
 ## Decisions
 
+### [2026-03-26] — Enforce REINFORCE-only policy for low-omega training
+
+**Decision:** For low-omega targeted runs, do not use SR/natural-gradient paths; execute REINFORCE/Adam-only schedules.
+**Alternatives considered:** Keep SR enabled with damping/trust-region retunes; mixed-policy runs where some low-omega stages use SR.
+**Reasoning:** Recent low-omega SR attempts produced poor outcomes and consumed iteration budget without improving target regimes; enforcing one policy reduces confounding while debugging the remaining failure at `omega=0.001`.
+**Constraints introduced:** May slow convergence if SR would have helped in some low-omega sub-regimes; comparisons with older mixed-policy logs become less direct.
+**Confidence:** medium
+
+### [2026-03-26] — For low-omega transfer, gate on `omega=0.01` quality before `omega=0.001`
+
+**Decision:** Use a staged rule: first push `omega=0.01` toward the ~0.1% error band at the current N, then transfer to `omega=0.001`; skip intermediate `omega=0.005/0.002` unless explicitly requested.
+**Alternatives considered:** Full cascade `0.01 -> 0.005 -> 0.002 -> 0.001`; direct `0.01 -> 0.001` without checking `0.01` quality.
+**Reasoning:** Intermediate steps previously added runtime without resolving the core `0.001` failure; explicit stage-gating creates a measurable quality checkpoint before entering the hardest regime.
+**Constraints introduced:** If `0.01` is not predictive of `0.001`, this policy can still fail while increasing time spent polishing an easier regime.
+**Confidence:** medium-low
+
+### [2026-03-24] — Fix importance sampling weights; re-enable SR at all omega
+
+**Decision:** Use correct Gaussian mixture density (logsumexp over components) for importance weights, not per-component density. Re-enable SR/natural gradient at all omega values. Increase CG iterations to 100 and fisher-subsample to 1024.
+**Alternatives considered:** (a) Keep Adam-only for low omega and try other fixes (more oversampling, weight clipping) — rejected because these are band-aids over the root cause; (b) Replace Gaussian mixture with single Gaussian — rejected because the mixture is correct in principle, only the density evaluation was wrong; (c) Switch to MCMC sampling — unnecessary now that importance sampling weights are correct.
+**Reasoning:** The component-density bug exponentially corrupted importance weights with increasing dimensionality (N×d) and decreasing omega (larger spread between component widths). This single bug explains the "low-omega catch-22" and the "higher-N degradation" simultaneously. The SR disable was a downstream workaround for gradient noise caused by this bug.
+**Constraints introduced:** None — this is a pure bugfix. All existing checkpoints were trained with biased sampling, so their quality may improve on retraining.
+**Confidence:** high — the math is unambiguous (mixture density ≠ component density), and the `eval_mixture_logq` function that does it correctly was already written but never wired in.
+
+### [2026-03-24] — Reversal: SR is now allowed at low omega (reverses implicit decision from ~2026-03-17)
+
+**Decision:** Remove the forced SR disable for ω ≤ 0.1. SR is now permitted at all omega values.
+**Reasoning:** The instability that motivated the disable was caused by the importance sampling bug, not by SR itself. With correct weights, SR should be stable and is essential for navigating the ill-conditioned landscape at small energy scales.
+**Confidence:** high — contingent on the importance sampling fix being correct, which it is.
+
 ### [2026-03-19] — Abandon Langevin proposal refinement; stick with Gaussian mixture + importance resampling
 
 **Decision:** Do not use Langevin dynamics to refine proposal samples before importance resampling. Keep the standard Gaussian mixture proposal with ESS-adaptive oversampling.

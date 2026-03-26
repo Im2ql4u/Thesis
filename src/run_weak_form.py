@@ -172,20 +172,79 @@ def sample_gauss(n, omega, sigma_f=1.3):
     return x, lq
 
 
-def sample_mixture(n, omega, sigma_fs=(0.8, 1.3, 2.0)):
-    """Sample from Gaussian mixture, return (x, log_q)."""
+def _eval_mixture_logq_local(x, omega, sigma_fs):
+    """Evaluate log-density of the Gaussian mixture at arbitrary points.
+
+    Uses module-level N_ELEC, DIM globals. This is the local equivalent of
+    eval_mixture_logq from Neural_Networks.py.
+    """
     nc = len(sigma_fs)
-    xs, lqs = [], []
+    Nd = N_ELEC * DIM
+    x_flat = x.reshape(x.shape[0], -1)  # (B, Nd)
+    log_components = []
+    for sf in sigma_fs:
+        s = sf / math.sqrt(float(omega))
+        log_norm = -0.5 * Nd * math.log(2 * math.pi * s ** 2)
+        log_exp = -x_flat.pow(2).sum(-1) / (2 * s ** 2)
+        log_components.append(log_norm + log_exp)
+    log_stack = torch.stack(log_components, dim=-1)  # (B, K)
+    return torch.logsumexp(log_stack, dim=-1) - math.log(nc)
+
+
+def adapt_sigma_fs(omega, sigma_fs_default=(0.8, 1.3, 2.0)):
+    """Adaptively widen Gaussian mixture for low-omega regimes.
+    
+    Root cause: wavefunction width scales as ~1/√ω, but fixed proposal doesn't.
+    At ω=0.01, effective widths become ~25x narrower than oscillator trap.
+    At ω=0.001, effective widths become ~80x narrower.
+    
+    Auto-widening invokes when:
+    - omega is low (ω < 0.5)
+    - sigma_fs is still at the DEFAULT value (user hasn't overridden)
+    
+    Adaptation tiers (from JOURNAL 2026-03-17 + extensions for ω<<0.01):
+    - ω ≤ 0.15 → (0.4, 0.7, 1.0, 1.5, 2.5, 4.0)
+    - ω ≤ 0.05 → (0.3, 0.5, 0.8, 1.2, 2.0, 3.5, 6.0)
+    - ω ≤ 0.01 → (0.2, 0.4, 0.6, 1.0, 1.5, 2.5, 4.0, 6.0, 10.0)
+    - ω ≤ 0.002 → (0.1, 0.2, 0.3, 0.5, 0.8, 1.2, 2.0, 3.0, 5.0, 8.0, 12.0, 20.0)
+    - ω ≤ 0.0005 → (0.08, 0.15, 0.25, 0.4, 0.6, 1.0, 1.5, 2.5, 4.0, 6.0, 10.0, 16.0, 25.0, 40.0)
+    """
+    # Only adapt if at DEFAULT (user didn't override)
+    if sigma_fs_default != (0.8, 1.3, 2.0):
+        return sigma_fs_default
+    
+    if omega >= 0.5:
+        return sigma_fs_default
+    elif omega > 0.15:
+        return (0.4, 0.7, 1.0, 1.5, 2.5, 4.0)
+    elif omega > 0.05:
+        return (0.3, 0.5, 0.8, 1.2, 2.0, 3.5, 6.0)
+    elif omega > 0.01:
+        return (0.2, 0.4, 0.6, 1.0, 1.5, 2.5, 4.0, 6.0, 10.0)
+    elif omega > 0.002:
+        return (0.1, 0.2, 0.3, 0.5, 0.8, 1.2, 2.0, 3.0, 5.0, 8.0, 12.0, 20.0)
+    else:  # omega <= 0.002
+        return (0.08, 0.15, 0.25, 0.4, 0.6, 1.0, 1.5, 2.5, 4.0, 6.0, 10.0, 16.0, 25.0, 40.0)
+
+
+def sample_mixture(n, omega, sigma_fs=(0.8, 1.3, 2.0)):
+    """Sample from Gaussian mixture, return (x, log_q).
+
+    log_q is the log-density of the full mixture q(x) = (1/K) sum_k N(x; 0, s_k^2 I),
+    NOT the component density. This is critical for correct importance weights.
+    """
+    nc = len(sigma_fs)
+    xs = []
     for i, sf in enumerate(sigma_fs):
         ni = n // nc if i < nc - 1 else n - (n // nc) * (nc - 1)
-        xi, lqi = sample_gauss(ni, omega, sf)
+        xi, _ = sample_gauss(ni, omega, sf)
         xs.append(xi)
-        lqs.append(lqi)
     x_all = torch.cat(xs)
-    lq_all = torch.cat(lqs)
-    # Shuffle
     perm = torch.randperm(x_all.shape[0], device=x_all.device)
-    return x_all[perm[:n]], lq_all[perm[:n]]
+    x_out = x_all[perm[:n]]
+    # Evaluate the correct mixture log-density at all returned points
+    lq_out = _eval_mixture_logq_local(x_out, omega, sigma_fs)
+    return x_out, lq_out
 
 
 def _min_pair_distance(x):
@@ -713,13 +772,15 @@ def train_weak_form(
         used_oversample = curr_oversample
         X = None
         ess = 0.0
+        # Adapt sigma_fs for low-omega regimes (fixes ESS collapse at ω<<1)
+        sigma_fs_adapted = adapt_sigma_fs(omega, sigma_fs)
         for _ in range(n_resample_tries):
             rs = importance_resample(
                 psi_log_sample_fn,
                 n_coll,
                 omega,
                 n_cand_mult=used_oversample,
-                sigma_fs=sigma_fs,
+                sigma_fs=sigma_fs_adapted,
                 min_pair_cutoff=min_pair_cutoff,
                 weight_temp=resample_weight_temp,
                 logw_clip_q=resample_logw_clip_q,
@@ -1189,8 +1250,8 @@ def main():
                     help="EMA decay for running Fisher estimate (diagonal mode only)")
     ap.add_argument("--fisher-probes", type=int, default=4,
                     help="Hutchinson probes per Fisher update (diagonal mode only)")
-    ap.add_argument("--fisher-subsample", type=int, default=256,
-                    help="Collocation points subsampled for Fisher/SR estimation")
+    ap.add_argument("--fisher-subsample", type=int, default=1024,
+                    help="Collocation points subsampled for Fisher/SR estimation (higher = better rank)")
     ap.add_argument("--fisher-max", type=float, default=1e6,
                     help="Upper clamp for Fisher diagonal entries (diagonal mode only)")
     ap.add_argument("--nat-momentum", type=float, default=0.9,
@@ -1199,8 +1260,8 @@ def main():
                     help="Max per-parameter change per step (woodbury/cg mode)")
     ap.add_argument("--sr-trust-region", type=float, default=1.0,
                     help="Trust region radius for SR update norm (woodbury/cg mode)")
-    ap.add_argument("--sr-cg-iters", type=int, default=15,
-                    help="CG iterations for cg mode")
+    ap.add_argument("--sr-cg-iters", type=int, default=100,
+                    help="CG iterations for cg mode (100 is standard for VMC)")
     ap.add_argument("--sr-center", action="store_true", default=True,
                     help="Center per-sample gradients (subtract mean O) in SR")
     # Architecture
@@ -1230,11 +1291,9 @@ def main():
                     help="Optional checkpoint path to initialize backflow (expects bf_state)")
     a = ap.parse_args()
 
-    # Low-omega regimes are empirically unstable with SR/Fisher preconditioning.
-    # Force Adam in this regime even if --natural-grad is requested.
-    if a.natural_grad and float(a.omega) <= 0.1:
-        print(f"  WARNING: disabling natural gradient for low-omega run (omega={a.omega}).")
-        a.natural_grad = False
+    # NOTE: Low-omega SR instability was caused by incorrect mixture importance
+    # weights (using component density instead of mixture density). Now fixed.
+    # SR is allowed at all omega values.
 
     global N_ELEC, OMEGA, E_DMC
     N_ELEC = int(a.n_elec)

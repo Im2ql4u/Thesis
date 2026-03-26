@@ -118,18 +118,23 @@ def sample_mixture(
     dtype,
     sigma_fs=(0.8, 1.3, 2.0),
 ):
-    """Sample from a Gaussian mixture, return (x, log_q)."""
+    """Sample from a Gaussian mixture, return (x, log_q).
+
+    log_q is the log-density of the full mixture q(x) = (1/K) sum_k N(x; 0, s_k^2 I),
+    NOT the component density. This is critical for correct importance weights.
+    """
     nc = len(sigma_fs)
-    xs, lqs = [], []
+    xs = []
     for i, sf in enumerate(sigma_fs):
         ni = n // nc if i < nc - 1 else n - (n // nc) * (nc - 1)
-        xi, lqi = sample_gauss(ni, n_elec, dim, omega, device=device, dtype=dtype, sigma_f=sf)
+        xi, _ = sample_gauss(ni, n_elec, dim, omega, device=device, dtype=dtype, sigma_f=sf)
         xs.append(xi)
-        lqs.append(lqi)
     x_all = torch.cat(xs)
-    lq_all = torch.cat(lqs)
     perm = torch.randperm(x_all.shape[0], device=x_all.device)
-    return x_all[perm[:n]], lq_all[perm[:n]]
+    x_out = x_all[perm[:n]]
+    # Evaluate the correct mixture log-density at all returned points
+    lq_out = eval_mixture_logq(x_out, n_elec, dim, omega, sigma_fs)
+    return x_out, lq_out
 
 
 def eval_mixture_logq(x, n_elec, dim, omega, sigma_fs):

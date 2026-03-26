@@ -255,7 +255,7 @@ class CGSR:
         damping: float = 1e-3,
         damping_end: float = 0.0,
         damping_anneal_epochs: int = 0,
-        n_cg_iters: int = 15,
+        n_cg_iters: int = 100,
         cg_tol: float = 1e-5,
         max_param_change: float = 0.1,
         trust_region: float = 1.0,

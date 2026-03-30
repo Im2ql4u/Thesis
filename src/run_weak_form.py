@@ -29,6 +29,7 @@ Supports three wavefunction types:
 """
 
 import argparse
+import collections
 import math
 import os
 import sys
@@ -73,8 +74,8 @@ E_DMC = 20.15932
 RESULTS_DIR = Path(__file__).resolve().parent.parent / "results" / "arch_colloc"
 
 
-def default_dmc(n_elec, omega):
-    return lookup_dmc_energy(int(n_elec), float(omega), allow_missing=True)
+def default_dmc(n_elec, omega, *, allow_missing=False):
+    return lookup_dmc_energy(int(n_elec), float(omega), allow_missing=allow_missing)
 
 
 def _choose_basis_dims(n_occ):
@@ -94,11 +95,11 @@ def finite_or(v, default=float("nan")):
     return fv if math.isfinite(fv) else default
 
 
-def setup(n_elec=None, omega=None, e_dmc=None, seed=None):
+def setup(n_elec=None, omega=None, e_dmc=None, seed=None, allow_missing_dmc=False):
     N = int(N_ELEC if n_elec is None else n_elec)
     d = DIM
     om = float(OMEGA if omega is None else omega)
-    e_ref = default_dmc(N, om) if e_dmc is None else float(e_dmc)
+    e_ref = default_dmc(N, om, allow_missing=allow_missing_dmc) if e_dmc is None else float(e_dmc)
     n_occ = N // 2
     nx, ny = _choose_basis_dims(n_occ)
     L = max(8.0, 3.0 / math.sqrt(om))
@@ -340,7 +341,8 @@ def colloc_fd_loss(psi_log_fn, x, omega, params, h=0.01,
 # ═══════════════════════════════════════════════════════════════
 
 def rayleigh_hybrid_loss(psi_log_fn, x, omega, params, direct_weight=0.1,
-                         clip_el=5.0, reward_qtrim=0.0):
+                         clip_el=5.0, reward_qtrim=0.0,
+                         reward_normalize=False):
     """Hybrid REINFORCE + weak-form direct gradient.
 
     Uses E_L (with Laplacian, FORWARD-ONLY) for low-variance REINFORCE
@@ -367,6 +369,7 @@ def rayleigh_hybrid_loss(psi_log_fn, x, omega, params, direct_weight=0.1,
         direct_weight=direct_weight,
         clip_el=clip_el,
         reward_qtrim=reward_qtrim,
+        reward_normalize=reward_normalize,
     )
 
 
@@ -506,6 +509,8 @@ def train_weak_form(
     lr=5e-4,
     lr_jas=5e-5,
     lr_min_frac=0.02,
+    lr_warmup_epochs=0,
+    lr_warmup_init_frac=0.1,
     n_coll=2048,
     oversample=8,
     micro_batch=512,
@@ -513,6 +518,7 @@ def train_weak_form(
     direct_weight=0.1,
     clip_el=0.0,
     reward_qtrim=0.0,
+    reward_normalize=False,
     loss_type="reinforce",
     fd_h=0.01,
     fd_huber_delta=0.0,
@@ -563,10 +569,17 @@ def train_weak_form(
     sr_trust_region=1.0,
     sr_cg_iters=15,
     sr_center=True,
+    allow_missing_dmc=False,
+    save_best_window: int = 0,
+    best_ckpt_path=None,
 ):
     omega = float(OMEGA if omega is None else omega)
     n_elec = int(N_ELEC if n_elec is None else n_elec)
-    E_ref = default_dmc(n_elec, omega) if e_ref is None else float(e_ref)
+    E_ref = (
+        default_dmc(n_elec, omega, allow_missing=allow_missing_dmc)
+        if e_ref is None
+        else float(e_ref)
+    )
     up = n_elec // 2
     spin = torch.cat(
         [torch.zeros(up, dtype=torch.long), torch.ones(n_elec - up, dtype=torch.long)]
@@ -675,6 +688,10 @@ def train_weak_form(
         opt = torch.optim.Adam(trainable_groups)
 
     def lr_lambda(ep):
+        if lr_warmup_epochs > 0 and ep < lr_warmup_epochs:
+            start = max(1e-6, float(lr_warmup_init_frac))
+            prog = float(ep + 1) / float(max(1, lr_warmup_epochs))
+            return start + (1.0 - start) * prog
         lr_min_abs = lr * lr_min_frac
         return (lr_min_abs + 0.5 * (lr - lr_min_abs) * (1 + math.cos(math.pi * ep / max(1, n_epochs - 1)))) / lr
 
@@ -688,7 +705,9 @@ def train_weak_form(
               f"  h={fd_h}  huber_δ={fd_huber_delta}  prox_μ={prox_mu}")
     else:
         print(f"  HYBRID loss: REINFORCE(E_L, no-backprop-lap) + direct(½g², β={direct_weight})"
-              f"  clip_el={clip_el}  reward_qtrim={reward_qtrim}")
+              f"  clip_el={clip_el}  reward_qtrim={reward_qtrim}  reward_normalize={reward_normalize}")
+    if lr_warmup_epochs > 0:
+        print(f"  LR warmup: epochs={lr_warmup_epochs} init_frac={lr_warmup_init_frac} lr_min_frac={lr_min_frac}")
     if replay_frac > 0:
         print(f"  Hard-sample replay: frac={replay_frac:.2f} top_frac={replay_top_frac:.2f}")
         if replay_stratified:
@@ -728,6 +747,8 @@ def train_weak_form(
     best_state = best_vmc_state = {}
     best_vmc_E = None
     no_imp = 0
+    _rolling_buf: collections.deque = collections.deque(maxlen=max(1, save_best_window))
+    _best_rolling_E: float = float("inf")
     n_ess_reject = 0
     n_rollbacks = 0
     replay_X = None
@@ -857,6 +878,7 @@ def train_weak_form(
                     direct_weight=direct_weight,
                     clip_el=clip_el,
                     reward_qtrim=reward_qtrim,
+                    reward_normalize=reward_normalize,
                 )
 
             if bf_cusp_reg > 0 and backflow_net is not None:
@@ -1004,6 +1026,21 @@ def train_weak_form(
         else:
             no_imp += 1
 
+        # ── Rolling-window best checkpoint (written to disk) ──
+        if save_best_window > 0 and best_ckpt_path is not None and math.isfinite(Em):
+            _rolling_buf.append(Em)
+            if len(_rolling_buf) == save_best_window:
+                _rmean = sum(_rolling_buf) / save_best_window
+                if _rmean < _best_rolling_E:
+                    _best_rolling_E = _rmean
+                    _bst: dict = {"jas_state": {k: v.clone().cpu() for k, v in f_net.state_dict().items()},
+                                  "rolling_E": _rmean, "ep": ep}
+                    if backflow_net is not None:
+                        _bst["bf_state"] = {k: v.clone().cpu() for k, v in backflow_net.state_dict().items()}
+                    if npf_net is not None:
+                        _bst["pf_state"] = {k: v.clone().cpu() for k, v in npf_net.state_dict().items()}
+                    torch.save(_bst, best_ckpt_path)
+
         # Update last-good state for ESS rollback
         if min_ess > 0:
             last_good_state = _save_state()
@@ -1144,6 +1181,12 @@ def main():
     ap.add_argument("--micro-batch", type=int, default=512)
     ap.add_argument("--lr", type=float, default=5e-4)
     ap.add_argument("--lr-jas", type=float, default=5e-5)
+    ap.add_argument("--lr-min-frac", type=float, default=0.02,
+                    help="Cosine schedule floor as fraction of base LR")
+    ap.add_argument("--lr-warmup-epochs", type=int, default=0,
+                    help="Linear LR warmup epochs before cosine decay (0=off)")
+    ap.add_argument("--lr-warmup-init-frac", type=float, default=0.1,
+                    help="Initial LR fraction at warmup epoch 0")
     ap.add_argument("--patience", type=int, default=300)
     ap.add_argument("--grad-clip", type=float, default=1.0)
     ap.add_argument("--direct-weight", type=float, default=0.1,
@@ -1152,6 +1195,8 @@ def main():
                     help="E_L clipping in MAD units (0=off, 5=moderate, 3=aggressive)")
     ap.add_argument("--reward-qtrim", type=float, default=0.0,
                     help="Trim REINFORCE reward tails by quantiles q..1-q (0=off)")
+    ap.add_argument("--reward-normalize", action="store_true",
+                    help="Normalize REINFORCE advantage by batch std(E_L) before policy gradient")
     ap.add_argument("--loss-type", choices=["reinforce", "fd-colloc"], default="reinforce",
                     help="reinforce: REINFORCE with E_L reward, fd-colloc: FD-Laplacian collocation (per-sample grad)")
     ap.add_argument("--fd-h", type=float, default=0.01,
@@ -1235,6 +1280,12 @@ def main():
                     help="Trap frequency")
     ap.add_argument("--e-dmc", type=float, default=float("nan"),
                     help="Reference DMC energy for error reporting; NaN disables err-based model selection")
+    ap.add_argument("--allow-missing-dmc-ref", action="store_true",
+                    help="Allow missing DMC reference by setting E_ref=NaN (default: fail loudly)")
+    ap.add_argument("--save-best-window", type=int, default=0,
+                    help="Save best rolling-average checkpoint to {tag}_best.pt during training "
+                         "(window=N epochs; 0=off).  Useful when the final checkpoint regresses "
+                         "from a mid-training optimum.")
     # Natural gradient
     ap.add_argument("--natural-grad", action="store_true",
                     help="Use diagonal Fisher preconditioning (natural gradient) instead of Adam")
@@ -1298,14 +1349,18 @@ def main():
     global N_ELEC, OMEGA, E_DMC
     N_ELEC = int(a.n_elec)
     OMEGA = float(a.omega)
-    E_DMC = default_dmc(N_ELEC, OMEGA) if not math.isfinite(a.e_dmc) else float(a.e_dmc)
+    E_DMC = (
+        default_dmc(N_ELEC, OMEGA, allow_missing=a.allow_missing_dmc_ref)
+        if not math.isfinite(a.e_dmc)
+        else float(a.e_dmc)
+    )
 
     sigma_fs = tuple(float(s) for s in a.sigma_fs.split(",") if s.strip())
     if len(sigma_fs) == 0:
         raise ValueError("--sigma-fs must contain at least one value")
     # Note: sigma_fs values are in oscillator-length units.
-    # sample_gauss already scales by 1/sqrt(omega), so defaults (0.8,1.3,2.0)
-    # are appropriate for all omega — no auto-widening needed.
+    # sample_gauss already scales by 1/sqrt(omega).
+    # Adaptive widening is applied in train_weak_form() via adapt_sigma_fs().
 
     torch.manual_seed(a.seed)
     np.random.seed(a.seed)
@@ -1313,7 +1368,13 @@ def main():
         torch.cuda.manual_seed_all(a.seed)
 
     RESULTS_DIR.mkdir(parents=True, exist_ok=True)
-    C_occ, params, nx, ny = setup(n_elec=N_ELEC, omega=OMEGA, e_dmc=E_DMC, seed=a.seed)
+    C_occ, params, nx, ny = setup(
+        n_elec=N_ELEC,
+        omega=OMEGA,
+        e_dmc=E_DMC,
+        seed=a.seed,
+        allow_missing_dmc=a.allow_missing_dmc_ref,
+    )
     n_basis = nx * ny
     n_occ = N_ELEC // 2
 
@@ -1596,6 +1657,9 @@ def main():
         backflow_net=backflow_net,
         npf_net=npf_net,
         n_epochs=a.epochs, lr=a.lr, lr_jas=a.lr_jas,
+        lr_min_frac=a.lr_min_frac,
+        lr_warmup_epochs=a.lr_warmup_epochs,
+        lr_warmup_init_frac=a.lr_warmup_init_frac,
         n_coll=a.n_coll,
         oversample=a.oversample,
         micro_batch=a.micro_batch,
@@ -1603,6 +1667,7 @@ def main():
         direct_weight=a.direct_weight,
         clip_el=a.clip_el,
         reward_qtrim=a.reward_qtrim,
+        reward_normalize=a.reward_normalize,
         loss_type=a.loss_type,
         fd_h=a.fd_h,
         fd_huber_delta=a.fd_huber_delta,
@@ -1648,6 +1713,9 @@ def main():
         sr_trust_region=a.sr_trust_region,
         sr_cg_iters=a.sr_cg_iters,
         sr_center=a.sr_center,
+        allow_missing_dmc=a.allow_missing_dmc_ref,
+        save_best_window=a.save_best_window,
+        best_ckpt_path=(RESULTS_DIR / f"{a.tag}_best.pt") if a.save_best_window > 0 else None,
     )
 
     # ── Final heavy VMC eval ──

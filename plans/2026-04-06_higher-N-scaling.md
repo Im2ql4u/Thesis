@@ -273,9 +273,9 @@ Key question for thesis: if post-bugfix N=20 at ω=1.0 drops from +32% to, say, 
 
 ## Current State
 
-**Active phase:** Phase 1 completed
-**Active step:** Step 1.4 completed — phase summary generated
-**Last evidence:** `cat outputs/higher_n/phase1/phase1_summary.txt` shows N=12 smoke outputs and N=20 ESS diagnostics (ESS mean: 6.75 at ω=0.1, 4.80 at ω=1.0)
-**Current risk:** N=20 ESS remains weak (ω=1.0 mean ESS < 5), so Phase 3 may be blocked by sampling quality even post-bugfix
-**Next action:** Confirm whether to proceed to Phase 2 (N=12 full campaign) or pivot to a sampling-focused N=20 plan
-**Blockers:** None for Phase 2; conditional blocker for Phase 3 if ESS gate is enforced strictly
+**Active phase:** Phase 2 — N=12 Full Campaign (launching)
+**Active step:** Step 2.1 — launch 3x N=12 DiagFisher long runs (plus Step 2.2 controls in same wave)
+**Last evidence:** `outputs/higher_n/phase1/phase1_summary.txt` confirms Phase 1 completion and stable N=12 recipe execution
+**Current risk:** N=20 ESS at ω=1.0 remains weak; Phase 3 results may still be sampling-limited
+**Next action:** Start long runs in tmux (`scripts/launch_higher_n_phase2.sh` then `scripts/launch_higher_n_phase3.sh`)
+**Blockers:** None

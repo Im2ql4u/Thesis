@@ -1,7 +1,7 @@
 # Plan: Higher-N Scaling — DiagFisher+REINFORCE at N=12 and N=20
 
 Date: 2026-04-06
-Status: confirmed
+Status: in-progress
 
 ## Project objective
 Produce a defensible, multi-seed consistency matrix of weak-form collocation results across the (N, ω) grid, with honest characterization of achievable accuracy per regime.

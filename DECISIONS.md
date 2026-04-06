@@ -22,6 +22,30 @@ Each entry answers: what was decided, what the alternatives were, why this was c
 
 ## Decisions
 
+### [2026-04-06] — Gate N=20 continuation on post-bugfix ESS evidence, proceed N=12 independently
+
+**Decision:** After executing higher-N Phase 1 diagnostics, treat N=20 as conditionally blocked for optimizer-transfer continuation unless ESS is consistently above the gate, while allowing N=12 full-campaign work to proceed.
+**Alternatives considered:** Continue N=20 optimizer transfer immediately despite low ESS; halt all higher-N work until N=20 sampling is fixed; lower standards and accept any ESS above 1 as sufficient.
+**Reasoning:** The post-bugfix diagnostics still show weak ESS at N=20 (mean 4.80 at omega=1.0, min 1), with very poor VMC outcomes; this indicates a Layer-1 sampling bottleneck remains plausible and would confound optimizer conclusions. N=12 diagnostics ran cleanly and are not blocked by this issue.
+**Constraints introduced:** Future N=20 optimization claims must report ESS evidence and distinguish sampling improvements from optimizer improvements; N=20 long runs should not consume major compute budget without a documented ESS gate decision.
+**Confidence:** medium-high
+
+### [2026-03-29] — Gate Phase 3 launch on completed Phase 2 artifacts and heavy-VMC evaluation
+
+**Decision:** Queue Phase 3 automatically, but only allow it to launch after all eight Phase 2 summary files exist and a Phase 2 heavy-VMC evaluation summary has been written.
+**Alternatives considered:** Launch Phase 3 immediately after the first six Phase 2 jobs; use only in-training traces to choose whether to continue; wait for manual operator intervention before launching Phase 3.
+**Reasoning:** Phase 2 is a diagnostic phase, and its value comes from evidence rather than momentum. Using file-backed completion markers and heavy-VMC evaluation preserves the evaluation gate while still keeping the campaign moving automatically.
+**Constraints introduced:** Phase 3 can be delayed by unrelated GPU occupancy affecting late Phase 2 jobs; queue logic now depends on summary/eval artifact paths remaining stable.
+**Confidence:** high
+
+### [2026-03-28] — Enable adaptive low-omega proposal widening in trainer runtime path
+
+**Decision:** Add and use adaptive `sigma_fs` selection in the active weak-form training loop so low-omega runs widen proposal mixtures automatically by regime.
+**Alternatives considered:** Keep static proposal widths and rely on larger oversampling or longer campaigns; bypass runtime adaptation and only tune per-script CLI values.
+**Reasoning:** Diagnostics showed the intended adaptive behavior was documented but not actually applied in the executed runtime path, while low-omega transfer remained ESS-starved.
+**Constraints introduced:** Results before this fix are not directly comparable to post-fix behavior for low-omega transfer; future evaluations must report whether adaptive sigma was active.
+**Confidence:** medium
+
 ### [2026-03-26] — Enforce REINFORCE-only policy for low-omega training
 
 **Decision:** For low-omega targeted runs, do not use SR/natural-gradient paths; execute REINFORCE/Adam-only schedules.

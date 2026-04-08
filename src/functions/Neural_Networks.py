@@ -284,6 +284,7 @@ def importance_resample(
     w_raw = torch.exp(log_w_raw - log_w_raw.max())
     ess_raw = (w_raw.sum() ** 2 / (w_raw**2).sum()).item()
     ess_eff = (w.sum() ** 2 / (w**2).sum()).item()
+    psis_khat = psis_diagnostic(log_w_raw)
     idx = torch.multinomial(probs, n_keep, replacement=True)
     if not return_stats:
         return x_all[idx].clone(), ess_eff
@@ -293,6 +294,7 @@ def importance_resample(
     stats = {
         "ess_raw": float(ess_raw),
         "ess_eff": float(ess_eff),
+        "psis_khat": float(psis_khat),
         "top1_mass": float(top_probs[0].item()) if topk > 0 else 0.0,
         "top10_mass": float(top_probs.sum().item()) if topk > 0 else 0.0,
         "logw_clip_q": float(logw_clip_q),
@@ -300,6 +302,44 @@ def importance_resample(
         "weight_temp": float(alpha),
     }
     return x_all[idx].clone(), ess_eff, stats
+
+
+@torch.no_grad()
+def psis_diagnostic(log_w: torch.Tensor) -> float:
+    """Estimate a PSIS-style Pareto tail index from raw log-weights.
+
+    This uses a Hill-type estimator on the largest weights. It is a practical
+    heavy-tail diagnostic for importance weights and is intentionally lightweight.
+    """
+    if log_w.ndim != 1:
+        log_w = log_w.reshape(-1)
+
+    finite = torch.isfinite(log_w)
+    lw = log_w[finite]
+    n = int(lw.numel())
+    if n < 20:
+        return float("nan")
+
+    # Stabilize before exponentiation.
+    lw = lw - lw.max()
+    w = torch.exp(lw).clamp_min(torch.finfo(lw.dtype).tiny)
+    w_sorted, _ = torch.sort(w, descending=True)
+
+    # Tail size from plan: min(ceil(0.2*n), 3*sqrt(n)); ensure >= 5 and < n.
+    m = int(min(math.ceil(0.2 * n), 3 * math.sqrt(n)))
+    m = max(5, min(m, n - 1))
+
+    tail = w_sorted[:m]
+    threshold = w_sorted[m]
+    if threshold <= 0 or not torch.isfinite(threshold):
+        return float("nan")
+
+    # Hill estimator: k_hat ~ mean(log(w_i / u)) over tail above threshold u.
+    ratios = (tail / threshold).clamp_min(1.0)
+    k_hat = torch.log(ratios).mean()
+    if not torch.isfinite(k_hat):
+        return float("nan")
+    return float(k_hat.item())
 
 
 def colloc_fd_loss(
@@ -367,6 +407,7 @@ def rayleigh_hybrid_loss(
     direct_weight: float = 0.1,
     clip_el: float = 5.0,
     reward_qtrim: float = 0.0,
+    reward_normalize: bool = False,
 ):
     """Hybrid REINFORCE + direct weak-form gradient loss."""
     x = x.detach().requires_grad_(True)
@@ -417,7 +458,11 @@ def rayleigh_hybrid_loss(
         ew_eff = e_weak
 
     R = E_eff.mean()
-    L_reinforce = 2.0 * ((E_eff - R) * lp_eff).mean()
+    advantage = E_eff - R
+    if reward_normalize:
+        reward_scale = torch.clamp(advantage.std(unbiased=False), min=1e-6)
+        advantage = advantage / reward_scale
+    L_reinforce = 2.0 * (advantage * lp_eff).mean()
     L_direct = direct_weight * ew_eff.mean()
     L = L_reinforce + L_direct
 

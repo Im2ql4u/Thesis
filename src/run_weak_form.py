@@ -554,6 +554,8 @@ def train_weak_form(
     omega=None,
     e_ref=None,
     tag="weak_form",
+    mode="bf",
+    seed=None,
     # ── Natural gradient / SR ──
     natural_grad=False,
     sr_mode="diagonal",
@@ -998,6 +1000,7 @@ def train_weak_form(
             oversample=curr_oversample,
             ess_raw=finite_or(last_rs_stats.get("ess_raw")),
             ess_eff=finite_or(last_rs_stats.get("ess_eff")),
+            rs_psis_khat=finite_or(last_rs_stats.get("psis_khat")),
             rs_top1_mass=finite_or(last_rs_stats.get("top1_mass")),
             rs_top10_mass=finite_or(last_rs_stats.get("top10_mass")),
             rs_logw_clip_thr=finite_or(last_rs_stats.get("logw_clip_thr")),
@@ -1033,8 +1036,17 @@ def train_weak_form(
                 _rmean = sum(_rolling_buf) / save_best_window
                 if _rmean < _best_rolling_E:
                     _best_rolling_E = _rmean
-                    _bst: dict = {"jas_state": {k: v.clone().cpu() for k, v in f_net.state_dict().items()},
-                                  "rolling_E": _rmean, "ep": ep}
+                    _bst: dict = {
+                        "jas_state": {k: v.clone().cpu() for k, v in f_net.state_dict().items()},
+                        "rolling_E": _rmean,
+                        "ep": ep,
+                        "mode": str(mode),
+                        "n_elec": int(n_elec),
+                        "omega": float(omega),
+                        "e_dmc": float(E_ref) if math.isfinite(E_ref) else float("nan"),
+                        "seed": int(seed) if seed is not None else -1,
+                        "tag": str(tag),
+                    }
                     if backflow_net is not None:
                         _bst["bf_state"] = {k: v.clone().cpu() for k, v in backflow_net.state_dict().items()}
                     if npf_net is not None:
@@ -1128,6 +1140,8 @@ def train_weak_form(
         # ── Logging ──
         if ep % print_every == 0:
             err = safe_percent_err(Em, E_ref) if math.isfinite(Em) else float("nan")
+            khat = finite_or(last_rs_stats.get("psis_khat"))
+            khat_s = f" khat={khat:.2f}" if math.isfinite(khat) else ""
             vs = ""
             if "vmc_E" in entry:
                 vs = f"  vmc={entry['vmc_E']:.4f}({entry['vmc_err'] * 100:.2f}%)"
@@ -1136,7 +1150,7 @@ def train_weak_form(
             eta = epdt * (n_epochs - ep - 1) / 60
             print(
                 f"  [{ep:4d}] E={Em:.4f}±{Es:.3f} var={Ev:.2e} ESS={ess:.0f} "
-                f"loss={ep_loss:.3e} {epdt:.1f}s err={err:+.2f}% "
+                f"loss={ep_loss:.3e} {epdt:.1f}s err={err:+.2f}%{khat_s} "
                 f"eta={eta:.0f}m{vs}"
             )
             sys.stdout.flush()
@@ -1698,6 +1712,8 @@ def main():
         e_ref=E_DMC,
         print_every=10, patience=a.patience,
         vmc_every=a.vmc_every, vmc_n=a.vmc_n, tag=a.tag,
+        mode=a.mode,
+        seed=a.seed,
         vmc_select_n=a.vmc_select_n,
         natural_grad=a.natural_grad,
         sr_mode=a.sr_mode,

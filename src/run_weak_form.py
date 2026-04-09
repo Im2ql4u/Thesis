@@ -45,6 +45,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import config
 from functions.Energy import evaluate_energy_vmc
 from functions.Neural_Networks import (
+    AdaptiveGMMProposal,
     colloc_fd_loss as nn_colloc_fd_loss,
     importance_resample as nn_importance_resample,
     lookup_dmc_energy,
@@ -264,6 +265,7 @@ def importance_resample(
     omega,
     n_cand_mult=8,
     sigma_fs=(0.8, 1.3, 2.0),
+    proposal=None,
     min_pair_cutoff=0.0,
     weight_temp=1.0,
     logw_clip_q=0.0,
@@ -287,6 +289,7 @@ def importance_resample(
         dtype=DTYPE,
         n_cand_mult=n_cand_mult,
         sigma_fs=sigma_fs,
+        proposal=proposal,
         min_pair_cutoff=min_pair_cutoff,
         weight_temp=weight_temp,
         logw_clip_q=logw_clip_q,
@@ -525,6 +528,11 @@ def train_weak_form(
     prox_mu=0.0,
     min_ess=0,
     sigma_fs=(0.8, 1.3, 2.0),
+    adaptive_proposal=False,
+    gmm_components=8,
+    gmm_refit_every=50,
+    gmm_refit_min_samples=500,
+    gmm_covariance="diag",
     min_pair_cutoff=0.0,
     ess_floor_ratio=0.0,
     ess_oversample_max=0,
@@ -571,6 +579,8 @@ def train_weak_form(
     sr_trust_region=1.0,
     sr_cg_iters=15,
     sr_center=True,
+    minsr_min_ess=0.0,
+    minsr_max_khat=0.0,
     allow_missing_dmc=False,
     save_best_window: int = 0,
     best_ckpt_path=None,
@@ -676,6 +686,18 @@ def train_weak_form(
                 subsample=fisher_subsample,
                 center_gradients=sr_center,
             )
+        elif sr_mode == "minsr":
+            from sr_preconditioner import MinSR
+            fisher_precond = MinSR(
+                all_trainable,
+                damping=fisher_damping,
+                damping_end=fisher_damping_end,
+                damping_anneal_epochs=fisher_damping_anneal,
+                max_param_change=sr_max_param_change,
+                trust_region=sr_trust_region,
+                subsample=fisher_subsample,
+                center_gradients=sr_center,
+            )
         else:  # diagonal
             from fisher_preconditioner import DiagonalFisherPreconditioner
             fisher_precond = DiagonalFisherPreconditioner(
@@ -738,6 +760,8 @@ def train_weak_form(
             print(f"    Woodbury: max_Δθ={sr_max_param_change} trust_r={sr_trust_region}")
         elif sr_mode == "cg":
             print(f"    CG: iters={sr_cg_iters} max_Δθ={sr_max_param_change} trust_r={sr_trust_region}")
+        elif sr_mode == "minsr":
+            print(f"    MinSR: max_Δθ={sr_max_param_change} trust_r={sr_trust_region}")
         if fisher_damping_anneal > 0:
             print(f"    Damping anneal: {fisher_damping:.1e} → {fisher_damping_end:.1e} over {fisher_damping_anneal} epochs")
     sys.stdout.flush()
@@ -753,6 +777,7 @@ def train_weak_form(
     _best_rolling_E: float = float("inf")
     n_ess_reject = 0
     n_rollbacks = 0
+    n_minsr_guard_skips = 0
     replay_X = None
     prev_stable_E = None
     curr_oversample = int(max(1, oversample))
@@ -760,6 +785,28 @@ def train_weak_form(
     ess_step = int(max(1, ess_oversample_step))
     n_resample_tries = int(max(1, ess_resample_tries))
     last_rs_stats = {}
+    proposal_obj = None
+
+    if adaptive_proposal:
+        proposal_obj = AdaptiveGMMProposal(
+            n_elec=n_elec,
+            dim=DIM,
+            omega=omega,
+            n_components=gmm_components,
+            sigma_fs=sigma_fs,
+            refit_every=gmm_refit_every,
+            refit_min_samples=gmm_refit_min_samples,
+            covariance_type=gmm_covariance,
+            random_state=seed if seed is not None else 0,
+            device=DEVICE,
+            dtype=DTYPE,
+        )
+        print(
+            "  Adaptive proposal: "
+            f"components={gmm_components} refit_every={gmm_refit_every} "
+            f"min_samples={gmm_refit_min_samples} cov={gmm_covariance}"
+        )
+        sys.stdout.flush()
 
     # Save initial state for ESS-gated rollback
     def _save_state():
@@ -804,6 +851,7 @@ def train_weak_form(
                 omega,
                 n_cand_mult=used_oversample,
                 sigma_fs=sigma_fs_adapted,
+                proposal=proposal_obj,
                 min_pair_cutoff=min_pair_cutoff,
                 weight_temp=resample_weight_temp,
                 logw_clip_q=resample_logw_clip_q,
@@ -818,6 +866,10 @@ def train_weak_form(
                 break
             used_oversample = min(max_oversample, used_oversample + ess_step)
         curr_oversample = used_oversample
+
+        if proposal_obj is not None:
+            proposal_obj.accumulate(X)
+            _ = proposal_obj.maybe_refit(ep + 1)
 
         if replay_frac > 0 and replay_X is not None and replay_X.numel() > 0:
             n_rep = int(min(n_coll - 1, round(replay_frac * n_coll)))
@@ -897,14 +949,38 @@ def train_weak_form(
                 L = L + bf_cusp_reg * cusp_pen
                 ep_cusp_pen += float(cusp_pen.detach().item()) / nmb
 
+            if torch.isnan(L) or torch.isinf(L):
+                raise RuntimeError(f"NaN/Inf loss at epoch {ep}. Check sampling weights and local energies.")
+
             (L / nmb).backward()
             ep_loss += L.item() / nmb
             all_EL.append(EL_det)
             all_e_weak.append(ew_det)
 
+        EL_for_sr = torch.cat(all_EL).detach()
+
         # ── Natural gradient: update Fisher estimate and precondition ──
         if fisher_precond is not None:
+            if sr_mode == "minsr":
+                guard_reason = None
+                if minsr_min_ess > 0 and ess < float(minsr_min_ess):
+                    guard_reason = f"ESS={ess:.0f} < minsr_min_ess={float(minsr_min_ess):.0f}"
+                khat_now = finite_or(last_rs_stats.get("psis_khat"))
+                if (guard_reason is None and minsr_max_khat > 0 and math.isfinite(khat_now)
+                        and khat_now > float(minsr_max_khat)):
+                    guard_reason = f"khat={khat_now:.2f} > minsr_max_khat={float(minsr_max_khat):.2f}"
+                if guard_reason is not None:
+                    _restore_state(last_good_state)
+                    n_minsr_guard_skips += 1
+                    if ep % print_every == 0 or ep == 0:
+                        print(f"  [{ep:4d}] MinSR guard skip: {guard_reason} "
+                              f"(count={n_minsr_guard_skips})")
+                        sys.stdout.flush()
+                    continue
+
             fisher_stats = fisher_precond.update(psi_log_fn, X, all_trainable)
+            if hasattr(fisher_precond, "set_local_energies"):
+                fisher_precond.set_local_energies(EL_for_sr)
             fisher_precond.precondition(all_trainable)
 
         if grad_clip > 0:
@@ -913,7 +989,7 @@ def train_weak_form(
         sch.step()
 
         # Epoch statistics from the hybrid loss
-        EL_all = torch.cat(all_EL)
+        EL_all = EL_for_sr
         Em = EL_all.mean().item()  # E_L mean (accurate energy estimate)
         Ev = EL_all.var().item()   # E_L variance
         Es = EL_all.std().item()
@@ -1237,6 +1313,16 @@ def main():
                     help="Importance-weight tempering exponent (alpha); <1 flattens spikes")
     ap.add_argument("--resample-logw-clip-q", type=float, default=0.0,
                     help="Upper quantile for clipping log-weights before resampling (0=off)")
+    ap.add_argument("--adaptive-proposal", action="store_true",
+                    help="Enable adaptive GMM proposal fitted to recent resampled points")
+    ap.add_argument("--gmm-components", type=int, default=8,
+                    help="Number of mixture components for adaptive proposal")
+    ap.add_argument("--gmm-refit-every", type=int, default=50,
+                    help="Epoch interval for adaptive proposal refits")
+    ap.add_argument("--gmm-refit-min-samples", type=int, default=500,
+                    help="Minimum buffered samples required before GMM refit")
+    ap.add_argument("--gmm-covariance", choices=["diag", "full", "tied"], default="diag",
+                    help="Covariance type for adaptive GMM proposal")
     ap.add_argument("--langevin-steps", type=int, default=0,
                     help="Langevin refinement steps on proposal samples (0=off)")
     ap.add_argument("--langevin-step-size", type=float, default=0.01,
@@ -1303,8 +1389,8 @@ def main():
     # Natural gradient
     ap.add_argument("--natural-grad", action="store_true",
                     help="Use diagonal Fisher preconditioning (natural gradient) instead of Adam")
-    ap.add_argument("--sr-mode", choices=["diagonal", "woodbury", "cg"], default="diagonal",
-                    help="SR mode: diagonal=Hutchinson diagonal, woodbury=exact Woodbury, cg=CG solve")
+    ap.add_argument("--sr-mode", choices=["diagonal", "woodbury", "cg", "minsr"], default="diagonal",
+                    help="SR mode: diagonal=Hutchinson diagonal, woodbury=exact Woodbury, cg=CG solve, minsr=minimum-step SR")
     ap.add_argument("--fisher-damping", type=float, default=1e-3,
                     help="Tikhonov damping for Fisher/SR (1e-4 to 1e-2)")
     ap.add_argument("--fisher-damping-end", type=float, default=0.0,
@@ -1329,6 +1415,10 @@ def main():
                     help="CG iterations for cg mode (100 is standard for VMC)")
     ap.add_argument("--sr-center", action="store_true", default=True,
                     help="Center per-sample gradients (subtract mean O) in SR")
+    ap.add_argument("--minsr-min-ess", type=float, default=0.0,
+                    help="Skip MinSR update when ESS falls below this threshold (0=off)")
+    ap.add_argument("--minsr-max-khat", type=float, default=0.0,
+                    help="Skip MinSR update when PSIS khat exceeds this value (0=off)")
     # Architecture
     ap.add_argument("--jas-arch", choices=["vcycle", "ctnn"], default="vcycle",
                     help="Jastrow architecture: vcycle=CTNNJastrowVCycle, ctnn=CTNNJastrow")
@@ -1688,6 +1778,11 @@ def main():
         prox_mu=a.prox_mu,
         min_ess=a.min_ess,
         sigma_fs=sigma_fs,
+        adaptive_proposal=a.adaptive_proposal,
+        gmm_components=a.gmm_components,
+        gmm_refit_every=a.gmm_refit_every,
+        gmm_refit_min_samples=a.gmm_refit_min_samples,
+        gmm_covariance=a.gmm_covariance,
         min_pair_cutoff=a.min_pair_cutoff,
         ess_floor_ratio=a.ess_floor_ratio,
         ess_oversample_max=a.ess_oversample_max,
@@ -1729,6 +1824,8 @@ def main():
         sr_trust_region=a.sr_trust_region,
         sr_cg_iters=a.sr_cg_iters,
         sr_center=a.sr_center,
+        minsr_min_ess=a.minsr_min_ess,
+        minsr_max_khat=a.minsr_max_khat,
         allow_missing_dmc=a.allow_missing_dmc_ref,
         save_best_window=a.save_best_window,
         best_ckpt_path=(RESULTS_DIR / f"{a.tag}_best.pt") if a.save_best_window > 0 else None,

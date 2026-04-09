@@ -579,9 +579,9 @@ done
 5. **Overall:** The results are sufficient to write a thesis section distinguishing sampling limitations from optimizer limitations in weak-form collocation.
 
 ## Current State
-**Active phase:** Phase 1 — PSIS Tail Diagnostics (completed)
-**Active step:** Phase boundary reached; waiting for confirmation before Phase 2
-**Last evidence:** `CUDA_VISIBLE_DEVICES='' PYTHONPATH=src python3.11 src/run_weak_form.py --n-elec 6 --omega 1.0 --n-coll 256 --epochs 3 --tag psis_smoke 2>&1 | grep -o 'khat=[0-9.]*'` -> `khat=1.09`
-**Current risk:** k-hat estimator is a lightweight Hill-style approximation, not full PSIS smoothing
-**Next action:** If confirmed, start Phase 2 Step 2.1 (adaptive proposal class)
+**Active phase:** Phase 4 — Controlled 2×2 Ablation (stability hardening pass)
+**Active step:** Fix Step 2 — Add adaptive GMM degeneracy fallback
+**Last evidence:** `CUDA_MANUAL_DEVICE=1 PYTHONPATH=src python3.11 src/run_weak_form.py --n-elec 6 --omega 1.0 --n-coll 256 --epochs 3 --natural-grad --sr-mode minsr --minsr-min-ess 400 --tag minsr_guard_smoke --lr 1e-3` -> `[   0] MinSR guard skip: ESS=34 < minsr_min_ess=400 (count=1)` and finite final eval `err=+0.147%`
+**Current risk:** Adaptive GMM can collapse to duplicate clusters and tiny covariance, reducing proposal diversity
+**Next action:** Add GMM fit-quality checks and fallback-to-fixed-proposal when degeneracy is detected
 **Blockers:** none

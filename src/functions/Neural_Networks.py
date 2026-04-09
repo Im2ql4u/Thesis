@@ -2,8 +2,10 @@ from __future__ import annotations
 
 # stable_training.py — capped-simplex sampler, clean, shape-safe
 import math
+import warnings
 from typing import Literal
 
+import numpy as np
 import torch
 from torch import nn
 
@@ -156,6 +158,191 @@ def eval_mixture_logq(x, n_elec, dim, omega, sigma_fs):
     return torch.logsumexp(log_stack, dim=-1) - math.log(nc)
 
 
+class AdaptiveGMMProposal:
+    """Adaptive Gaussian-mixture proposal for importance resampling.
+
+    The model is periodically refit to recently resampled points, then used as
+    proposal q(x) for the next epochs. Before first fit (or on fit failure), it
+    falls back to the fixed isotropic Gaussian mixture.
+    """
+
+    def __init__(
+        self,
+        n_elec: int,
+        dim: int,
+        omega: float,
+        *,
+        n_components: int = 8,
+        sigma_fs=(0.8, 1.3, 2.0),
+        refit_every: int = 50,
+        refit_min_samples: int = 500,
+        covariance_type: str = "diag",
+        random_state: int = 0,
+        buffer_size: int | None = None,
+        device: str = "cpu",
+        dtype: torch.dtype = torch.float64,
+    ):
+        self.n_elec = int(n_elec)
+        self.dim = int(dim)
+        self.omega = float(omega)
+        self.nd = self.n_elec * self.dim
+
+        self.n_components = int(max(1, n_components))
+        self.sigma_fs = tuple(float(v) for v in sigma_fs)
+        self.refit_every = int(max(1, refit_every))
+        self.refit_min_samples = int(max(32, refit_min_samples))
+        self.covariance_type = str(covariance_type)
+        self.random_state = int(random_state)
+        self.device = device
+        self.dtype = dtype
+
+        if self.covariance_type not in {"diag", "full", "tied"}:
+            raise ValueError(f"Unsupported covariance_type={self.covariance_type}")
+
+        default_buf = max(5000, 10 * self.n_components * self.nd)
+        self.buffer_size = int(default_buf if buffer_size is None else max(buffer_size, self.refit_min_samples))
+
+        self._buffer = torch.empty(0, self.nd, dtype=torch.float64)
+        self._gmm = None
+        self.is_fitted = False
+        self._warned_import = False
+
+    def accumulate(self, x_resampled: torch.Tensor) -> None:
+        """Append resampled points to rolling fit buffer."""
+        x_flat = x_resampled.detach().reshape(x_resampled.shape[0], -1).to("cpu", dtype=torch.float64)
+        if x_flat.shape[1] != self.nd:
+            raise ValueError(f"Expected flattened dim {self.nd}, got {x_flat.shape[1]}")
+
+        if self._buffer.numel() == 0:
+            self._buffer = x_flat
+        else:
+            self._buffer = torch.cat([self._buffer, x_flat], dim=0)
+
+        if self._buffer.shape[0] > self.buffer_size:
+            self._buffer = self._buffer[-self.buffer_size :]
+
+    def maybe_refit(self, epoch: int) -> bool:
+        """Refit GMM at schedule if enough buffered samples are available."""
+        if epoch <= 0 or (epoch % self.refit_every) != 0:
+            return False
+        if self._buffer.shape[0] < self.refit_min_samples:
+            return False
+
+        try:
+            from sklearn.exceptions import ConvergenceWarning
+            from sklearn.mixture import GaussianMixture
+        except Exception as exc:  # pragma: no cover - runtime environment dependent
+            if not self._warned_import:
+                warnings.warn(f"AdaptiveGMMProposal disabled (sklearn unavailable): {exc}")
+                self._warned_import = True
+            return False
+
+        x_np = self._buffer.numpy()
+        n_init = 1 if self.is_fitted else 3
+        gmm = GaussianMixture(
+            n_components=self.n_components,
+            covariance_type=self.covariance_type,
+            reg_covar=1e-6,
+            max_iter=200,
+            n_init=n_init,
+            random_state=self.random_state,
+            warm_start=False,
+        )
+
+        fit_warned = False
+        try:
+            with warnings.catch_warnings(record=True) as caught:
+                warnings.simplefilter("always", ConvergenceWarning)
+                gmm.fit(x_np)
+                fit_warned = any(issubclass(w.category, ConvergenceWarning) for w in caught)
+        except Exception as exc:
+            warnings.warn(f"AdaptiveGMMProposal fit failed at epoch {epoch}: {exc}")
+            return False
+
+        # Reject degenerate fits and keep the previous proposal.
+        eff_components = int(np.sum(gmm.weights_ > 1e-3))
+        degenerate = False
+        degenerate_reasons = []
+        if eff_components < 2:
+            degenerate = True
+            degenerate_reasons.append(f"eff_components={eff_components}")
+
+        if self.covariance_type == "diag":
+            min_var = float(np.min(gmm.covariances_))
+        elif self.covariance_type == "full":
+            min_var = float(np.min(np.linalg.eigvalsh(gmm.covariances_)))
+        else:  # tied
+            min_var = float(np.min(np.linalg.eigvalsh(gmm.covariances_)))
+
+        if not np.isfinite(min_var) or min_var < 1e-8:
+            degenerate = True
+            degenerate_reasons.append(f"min_var={min_var:.3e}")
+
+        # Distinct-cluster sanity on a subset of buffer points.
+        x_probe = x_np[-min(1024, x_np.shape[0]) :]
+        distinct_labels = int(np.unique(gmm.predict(x_probe)).size)
+        if distinct_labels < 2:
+            degenerate = True
+            degenerate_reasons.append(f"distinct_labels={distinct_labels}")
+
+        if fit_warned:
+            degenerate = True
+            degenerate_reasons.append("convergence_warning")
+
+        if degenerate:
+            warnings.warn(
+                "AdaptiveGMMProposal rejected degenerate fit at epoch "
+                f"{epoch}: {', '.join(degenerate_reasons)}"
+            )
+            return False
+
+        self._gmm = gmm
+        self.is_fitted = True
+
+        w_min = float(np.min(gmm.weights_))
+        if self.covariance_type == "diag":
+            max_std = float(np.sqrt(np.max(gmm.covariances_)))
+        elif self.covariance_type == "full":
+            max_std = float(np.sqrt(np.max(np.linalg.eigvalsh(gmm.covariances_))))
+        else:  # tied
+            max_std = float(np.sqrt(np.max(np.linalg.eigvalsh(gmm.covariances_))))
+
+        print(
+            f"  [GMM refit] epoch={epoch} components={self.n_components} "
+            f"cov={self.covariance_type} min_weight={w_min:.3f} max_std={max_std:.3f}"
+        )
+        return True
+
+    def sample(self, n: int) -> tuple[torch.Tensor, torch.Tensor]:
+        """Sample proposal points and return (x, log_q)."""
+        n = int(n)
+        if (not self.is_fitted) or self._gmm is None:
+            return sample_mixture(
+                n,
+                self.n_elec,
+                self.dim,
+                self.omega,
+                device=self.device,
+                dtype=self.dtype,
+                sigma_fs=self.sigma_fs,
+            )
+
+        x_np, _ = self._gmm.sample(n)
+        lq_np = self._gmm.score_samples(x_np)
+        x = torch.from_numpy(x_np).to(device=self.device, dtype=self.dtype).reshape(n, self.n_elec, self.dim)
+        lq = torch.from_numpy(lq_np).to(device=self.device, dtype=self.dtype)
+        return x, lq
+
+    def log_prob(self, x: torch.Tensor) -> torch.Tensor:
+        """Evaluate log q(x) under current proposal model."""
+        if (not self.is_fitted) or self._gmm is None:
+            return eval_mixture_logq(x, self.n_elec, self.dim, self.omega, self.sigma_fs)
+
+        x_flat = x.detach().reshape(x.shape[0], -1).to("cpu", dtype=torch.float64).numpy()
+        lq_np = self._gmm.score_samples(x_flat)
+        return torch.from_numpy(lq_np).to(device=x.device, dtype=x.dtype)
+
+
 def langevin_refine_samples(x, psi_log_fn, n_steps, step_size, chunk=1024, grad_clip=1.0):
     """Push samples toward high-|Ψ|² regions via overdamped Langevin dynamics.
 
@@ -196,6 +383,7 @@ def importance_resample(
     dtype,
     n_cand_mult: int = 8,
     sigma_fs=(0.8, 1.3, 2.0),
+    proposal: AdaptiveGMMProposal | None = None,
     min_pair_cutoff: float = 0.0,
     weight_temp: float = 1.0,
     logw_clip_q: float = 0.0,
@@ -209,15 +397,18 @@ def importance_resample(
     overdamped Langevin dynamics toward |Ψ|², then re-weighted.
     """
     n_cand = n_cand_mult * n_keep
-    x_all, lq_all = sample_mixture(
-        n_cand,
-        n_elec,
-        dim,
-        omega,
-        device=device,
-        dtype=dtype,
-        sigma_fs=sigma_fs,
-    )
+    if proposal is not None:
+        x_all, lq_all = proposal.sample(n_cand)
+    else:
+        x_all, lq_all = sample_mixture(
+            n_cand,
+            n_elec,
+            dim,
+            omega,
+            device=device,
+            dtype=dtype,
+            sigma_fs=sigma_fs,
+        )
 
     if min_pair_cutoff > 0:
         mp = _pairwise_rmin(x_all)

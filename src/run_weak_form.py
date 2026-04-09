@@ -1867,6 +1867,15 @@ def main():
         err = safe_percent_err(E, E_DMC)
         print(f"\n  *** Final: E = {E:.5f} ± {se:.5f}   err = {err:+.3f}%")
 
+        # Never save a run with invalid final metrics when final evaluation was requested.
+        err_required = math.isfinite(E_DMC) and E_DMC != 0.0
+        final_ok = math.isfinite(E) and math.isfinite(se) and (math.isfinite(err) if err_required else True)
+        if not final_ok:
+            raise RuntimeError(
+                "Non-finite final metrics detected; refusing to save checkpoint "
+                f"(E={E}, se={se}, err={err}, e_dmc={E_DMC})."
+            )
+
     # ── Save ──
     save_path = RESULTS_DIR / f"{a.tag}.pt"
     ckpt_dict = dict(

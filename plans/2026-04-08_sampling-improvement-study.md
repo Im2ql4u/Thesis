@@ -580,8 +580,8 @@ done
 
 ## Current State
 **Active phase:** Phase 4 — Controlled 2×2 Ablation (stability hardening pass)
-**Active step:** Fix Step 2 — Add adaptive GMM degeneracy fallback
-**Last evidence:** `CUDA_MANUAL_DEVICE=1 PYTHONPATH=src python3.11 src/run_weak_form.py --n-elec 6 --omega 1.0 --n-coll 256 --epochs 3 --natural-grad --sr-mode minsr --minsr-min-ess 400 --tag minsr_guard_smoke --lr 1e-3` -> `[   0] MinSR guard skip: ESS=34 < minsr_min_ess=400 (count=1)` and finite final eval `err=+0.147%`
-**Current risk:** Adaptive GMM can collapse to duplicate clusters and tiny covariance, reducing proposal diversity
-**Next action:** Add GMM fit-quality checks and fallback-to-fixed-proposal when degeneracy is detected
+**Active step:** Post-hardening validation reruns
+**Last evidence:** `/usr/bin/python3.11 -m py_compile src/run_weak_form.py src/functions/Neural_Networks.py` succeeded after adding final-eval hard-fail guard in the save path
+**Current risk:** Hard-regime MinSR can still destabilize before final eval; fixes must be validated on real N=20, ω=0.1 runs
+**Next action:** Rerun failed MinSR ablation cells under new guards and compare ESS/k-hat and final metric validity
 **Blockers:** none

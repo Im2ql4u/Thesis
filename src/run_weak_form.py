@@ -960,7 +960,9 @@ def train_weak_form(
         EL_for_sr = torch.cat(all_EL).detach()
 
         # ── Natural gradient: update Fisher estimate and precondition ──
+        minsr_skipped_this_epoch = False
         if fisher_precond is not None:
+            skip_precond = False
             if sr_mode == "minsr":
                 guard_reason = None
                 if minsr_min_ess > 0 and ess < float(minsr_min_ess):
@@ -970,18 +972,19 @@ def train_weak_form(
                         and khat_now > float(minsr_max_khat)):
                     guard_reason = f"khat={khat_now:.2f} > minsr_max_khat={float(minsr_max_khat):.2f}"
                 if guard_reason is not None:
-                    _restore_state(last_good_state)
+                    skip_precond = True
+                    minsr_skipped_this_epoch = True
                     n_minsr_guard_skips += 1
                     if ep % print_every == 0 or ep == 0:
-                        print(f"  [{ep:4d}] MinSR guard skip: {guard_reason} "
+                        print(f"  [{ep:4d}] MinSR guard skip (Adam fallback): {guard_reason} "
                               f"(count={n_minsr_guard_skips})")
                         sys.stdout.flush()
-                    continue
 
-            fisher_stats = fisher_precond.update(psi_log_fn, X, all_trainable)
-            if hasattr(fisher_precond, "set_local_energies"):
-                fisher_precond.set_local_energies(EL_for_sr)
-            fisher_precond.precondition(all_trainable)
+            if not skip_precond:
+                fisher_stats = fisher_precond.update(psi_log_fn, X, all_trainable)
+                if hasattr(fisher_precond, "set_local_energies"):
+                    fisher_precond.set_local_energies(EL_for_sr)
+                fisher_precond.precondition(all_trainable)
 
         if grad_clip > 0:
             nn.utils.clip_grad_norm_(all_trainable, grad_clip)
@@ -1224,10 +1227,11 @@ def train_weak_form(
                 if "vmc_sel_E" in entry:
                     vs += f" sel={entry['vmc_sel_E']:.4f}({entry['vmc_sel_err'] * 100:.2f}%)"
             eta = epdt * (n_epochs - ep - 1) / 60
+            sr_tag = " [adam-fb]" if minsr_skipped_this_epoch else ""
             print(
                 f"  [{ep:4d}] E={Em:.4f}±{Es:.3f} var={Ev:.2e} ESS={ess:.0f} "
                 f"loss={ep_loss:.3e} {epdt:.1f}s err={err:+.2f}%{khat_s} "
-                f"eta={eta:.0f}m{vs}"
+                f"eta={eta:.0f}m{vs}{sr_tag}"
             )
             sys.stdout.flush()
 

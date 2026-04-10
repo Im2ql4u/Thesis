@@ -347,8 +347,12 @@ This phase only starts AFTER Phases 1–3 have been analyzed and the recipe is l
 
 ## Current state
 
-**Active phase:** Phase 0 (energy table fix — DONE)
-**Next:** Commit energy fix, then Phase 1 launch.
+**Active phase:** Phase 1 (N=6 baseline reliability map + H1 + H3 + H4)
+Active step: Phase 1.2 — Full Baseline A1 launch (N=6, ω=1.0, seed=42)
+Last evidence: `CUDA_MANUAL_DEVICE=0 python3.11 src/run_weak_form.py --mode bf --n-elec 6 --omega 1.0 --epochs 2 --n-coll 512 --oversample 4 --micro-batch 256 --seed 42 --tag sanity_p1_a1_n6w1_s42` produced `E=20.236229 ± 0.009092`, `err=+0.382%`, `ESS=34`, `khat=1.18`
+Current risk: full-run wall time may exceed single interactive command timeout; must run in persistent async terminal and monitor
+Next action: launch 1200-epoch baseline A1 run with phase-1 baseline flags and capture first-epoch diagnostics
+Blockers: none
 
 ## Scope
 

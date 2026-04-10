@@ -227,16 +227,16 @@ Run matrix (N=6, all on 8 GPUs):
 
 | Cell | ω | Config | Flags | Seeds | GPU |
 |------|---|--------|-------|-------|-----|
-| A1 | 1.0 | baseline | default | 42,137,314 | 0 |
-| A2 | 0.5 | baseline | default | 42,137,314 | 1 |
-| A3 | 0.1 | baseline | default | 42,137,314 | 2 |
-| A4 | 0.01 | baseline | default | 42,137,314 | 3 |
-| A5 | 0.001 | baseline | default | 42,137,314 | 4 |
-| B1 | 1.0 | robust | hisamp+stab+rollback | 42,137,314 | 0 |
-| B2 | 0.5 | robust | hisamp+stab+rollback | 42,137,314 | 1 |
-| B3 | 0.1 | robust | hisamp+stab+rollback | 42,137,314 | 2 |
-| B4 | 0.01 | robust | hisamp+stab+rollback | 42,137,314 | 3 |
-| B5 | 0.001 | robust | hisamp+stab+rollback | 42,137,314 | 4 |
+| A1 | 1.0 | baseline | proven-control | 42,137,314 | 0 |
+| A2 | 0.5 | baseline | proven-control | 42,137,314 | 1 |
+| A3 | 0.1 | baseline | proven-control | 42,137,314 | 2 |
+| A4 | 0.01 | baseline | proven-control | 42,137,314 | 3 |
+| A5 | 0.001 | baseline | proven-control | 42,137,314 | 4 |
+| B1 | 1.0 | robust | control+hisamp+norm+rollback+adaptive | 42,137,314 | 0 |
+| B2 | 0.5 | robust | control+hisamp+norm+rollback+adaptive | 42,137,314 | 1 |
+| B3 | 0.1 | robust | control+hisamp+norm+rollback+adaptive | 42,137,314 | 2 |
+| B4 | 0.01 | robust | control+hisamp+norm+rollback+adaptive | 42,137,314 | 3 |
+| B5 | 0.001 | robust | control+hisamp+norm+rollback+adaptive | 42,137,314 | 4 |
 
 30 runs total, sequenced as 2 waves of 15 (5 GPUs × 3 seeds, then repeat).
 Estimated wall-clock: ~4h.
@@ -246,8 +246,8 @@ Estimated wall-clock: ~4h.
 --mode bf --n-elec 6 --omega $OMEGA \
 --epochs 1200 --lr 5e-4 --lr-jas 5e-5 \
 --n-coll 4096 --oversample 8 --micro-batch 512 \
---loss-type reinforce --direct-weight 0.1 --grad-clip 1.0 \
---vmc-every 50 --vmc-n 10000 --n-eval 30000 \
+--loss-type reinforce --direct-weight 0.0 --clip-el 5.0 --grad-clip 1.0 \
+--vmc-every 50 --vmc-n 20000 --n-eval 30000 \
 --seed $SEED --tag baseline_n6w${OMEGA_TAG}_s${SEED}
 ```
 
@@ -255,13 +255,12 @@ Estimated wall-clock: ~4h.
 ```bash
 --mode bf --n-elec 6 --omega $OMEGA \
 --epochs 1200 --lr 5e-4 --lr-jas 5e-5 \
---n-coll 4096 --oversample 16 \          # H1: 2× more candidates
---micro-batch 512 \
---loss-type reinforce --direct-weight 0.1 --grad-clip 1.0 \
---clip-el 5.0 --reward-normalize \        # H3: REINFORCE stabilization
---rollback-jump-sigma 3 --rollback-decay 0.95 \  # H4: rollback
---adaptive-proposal --gmm-components 8 --gmm-refit-every 30 \  # adaptive proposal
---vmc-every 50 --vmc-n 10000 --n-eval 30000 \
+--n-coll 4096 --oversample 16 --micro-batch 512 \
+--loss-type reinforce --direct-weight 0.0 --clip-el 5.0 --grad-clip 1.0 \
+--reward-normalize \
+--rollback-jump-sigma 3 --rollback-decay 0.95 \
+--adaptive-proposal --gmm-components 8 --gmm-refit-every 30 \
+--vmc-every 50 --vmc-n 20000 --n-eval 30000 \
 --seed $SEED --tag robust_n6w${OMEGA_TAG}_s${SEED}
 ```
 
@@ -348,10 +347,10 @@ This phase only starts AFTER Phases 1–3 have been analyzed and the recipe is l
 ## Current state
 
 **Active phase:** Phase 1 (N=6 baseline reliability map + H1 + H3 + H4)
-Active step: Phase 1.2 — Full Baseline A1 launch (N=6, ω=1.0, seed=42)
-Last evidence: `CUDA_MANUAL_DEVICE=0 python3.11 src/run_weak_form.py --mode bf --n-elec 6 --omega 1.0 --epochs 2 --n-coll 512 --oversample 4 --micro-batch 256 --seed 42 --tag sanity_p1_a1_n6w1_s42` produced `E=20.236229 ± 0.009092`, `err=+0.382%`, `ESS=34`, `khat=1.18`
-Current risk: full-run wall time may exceed single interactive command timeout; must run in persistent async terminal and monitor
-Next action: launch 1200-epoch baseline A1 run with phase-1 baseline flags and capture first-epoch diagnostics
+Active step: Phase 1.4 — Launch corrected Phase-1 matrix (A/B across ω and seeds)
+Last evidence: corrected control verification run `baseline_p1_a1_n6w1_s42_ctrlfix` completed with `E=20.159825 ± 0.002656`, `err=+0.003%` (vs old control `+0.127%`), confirming control recipe fix
+Current risk: matrix launch without strict tag/version separation may mix old-control and corrected-control runs
+Next action: launch A/B matrix using corrected flags only (direct-weight=0.0, clip-el=5.0, vmc-n=20000) with new run tags and collect seed-level reliability stats
 Blockers: none
 
 ## Scope

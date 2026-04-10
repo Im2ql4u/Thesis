@@ -579,9 +579,9 @@ done
 5. **Overall:** The results are sufficient to write a thesis section distinguishing sampling limitations from optimizer limitations in weak-form collocation.
 
 ## Current State
-**Active phase:** Phase 4 — Controlled 2×2 Ablation (stability hardening pass)
-**Active step:** Post-hardening validation reruns
-**Last evidence:** `/usr/bin/python3.11 -m py_compile src/run_weak_form.py src/functions/Neural_Networks.py` succeeded after adding final-eval hard-fail guard in the save path
-**Current risk:** Hard-regime MinSR can still destabilize before final eval; fixes must be validated on real N=20, ω=0.1 runs
-**Next action:** Rerun failed MinSR ablation cells under new guards and compare ESS/k-hat and final metric validity
+**Active phase:** Phase 4 — Controlled 2×2 Ablation (easier-regime rerun)
+**Active step:** Step 4.1 launched: run-scoped easier-regime 2x2 ablation in tmux
+**Last evidence:** Launch command executed with run-scoped outputs (`OUT_DIR=outputs/2026-04-10_ess-viable_ablation`, `RUN_PREFIX=ablation_n6w05`, `N_ELEC=6`, `OMEGA=0.5`, `EPOCHS=1200`, `MINSR_MIN_ESS=32`, `MINSR_MAX_KHAT=2.0`). Four sessions are running on GPUs 1/2/3/5 and all logs show correct headers. Early health at epoch 10 in both MinSR cells: ESS=107, khat=1.07, no `MinSR guard skip` / no `[adam-fb]` fallback.
+**Current risk:** MinSR-vs-Adam remains potentially confounded because MinSR cells use SGD+Fisher base while Adam cells use Adam; interpretation must explicitly separate optimizer-family effects from preconditioner effects.
+**Next action:** Continue monitoring to epoch ~30/100 for GMM refit and stability, then collect final result table when runs complete.
 **Blockers:** none

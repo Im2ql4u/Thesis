@@ -581,7 +581,7 @@ done
 ## Current State
 **Active phase:** Phase 4 — Controlled 2×2 Ablation (easier-regime rerun)
 **Active step:** Step 4.1 launched: run-scoped easier-regime 2x2 ablation in tmux
-**Last evidence:** Launch command executed with run-scoped outputs (`OUT_DIR=outputs/2026-04-10_ess-viable_ablation`, `RUN_PREFIX=ablation_n6w05`, `N_ELEC=6`, `OMEGA=0.5`, `EPOCHS=1200`, `MINSR_MIN_ESS=32`, `MINSR_MAX_KHAT=2.0`). Four sessions are running on GPUs 1/2/3/5 and all logs show correct headers. Early health at epoch 10 in both MinSR cells: ESS=107, khat=1.07, no `MinSR guard skip` / no `[adam-fb]` fallback.
+**Last evidence:** Live snapshot at ~08:06 UTC: Adam cells reached epoch 320+ with stable ESS 69-128 and khat 0.94-1.26; adaptive-Adam shows successful GMM refits at epochs 270 and 300 with healthy component weights. MinSR cells reached epoch 20 with ESS~109 and khat~1.05, with no guard fallback lines observed so far.
 **Current risk:** MinSR-vs-Adam remains potentially confounded because MinSR cells use SGD+Fisher base while Adam cells use Adam; interpretation must explicitly separate optimizer-family effects from preconditioner effects.
-**Next action:** Continue monitoring to epoch ~30/100 for GMM refit and stability, then collect final result table when runs complete.
+**Next action:** Keep tmux jobs running; next checkpoint readout at MinSR epoch ~100 and final extraction after all four cells complete.
 **Blockers:** none

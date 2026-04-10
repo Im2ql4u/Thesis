@@ -63,18 +63,30 @@ _ACTIVATIONS = {
 # Reference DMC energies
 # ---------------------------------------------------------------------
 DMC_ENERGIES: dict[int, dict[float, float]] = {
-    2: {0.001: 0.00730, 0.01: 0.07384, 0.1: 0.44079, 0.28: 1.02164, 0.5: 1.65977, 1.0: 3.00000},
-    # N=6: 0.001 and 0.01 values confirmed from weak-form probe runs (2026-03).
-    # 0.69036 for ω=0.01 and 0.140832 for ω=0.001 replace old placeholders (0.8, missing).
+    # N=2: ω=0.001 has no DMC ref; uses PINN+CTNN energy from thesis Table 5.2.
+    2: {0.001: 0.013778, 0.01: 0.073839, 0.1: 0.44079, 0.28: 1.02164, 0.5: 1.65977, 1.0: 3.00000},
+    # N=6: ω=0.001 and ω=0.01 have no DMC ref; use PINN+CTNN (thesis Table 5.2).
     6: {0.001: 0.140832, 0.01: 0.69036, 0.1: 3.55385, 0.28: 7.60019, 0.5: 11.78484, 1.0: 20.15932},
-    12: {0.01: 2.0, 0.1: 12.26984, 0.28: 25.63577, 0.5: 39.15960, 1.0: 65.70010},
-    20: {0.1: 29.97790, 0.28: 61.92680, 0.5: 93.87520, 1.0: 155.88220},
+    # N=12: ω=0.001 and ω=0.01 have no DMC ref; use PINN+CTNN (thesis Table 5.2).
+    12: {0.001: 0.515365, 0.01: 2.47363, 0.1: 12.26984, 0.28: 25.63577, 0.5: 39.15960, 1.0: 65.70010},
+    # N=20: ω=0.001 and ω=0.01 have no DMC ref; use PINN+CTNN (thesis Table 5.2).
+    20: {0.001: 1.293033, 0.01: 6.14645, 0.1: 29.97790, 0.28: 61.92680, 0.5: 93.87520, 1.0: 155.88220},
 }
 _SUPPORTED_OMEGAS = sorted({w for table in DMC_ENERGIES.values() for w in table.keys()})
+_SNAP_REL_TOL = 0.5
 
 
 def _snap_omega(omega: float) -> float:
-    return min(_SUPPORTED_OMEGAS, key=lambda w: abs(w - float(omega)))
+    omega = float(omega)
+    snapped = min(_SUPPORTED_OMEGAS, key=lambda w: abs(w - omega))
+    rel_dist = abs(snapped - omega) / max(abs(omega), 1e-12)
+    if rel_dist > _SNAP_REL_TOL:
+        raise ValueError(
+            f"omega={omega} is not close to any supported reference value "
+            f"(nearest={snapped}, rel_dist={rel_dist:.3f}, tol={_SNAP_REL_TOL:.3f}). "
+            f"Supported omegæ: {_SUPPORTED_OMEGAS}"
+        )
+    return snapped
 
 
 def _lookup_dmc_energy(n_particles: int, omega: float) -> float:
@@ -248,7 +260,7 @@ def _maybe_set_auto_energy(cfg: Config) -> Config:
     if isinstance(cfg.E, str) and cfg.E == "auto":
         try:
             E_val = _lookup_dmc_energy(cfg.n_particles, cfg.omega)
-        except KeyError as exc:
+        except (KeyError, ValueError) as exc:
             # Allow training to proceed even when no table reference exists.
             # Downstream code already treats non-finite E_ref as "err disabled".
             print(f"[config] Warning: {exc}; setting E=nan for this run")

@@ -159,11 +159,13 @@ Total: ~44 runs, ~108 GPU-hours.
 
 ## Current State
 - Phase 1: COMPLETE (30 runs, all rc=0, results analyzed)
-- Phase 2: IN PROGRESS
-  - Run ID: `2026-04-11_phase2_eval_fix`
-  - Launcher: `scripts/launch_phase2_eval_fix.sh`
-  - Grid: N=6, omega={1.0, 0.5}, seeds={42,137,314}, robust recipe only
-  - Key flags: `--vmc-every 25 --vmc-n 50000 --n-eval 50000`
+- Phase 2: COMPLETE (6 runs, all rc=0)
+  - Run ID: 2026-04-11_phase2_eval_fix
+  - omega=1.0 errors: {0.050, 0.048, 0.089}, mean=0.062, worst=0.089
+  - omega=0.5 errors: {0.104, 0.128, 0.028}, mean=0.087, worst=0.128
+  - Decision gate: FAILED (target worst-seed error <0.03 at omega=1.0 not met)
+  - Interpretation: increasing eval budget reduced uncertainty bars but did not
+    recover near-best checkpoint quality; proceed to Phase 3 (cascade warm-start)
 - Phase 3: NOT STARTED
 - Phase 4: NOT STARTED
 - Phase 5: NOT STARTED

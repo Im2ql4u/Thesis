@@ -1,171 +1,151 @@
 ---
-description: "Elaborated engineering plan. Run after brainstorm/diagnose/review has established direction. Produces a full specification: architecture, training design, evaluation protocol, step-by-step with verifications, risk register. Use Copilot agent mode."
+description: "Generate a detailed markdown execution plan and save it in-workspace for robust handoff."
 agent: agent
 ---
 
-${input:context:Briefly describe what was decided in the preceding brainstorm or diagnose session, and what this plan needs to cover.}
+${input:task:What should the plan solve?}
 
 # Plan
 
-> **How to use:** `@plan.md` after a brainstorm, diagnose, or review session has already established what we are doing and why. Invoke in **Plan Mode** (`Shift+Tab` in Composer) so Cursor researches the codebase before committing to steps. This prompt produces an elaborated engineering specification — not questions, not re-examination, but a committed, detailed plan ready to implement.
+You are the planning agent. Produce a concrete, high-fidelity execution plan as a durable markdown artifact that another agent can follow without additional context.
 
 ---
 
-## Precondition
+## Objective
 
-The thinking has already been done. A direction has been chosen, the problem has been framed, the diagnosis is understood. This phase does not re-examine whether the direction is right — it plans how to execute it rigorously and completely.
+Create a concrete, high-fidelity execution plan as a markdown artifact in the workspace.
 
-If direction is not yet clear: use `@brainstorm.md`, `@diagnose.md`, or `@experts/framing.md` first.
+Plan path convention:
+- `plans/YYYY-MM-DD_<short-descriptor>.md`
 
----
-
-## Step 1 — Read the full project context
-
-Before writing anything, read:
-
-- `README.md` — stated goal and current approach
-- `DECISIONS.md` — active decisions that constrain what we do
-- `JOURNAL.md` — what has been tried, what was found, what failed
-- `SESSION_LOG.md` — most recent conclusions and what is pending
-- The full `src/` and `core/` structure — what exists, what can be reused, what must be built
-- Relevant results in `results/` — current state of evidence
-
-Every step must be consistent with what already exists and what has already been decided.
+If `plans/` does not exist, create it.
 
 ---
 
-## Step 2 — State the plan objective precisely
+## Inputs and context
 
-One paragraph answering:
+Before writing the plan:
+- Use the latest session context from `SESSION_LOG.md`
+- Use relevant findings from the immediately preceding `session-open`, `diagnose`, `review`, or `brainstorm` output
+- Reuse prior negative findings in `JOURNAL.md` so failed directions are not repeated without a stated reason
+- Check `DECISIONS.md` → `## Negative Memory` for structured failure history. If any prior failed approach is relevant to this plan's objective, list it in the Context section and explain how this plan avoids the same failure. If no relevant failures exist, note "no relevant negative history."
+- Check `CONSTRAINTS.md` if it exists. List any verified constraints that affect this plan. Every plan step must respect verified constraints — if a step would violate one, either redesign the step or explicitly argue for retiring the constraint with evidence.
 
-- What specifically will be built or changed by the end of this plan?
-- What question will be answerable that is not currently answerable?
-- What does a successful outcome look like — concretely, in terms of code and examinable results?
-- What does a failed outcome look like — how will we know if this plan did not work?
-
-This is the success criterion. Every step must serve it.
-
----
-
-## Step 3 — Foundation verification steps
-
-Before new work, list what must be verified true for the plan to stand on solid ground. These are checks on existing work, not new tasks.
-
-For each unverified assumption beneath the current task:
-
-- **Data** — pipeline produces correct output on a known input? Splits valid and correlation-respecting?
-- **Implementation** — existing code computes what it claims? Silent errors possible?
-- **Baseline** — verified baseline result exists to compare against?
-
-If any are unverified, they become the first steps in the plan — before any new modelling work. Building on an unverified foundation is how weeks of work become meaningless.
+Do not re-ground the entire repository unless there is missing context that blocks planning.
 
 ---
 
-## Step 4 — Architecture and approach specification
+## Plan quality bar
 
-State explicitly, with reasoning for each:
+The plan must be detailed enough that a weaker model can execute it with low ambiguity.
 
-- What architecture will be used and why — referencing the specific problem structure, not general reputation
-- What the model is specifically being asked to learn — the scoped residual task after any decomposition, not the full problem
-- What the inputs are precisely: shape, dtype, normalization applied, any derived features and how they are computed
-- What the outputs are precisely: shape, meaning, units, how they will be evaluated
-- What physical or domain constraints apply and exactly how they will be enforced (hard constraint in architecture, soft penalty in loss, or not enforced and why)
-- What the baseline is and exactly how it will be computed — the same data, same splits, same metric
-
-If any of these are still open, flag them. They must be resolved before implementation begins.
-
----
-
-## Step 5 — Training design specification
-
-State explicitly, with reasoning:
-
-- **Loss function** — what it measures, why it is appropriate. If multi-term: exact weighting strategy, how balance will be monitored during training, what imbalance looks like and how to fix it
-- **Optimizer** — which one and why. Initial learning rate with reasoning.
-- **Learning rate schedule** — warmup duration if any, decay strategy, rationale
-- **Gradient clipping** — threshold and why
-- **Batch size** — with reasoning about the tradeoff for this problem
-- **Pretraining or curriculum stages** — in order, with what each stage trains and when to move to the next
-- **Training monitoring** — beyond loss: what gradient norms, activation statistics, or loss component ratios to track and what values indicate a problem
-- **Stopping criterion** — specific, not "until convergence"
-
-Nothing here should be a default without a reason.
+Requirements:
+- Steps are atomic and dependency-ordered
+- Each step names concrete files or modules where possible
+- Each step has an executable acceptance check — a shell command the implementer can copy-paste into a terminal. Not prose like "model defined". Example: `python -c "from src.model import X; print(X())"` → expected: non-error output.
+- Scope boundaries are explicit
+- Risks and mitigation are explicit
+- Foundation checks occur before new modeling or optimization work
 
 ---
 
-## Step 6 — Validation and evaluation specification
+## Required output artifact format
 
-State explicitly:
+Write the plan using this exact structure.
 
-- How train/val/test splits are constructed — the method and why it respects the correlation structure of this specific data
-- What metrics will be reported, in what units, and why they measure what actually matters for this problem
-- What the baseline achieves on these metrics — the floor everything is compared against
-- What subsets will be evaluated beyond the aggregate: worst cases, rare events, specific spatial regions, specific time periods
-- How many seeds will be run — variance must be reported, not a single run
-- When the held-out test set will be touched — once, at the end, after all decisions are made
+**Critical rule:** If the plan has more than ~5 atomic steps or mixes different types of work (e.g., data preparation + model building + training + evaluation), split it into **phases**. Each phase must be completable in a single implementation session. The implementer will only execute one phase at a time.
 
----
+```markdown
+# Plan: <title>
 
-## Step 7 — Step-by-step implementation plan
+Date: YYYY-MM-DD
+Status: draft | confirmed | in-progress | completed | abandoned
 
-Break the work into the smallest steps that are each independently verifiable. No step should be evaluable only in hindsight.
+## Project objective
+<the overall project goal this plan serves — one sentence from SESSION_LOG.md or session-open>
 
-For each step:
+## Objective
+<one sentence goal + success condition for this specific plan>
 
+## Context
+<what triggered this plan, with references to recent findings>
+
+## Approach
+<2-6 sentences: strategy, constraints, and why this route>
+
+## Foundation checks (must pass before new code)
+- [ ] Data pipeline known-input check
+- [ ] Split/leakage validity check
+- [ ] Baseline existence or baseline-creation step identified
+- [ ] Relevant existing implementation read and understood
+
+## Scope
+**In scope:** <explicitly allowed>
+**Out of scope:** <explicitly not allowed>
+
+## Phase 1 — <title> (session-sized)
+**Goal:** <what is done when this phase is complete>
+**Estimated scope:** <number of files, rough effort>
+
+### Step 1.1 — <title>
+**What:** <concrete action>
+**Files:** <specific files/modules>
+**Acceptance check:** `<shell command>` → expected: `<output or signal>`
+**Risk:** <main risk>
+
+### Step 1.2 — <title>
+...
+
+## Phase 2 — <title> (session-sized)
+**Depends on:** Phase 1 complete
+**Goal:** <what is done when this phase is complete>
+...
+
+## Risks and mitigations
+- <risk>: <mitigation>
+- <risk>: <mitigation>
+
+## Anticipated expert invocations
+List any steps where specialist consultation is expected during implementation. The execution kernel enforces a 2-expert-per-cycle hard cap, so plans that routinely require 3+ experts per step must be restructured.
+- Step <N>: <expert> — reason: <why this step may need specialist input>
+- (If no expert invocations anticipated, write "None anticipated — standard implementation path.")
+
+## Success criteria
+- <criterion>
+- <criterion>
+
+## Current State
+**Active phase:** <number/title>
+**Active step:** <number/title>
+**Last evidence:** <latest command/check + result>
+**Current risk:** <current top risk>
+**Next action:** <next atomic move>
+**Blockers:** <none or explicit blocker>
 ```
-### Step N — <title>
 
-**What this does:** <one sentence — the purpose, not the method>
-**What it produces:** <exactly what will exist when this step is done>
-**Verification:** <the exact check that confirms this step is correct —
-  a unit test with known answer, an analytical sanity check, a plot,
-  a comparison to a known value. Not "looks reasonable" — specific.>
-**Files touched:** <src/ or core/ files created or modified>
-**Risk:** <what is most likely to go wrong here and what the symptom would be>
-```
-
-Order steps so each is verified before the next begins. If a later step cannot be tested without the whole pipeline, break it down further.
+If the entire plan genuinely fits in one session (~3-5 steps, all the same type of work), phases are optional — just use flat steps.
 
 ---
 
-## Step 8 — Results examination plan
+## Execution handoff rules
 
-For each training run or significant computation in the plan, specify in advance:
+Before handoff to implementation:
+- Ask for confirmation that the plan is accepted
+- If accepted, set `Status: confirmed`
+- Ensure `Current State` is initialized
 
-- What outputs will be produced and where they will be stored
-- What will be examined in those outputs and how
-- What a good result looks like — specifically, not vaguely
-- What a suspicious result looks like — and what the investigation would be
-- What a clearly failed result looks like — and what it would imply about the plan
-
-This is written before the run, not after. Having an expectation before seeing results is what makes the examination honest. A result that matches expectations is informative. A result that surprises requires explanation.
+Implementation must keep `Current State` updated at each meaningful cycle.
 
 ---
 
-## Step 9 — Known risks
+## Behavior constraints
 
-For each major risk to the plan:
-
-- **What it is**
-- **Which step it would affect**
-- **How it would manifest** — what would we observe?
-- **Early warning sign** — what would we see before it becomes a problem?
-- **Mitigation** — what to do if it manifests
-
-Cover at minimum: silent failures, known architectural failure modes, data assumption risks, training instability risks.
-
----
-
-## Step 10 — What this plan does not address
-
-State explicitly what is out of scope and why. Prevents scope creep and makes clear what the next plan must cover.
-
----
-
-## Step 11 — Wait for confirmation
-
-Present the complete plan.
-
-Ask: *"Does this match your understanding of what we're building? Is anything here wrong, underspecified, or missing?"*
-
-Do not begin implementation until confirmed.
+- Do not write code in this mode
+- Do not execute implementation tasks in this mode
+- Do not run destructive or cleanup commands in this mode (`git clean`, `git reset --hard`, blanket deletes)
+- Only create/update plan artifacts required for planning handoff
+- Do not produce vague steps like "improve model" without concrete checks
+- Do not use prose acceptance checks. Every acceptance check must be a terminal command the implementer can run. Bad: "model architecture defined." Good: `python -c "from src.model import CombinedModel; m = CombinedModel(); print(m)"` → expected: prints model structure without error.
+- Every plan must visibly serve the project objective. If the plan cannot be traced back to the overall goal, discuss with the user before finalizing.
+- Do not hide uncertainty; call out unknowns clearly
+- If two strategies compete, include both briefly and recommend one with reason

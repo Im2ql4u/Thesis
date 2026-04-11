@@ -23,6 +23,11 @@ def test_default_dmc_reads_config_table(n: int, omega_table: dict[float, float])
         assert got == pytest.approx(expected, rel=0.0, abs=1e-12)
 
 
-def test_default_dmc_returns_nan_when_no_config_entry() -> None:
-    got = default_dmc(18, 1.0)
+def test_default_dmc_raises_when_no_config_entry() -> None:
+    with pytest.raises(KeyError):
+        default_dmc(18, 1.0)
+
+
+def test_default_dmc_returns_nan_when_missing_is_allowed() -> None:
+    got = default_dmc(18, 1.0, allow_missing=True)
     assert math.isnan(got)

@@ -435,3 +435,190 @@ class CGSR:
     def reset(self) -> None:
         self._n_updates = 0
         self.damping = self.damping_init
+
+
+class MinSR:
+    """Minimum-step stochastic reconfiguration in sample space.
+
+    Uses per-sample centered log-derivative matrix O and centered local-energy
+    residual e to build the update direction:
+        z = (O O^T / B + lambda I)^(-1) e
+        delta = O^T z / B
+    """
+
+    def __init__(
+        self,
+        params: Sequence[Tensor],
+        *,
+        damping: float = 1e-3,
+        damping_end: float = 0.0,
+        damping_anneal_epochs: int = 0,
+        max_param_change: float = 0.1,
+        trust_region: float = 1.0,
+        subsample: int = 1024,
+        center_gradients: bool = True,
+    ):
+        self.damping_init = damping
+        self.damping = damping
+        self.damping_end = damping_end if damping_end > 0 else damping
+        self.damping_anneal_epochs = damping_anneal_epochs
+        self.max_param_change = max_param_change
+        self.trust_region = trust_region
+        self.subsample = subsample
+        self.center_gradients = center_gradients
+        self._n_updates = 0
+        self._param_shapes = [p.shape for p in params]
+        self._param_numels = [p.numel() for p in params]
+        self._total_params = sum(self._param_numels)
+        self._last_stats = {}
+        self._sub_idx = None
+        self._local_energies = None
+
+    def _anneal_damping(self):
+        if self.damping_anneal_epochs > 0 and self._n_updates <= self.damping_anneal_epochs:
+            t = self._n_updates / self.damping_anneal_epochs
+            log_init = math.log(self.damping_init)
+            log_end = math.log(self.damping_end)
+            self.damping = math.exp(log_init + t * (log_end - log_init))
+
+    def update(
+        self,
+        psi_log_fn,
+        x_batch: Tensor,
+        params: Sequence[Tensor],
+    ) -> dict:
+        params_list = list(params)
+        B_full = x_batch.shape[0]
+        n_sub = min(self.subsample, B_full)
+
+        if n_sub < B_full:
+            idx = torch.randperm(B_full, device=x_batch.device)[:n_sub]
+            x = x_batch[idx].detach()
+            self._sub_idx = idx
+        else:
+            x = x_batch.detach()
+            self._sub_idx = None
+
+        B = x.shape[0]
+        P = self._total_params
+
+        O = torch.zeros(B, P, device=x.device, dtype=x.dtype)
+
+        chunk_size = min(64, B)
+        for start in range(0, B, chunk_size):
+            end = min(start + chunk_size, B)
+            x_chunk = x[start:end]
+
+            for local_k in range(end - start):
+                xk = x_chunk[local_k:local_k + 1].requires_grad_(True)
+                lp_k = psi_log_fn(xk)
+                if lp_k.dim() > 1:
+                    lp_k = lp_k.view(-1)
+
+                grads = torch.autograd.grad(
+                    lp_k.sum(), params_list,
+                    retain_graph=False, allow_unused=True, create_graph=False,
+                )
+
+                offset = 0
+                for i, g in enumerate(grads):
+                    n = self._param_numels[i]
+                    if g is not None:
+                        O[start + local_k, offset:offset + n] = g.detach().view(-1)
+                    offset += n
+
+        if self.center_gradients:
+            O = O - O.mean(dim=0, keepdim=True)
+
+        self._O = O
+        self._B = B
+        self._local_energies = None
+        self._n_updates += 1
+        self._anneal_damping()
+
+        F_diag = (O * O).mean(dim=0)
+        self._last_stats = {
+            "sr_mode": "minsr",
+            "fisher_mean": float(F_diag.mean().item()),
+            "fisher_max": float(F_diag.max().item()),
+            "fisher_median": float(F_diag.median().item()),
+            "n_samples": B,
+            "damping": self.damping,
+            "n_updates": self._n_updates,
+            "O_shape": (int(B), int(P)),
+        }
+        return self._last_stats
+
+    def set_local_energies(self, e_local: Tensor) -> None:
+        """Set per-sample local energies aligned to the last update batch."""
+        if self._sub_idx is not None:
+            e = e_local[self._sub_idx]
+        else:
+            e = e_local
+        self._local_energies = e.detach()
+
+    def precondition(self, params: Sequence[Tensor]) -> None:
+        if self._n_updates == 0 or not hasattr(self, "_O"):
+            return
+        if self._local_energies is None:
+            raise RuntimeError("MinSR requires set_local_energies() before precondition().")
+
+        params_list = list(params)
+        O = self._O
+        B = self._B
+        lam = self.damping
+        e = self._local_energies.to(device=O.device, dtype=O.dtype)
+
+        if e.numel() != B:
+            raise RuntimeError(f"MinSR local-energy size mismatch: got {e.numel()} expected {B}")
+
+        e_centered = e - e.mean()
+        G = O @ O.t() / B + lam * torch.eye(B, device=O.device, dtype=O.dtype)
+
+        try:
+            L = torch.linalg.cholesky(G)
+            z = torch.cholesky_solve(e_centered.unsqueeze(1), L).squeeze(1)
+        except torch.linalg.LinAlgError:
+            z = torch.linalg.solve(G, e_centered)
+
+        delta = O.t() @ z / B
+
+        if torch.isnan(delta).any() or torch.isinf(delta).any():
+            raise RuntimeError("MinSR produced NaN/Inf update.")
+
+        delta_norm = delta.norm().item()
+        self._last_stats["update_norm"] = float(delta_norm)
+
+        if self.trust_region > 0 and delta_norm > self.trust_region:
+            delta = delta * (self.trust_region / delta_norm)
+            self._last_stats["trust_clipped"] = True
+
+        if self.max_param_change > 0:
+            delta = delta.clamp(-self.max_param_change, self.max_param_change)
+
+        offset = 0
+        for p in params_list:
+            n = p.numel()
+            upd = delta[offset:offset + n].view(p.shape)
+            if p.grad is None:
+                p.grad = torch.zeros_like(p)
+            p.grad.data.copy_(upd)
+            offset += n
+
+        del self._O
+        self._local_energies = None
+
+    def state_dict(self) -> dict:
+        return {
+            "n_updates": self._n_updates,
+            "damping": self.damping,
+            "damping_init": self.damping_init,
+        }
+
+    def load_state_dict(self, state: dict) -> None:
+        self._n_updates = state["n_updates"]
+        self.damping = state.get("damping", self.damping)
+
+    def reset(self) -> None:
+        self._n_updates = 0
+        self.damping = self.damping_init

@@ -32,6 +32,12 @@ def test_lookup_snaps_to_supported_omega_grid(n: int) -> None:
         assert got == pytest.approx(expected, rel=0.0, abs=1e-12)
 
 
+@pytest.mark.parametrize("n,omega", [(12, 0.005), (20, 0.05), (2, 0.03)])
+def test_lookup_raises_when_snap_distance_is_too_large(n: int, omega: float) -> None:
+    with pytest.raises(ValueError):
+        lookup_dmc_energy(n, omega)
+
+
 @pytest.mark.parametrize("n", [4, 8, 10, 14, 16, 18])
 def test_lookup_raises_for_unsupported_particle_counts(n: int) -> None:
     with pytest.raises(KeyError):

@@ -1,0 +1,25 @@
+{
+  "created_at": "2026-03-28T11:27:47",
+  "n_eval": 2000,
+  "allow_missing_dmc_ref": false,
+  "count": 1,
+  "results": [
+    {
+      "checkpoint": "results/arch_colloc/bf_ctnn_vcycle.pt",
+      "mode": "bf",
+      "n_elec": 6,
+      "omega": 1.0,
+      "seed": 42,
+      "eval_tag": "eval_bf_ctnn_vcycle_20260328_112734",
+      "returncode": 0,
+      "stdout_tail": "  Resuming from results/arch_colloc/bf_ctnn_vcycle.pt\n    Loaded bf_state\n    Loaded jas_state\n  Backflow params: 23,811\n  Jastrow params: 25,562 (lr=5e-05)\n  Total trainable: 49,373\n  Training: 0 ep, 4096 samples, LR=0.0005 opt=Adam\n  HYBRID loss: REINFORCE(E_L, no-backprop-lap) + direct(\u00bdg\u00b2, \u03b2=0.1)  clip_el=0.0  reward_qtrim=0.0\n  Done 0s (0.0min)\n\n  Final VMC eval: 2000 samples ...\n\n  *** Final: E = 20.18724 \u00b1 0.01032   err = +0.138%\n  Saved \u2192 /itf-fi-ml/home/aleksns/Thesis_repo/results/arch_colloc/eval_bf_ctnn_vcycle_20260328_112734.pt\n\n============================================================\n  WEAK-FORM RESULT  N=6  \u03c9=1.0  E_DMC=20.15932\n  Mode: bf   Tag: eval_bf_ctnn_vcycle_20260328_112734\n  E = 20.187236 \u00b1 0.010317   err = +0.138%\n============================================================",
+      "stderr_tail": "\nEvaluating energy (exact):   0%|          | 0/2000 [00:00<?, ?it/s]\nEvaluating energy (exact):  26%|\u2588\u2588\u258c       | 512/2000 [00:07<00:22, 65.74it/s]\nEvaluating energy (exact):  26%|\u2588\u2588\u258c       | 512/2000 [00:07<00:22, 65.74it/s, E\u224820.162856, \u03c3\u22480.5173, acc=0.48]\nEvaluating energy (exact):  51%|\u2588\u2588\u2588\u2588\u2588     | 1024/2000 [00:08<00:06, 151.07it/s, E\u224820.162856, \u03c3\u22480.5173, acc=0.48]\nEvaluating energy (exact):  51%|\u2588\u2588\u2588\u2588\u2588     | 1024/2000 [00:08<00:06, 151.07it/s, E\u224820.165982, \u03c3\u22480.4909, acc=0.49]\nEvaluating energy (exact):  77%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u258b  | 1536/2000 [00:08<00:01, 258.28it/s, E\u224820.165982, \u03c3\u22480.4909, acc=0.49]\nEvaluating energy (exact):  77%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u258b  | 1536/2000 [00:08<00:01, 258.28it/s, E\u224820.176381, \u03c3\u22480.4866, acc=0.49]\nEvaluating energy (exact): 100%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588| 2000/2000 [00:08<00:00, 376.59it/s, E\u224820.176381, \u03c3\u22480.4866, acc=0.49]\nEvaluating energy (exact): 100%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588| 2000/2000 [00:08<00:00, 376.59it/s, E\u224820.187236, \u03c3\u22480.4614, acc=0.49]\nEvaluating energy (exact): 100%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588| 2000/2000 [00:08<00:00, 229.65it/s, E\u224820.187236, \u03c3\u22480.4614, acc=0.49]",
+      "status": "ok",
+      "eval_checkpoint": "/itf-fi-ml/home/aleksns/Thesis_repo/results/arch_colloc/eval_bf_ctnn_vcycle_20260328_112734.pt",
+      "E": 20.187236042793142,
+      "se": 0.010317386289620398,
+      "err": 0.13847710534452978,
+      "n_hist": 0
+    }
+  ]
+}

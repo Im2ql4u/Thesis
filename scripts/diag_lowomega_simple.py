@@ -48,8 +48,8 @@ def main():
     print("=" * 80)
 
     # 1. Verify DMC reference
-    e_dmc_train = lookup_dmc_energy(a.n_elec, a.training_omega)
-    e_dmc_target = lookup_dmc_energy(a.n_elec, a.transfer_omega)
+    e_dmc_train = lookup_dmc_energy(a.n_elec, a.training_omega, allow_missing=True)
+    e_dmc_target = lookup_dmc_energy(a.n_elec, a.transfer_omega, allow_missing=True)
     print(f"\n✓ DMC References:")
     print(f"  ω={a.training_omega}: E_DMC={e_dmc_train:.6f} {'✓' if math.isfinite(e_dmc_train) else '✗ MISSING'}")
     print(f"  ω={a.transfer_omega}: E_DMC={e_dmc_target:.6f} {'✓' if math.isfinite(e_dmc_target) else '✗ MISSING'}")
@@ -86,12 +86,31 @@ def main():
         act="silu",
     ).to(DEVICE).to(DTYPE)
 
+    bf_hidden = 64
+    bf_msg_hidden = 64
+    bf_layers = 2
+    if bf_state is not None:
+        if "node_embed.weight" in bf_state:
+            bf_hidden = int(bf_state["node_embed.weight"].shape[0])
+            bf_msg_hidden = bf_hidden
+        # Infer number of MLP blocks from numbered module keys if present.
+        layer_ids = set()
+        for k in bf_state.keys():
+            if k.startswith("layers."):
+                parts = k.split(".")
+                if len(parts) > 1 and parts[1].isdigit():
+                    layer_ids.add(int(parts[1]))
+        if layer_ids:
+            bf_layers = max(layer_ids) + 1
+
+    print(f"  ✓ Inferred backflow arch: hidden={bf_hidden}, msg_hidden={bf_msg_hidden}, layers={bf_layers}")
+
     bf_net = CTNNBackflowNet(
         d=DIM,
-        msg_hidden=64,
+        msg_hidden=bf_msg_hidden,
         msg_layers=2,
-        hidden=64,
-        layers=2,
+        hidden=bf_hidden,
+        layers=bf_layers,
         act="silu",
         omega=a.transfer_omega,  # KEY: using *transfer* omega
     ).to(DEVICE).to(DTYPE)
@@ -163,6 +182,20 @@ def main():
             lp2_list.append(lp2_i)
         lp2_samples = torch.cat(lp2_list)
 
+        bad_lp2 = (~torch.isfinite(lp2_samples)).any().item()
+        bad_lq = (~torch.isfinite(lq_samples)).any().item()
+        if bad_lp2 or bad_lq:
+            print("  ✗ Non-finite values detected before weight computation")
+            print(f"    nonfinite(2*log|psi|): {bool(bad_lp2)}")
+            print(f"    nonfinite(log_q): {bool(bad_lq)}")
+            print("\n" + "=" * 80)
+            print("DIAGNOSIS:")
+            print("=" * 80)
+            print("✗ CRITICAL: Layer 2 numerical failure (NaN/Inf in wavefunction or proposal eval)")
+            print("   Sampling overlap cannot be assessed until non-finite forward pass is fixed.")
+            print("=" * 80)
+            return
+
         # Importance weights
         log_w_raw = lp2_samples - lq_samples
         log_w_clipped = torch.clamp(log_w_raw, min=-20, max=20)
@@ -185,7 +218,11 @@ def main():
     print("DIAGNOSIS:")
     print("=" * 80)
 
-    if ESS_frac < 0.05:
+    if not math.isfinite(ESS_frac):
+        print("✗ CRITICAL: ESS is non-finite (NaN/Inf)")
+        print("   Interpretation: numerical instability in weight computation.")
+        print("   Root cause layer: Layer 2 (implementation/numerics) before optimizer tuning.")
+    elif ESS_frac < 0.05:
         print(f"✗ CRITICAL: ESS ratio {ESS_frac*100:.2f}% < 5%")
         print(f"   Interpretation: Proposal (Gaussian mixture σ_fs={sigma_fs})")
         print(f"                   has negligible overlap with wavefunction at ω={a.transfer_omega}")

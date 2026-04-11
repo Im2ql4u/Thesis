@@ -348,9 +348,9 @@ This phase only starts AFTER Phases 1–3 have been analyzed and the recipe is l
 
 **Active phase:** Phase 1 (N=6 baseline reliability map + H1 + H3 + H4)
 Active step: Phase 1.4 — Launch corrected Phase-1 matrix (A/B across ω and seeds)
-Last evidence: corrected control verification run `baseline_p1_a1_n6w1_s42_ctrlfix` completed with `E=20.159825 ± 0.002656`, `err=+0.003%` (vs old control `+0.127%`), confirming control recipe fix
-Current risk: matrix launch without strict tag/version separation may mix old-control and corrected-control runs
-Next action: launch A/B matrix using corrected flags only (direct-weight=0.0, clip-el=5.0, vmc-n=20000) with new run tags and collect seed-level reliability stats
+Last evidence: launched corrected campaign via `scripts/launch_phase1_corrected_matrix.sh` as PID `2930921`; workers active on GPUs 0-4 with seed-42 baseline tags (`baseline_p1fix_n6w{1p0,0p5,0p1,0p01,0p001}_s42`) and corrected flags
+Current risk: long multi-run campaign; must monitor worker logs for failures before robust-stage transitions on each omega worker
+Next action: monitor worker logs under `outputs/2026-04-11_phase1_corrected_matrix/logs/` and verify transition from baseline to robust tags per seed and omega
 Blockers: none
 
 ## Scope

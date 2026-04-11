@@ -166,7 +166,12 @@ Total: ~44 runs, ~108 GPU-hours.
   - Decision gate: FAILED (target worst-seed error <0.03 at omega=1.0 not met)
   - Interpretation: increasing eval budget reduced uncertainty bars but did not
     recover near-best checkpoint quality; proceed to Phase 3 (cascade warm-start)
-- Phase 3: NOT STARTED
+- Phase 3: IN PROGRESS
+  - Run ID: 2026-04-11_phase3_cascade_warmstart
+  - Launcher: scripts/launch_phase3_cascade_warmstart.sh
+  - Grid: N=6, seed-wise cascade (42,137,314) over omega={1.0,0.5,0.1,0.01,0.001}
+  - Epoch chain: {1200,800,1200,1500,2000}
+  - Resume policy: each omega resumes from prior omega checkpoint for same seed
 - Phase 4: NOT STARTED
 - Phase 5: NOT STARTED
 - Phase 6: NOT STARTED

@@ -159,7 +159,11 @@ Total: ~44 runs, ~108 GPU-hours.
 
 ## Current State
 - Phase 1: COMPLETE (30 runs, all rc=0, results analyzed)
-- Phase 2: NOT STARTED
+- Phase 2: IN PROGRESS
+  - Run ID: `2026-04-11_phase2_eval_fix`
+  - Launcher: `scripts/launch_phase2_eval_fix.sh`
+  - Grid: N=6, omega={1.0, 0.5}, seeds={42,137,314}, robust recipe only
+  - Key flags: `--vmc-every 25 --vmc-n 50000 --n-eval 50000`
 - Phase 3: NOT STARTED
 - Phase 4: NOT STARTED
 - Phase 5: NOT STARTED

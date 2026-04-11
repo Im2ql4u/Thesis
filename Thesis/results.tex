@@ -1128,23 +1128,27 @@ training-time importance sampling.
 \begin{table}[htbp]
   \centering
   \caption{Best ground-state energies from collocation-assisted training.
-  All values are heavy VMC-evaluated (${\sim}30\text{k}$ samples) at the
-  best checkpoint selected during training.
+  ``Multi-stage'' denotes the best result from earlier campaigns using
+  hand-tuned continuation chains; ``Campaign'' denotes the best single
+  result from the 30-run reliability campaign
+  (Table~\ref{tab:reliability}).
+  All values are VMC-evaluated (${\geq}20\text{k}$ samples) at the best
+  checkpoint.
   DMC references as in Table~\ref{tab:energies}; entries without DMC data
   are marked ``---''.
   Architecture: J~=~Jastrow-only, BF~=~backflow+Jastrow.
   Parentheses denote $1\sigma$ statistical uncertainty on the last
   digit(s).}
   \label{tab:collocation}
-  \begin{tabular}{c c c c c c}
+  \begin{tabular}{c c c c c c c}
     \toprule
-    $N$ & $\omega$ & DMC (Ref.) & Collocation & \%\,err & Arch \\
+    $N$ & $\omega$ & DMC (Ref.) & Multi-stage & Campaign (best) & \%\,err & Arch \\
     \midrule
-    6 & 1.0   & $20.15932(8)$  & $20.1613(23)$  & $+0.009$ & BF \\
-      & 0.5   & $11.78484(6)$  & $11.7847(20)$  & $-0.002$ & BF \\
-      & 0.1   & $3.55385(5)$   & $3.5571(4)$    & $+0.091$ & BF \\
-      & 0.01  & $0.69036$      & $0.69141(8)$   & $+0.151$ & BF \\
-      & 0.001 & $0.140832$     & $0.14118(1)$   & $+0.244$ & BF \\
+    6 & 1.0   & $20.15932(8)$  & $20.1613(23)$  & $20.1620(56)$  & $+0.013$ & BF \\
+      & 0.5   & $11.78484(6)$  & $11.7847(20)$  & $11.7850(48)$  & $+0.002$ & BF \\
+      & 0.1   & $3.55385(5)$   & $3.5571(4)$    & $3.5632(7)$    & $+0.263$ & BF \\
+      & 0.01  & $0.69036$      & $0.69141(8)$   & $0.69200(1)$   & $+0.237$ & BF \\
+      & 0.001 & $0.140832$     & $0.14118(1)$   & $0.14118(1)$   & $+0.250$ & BF \\
     \midrule
     12 & 1.0   & $65.7001(1)$  & $65.712(4)$    & $+0.018$ & BF \\
        & 0.5   & $39.1596(1)$  & $39.171(4)$    & $+0.028$ & BF \\
@@ -1346,3 +1350,294 @@ The gradient signal at $N{=}20$ is too noisy for the additional
 backflow parameters to be trained effectively; the simpler Jastrow
 network with its smaller parameter count permits higher
 oversampling and better gradient quality.
+
+
+%% ═══════════════════════════════════════════════════════════════════════
+%% SUBSECTION:  Reliability analysis and the gradient-quality chain
+%% ═══════════════════════════════════════════════════════════════════════
+
+\subsection{Reliability analysis: the gradient-quality chain}
+\label{sec:colloc-reliability}
+
+The results in Table~\ref{tab:collocation} report the \emph{best} energies
+obtained by collocation training, selected from multiple runs on different
+seeds.
+A natural question is whether these results are \emph{typical} or whether
+they reflect rare fortunate outcomes from a high-variance process.
+This subsection reports a systematic 30-run reliability campaign designed
+to answer that question, and reveals a simple causal chain that explains
+both the successes and failures of the MCMC-free collocation approach.
+
+\subsubsection{Experimental design}
+
+All runs use the BF+Jastrow ansatz (${\sim}49\text{k}$ parameters)
+initialised from the same pretrained checkpoint.
+The grid is $N{=}6$ across
+$\omega\in\{1.0,\,0.5,\,0.1,\,0.01,\,0.001\}$ with three random
+seeds per cell (42, 137, 314), giving $5\times 2\times 3 = 30$ runs.
+Two training recipes are compared head-to-head:
+
+\begin{itemize}
+\item \textbf{Config~A (baseline):} Adam optimiser with
+  $\text{lr}{=}5{\times}10^{-4}$, $\text{lr}_{\text{jas}}{=}5{\times}10^{-5}$,
+  4096 collocation points, $8{\times}$ oversampling, local-energy
+  clipping at $5\sigma$, no reward normalisation, no rollback, fixed
+  Gaussian mixture proposal (Eq.~\ref{eq:proposal}).
+
+\item \textbf{Config~B (robust):} Identical to Config~A plus four
+  stabilisation mechanisms: $16{\times}$ oversampling (doubling the
+  proposal budget), reward normalisation (standardising the REINFORCE
+  reward to zero mean and unit variance before the gradient step),
+  instability rollback (reverting to the previous checkpoint when the
+  energy jumps exceed $3\sigma$, with learning-rate decay of $0.95$),
+  and an adaptive Gaussian mixture proposal (8 GMM components refitted
+  every 30 epochs to track the evolving $|\Psi|^2$).
+\end{itemize}
+
+All runs train for 1200 epochs.
+Evaluation uses a 20\,000-sample VMC probe every 50 epochs, with the
+best-VMC checkpoint restored for a final 20\,000-sample IS evaluation.
+
+\subsubsection{Main results}
+
+Table~\ref{tab:reliability} presents the complete results of the
+30-run campaign.
+For each $(\omega,\text{recipe})$ combination, three seeds provide
+a mean, standard deviation, and worst-case error.
+
+\begin{table}[htbp]
+  \centering
+  \caption{Reliability campaign: relative energy errors (\% above DMC) for
+  $N{=}6$ across five trap frequencies.
+  Each cell shows the final IS-evaluated error for one
+  $(\omega,\,\text{recipe},\,\text{seed})$ combination.
+  Bold entries mark the best result at each $\omega$.
+  ``Mean'' and ``CV'' are the mean error and coefficient of variation
+  across three seeds.}
+  \label{tab:reliability}
+  \small
+  \setlength{\tabcolsep}{4.5pt}
+  \begin{tabular}{r l rrr cc}
+    \toprule
+    $\omega$ & Recipe & Seed 42 & Seed 137 & Seed 314 & Mean & CV \\
+    \midrule
+    1.0 & Baseline & $+0.073$ & $+0.045$ & $+0.060$ & $0.059$ & $0.24$ \\
+        & Robust   & $+0.032$ & $\mathbf{+0.013}$ & $+0.105$ & $0.050$ & $0.97$ \\
+    \midrule
+    0.5 & Baseline & $+0.106$ & $+0.060$ & $+0.108$ & $0.091$ & $0.30$ \\
+        & Robust   & $\mathbf{+0.002}$ & $+0.112$ & $+0.047$ & $0.054$ & $1.04$ \\
+    \midrule
+    0.1 & Baseline & $+0.419$ & $+0.547$ & $+0.427$ & $0.464$ & $0.15$ \\
+        & Robust   & $+0.325$ & $\mathbf{+0.263}$ & $+0.270$ & $0.286$ & $0.12$ \\
+    \midrule
+    0.01 & Baseline & $+0.500$ & $+0.379$ & $+0.746$ & $0.542$ & $0.34$ \\
+         & Robust   & $+0.289$ & $+0.282$ & $\mathbf{+0.237}$ & $0.269$ & $0.10$ \\
+    \midrule
+    0.001 & Baseline & $+3.876$ & $+7.187$ & $+4.733$ & $5.265$ & $0.33$ \\
+          & Robust   & $\mathbf{+0.250}$ & $+0.331$ & $+0.263$ & $0.281$ & $0.15$ \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+Several patterns are immediately apparent.
+First, the robust recipe dramatically improves the low-$\omega$ regimes:
+at $\omega{=}0.001$ the mean error drops from $+5.3\%$ (baseline) to
+$+0.28\%$ (robust), a factor of~$19$ improvement.
+Second, the best single result at every $\omega$ is a robust run,
+achieving $+0.013\%$ at $\omega{=}1.0$, $+0.002\%$ at $\omega{=}0.5$,
+$+0.263\%$ at $\omega{=}0.1$, $+0.237\%$ at $\omega{=}0.01$, and
+$+0.250\%$ at $\omega{=}0.001$.
+Third, the robust recipe exhibits higher seed-to-seed variance
+(CV~$\sim$~1.0) at high~$\omega$ but dramatically lower variance at
+low~$\omega$, suggesting that its stabilisation mechanisms have the
+most impact precisely where sampling is hardest.
+
+
+\subsubsection{The gradient-quality chain}
+\label{sec:gradient-chain}
+
+The reliability campaign exposes a simple causal chain that governs
+the quality of collocation-trained wavefunctions:
+\begin{equation}
+\boxed{
+  \text{proposal mismatch}
+  \;\xrightarrow{\text{causes}}\;
+  \hat{k}\text{ inflation}
+  \;\xrightarrow{\text{causes}}\;
+  \text{gradient noise}
+  \;\xrightarrow{\text{causes}}\;
+  \text{optimisation stochasticity}
+  \;\xrightarrow{\text{causes}}\;
+  \text{run-to-run variance}
+}
+\label{eq:chain}
+\end{equation}
+Each link in this chain can be verified quantitatively from the
+training logs.
+We now explain each component and the evidence supporting each
+causal link.
+
+\paragraph{Step 1: proposal--target mismatch.}
+As described in~\S\ref{sec:colloc-sampling}, the REINFORCE estimator
+in Eq.~\eqref{eq:reinforce} requires samples from $|\Psi_\theta|^2$,
+but collocation draws from the analytic Gaussian mixture proposal
+$q(\mathbf{R})$ in Eq.~\eqref{eq:proposal} and reweights via importance
+sampling.
+The quality of this reweighting depends on how well $q$ overlaps
+with $|\Psi_\theta|^2$.
+
+For the harmonic quantum dot, $|\Psi|^2$ concentrates on a manifold
+whose geometry depends on $\omega$:
+at $\omega{=}1.0$, electrons occupy a compact cloud of radius
+${\sim}1/\sqrt{\omega}$ oscillator lengths, and the three-component
+Gaussian mixture in Eq.~\eqref{eq:proposal} provides adequate coverage.
+At $\omega{=}0.001$, the electron cloud extends to
+${\sim}30$ oscillator lengths, the pair correlation function develops
+sharp shell structure (Section~\ref{sec:wigner-molecule}), and
+$|\Psi|^2$ concentrates on a thin correlated submanifold that the
+isotropic Gaussian proposal covers inefficiently.
+
+The mismatch manifests directly in the importance weights.
+At $\omega{=}1.0$, weights are relatively uniform:
+the effective sample size is typically ESS~$\sim$~5000--6000
+out of ${\sim}65\text{k}$ proposal samples ($16{\times}$ oversampling
+of 4096 points), and the Pareto shape parameter $\hat{k}$ of the
+weight tail is 0.4--0.5, indicating a well-behaved thin-tailed
+distribution.
+At $\omega{=}0.001$, the ESS collapses to 1--6 (out of the same
+$65\text{k}$ proposal), and $\hat{k}$ rises above 1.0, entering the
+regime of infinite-variance importance weights.
+
+\paragraph{Step 2: $\hat{k}$ inflation and gradient quality.}
+The Pareto shape parameter $\hat{k}$ of the importance weight
+distribution, estimated via the PSIS diagnostic of
+Vehtari~et~al.~(2024)\nocite{Vehtari2024}, provides a precise
+measure of gradient reliability.
+When $\hat{k} < 0.7$, the importance-weighted gradient estimator
+has finite variance and the central limit theorem applies normally.
+When $\hat{k} > 1.0$, the variance of the estimator is infinite
+and the gradient signal is dominated by a few extreme samples.
+
+Table~\ref{tab:khat-regime} summarises the average $\hat{k}$ across
+the campaign.
+The correspondence between $\hat{k}$ and final accuracy is
+striking.
+
+\begin{table}[h]
+  \centering
+  \caption{Average Pareto $\hat{k}$ of the importance weight
+  distribution during training, by regime and recipe.
+  Lower is better; $\hat{k}<0.7$ is considered reliable,
+  $\hat{k}>1.0$ indicates infinite-variance weights.}
+  \label{tab:khat-regime}
+  \small
+  \begin{tabular}{r cc cc}
+    \toprule
+    & \multicolumn{2}{c}{$\hat{k}$ (avg)} & \multicolumn{2}{c}{Mean error (\%)} \\
+    \cmidrule(lr){2-3} \cmidrule(lr){4-5}
+    $\omega$ & Baseline & Robust & Baseline & Robust \\
+    \midrule
+    1.0   & 0.75 & 0.50 & 0.059 & 0.050 \\
+    0.5   & 0.83 & 0.54 & 0.091 & 0.054 \\
+    0.1   & 1.48 & 0.70 & 0.464 & 0.286 \\
+    0.01  & 2.63 & 1.39 & 0.542 & 0.269 \\
+    0.001 & 3.13 & 1.86 & 5.265 & 0.281 \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+The robust recipe reduces $\hat{k}$ by approximately a factor of~2
+at every $\omega$.
+At $\omega{=}1.0$ this takes $\hat{k}$ from 0.75 (borderline) to
+0.50 (reliable), resulting in a modest improvement.
+At $\omega{=}0.1$ it takes $\hat{k}$ from 1.48 (broken) to 0.70
+(borderline), corresponding to the transition from mediocre
+($+0.46\%$) to marginal ($+0.29\%$) accuracy.
+At $\omega{=}0.001$ even the robust recipe has $\hat{k}{=}1.86$,
+but the adaptive proposal and rollback mechanisms prevent the
+catastrophic divergence seen in the baseline ($+5.3\%$).
+
+\paragraph{Step 3: from gradient noise to optimisation stochasticity.}
+When $\hat{k}$ is large, most of the gradient signal comes from a
+few samples with extreme importance weights.
+Which samples are extreme depends on the random proposal draw at
+each epoch---a function of the random seed.
+Two seeds that happen to draw different extreme samples will follow
+different optimisation trajectories, even though they share the same
+architecture and hyperparameters.
+
+This is not the usual seed dependence of stochastic gradient
+descent, where the law of large numbers ensures that gradient
+estimates are unbiased and the trajectory variance decreases with
+batch size.
+When $\hat{k} > 1$, the variance of the gradient estimator is
+\emph{infinite}: increasing the batch size reduces the variance
+sublinearly (or not at all), and extreme samples can dominate the
+update indefinitely.
+The result is optimisation trajectories that diverge qualitatively
+across seeds, explaining the large run-to-run variance observed
+at low~$\omega$.
+
+\paragraph{Step 4: the evaluation bottleneck.}
+An additional subtlety is that the final energy evaluation itself
+uses importance sampling from the same proposal distribution.
+Even if the model has found an excellent wavefunction, a noisy
+evaluation can report a misleading energy.
+
+The data expose this directly.
+Table~\ref{tab:vmc-gap} compares the VMC-best energy seen during
+training (a 20\,000-sample probe evaluated by straightforward
+Monte Carlo from the model's own $|\Psi|^2$) with the final IS
+evaluation that uses the Gaussian proposal.
+At high~$\omega$ where IS is reliable, the two estimates agree
+closely.
+At low~$\omega$, the gap between them grows, and its sign is
+unpredictable---the IS evaluation can overestimate or underestimate
+the true energy.
+
+\begin{table}[h]
+  \centering
+  \caption{Gap between VMC-best checkpoint energy (direct sampling
+  from $|\Psi|^2$) and final IS evaluation, for selected runs.
+  Positive gap means IS reports higher (worse) energy than the VMC
+  probe saw.}
+  \label{tab:vmc-gap}
+  \small
+  \begin{tabular}{r l l cc c}
+    \toprule
+    $\omega$ & Recipe & Seed & VMC-best (\%) & Final IS (\%) & Gap (\%) \\
+    \midrule
+    1.0   & Baseline & 314 & $+0.001$ & $+0.060$ & $+0.059$ \\
+    1.0   & Robust   & 137 & $+0.002$ & $+0.013$ & $+0.011$ \\
+    0.5   & Robust   & 42  & $+0.037$ & $+0.002$ & $-0.035$ \\
+    0.1   & Robust   & 137 & $+0.136$ & $+0.263$ & $+0.127$ \\
+    0.01  & Baseline & 42  & $+0.320$ & $+0.500$ & $+0.180$ \\
+    0.001 & Baseline & 314 & $+4.114$ & $+4.733$ & $+0.619$ \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+The first row is particularly instructive: this baseline run with
+seed~314 achieved a VMC-best energy of $+0.001\%$---essentially
+exact---during training, but the IS evaluation reports $+0.060\%$.
+The wavefunction is excellent; the evaluation is noisy.
+This demonstrates that some nominally ``bad'' runs may contain
+excellent wavefunctions measured poorly, and some nominally ``good''
+results may benefit from evaluation noise in the favorable direction.
+
+\paragraph{Summary of the chain.}
+The causal chain in Eq.~\eqref{eq:chain} provides a unified
+explanation for the full landscape of collocation results.
+At high~$\omega$, the proposal matches the target well
+($\hat{k}\sim 0.5$), gradients are reliable, optimisation is
+stable, and all seeds converge to near-DMC accuracy.
+At low~$\omega$, the proposal-to-target mismatch grows, $\hat{k}$
+inflates, gradients become noisy, optimisation becomes seed-dependent,
+and the evaluation itself becomes unreliable.
+The robust recipe acts on multiple links of this chain simultaneously:
+higher oversampling improves the raw ESS, reward normalisation
+stabilises the gradient scale, rollback prevents catastrophic
+divergence, and the adaptive proposal reduces the fundamental
+mismatch.
+No single mechanism is sufficient; each addresses a different link
+in the chain.

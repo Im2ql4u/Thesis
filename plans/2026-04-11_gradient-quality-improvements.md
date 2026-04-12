@@ -182,6 +182,15 @@ Total: ~44 runs, ~108 GPU-hours.
   - Decision gate: PARTIAL PASS
     - Passed: omega=0.01<0.2, omega=0.001 mean<0.2, CV<0.5 for all low-omega stages
     - Failed: omega=0.1<0.1 target not met; omega=0.001 worst-seed<0.2 not met
-- Phase 4: NOT STARTED
-- Phase 5: NOT STARTED
+- Phase 4: IN PROGRESS
+  - Run ID: 2026-04-12_phase4_proposal_improvement
+  - Launcher: scripts/launch_phase4_proposal_improvement.sh
+  - Grid: N=6, omega={0.1,0.01,0.001}, seeds={42,137,314}
+  - Resume policy: from corresponding Phase 3 checkpoints
+  - Proposal changes: gmm-components=16, gmm-refit-every=15, sigma-fs=0.6,1.0,1.5,2.5
+- Phase 5: IN PROGRESS (queued)
+  - Run ID: 2026-04-12_phase5_tail_from_p4_winner
+  - Queue script: scripts/queue_phase5_tail_after_phase4.sh
+  - Auto-gate: compute mean khat at omega=0.01 and record pass/fail (<1.0)
+  - Auto-tail: pick best omega=0.1 Phase 4 checkpoint, then run stage2 (lr=2e-4, 800 ep) and stage3 (lr=1e-4, 500 ep)
 - Phase 6: NOT STARTED

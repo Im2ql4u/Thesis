@@ -172,6 +172,16 @@ Total: ~44 runs, ~108 GPU-hours.
   - Grid: N=6, seed-wise cascade (42,137,314) over omega={1.0,0.5,0.1,0.01,0.001}
   - Epoch chain: {1200,800,1200,1500,2000}
   - Resume policy: each omega resumes from prior omega checkpoint for same seed
+  - Status: COMPLETE (15 runs, all rc=0)
+  - Aggregate errors:
+    - omega=1.0: mean=0.062, best=0.048, worst=0.089
+    - omega=0.5: mean=0.099, best=0.068, worst=0.119
+    - omega=0.1: mean=0.183, best=0.133, worst=0.221
+    - omega=0.01: mean=0.184, best=0.173, worst=0.196
+    - omega=0.001: mean=0.186, best=0.144, worst=0.224
+  - Decision gate: PARTIAL PASS
+    - Passed: omega=0.01<0.2, omega=0.001 mean<0.2, CV<0.5 for all low-omega stages
+    - Failed: omega=0.1<0.1 target not met; omega=0.001 worst-seed<0.2 not met
 - Phase 4: NOT STARTED
 - Phase 5: NOT STARTED
 - Phase 6: NOT STARTED

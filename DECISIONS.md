@@ -22,6 +22,14 @@ Each entry answers: what was decided, what the alternatives were, why this was c
 
 ## Decisions
 
+### [2026-04-15] — Refit ShellFlow from weighted raw candidates and skip refits under catastrophic collapse
+
+**Decision:** When using ShellFlow as an adaptive proposal, refit it from the raw candidate cloud with effective resampling weights, not from the already-resampled collocation batch; additionally, skip ShellFlow refits when ESS or resampling-mass diagnostics indicate catastrophic collapse.
+**Alternatives considered:** Keep refitting from the resampled batch even when ESS is near 1; disable ShellFlow refits entirely for high-N low-omega work; treat the failure as a shell-template choice problem and retune geometry only.
+**Reasoning:** In the N=20 low-omega diagnostics, ESS=1 meant the resampled batch was effectively copies of one survivor. Refitting ShellFlow on that batch poisoned the proposal and drove outward shell-radius drift without improving overlap. Weighted raw-candidate refits preserve the actual importance-sampling signal, and collapse skips prevent the refitter from learning from a degenerate distribution.
+**Constraints introduced:** Future ShellFlow diagnostics must report ESS and resampling-mass diagnostics alongside proposal behavior; proposal-refit comparisons across old and new runs are not apples-to-apples because the refit target changed materially.
+**Confidence:** high
+
 ### [2026-04-06] — Gate N=20 continuation on post-bugfix ESS evidence, proceed N=12 independently
 
 **Decision:** After executing higher-N Phase 1 diagnostics, treat N=20 as conditionally blocked for optimizer-transfer continuation unless ESS is consistently above the gate, while allowing N=12 full-campaign work to proceed.

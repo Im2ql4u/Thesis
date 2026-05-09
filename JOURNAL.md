@@ -24,6 +24,16 @@ The model reads this to understand what has been tried, what worked, what failed
 
 ## Journal
 
+### [2026-04-15] — N=20 low-omega ShellFlow collapse diagnosis and stabilized relaunch
+
+**Motivation:** The first direct N=20 Jastrow+ShellFlow low-omega diagnostics failed with ESS pinned at 1, shell radii drifting outward, and NaN final evaluation. The immediate question was whether this was a shell-geometry choice problem or a deeper sampling/refit failure.
+**Method:** Compared the four direct diagnostics at `omega={0.01, 0.001}` and `2shell/3shell`, inspected the trainer/refit implementation, then patched the code so ShellFlow refits on weighted raw candidate clouds rather than already-resampled points and skips refits under catastrophic importance-weight collapse. Relaunched the same four-run comparison with tempered/clipped resampling, adaptive oversampling, and mass-gate ceilings via [scripts/launch_shellflow_n20_jastrow_diag.sh](scripts/launch_shellflow_n20_jastrow_diag.sh).
+**Results:** In the original run set under `outputs/2026-04-15_shellflow_n20_jastrow_diag_v1/`, all four runs showed `ESS=1` from epoch 0 onward, proposal-only training for hundreds of epochs, outward shell-radius drift, and NaN final metrics for completed `omega=0.01` jobs. In the stabilized relaunch under `outputs/2026-04-15_shellflow_n20_jastrow_diag_v2/`, epoch-0 ESS jumped to roughly `1969-1971` for `omega=0.01` and `3284-3286` for `omega=0.001`, with PSIS-khat still elevated (`0.58-0.87`) and energies still physically poor but no immediate ESS collapse.
+**Interpretation:** The dominant failure was not 2-shell vs 3-shell geometry. The deeper issue was an implementation-level feedback loop: with ESS collapsed, the proposal refitter was learning from a degenerate resampled batch and amplifying collapse into shell drift. The relaunch shows that resampling stabilization plus weighted raw-candidate refits can restore usable ESS immediately, which is a necessary precondition for any honest architecture comparison.
+**Caveats:** The relaunched jobs were only checked at the earliest epochs during this session; the current evidence is about ESS recovery, not final scientific quality. Initial energies remain wildly wrong, so restored ESS alone does not establish that the N=20 low-omega recipe is good.
+**Output reference:** `outputs/2026-04-15_shellflow_n20_jastrow_diag_v1/`, `outputs/2026-04-15_shellflow_n20_jastrow_diag_v2/`, `scripts/launch_shellflow_n20_jastrow_diag.sh`
+**Next question:** Does the stabilized relaunch maintain non-collapsed ESS beyond the first few epochs, and if so does either `2shell` or `3shell` show a credible advantage in energy/error rather than just sampling statistics?
+
 ### [2026-04-06] — Higher-N Phase 1 smoke execution and N=20 post-bugfix ESS gate
 
 **Motivation:** Execute the active phase of the higher-N scaling plan to test whether the N=6 DiagFisher+REINFORCE win transfers to N=12 and to check if N=20 is still blocked by sampling quality after the importance-sampling bugfix.

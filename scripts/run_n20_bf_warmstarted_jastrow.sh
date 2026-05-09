@@ -20,6 +20,12 @@
 #   JAS_INIT_W01=results/arch_colloc/n20x2_adam_w01_best.pt
 #
 # On clusters without torch in plain python, uncomment MODULE_SNIPPET below.
+#
+# Wall-clock ETA (defaults: EPOCHS=2000, N_COLL=1024, vmc-every 200, vmc-n 15000,
+# same-class GPU as 2026-04-26 rapid tiny-BF sanity logs, ~5–7 s/epoch without VMC):
+#   one job (w1 / w05 / w01): ~3–4.5 h
+#   ./scripts/run_n20_bf_warmstarted_jastrow.sh all: ~9–13 h sequential
+# Heavier env (e.g. N_COLL=4096 MICRO_BATCH=256): scale ~1.5–2.5×.
 
 set -euo pipefail
 

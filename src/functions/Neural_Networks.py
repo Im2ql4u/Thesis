@@ -82,6 +82,32 @@ def safe_percent_err(E: float, E_ref: float) -> float:
     return (float(E) - float(E_ref)) / abs(float(E_ref)) * 100.0
 
 
+def _weighted_quantile_1d(
+    values: torch.Tensor, weights: torch.Tensor, quantiles: torch.Tensor
+) -> torch.Tensor:
+    if values.ndim != 1 or weights.ndim != 1:
+        raise ValueError("values and weights must be 1D")
+    if values.numel() != weights.numel():
+        raise ValueError("values and weights must have the same length")
+    if values.numel() == 0:
+        raise ValueError("weighted quantile requires at least one value")
+
+    q = quantiles.to(device=values.device, dtype=values.dtype).clamp(0.0, 1.0)
+    w = weights.to(device=values.device, dtype=values.dtype).clamp_min(0.0)
+    w_sum = w.sum()
+    if not torch.isfinite(w_sum) or w_sum <= 0:
+        w = torch.ones_like(values, dtype=values.dtype)
+        w_sum = w.sum()
+    w = w / w_sum
+
+    order = torch.argsort(values)
+    sorted_values = values[order]
+    sorted_weights = w[order]
+    cdf = torch.cumsum(sorted_weights, dim=0)
+    idx = torch.searchsorted(cdf, q, right=False).clamp(max=sorted_values.numel() - 1)
+    return sorted_values[idx]
+
+
 def compute_grad_logpsi(psi_log_fn, x: torch.Tensor):
     """Compute ∇log|Ψ(x)| and |∇logΨ|² with first derivatives only."""
     x = x.detach().requires_grad_(True)
@@ -343,6 +369,647 @@ class AdaptiveGMMProposal:
         return torch.from_numpy(lq_np).to(device=x.device, dtype=x.dtype)
 
 
+def _inv_softplus(y: float) -> float:
+    y = float(max(y, 1e-8))
+    return math.log(math.expm1(y))
+
+
+def _log_i0(x: torch.Tensor) -> torch.Tensor:
+    return torch.log(torch.special.i0e(x)) + x.abs()
+
+
+class _AffineCoupling(nn.Module):
+    """Simple affine coupling block for flattened coordinates."""
+
+    def __init__(self, nd: int, hidden: int, mask: torch.Tensor, clamp: float = 2.0):
+        super().__init__()
+        self.nd = int(nd)
+        self.clamp = float(clamp)
+        self.net = nn.Sequential(
+            nn.Linear(self.nd, hidden),
+            nn.SiLU(),
+            nn.Linear(hidden, hidden),
+            nn.SiLU(),
+            nn.Linear(hidden, 2 * self.nd),
+        )
+        self.register_buffer("mask", mask.reshape(1, self.nd).to(dtype=torch.float64))
+
+    def forward(self, z: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
+        z_masked = z * self.mask
+        s, t = self.net(z_masked).chunk(2, dim=-1)
+        s = torch.tanh(s) * self.clamp
+        s = s * (1.0 - self.mask)
+        t = t * (1.0 - self.mask)
+        x = z_masked + (1.0 - self.mask) * (z * torch.exp(s) + t)
+        log_det = s.sum(dim=-1)
+        return x, log_det
+
+    def inverse(self, x: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
+        x_masked = x * self.mask
+        s, t = self.net(x_masked).chunk(2, dim=-1)
+        s = torch.tanh(s) * self.clamp
+        s = s * (1.0 - self.mask)
+        t = t * (1.0 - self.mask)
+        z = x_masked + (1.0 - self.mask) * (x - t) * torch.exp(-s)
+        log_det = -s.sum(dim=-1)
+        return z, log_det
+
+
+class _AffineFlow(nn.Module):
+    """Stack of affine coupling layers with alternating masks."""
+
+    def __init__(self, nd: int, n_layers: int, hidden: int):
+        super().__init__()
+        layers: list[_AffineCoupling] = []
+        for i in range(int(n_layers)):
+            mask = torch.zeros(nd, dtype=torch.float64)
+            mask[i % 2 :: 2] = 1.0
+            layers.append(_AffineCoupling(nd=nd, hidden=hidden, mask=mask))
+        self.layers = nn.ModuleList(layers)
+
+    def forward(self, z: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
+        x = z
+        log_det = torch.zeros(z.shape[0], device=z.device, dtype=z.dtype)
+        for layer in self.layers:
+            x, ld = layer(x)
+            log_det = log_det + ld
+        return x, log_det
+
+    def inverse(self, x: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
+        z = x
+        log_det = torch.zeros(x.shape[0], device=x.device, dtype=x.dtype)
+        for layer in reversed(self.layers):
+            z, ld = layer.inverse(z)
+            log_det = log_det + ld
+        return z, log_det
+
+
+class AdaptiveShellFlowProposal:
+    """Learnable shell-mixture proposal with optional normalizing flow.
+
+    The base density is a shell-aware independent-electron mixture where the
+    inner-shell occupancy probability is derived from learnable weights over
+    occupancy templates (for example 6e: 6-0 and 1-5).
+    """
+
+    def __init__(
+        self,
+        n_elec: int,
+        dim: int,
+        omega: float,
+        *,
+        shell_templates: tuple[tuple[int, ...], ...],
+        mix_logits_init: tuple[float, ...] | None = None,
+        shell_radii_init: tuple[float, ...] | None = None,
+        shell_sigmas: tuple[float, ...] = (0.35, 1.4),
+        refit_every: int = 50,
+        refit_min_samples: int = 500,
+        refit_steps: int = 100,
+        refit_lr: float = 1e-3,
+        flow_layers: int = 2,
+        flow_hidden: int = 128,
+        ring_warmup_steps: int = 0,
+        radius_anchor_weight: float = 0.0,
+        curriculum_mode: Literal["none", "epoch", "ess", "radius"] = "none",
+        curriculum_unlock_epoch: int = 0,
+        curriculum_unlock_ess: float = 0.0,
+        curriculum_unlock_patience: int = 1,
+        curriculum_radius_quantile: float = 0.85,
+        curriculum_radius_threshold_aho: float = 0.0,
+        curriculum_inactive_logit_offset: float = -12.0,
+        curriculum_centered_mass_floor: float = 0.0,
+        random_state: int = 0,
+        buffer_size: int | None = None,
+        device: str = "cpu",
+        dtype: torch.dtype = torch.float64,
+    ):
+        self.n_elec = int(n_elec)
+        self.dim = int(dim)
+        self.omega = float(omega)
+        self.nd = self.n_elec * self.dim
+        self.device = device
+        self.dtype = dtype
+        self.refit_every = int(max(1, refit_every))
+        self.refit_min_samples = int(max(32, refit_min_samples))
+        self.refit_steps = int(max(1, refit_steps))
+        self.refit_lr = float(refit_lr)
+        self.ring_warmup_steps = int(max(0, ring_warmup_steps))
+        self.radius_anchor_weight = float(max(0.0, radius_anchor_weight))
+        self.curriculum_mode = str(curriculum_mode)
+        self.curriculum_unlock_epoch = int(max(0, curriculum_unlock_epoch))
+        self.curriculum_unlock_ess = float(max(0.0, curriculum_unlock_ess))
+        self.curriculum_unlock_patience = int(max(1, curriculum_unlock_patience))
+        self.curriculum_radius_quantile = float(curriculum_radius_quantile)
+        self.curriculum_radius_threshold_aho = float(max(0.0, curriculum_radius_threshold_aho))
+        self.curriculum_inactive_logit_offset = float(curriculum_inactive_logit_offset)
+        self.curriculum_centered_mass_floor = float(curriculum_centered_mass_floor)
+        self.random_state = int(random_state)
+
+        if self.dim != 2:
+            raise ValueError(f"AdaptiveShellFlowProposal currently supports dim=2 only, got dim={self.dim}")
+
+        if len(shell_templates) == 0:
+            raise ValueError("shell_templates must contain at least one template")
+        n_shells = len(shell_templates[0])
+        if n_shells <= 0:
+            raise ValueError("Shell templates must contain at least one shell")
+        for tpl in shell_templates:
+            if len(tpl) != n_shells:
+                raise ValueError(
+                    f"All shell templates must have the same number of shells ({n_shells}), got {tpl}"
+                )
+            if sum(int(v) for v in tpl) != self.n_elec:
+                raise ValueError(f"Template {tpl} does not sum to n_elec={self.n_elec}")
+
+        self.n_shells = int(n_shells)
+        self.shell_templates = tuple(tuple(int(v) for v in tpl) for tpl in shell_templates)
+        self._template_counts = torch.tensor(self.shell_templates, dtype=torch.float64)
+        self._template_occ = self._template_counts / float(self.n_elec)
+
+        if self.curriculum_mode not in {"none", "epoch", "ess", "radius"}:
+            raise ValueError(f"Unsupported curriculum_mode={self.curriculum_mode}")
+        if self.curriculum_mode != "none":
+            centered = self.shell_templates[0]
+            if centered[0] != self.n_elec or any(v != 0 for v in centered[1:]):
+                raise ValueError(
+                    "Shell curriculum requires the first shell template to be the centered template "
+                    f"({self.n_elec}, 0, ...), got {centered}"
+                )
+            if self.curriculum_mode == "epoch" and self.curriculum_unlock_epoch <= 0:
+                raise ValueError("curriculum_unlock_epoch must be >0 when curriculum_mode='epoch'")
+            if self.curriculum_mode == "ess" and self.curriculum_unlock_ess <= 0.0:
+                raise ValueError("curriculum_unlock_ess must be >0 when curriculum_mode='ess'")
+            if self.curriculum_mode == "radius" and self.curriculum_radius_threshold_aho <= 0.0:
+                raise ValueError(
+                    "curriculum_radius_threshold_aho must be >0 when curriculum_mode='radius'"
+                )
+            if not 0.0 < self.curriculum_radius_quantile <= 1.0:
+                raise ValueError("curriculum_radius_quantile must lie in (0, 1]")
+            if not 0.0 <= self.curriculum_centered_mass_floor < 1.0:
+                raise ValueError("curriculum_centered_mass_floor must lie in [0, 1)")
+
+        n_templates = len(self.shell_templates)
+        logits0 = torch.zeros(n_templates, dtype=torch.float64)
+        if mix_logits_init is not None:
+            if len(mix_logits_init) != n_templates:
+                raise ValueError(
+                    f"mix_logits_init length {len(mix_logits_init)} does not match templates {n_templates}"
+                )
+            logits0 = torch.tensor(mix_logits_init, dtype=torch.float64)
+        self._mix_logits = nn.Parameter(logits0)
+
+        if shell_radii_init is None:
+            shell_radii_init = tuple(float(i) for i in range(self.n_shells))
+        if len(shell_radii_init) != self.n_shells:
+            raise ValueError(
+                f"shell_radii_init length {len(shell_radii_init)} does not match n_shells={self.n_shells}"
+            )
+        radii_init = [float(v) for v in shell_radii_init]
+        if any(v < 0 for v in radii_init):
+            raise ValueError(f"shell_radii_init must be non-negative, got {shell_radii_init}")
+        for i in range(1, len(radii_init)):
+            if radii_init[i] < radii_init[i - 1]:
+                raise ValueError(f"shell_radii_init must be non-decreasing, got {shell_radii_init}")
+        radius_steps = [max(radii_init[0], 1e-6)]
+        for i in range(1, len(radii_init)):
+            radius_steps.append(max(radii_init[i] - radii_init[i - 1], 1e-6))
+        self._raw_radius_steps = nn.Parameter(
+            torch.tensor([_inv_softplus(v) for v in radius_steps], dtype=torch.float64)
+        )
+
+        if len(shell_sigmas) != self.n_shells:
+            raise ValueError(
+                f"shell_sigmas length {len(shell_sigmas)} does not match n_shells={self.n_shells}"
+            )
+        if any(float(v) <= 0 for v in shell_sigmas):
+            raise ValueError(f"shell_sigmas must be positive, got {shell_sigmas}")
+        self._raw_shell_sigmas = nn.Parameter(
+            torch.tensor([_inv_softplus(float(v)) for v in shell_sigmas], dtype=torch.float64)
+        )
+
+        self._flow: _AffineFlow | None = None
+        self.flow_layers = int(max(0, flow_layers))
+        if self.flow_layers > 0:
+            self._flow = _AffineFlow(nd=self.nd, n_layers=self.flow_layers, hidden=int(flow_hidden))
+
+        self._fit_device = torch.device(self.device)
+        if self._flow is not None:
+            self._flow.to(self._fit_device, dtype=self.dtype)
+
+        ring_params = [self._mix_logits, self._raw_radius_steps, self._raw_shell_sigmas]
+        params = list(ring_params)
+        if self._flow is not None:
+            params.extend(list(self._flow.parameters()))
+        self._optimizer_ring = torch.optim.Adam(ring_params, lr=self.refit_lr)
+        self._optimizer = torch.optim.Adam(params, lr=self.refit_lr)
+
+        default_buf = max(5000, 20 * self.refit_min_samples)
+        self.buffer_size = int(default_buf if buffer_size is None else max(buffer_size, self.refit_min_samples))
+        self._buffer = torch.empty(0, self.nd, dtype=torch.float64)
+        self._curriculum_unlocked = self.curriculum_mode == "none"
+        self._curriculum_trigger_streak = 0
+        self._curriculum_last_metric = float("nan")
+        self._curriculum_last_reason = "inactive" if self.curriculum_mode == "none" else "locked"
+        self.is_fitted = True
+
+    def _effective_mix_logits(self) -> torch.Tensor:
+        if self._curriculum_unlocked or self.curriculum_mode == "none":
+            return self._mix_logits
+        gated = self._mix_logits.clone()
+        if gated.numel() > 1:
+            gated[1:] = gated[1:] + self.curriculum_inactive_logit_offset
+        return gated
+
+    def _template_weights(self) -> torch.Tensor:
+        weights = torch.softmax(self._effective_mix_logits(), dim=0)
+        if (
+            self.curriculum_mode != "none"
+            and self._curriculum_unlocked
+            and self.curriculum_centered_mass_floor > 0.0
+            and weights.numel() > 1
+        ):
+            floor = self.curriculum_centered_mass_floor
+            centered = floor + (1.0 - floor) * weights[0:1]
+            outer = (1.0 - floor) * weights[1:]
+            weights = torch.cat([centered, outer], dim=0)
+        return weights
+
+    def template_weights(self) -> torch.Tensor:
+        return self._template_weights().detach().cpu()
+
+    def curriculum_state(self) -> dict[str, float | int | bool | str]:
+        return {
+            "mode": self.curriculum_mode,
+            "unlocked": bool(self._curriculum_unlocked),
+            "streak": int(self._curriculum_trigger_streak),
+            "metric": float(self._curriculum_last_metric),
+            "reason": self._curriculum_last_reason,
+            "centered_mass_floor": float(self.curriculum_centered_mass_floor),
+        }
+
+    def _weighted_sample_radius_aho(
+        self,
+        x_candidates: torch.Tensor,
+        sample_weights: torch.Tensor,
+    ) -> float:
+        mean_r_abs = x_candidates.norm(dim=-1).mean(dim=-1)
+        mean_r_aho = mean_r_abs * math.sqrt(self.omega)
+        q = torch.tensor([self.curriculum_radius_quantile], device=mean_r_aho.device, dtype=mean_r_aho.dtype)
+        radius_q = _weighted_quantile_1d(mean_r_aho, sample_weights, q)[0]
+        return float(radius_q.detach().cpu().item())
+
+    def _maybe_unlock_curriculum(
+        self,
+        epoch: int,
+        *,
+        x_candidates: torch.Tensor | None = None,
+        sample_weights: torch.Tensor | None = None,
+        diagnostic_ess: float | None = None,
+    ) -> None:
+        if self.curriculum_mode == "none" or self._curriculum_unlocked:
+            return
+
+        triggered = False
+        metric = float("nan")
+        reason = "locked"
+        if self.curriculum_mode == "epoch":
+            metric = float(epoch)
+            triggered = epoch >= self.curriculum_unlock_epoch
+            reason = f"epoch>={self.curriculum_unlock_epoch}"
+        elif self.curriculum_mode == "ess":
+            metric = float(diagnostic_ess) if diagnostic_ess is not None else float("nan")
+            triggered = math.isfinite(metric) and metric >= self.curriculum_unlock_ess
+            reason = f"ESS>={self.curriculum_unlock_ess:.2f}"
+        elif self.curriculum_mode == "radius":
+            if x_candidates is not None and sample_weights is not None:
+                metric = self._weighted_sample_radius_aho(x_candidates, sample_weights)
+                triggered = metric >= self.curriculum_radius_threshold_aho
+            reason = (
+                f"r_q{self.curriculum_radius_quantile:.2f}>="
+                f"{self.curriculum_radius_threshold_aho:.2f} a_ho"
+            )
+
+        self._curriculum_last_metric = float(metric)
+        if triggered:
+            self._curriculum_trigger_streak += 1
+        else:
+            self._curriculum_trigger_streak = 0
+
+        if self._curriculum_trigger_streak >= self.curriculum_unlock_patience:
+            self._curriculum_unlocked = True
+            self._curriculum_last_reason = reason
+            print(
+                "  [ShellFlow curriculum] "
+                f"epoch={epoch} mode={self.curriculum_mode} unlocked=yes "
+                f"metric={metric:.3f} reason={reason}"
+            )
+        else:
+            self._curriculum_last_reason = reason if triggered else "locked"
+
+    def _curriculum_summary(self) -> str:
+        if self.curriculum_mode == "none":
+            return "curriculum=off"
+        state = "unlocked" if self._curriculum_unlocked else "locked"
+        metric = self._curriculum_last_metric
+        metric_str = "nan" if not math.isfinite(metric) else f"{metric:.3f}"
+        return (
+            f"curriculum={self.curriculum_mode}:{state} "
+            f"streak={self._curriculum_trigger_streak}/{self.curriculum_unlock_patience} "
+            f"metric={metric_str} floor={self.curriculum_centered_mass_floor:.3f}"
+        )
+
+    def _shell_probabilities(self) -> torch.Tensor:
+        probs = (self._template_weights().unsqueeze(-1) * self._template_occ.to(self._mix_logits.device)).sum(dim=0)
+        probs = probs.clamp_min(1e-5)
+        return probs / probs.sum()
+
+    def shell_probabilities(self) -> torch.Tensor:
+        return self._shell_probabilities().detach().cpu()
+
+    def _shell_radii_aho(self) -> torch.Tensor:
+        return torch.cumsum(torch.nn.functional.softplus(self._raw_radius_steps).clamp_min(1e-6), dim=0)
+
+    def shell_radii_aho(self) -> torch.Tensor:
+        return self._shell_radii_aho().detach().cpu()
+
+    def _shell_sigmas_aho(self) -> torch.Tensor:
+        return torch.nn.functional.softplus(self._raw_shell_sigmas).clamp_min(1e-4)
+
+    def shell_sigmas_aho(self) -> torch.Tensor:
+        return self._shell_sigmas_aho().detach().cpu()
+
+    def _shell_radii_abs(self) -> torch.Tensor:
+        return self._shell_radii_aho() / math.sqrt(self.omega)
+
+    def _shell_sigmas_abs(self) -> torch.Tensor:
+        return self._shell_sigmas_aho() / math.sqrt(self.omega)
+
+    def _ring_log_prob_2d(self, rho: torch.Tensor, radius: torch.Tensor, sigma: torch.Tensor) -> torch.Tensor:
+        sigma2 = sigma * sigma
+        return (
+            -math.log(2.0 * math.pi)
+            - 2.0 * torch.log(sigma)
+            - (rho * rho + radius * radius) / (2.0 * sigma2)
+            + _log_i0(rho * radius / sigma2)
+        )
+
+    def accumulate(self, x_resampled: torch.Tensor) -> None:
+        x_flat = x_resampled.detach().reshape(x_resampled.shape[0], -1).to("cpu", dtype=torch.float64)
+        if x_flat.shape[1] != self.nd:
+            raise ValueError(f"Expected flattened dim {self.nd}, got {x_flat.shape[1]}")
+        if self._buffer.numel() == 0:
+            self._buffer = x_flat
+        else:
+            self._buffer = torch.cat([self._buffer, x_flat], dim=0)
+        if self._buffer.shape[0] > self.buffer_size:
+            self._buffer = self._buffer[-self.buffer_size :]
+
+    def _base_log_prob(self, z: torch.Tensor) -> torch.Tensor:
+        probs = self._shell_probabilities().to(device=z.device, dtype=z.dtype)
+        radii = self._shell_radii_abs().to(device=z.device, dtype=z.dtype)
+        sigmas = self._shell_sigmas_abs().to(device=z.device, dtype=z.dtype)
+
+        rho = z.norm(dim=-1).unsqueeze(-1)
+        radii_v = radii.view(1, 1, self.n_shells)
+        sigmas_v = sigmas.view(1, 1, self.n_shells)
+        logp_v = torch.log(probs).view(1, 1, self.n_shells)
+        comp = self._ring_log_prob_2d(rho, radii_v, sigmas_v) + logp_v
+        per_e = torch.logsumexp(comp, dim=-1)
+        return per_e.sum(dim=-1)
+
+    def _base_sample(self, n: int) -> tuple[torch.Tensor, torch.Tensor]:
+        probs = self._shell_probabilities().to(device=self._fit_device, dtype=self.dtype)
+        radii = self._shell_radii_abs().to(device=self._fit_device, dtype=self.dtype)
+        sigmas = self._shell_sigmas_abs().to(device=self._fit_device, dtype=self.dtype)
+
+        shell_idx = torch.multinomial(probs, n * self.n_elec, replacement=True).reshape(n, self.n_elec)
+        sel_radii = radii[shell_idx]
+        sel_sigmas = sigmas[shell_idx]
+        angles = 2.0 * math.pi * torch.rand(n, self.n_elec, device=self._fit_device, dtype=self.dtype)
+        means = torch.stack([torch.cos(angles), torch.sin(angles)], dim=-1) * sel_radii.unsqueeze(-1)
+        z = means + sel_sigmas.unsqueeze(-1) * torch.randn(n, self.n_elec, self.dim, device=self._fit_device, dtype=self.dtype)
+        lq = self._base_log_prob(z)
+        return z, lq
+
+    def sample(self, n: int) -> tuple[torch.Tensor, torch.Tensor]:
+        n = int(n)
+        z, lz = self._base_sample(n)
+        if self._flow is None:
+            x = z
+            log_q = lz
+        else:
+            z_flat = z.reshape(n, self.nd)
+            x_flat, log_det = self._flow(z_flat)
+            x = x_flat.reshape(n, self.n_elec, self.dim)
+            log_q = lz - log_det
+        return x.to(device=self.device, dtype=self.dtype), log_q.to(device=self.device, dtype=self.dtype)
+
+    def log_prob(self, x: torch.Tensor) -> torch.Tensor:
+        x_in = x.to(device=self._fit_device, dtype=self.dtype)
+        if self._flow is None:
+            lq = self._base_log_prob(x_in)
+        else:
+            x_flat = x_in.reshape(x_in.shape[0], self.nd)
+            z_flat, inv_log_det = self._flow.inverse(x_flat)
+            z = z_flat.reshape(x_in.shape[0], self.n_elec, self.dim)
+            lq = self._base_log_prob(z) + inv_log_det
+        return lq.to(device=x.device, dtype=x.dtype)
+
+    def maybe_refit(self, epoch: int) -> bool:
+        if epoch <= 0 or (epoch % self.refit_every) != 0:
+            return False
+        if self._buffer.shape[0] < self.refit_min_samples:
+            return False
+
+        self._maybe_unlock_curriculum(epoch)
+
+        torch.manual_seed(self.random_state + int(epoch))
+        n_buf = self._buffer.shape[0]
+        bs = min(1024, n_buf)
+        last_loss = float("nan")
+        last_anchor = float("nan")
+        radius_targets_aho = None
+        if self.radius_anchor_weight > 0.0:
+            rho_abs = (
+                self._buffer.to(device=self._fit_device, dtype=self.dtype)
+                .reshape(n_buf, self.n_elec, self.dim)
+                .norm(dim=-1)
+                .reshape(-1)
+            )
+            rho_aho = rho_abs * math.sqrt(self.omega)
+            q = torch.linspace(0.35, 0.85, self.n_shells, device=rho_aho.device, dtype=rho_aho.dtype)
+            radius_targets_aho = torch.quantile(rho_aho, q).detach()
+
+        for step in range(self.refit_steps):
+            opt = self._optimizer
+            if self._flow is not None and step < min(self.ring_warmup_steps, self.refit_steps):
+                opt = self._optimizer_ring
+            idx = torch.randint(0, n_buf, (bs,))
+            xb = self._buffer[idx].to(device=self._fit_device, dtype=self.dtype).reshape(bs, self.n_elec, self.dim)
+            lq = self.log_prob(xb)
+            loss = -lq.mean()
+            if radius_targets_aho is not None:
+                radii_aho = self._shell_radii_aho().to(
+                    device=radius_targets_aho.device, dtype=radius_targets_aho.dtype
+                )
+                anchor = torch.mean((radii_aho - radius_targets_aho) ** 2)
+                loss = loss + self.radius_anchor_weight * anchor
+                last_anchor = float(anchor.detach().cpu().item())
+            if not torch.isfinite(loss):
+                raise RuntimeError(f"AdaptiveShellFlowProposal encountered non-finite loss at epoch {epoch}")
+            opt.zero_grad(set_to_none=True)
+            loss.backward()
+            torch.nn.utils.clip_grad_norm_(opt.param_groups[0]["params"], max_norm=5.0)
+            opt.step()
+            last_loss = float(loss.detach().cpu().item())
+
+        w = self.template_weights().numpy().tolist()
+        shell_probs = self.shell_probabilities().numpy().tolist()
+        radii = self.shell_radii_aho().numpy().tolist()
+        sigmas = self.shell_sigmas_aho().numpy().tolist()
+        print(
+            "  [ShellFlow refit] "
+            f"epoch={epoch} flow_layers={self.flow_layers} "
+            f"ring_warmup={min(self.ring_warmup_steps, self.refit_steps)} "
+            f"anchor_w={self.radius_anchor_weight:.3f} "
+            f"shell_p={','.join(f'{v:.3f}' for v in shell_probs)} "
+            f"radii_aho={','.join(f'{v:.3f}' for v in radii)} "
+            f"sigmas_aho={','.join(f'{v:.3f}' for v in sigmas)} "
+            f"template_w={','.join(f'{v:.3f}' for v in w)} loss={last_loss:.4f} "
+            f"anchor={last_anchor:.4f} {self._curriculum_summary()}"
+        )
+        return True
+
+    def maybe_refit_weighted(
+        self,
+        epoch: int,
+        x_candidates: torch.Tensor,
+        resample_probs: torch.Tensor,
+        diagnostic_ess: float | None = None,
+    ) -> bool:
+        if epoch <= 0 or (epoch % self.refit_every) != 0:
+            return False
+
+        x_flat = x_candidates.detach().reshape(x_candidates.shape[0], -1).to(device=self._fit_device, dtype=self.dtype)
+        if x_flat.shape[0] < self.refit_min_samples:
+            return False
+        n_buf = x_flat.shape[0]
+
+        w = resample_probs.detach().reshape(-1).to(device=self._fit_device, dtype=self.dtype)
+        if w.shape[0] != x_flat.shape[0]:
+            raise ValueError("resample_probs must align with x_candidates")
+        w = torch.nan_to_num(w, nan=0.0, posinf=0.0, neginf=0.0).clamp_min(0.0)
+        w_sum = w.sum()
+        if not torch.isfinite(w_sum) or w_sum <= 0:
+            return False
+        w = w / w_sum
+
+        self._maybe_unlock_curriculum(
+            epoch,
+            x_candidates=x_flat.reshape(n_buf, self.n_elec, self.dim),
+            sample_weights=w,
+            diagnostic_ess=diagnostic_ess,
+        )
+
+        torch.manual_seed(self.random_state + int(epoch))
+        bs = min(1024, n_buf)
+        last_loss = float("nan")
+        last_anchor = float("nan")
+        radius_targets_aho = None
+        if self.radius_anchor_weight > 0.0:
+            rho_abs = x_flat.reshape(n_buf, self.n_elec, self.dim).norm(dim=-1).reshape(-1)
+            rho_aho = rho_abs * math.sqrt(self.omega)
+            rho_w = w.repeat_interleave(self.n_elec)
+            q = torch.linspace(0.35, 0.85, self.n_shells, device=rho_aho.device, dtype=rho_aho.dtype)
+            radius_targets_aho = _weighted_quantile_1d(rho_aho, rho_w, q).detach()
+
+        for step in range(self.refit_steps):
+            opt = self._optimizer
+            if self._flow is not None and step < min(self.ring_warmup_steps, self.refit_steps):
+                opt = self._optimizer_ring
+            idx = torch.multinomial(w, bs, replacement=True)
+            xb = x_flat[idx].reshape(bs, self.n_elec, self.dim)
+            lq = self.log_prob(xb)
+            loss = -lq.mean()
+            if radius_targets_aho is not None:
+                radii_aho = self._shell_radii_aho().to(
+                    device=radius_targets_aho.device, dtype=radius_targets_aho.dtype
+                )
+                anchor = torch.mean((radii_aho - radius_targets_aho) ** 2)
+                loss = loss + self.radius_anchor_weight * anchor
+                last_anchor = float(anchor.detach().cpu().item())
+            if not torch.isfinite(loss):
+                raise RuntimeError(f"AdaptiveShellFlowProposal encountered non-finite weighted loss at epoch {epoch}")
+            opt.zero_grad(set_to_none=True)
+            loss.backward()
+            torch.nn.utils.clip_grad_norm_(opt.param_groups[0]["params"], max_norm=5.0)
+            opt.step()
+            last_loss = float(loss.detach().cpu().item())
+
+        w_tpl = self.template_weights().numpy().tolist()
+        shell_probs = self.shell_probabilities().numpy().tolist()
+        radii = self.shell_radii_aho().numpy().tolist()
+        sigmas = self.shell_sigmas_aho().numpy().tolist()
+        print(
+            "  [ShellFlow refit] "
+            f"epoch={epoch} flow_layers={self.flow_layers} "
+            f"ring_warmup={min(self.ring_warmup_steps, self.refit_steps)} "
+            f"anchor_w={self.radius_anchor_weight:.3f} "
+            f"shell_p={','.join(f'{v:.3f}' for v in shell_probs)} "
+            f"radii_aho={','.join(f'{v:.3f}' for v in radii)} "
+            f"sigmas_aho={','.join(f'{v:.3f}' for v in sigmas)} "
+            f"template_w={','.join(f'{v:.3f}' for v in w_tpl)} loss={last_loss:.4f} "
+            f"anchor={last_anchor:.4f} {self._curriculum_summary()}"
+        )
+        return True
+
+    def state_dict(self) -> dict:
+        out = {
+            "proposal_type": "shellflow",
+            "n_elec": int(self.n_elec),
+            "dim": int(self.dim),
+            "omega": float(self.omega),
+            "shell_templates": [tuple(int(v) for v in t) for t in self.shell_templates],
+            "mix_logits": self._mix_logits.detach().cpu(),
+            "raw_radius_steps": self._raw_radius_steps.detach().cpu(),
+            "raw_shell_sigmas": self._raw_shell_sigmas.detach().cpu(),
+            "flow_layers": int(self.flow_layers),
+            "buffer": self._buffer.detach().cpu(),
+            "curriculum_unlocked": bool(self._curriculum_unlocked),
+            "curriculum_trigger_streak": int(self._curriculum_trigger_streak),
+            "curriculum_last_metric": float(self._curriculum_last_metric),
+            "curriculum_last_reason": str(self._curriculum_last_reason),
+            "curriculum_centered_mass_floor": float(self.curriculum_centered_mass_floor),
+        }
+        if self._flow is not None:
+            out["flow_state"] = {k: v.detach().cpu() for k, v in self._flow.state_dict().items()}
+        return out
+
+    def load_state_dict(self, state: dict) -> None:
+        if str(state.get("proposal_type", "")) != "shellflow":
+            raise ValueError("Incompatible proposal state: expected shellflow")
+        self._mix_logits.data.copy_(state["mix_logits"].to(device=self._mix_logits.device, dtype=self._mix_logits.dtype))
+        self._raw_radius_steps.data.copy_(
+            state["raw_radius_steps"].to(device=self._raw_radius_steps.device, dtype=self._raw_radius_steps.dtype)
+        )
+        self._raw_shell_sigmas.data.copy_(
+            state["raw_shell_sigmas"].to(device=self._raw_shell_sigmas.device, dtype=self._raw_shell_sigmas.dtype)
+        )
+
+        if self._flow is not None and "flow_state" in state:
+            self._flow.load_state_dict(state["flow_state"])
+
+        if "buffer" in state:
+            self._buffer = state["buffer"].detach().to("cpu", dtype=torch.float64)
+        self._curriculum_unlocked = bool(state.get("curriculum_unlocked", self._curriculum_unlocked))
+        self._curriculum_trigger_streak = int(state.get("curriculum_trigger_streak", self._curriculum_trigger_streak))
+        self._curriculum_last_metric = float(state.get("curriculum_last_metric", self._curriculum_last_metric))
+        self._curriculum_last_reason = str(state.get("curriculum_last_reason", self._curriculum_last_reason))
+        self.curriculum_centered_mass_floor = float(
+            state.get("curriculum_centered_mass_floor", self.curriculum_centered_mass_floor)
+        )
+
+
 def langevin_refine_samples(x, psi_log_fn, n_steps, step_size, chunk=1024, grad_clip=1.0):
     """Push samples toward high-|Ψ|² regions via overdamped Langevin dynamics.
 
@@ -390,6 +1057,7 @@ def importance_resample(
     langevin_steps: int = 0,
     langevin_step_size: float = 0.01,
     return_stats: bool = False,
+    return_proposal_data: bool = False,
 ):
     """Multinomial resampling from q to approximate |Ψ|² samples.
 
@@ -477,12 +1145,15 @@ def importance_resample(
     ess_eff = (w.sum() ** 2 / (w**2).sum()).item()
     psis_khat = psis_diagnostic(log_w_raw)
     idx = torch.multinomial(probs, n_keep, replacement=True)
-    if not return_stats:
+    if not return_stats and not return_proposal_data:
         return x_all[idx].clone(), ess_eff
 
     topk = min(10, int(probs.numel()))
     top_probs = torch.topk(probs, k=topk).values
     stats = {
+        "n_keep": int(n_keep),
+        "n_candidates": int(x_all.shape[0]),
+        "n_cand_mult": int(n_cand_mult),
         "ess_raw": float(ess_raw),
         "ess_eff": float(ess_eff),
         "psis_khat": float(psis_khat),
@@ -492,7 +1163,19 @@ def importance_resample(
         "logw_clip_thr": float(clip_thr.item()) if clip_thr is not None else None,
         "weight_temp": float(alpha),
     }
-    return x_all[idx].clone(), ess_eff, stats
+    raw_target_probs = (w_raw / w_raw.sum()).detach()
+    proposal_data = {
+        "x_candidates": x_all.detach(),
+        "raw_target_probs": raw_target_probs,
+        "resample_probs": probs.detach(),
+            "sample_indices": idx.detach(),
+        "sample_reweight": (raw_target_probs[idx] / probs[idx].clamp_min(1e-12)).detach(),
+    }
+    if return_stats and return_proposal_data:
+        return x_all[idx].clone(), ess_eff, stats, proposal_data
+    if return_stats:
+        return x_all[idx].clone(), ess_eff, stats
+    return x_all[idx].clone(), ess_eff, proposal_data
 
 
 @torch.no_grad()
@@ -599,6 +1282,7 @@ def rayleigh_hybrid_loss(
     clip_el: float = 5.0,
     reward_qtrim: float = 0.0,
     reward_normalize: bool = False,
+    sample_weights: torch.Tensor | None = None,
 ):
     """Hybrid REINFORCE + direct weak-form gradient loss."""
     x = x.detach().requires_grad_(True)
@@ -648,13 +1332,30 @@ def rayleigh_hybrid_loss(
         lp_eff = lp
         ew_eff = e_weak
 
-    R = E_eff.mean()
+    if sample_weights is not None:
+        w_full = sample_weights.detach().reshape(-1).to(device=E_L.device, dtype=E_L.dtype)
+        if w_full.shape[0] != E_L.shape[0]:
+            raise ValueError("sample_weights must align with x")
+        if reward_qtrim > 0.0 and E_L.numel() > 20 and E_eff.shape[0] != E_L.shape[0]:
+            w_eff = w_full[m]
+        else:
+            w_eff = w_full
+        w_eff = torch.nan_to_num(w_eff, nan=0.0, posinf=0.0, neginf=0.0).clamp_min(0.0)
+        w_sum = w_eff.sum()
+        if (not torch.isfinite(w_sum)) or w_sum <= 0:
+            w_eff = torch.ones_like(E_eff)
+            w_sum = w_eff.sum()
+    else:
+        w_eff = torch.ones_like(E_eff)
+        w_sum = w_eff.sum()
+
+    R = (w_eff * E_eff).sum() / w_sum
     advantage = E_eff - R
     if reward_normalize:
-        reward_scale = torch.clamp(advantage.std(unbiased=False), min=1e-6)
+        reward_scale = torch.sqrt(torch.clamp((w_eff * (advantage ** 2)).sum() / w_sum, min=1e-12))
         advantage = advantage / reward_scale
-    L_reinforce = 2.0 * (advantage * lp_eff).mean()
-    L_direct = direct_weight * ew_eff.mean()
+    L_reinforce = 2.0 * (w_eff * advantage * lp_eff).sum() / w_sum
+    L_direct = direct_weight * (w_eff * ew_eff).sum() / w_sum
     L = L_reinforce + L_direct
 
     return L, R.item(), E_eff.detach(), ew_eff.detach()

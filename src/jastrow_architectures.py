@@ -63,7 +63,8 @@ class CuspMixin:
             same = (si == sj).to(x.dtype).unsqueeze(-1)
 
         gamma = same * self.gamma_para + (1.0 - same) * self.gamma_apara
-        return (gamma * r * torch.exp(-r)).sum(dim=1)  # (B, 1)
+        ell = torch.as_tensor(self.cusp_len, device=x.device, dtype=x.dtype).view(1, 1, 1)
+        return (gamma * r * torch.exp(-r / ell)).sum(dim=1)  # (B, 1)
 
 
 # ═════════════════════════════════════════════════════════════════
@@ -1172,6 +1173,10 @@ class CTNNJastrowVCycle(nn.Module, CuspMixin):
         act: str = "silu",
         aggregation: str = "sum",
         use_spin: bool = True,
+        input_radius_cap_aho: float = 0.0,
+        tail_guard_radius_aho: float = 0.0,
+        tail_guard_strength: float = 0.0,
+        tail_guard_power: float = 4.0,
     ):
         super().__init__()
         self._init_cusps(n_particles, d, omega)
@@ -1182,6 +1187,10 @@ class CTNNJastrowVCycle(nn.Module, CuspMixin):
         self.n_up = n_up
         self.aggregation = aggregation
         self.use_spin = use_spin
+        self.input_radius_cap_aho = float(input_radius_cap_aho)
+        self.tail_guard_radius_aho = float(tail_guard_radius_aho)
+        self.tail_guard_strength = float(tail_guard_strength)
+        self.tail_guard_power = float(tail_guard_power)
 
         def make_act():
             return {
@@ -1302,19 +1311,34 @@ class CTNNJastrowVCycle(nn.Module, CuspMixin):
         h_v_new = h_v + node_update(torch.cat([h_v, self._aggregate(msgs)], dim=-1))
         return h_v_new, h_e_new
 
+    def _radial_tail_guard(self, x_sc):
+        if self.tail_guard_strength <= 0.0 or self.tail_guard_radius_aho <= 0.0:
+            return torch.zeros(x_sc.shape[0], 1, device=x_sc.device, dtype=x_sc.dtype)
+        rho_mean_aho = x_sc.norm(dim=-1).mean(dim=1, keepdim=True)
+        excess = torch.clamp(rho_mean_aho - self.tail_guard_radius_aho, min=0.0)
+        return self.tail_guard_strength * excess.pow(self.tail_guard_power)
+
+    def _cap_model_radius(self, x_sc):
+        if self.input_radius_cap_aho <= 0.0:
+            return x_sc
+        rho = x_sc.norm(dim=-1, keepdim=True)
+        scale = torch.clamp(self.input_radius_cap_aho / rho.clamp_min(1e-12), max=1.0)
+        return x_sc * scale
+
     def forward(self, x, spin=None):
         B, N, d = x.shape
         x_sc = x * (self.omega**0.5)
+        x_sc_model = self._cap_model_radius(x_sc)
         spin_1d = self._resolve_spin(spin, B, N, x.device)
 
         if self.use_spin:
             sf = spin_1d.view(1, N, 1).to(x.dtype).expand(B, N, 1)
-            node_in = torch.cat([x_sc, sf], dim=-1)
+            node_in = torch.cat([x_sc_model, sf], dim=-1)
         else:
-            node_in = x_sc
+            node_in = x_sc_model
         h_v = self.node_embed(node_in)
 
-        r_vec = x_sc.unsqueeze(2) - x_sc.unsqueeze(1)
+        r_vec = x_sc_model.unsqueeze(2) - x_sc_model.unsqueeze(1)
         r2 = (r_vec**2).sum(-1, keepdim=True)
         r1 = torch.sqrt(r2 + 1e-12)
         h_e = self.edge_embed(torch.cat([r_vec, r1, r2], dim=-1))
@@ -1359,11 +1383,254 @@ class CTNNJastrowVCycle(nn.Module, CuspMixin):
         h_e_mean = h_e_pairs.mean(dim=1)
         attn_w = F.softmax(self.edge_attn(h_e_pairs), dim=1)
         h_e_attn = (h_e_pairs * attn_w).sum(dim=1)
-        r2_mean = (x_sc**2).mean(dim=(1, 2)).unsqueeze(-1)
+        r2_mean = (x_sc_model**2).mean(dim=(1, 2)).unsqueeze(-1)
         diff = (x[:, self.idx_i] - x[:, self.idx_j]).pow(2)
         dist = torch.sqrt(diff.sum(-1, keepdim=True) + 1e-8)
         s1_mean = torch.log1p((dist / 0.2) ** 2).mean(dim=1)
 
         f_in = torch.cat([h_v_sum, h_v_mean, h_e_sum, h_e_mean, h_e_attn, r2_mean, s1_mean], dim=1)
-        f_nn = self.f_head(f_in)
+        f_nn = self.f_head(f_in) - self._radial_tail_guard(x_sc_model)
+        return f_nn + self._compute_cusps(x, spin_1d)
+
+
+class CTNNShellAwareJastrow(nn.Module, CuspMixin):
+    """
+    CTNN Jastrow with soft radial-shell features and channel-pooled pair readout.
+
+    This keeps the model permutation equivariant while giving the readout direct
+    access to same-shell versus cross-shell correlations, which are important in
+    low-omega/high-N dot states.
+    """
+
+    def __init__(
+        self,
+        n_particles: int,
+        d: int,
+        omega: float,
+        *,
+        node_hidden: int = 48,
+        edge_hidden: int = 48,
+        n_shells: int = 3,
+        shell_radius_aho: float = 3.0,
+        shell_width_aho: float = 0.6,
+        n_mp_steps: int = 2,
+        msg_layers: int = 2,
+        node_layers: int = 2,
+        readout_hidden: int = 64,
+        readout_layers: int = 2,
+        act: str = "silu",
+        use_spin: bool = True,
+        aggregation: str = "sum",
+        input_radius_cap_aho: float = 0.0,
+        tail_guard_radius_aho: float = 0.0,
+        tail_guard_strength: float = 0.0,
+        tail_guard_power: float = 4.0,
+    ):
+        super().__init__()
+        self._init_cusps(n_particles, d, omega)
+        self.n_particles = n_particles
+        self.d = d
+        self.omega = omega
+        self.n_shells = max(int(n_shells), 1)
+        self.shell_radius_aho = float(shell_radius_aho)
+        self.shell_width_aho = max(float(shell_width_aho), 1e-3)
+        self.n_mp_steps = int(n_mp_steps)
+        self.use_spin = use_spin
+        self.aggregation = aggregation
+        self.input_radius_cap_aho = float(input_radius_cap_aho)
+        self.tail_guard_radius_aho = float(tail_guard_radius_aho)
+        self.tail_guard_strength = float(tail_guard_strength)
+        self.tail_guard_power = float(tail_guard_power)
+
+        centers = torch.linspace(0.0, self.shell_radius_aho, self.n_shells)
+        self.register_buffer("shell_centers", centers, persistent=False)
+        ii, jj = torch.triu_indices(n_particles, n_particles, offset=1)
+        self.register_buffer("idx_i", ii, persistent=False)
+        self.register_buffer("idx_j", jj, persistent=False)
+
+        def make_act():
+            return {
+                "silu": nn.SiLU,
+                "gelu": nn.GELU,
+                "relu": nn.ReLU,
+                "tanh": nn.Tanh,
+                "mish": nn.Mish,
+            }[act.lower()]()
+
+        node_in = d + self.n_shells + (1 if use_spin else 0)
+        edge_in = d + 2 + 4
+        self.node_embed = nn.Linear(node_in, node_hidden)
+        self.edge_embed = self._mlp(edge_in, edge_hidden, edge_hidden, msg_layers, make_act)
+
+        self.rho_v_to_e = nn.ModuleList(
+            [nn.Linear(node_hidden, edge_hidden, bias=False) for _ in range(self.n_mp_steps)]
+        )
+        self.rho_e_to_v = nn.ModuleList(
+            [nn.Linear(edge_hidden, node_hidden, bias=False) for _ in range(self.n_mp_steps)]
+        )
+        self.edge_updates = nn.ModuleList(
+            [
+                self._mlp(3 * edge_hidden, edge_hidden, edge_hidden, msg_layers, make_act)
+                for _ in range(self.n_mp_steps)
+            ]
+        )
+        self.node_updates = nn.ModuleList(
+            [
+                self._mlp(2 * node_hidden, node_hidden, node_hidden, node_layers, make_act)
+                for _ in range(self.n_mp_steps)
+            ]
+        )
+
+        readout_in = 2 * node_hidden + 6 * edge_hidden + 4
+        layers_f = []
+        dim = readout_in
+        for _ in range(readout_layers):
+            layers_f += [nn.Linear(dim, readout_hidden), make_act()]
+            dim = readout_hidden
+        layers_f.append(nn.Linear(dim, 1))
+        nn.init.normal_(layers_f[-1].weight, std=1e-3)
+        nn.init.zeros_(layers_f[-1].bias)
+        self.f_head = nn.Sequential(*layers_f)
+
+    def _mlp(self, in_dim, hid, out_dim, n_layers, act_fn):
+        layers = []
+        if n_layers <= 1:
+            layers.append(nn.Linear(in_dim, out_dim))
+        else:
+            layers += [nn.Linear(in_dim, hid), act_fn()]
+            for _ in range(n_layers - 2):
+                layers += [nn.Linear(hid, hid), act_fn()]
+            layers.append(nn.Linear(hid, out_dim))
+        return nn.Sequential(*layers)
+
+    def _aggregate(self, msgs):
+        if self.aggregation == "sum":
+            return msgs.sum(dim=2)
+        if self.aggregation == "mean":
+            return msgs.mean(dim=2)
+        return msgs.max(dim=2).values
+
+    def _resolve_spin(self, spin, B, N, device):
+        if spin is None:
+            up = N // 2
+            return torch.cat(
+                [
+                    torch.zeros(up, dtype=torch.long, device=device),
+                    torch.ones(N - up, dtype=torch.long, device=device),
+                ]
+            )
+        s = spin.to(device).long()
+        return s[0] if s.dim() == 2 else s
+
+    def _cap_model_radius(self, x_sc):
+        if self.input_radius_cap_aho <= 0.0:
+            return x_sc
+        rho = x_sc.norm(dim=-1, keepdim=True)
+        scale = torch.clamp(self.input_radius_cap_aho / rho.clamp_min(1e-12), max=1.0)
+        return x_sc * scale
+
+    def _radial_tail_guard(self, x_sc):
+        if self.tail_guard_strength <= 0.0 or self.tail_guard_radius_aho <= 0.0:
+            return torch.zeros(x_sc.shape[0], 1, device=x_sc.device, dtype=x_sc.dtype)
+        rho_mean_aho = x_sc.norm(dim=-1).mean(dim=1, keepdim=True)
+        excess = torch.clamp(rho_mean_aho - self.tail_guard_radius_aho, min=0.0)
+        return self.tail_guard_strength * excess.pow(self.tail_guard_power)
+
+    def _shell_membership(self, x_sc):
+        rho = x_sc.norm(dim=-1, keepdim=True)
+        centers = self.shell_centers.to(device=x_sc.device, dtype=x_sc.dtype).view(1, 1, -1)
+        logits = -0.5 * ((rho - centers) / self.shell_width_aho) ** 2
+        return torch.softmax(logits, dim=-1)
+
+    def _shell_pair_channels(self, shell_m):
+        mi = shell_m.unsqueeze(2)
+        mj = shell_m.unsqueeze(1)
+        same_shell = (mi * mj).sum(dim=-1, keepdim=True)
+        if self.n_shells > 1:
+            adj = mi[..., :-1] * mj[..., 1:] + mi[..., 1:] * mj[..., :-1]
+            adj_shell = adj.sum(dim=-1, keepdim=True)
+        else:
+            adj_shell = torch.zeros_like(same_shell)
+        far_shell = torch.clamp(1.0 - same_shell - adj_shell, min=0.0)
+        return same_shell, adj_shell, far_shell
+
+    def _weighted_pair_pool(self, h_pairs, weights):
+        denom = weights.sum(dim=1).clamp_min(1e-8)
+        return (h_pairs * weights).sum(dim=1) / denom
+
+    def forward(self, x, spin=None):
+        B, N, d = x.shape
+        x_sc = x * (self.omega**0.5)
+        x_sc_model = self._cap_model_radius(x_sc)
+        spin_1d = self._resolve_spin(spin, B, N, x.device)
+
+        shell_m = self._shell_membership(x_sc_model)
+        node_parts = [x_sc_model, shell_m]
+        if self.use_spin:
+            sf = spin_1d.view(1, N, 1).to(x.dtype).expand(B, N, 1)
+            node_parts.append(sf)
+        h_v = self.node_embed(torch.cat(node_parts, dim=-1))
+
+        r_vec = x_sc_model.unsqueeze(2) - x_sc_model.unsqueeze(1)
+        r2 = (r_vec**2).sum(-1, keepdim=True)
+        r1 = torch.sqrt(r2 + 1e-12)
+        same_shell, adj_shell, far_shell = self._shell_pair_channels(shell_m)
+
+        si = spin_1d.view(1, N).expand(B, N)
+        sj = spin_1d.view(1, N).expand(B, N)
+        same_spin = (si.unsqueeze(2) == sj.unsqueeze(1)).to(x.dtype).unsqueeze(-1)
+
+        edge_in = torch.cat([r_vec, r1, r2, same_spin, same_shell, adj_shell, far_shell], dim=-1)
+        h_e = self.edge_embed(edge_in)
+
+        eye = torch.eye(N, device=x.device, dtype=x.dtype).view(1, N, N, 1)
+        weight = 1.0 - eye
+
+        for k in range(self.n_mp_steps):
+            h_v_i = h_v.unsqueeze(2).expand(B, N, N, h_v.shape[-1])
+            h_v_j = h_v.unsqueeze(1).expand(B, N, N, h_v.shape[-1])
+            edge_delta = self.edge_updates[k](
+                torch.cat([h_e, self.rho_v_to_e[k](h_v_i), self.rho_v_to_e[k](h_v_j)], dim=-1)
+            )
+            h_e = h_e + edge_delta
+            msgs = self.rho_e_to_v[k](h_e) * weight
+            h_v = h_v + self.node_updates[k](torch.cat([h_v, self._aggregate(msgs)], dim=-1))
+
+        h_pairs = h_e[:, self.idx_i, self.idx_j, :]
+        same_spin_p = same_spin[:, self.idx_i, self.idx_j, :]
+        same_shell_p = same_shell[:, self.idx_i, self.idx_j, :]
+        adj_shell_p = adj_shell[:, self.idx_i, self.idx_j, :]
+        cross_shell_p = torch.clamp(1.0 - same_shell_p, min=0.0)
+        opp_spin_p = 1.0 - same_spin_p
+
+        h_v_sum = h_v.sum(dim=1)
+        h_v_mean = h_v.mean(dim=1)
+        h_e_mean = h_pairs.mean(dim=1)
+        h_ss_same = self._weighted_pair_pool(h_pairs, same_spin_p * same_shell_p)
+        h_os_same = self._weighted_pair_pool(h_pairs, opp_spin_p * same_shell_p)
+        h_ss_cross = self._weighted_pair_pool(h_pairs, same_spin_p * cross_shell_p)
+        h_os_cross = self._weighted_pair_pool(h_pairs, opp_spin_p * cross_shell_p)
+        h_adj = self._weighted_pair_pool(h_pairs, adj_shell_p)
+
+        rho_mean = x_sc_model.norm(dim=-1).mean(dim=1, keepdim=True)
+        rho_std = x_sc_model.norm(dim=-1).std(dim=1, unbiased=False, keepdim=True)
+        r_mean = r1[:, self.idx_i, self.idx_j, :].mean(dim=1)
+        same_shell_mean = same_shell_p.mean(dim=1)
+        extras = torch.cat([rho_mean, rho_std, r_mean, same_shell_mean], dim=1)
+
+        f_in = torch.cat(
+            [
+                h_v_sum,
+                h_v_mean,
+                h_e_mean,
+                h_ss_same,
+                h_os_same,
+                h_ss_cross,
+                h_os_cross,
+                h_adj,
+                extras,
+            ],
+            dim=1,
+        )
+        f_nn = self.f_head(f_in) - self._radial_tail_guard(x_sc_model)
         return f_nn + self._compute_cusps(x, spin_1d)

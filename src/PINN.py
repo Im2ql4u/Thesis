@@ -237,7 +237,8 @@ class PINN(nn.Module):
         )
         gamma = same_spin * gamma_para + (1.0 - same_spin) * gamma_apara  # (B,P,1)
 
-        pair_u = gamma * r_c * torch.exp(-r_c)  # (B,P,1)
+        ell = torch.as_tensor(self.cusp_len, dtype=x.dtype, device=x.device).view(1, 1, 1)
+        pair_u = gamma * r_c * torch.exp(-r_c / ell)  # (B,P,1)
         cusp_term = pair_u.sum(dim=1)  # (B,1)
 
         return out + cusp_term
@@ -984,7 +985,8 @@ class UnifiedCTNN(nn.Module):
             same_sp = (si == sj).to(x.dtype).unsqueeze(-1)
 
         gamma = same_sp * self.gamma_para + (1.0 - same_sp) * self.gamma_apara
-        cusp = (gamma * r_phys * torch.exp(-r_phys)).sum(dim=1)  # (B, 1)
+        ell = torch.as_tensor(self.cusp_len, dtype=x.dtype, device=x.device).view(1, 1, 1)
+        cusp = (gamma * r_phys * torch.exp(-r_phys / ell)).sum(dim=1)  # (B, 1)
 
         f = f_nn + cusp  # (B, 1)
         return dx, f

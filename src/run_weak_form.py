@@ -30,8 +30,10 @@ Supports three wavefunction types:
 
 import argparse
 import collections
+import copy
 import math
 import os
+import random
 import sys
 import time
 from pathlib import Path
@@ -46,6 +48,8 @@ import config
 from functions.Energy import evaluate_energy_vmc
 from functions.Neural_Networks import (
     AdaptiveGMMProposal,
+    AdaptiveShellFlowProposal,
+    _weighted_quantile_1d,
     colloc_fd_loss as nn_colloc_fd_loss,
     importance_resample as nn_importance_resample,
     lookup_dmc_energy,
@@ -55,7 +59,7 @@ from functions.Neural_Networks import (
 )
 from functions.Physics import compute_coulomb_interaction
 from functions.Slater_Determinant import evaluate_basis_functions_torch_batch_2d
-from jastrow_architectures import CTNNJastrowVCycle, CTNNJastrow
+from jastrow_architectures import CTNNJastrowVCycle, CTNNJastrow, CTNNShellAwareJastrow
 from PINN import CTNNBackflowNet, UnifiedCTNN
 
 # ─── Constants ───
@@ -94,6 +98,131 @@ def finite_or(v, default=float("nan")):
     except Exception:
         return default
     return fv if math.isfinite(fv) else default
+
+
+def collapse_recovery_fit_probs(
+    proposal_fit_data: dict[str, torch.Tensor],
+    omega: float,
+    refit_min_samples: int,
+    elite_fraction: float = 0.02,
+    elite_cap: int = 4096,
+    radius_quantile: float = 0.80,
+) -> torch.Tensor:
+    raw_target_probs = proposal_fit_data.get("raw_target_probs")
+    resample_probs = proposal_fit_data["resample_probs"]
+    x_candidates = proposal_fit_data.get("x_candidates")
+
+    if raw_target_probs is None or x_candidates is None:
+        return resample_probs
+
+    raw_probs = raw_target_probs.detach().reshape(-1).to(dtype=resample_probs.dtype, device=resample_probs.device)
+    raw_probs = torch.nan_to_num(raw_probs, nan=0.0, posinf=0.0, neginf=0.0).clamp_min(0.0)
+    raw_sum = raw_probs.sum()
+    if (not torch.isfinite(raw_sum)) or raw_sum <= 0:
+        return resample_probs
+    raw_probs = raw_probs / raw_sum
+
+    n_candidates = int(raw_probs.numel())
+    elite_k = max(int(refit_min_samples), int(math.ceil(float(elite_fraction) * n_candidates)))
+    elite_k = min(n_candidates, min(int(elite_cap), elite_k))
+    top_vals, top_idx = torch.topk(raw_probs, k=elite_k, largest=True, sorted=False)
+
+    fit_probs = torch.zeros_like(raw_probs)
+    fit_probs[top_idx] = top_vals
+
+    rho_aho = x_candidates.detach().norm(dim=-1)
+    rho_aho = rho_aho.reshape(rho_aho.shape[0], -1).mean(dim=1)
+    rho_aho = rho_aho.to(device=fit_probs.device, dtype=fit_probs.dtype)
+    rho_aho = rho_aho * math.sqrt(float(omega))
+    elite_rho = rho_aho[top_idx]
+    rho_cap = torch.quantile(elite_rho, torch.tensor(float(radius_quantile), device=elite_rho.device, dtype=elite_rho.dtype))
+    fit_probs = fit_probs * (rho_aho <= rho_cap).to(fit_probs.dtype)
+
+    fit_sum = fit_probs.sum()
+    if (not torch.isfinite(fit_sum)) or fit_sum <= 0:
+        fit_probs = torch.zeros_like(raw_probs)
+        fit_probs[top_idx] = top_vals
+        fit_sum = fit_probs.sum()
+    return fit_probs / fit_sum.clamp_min(1e-12)
+
+
+def summarize_collapse_recovery_fit(
+    proposal_fit_data: dict[str, torch.Tensor],
+    fit_probs: torch.Tensor,
+    omega: float,
+    refit_min_samples: int,
+    elite_fraction: float = 0.02,
+    elite_cap: int = 4096,
+    radius_quantile: float = 0.80,
+) -> dict[str, float]:
+    raw_target_probs = proposal_fit_data.get("raw_target_probs")
+    x_candidates = proposal_fit_data.get("x_candidates")
+
+    if raw_target_probs is None or x_candidates is None:
+        return {
+            "candidate_count": float(fit_probs.numel()),
+            "elite_count": 0.0,
+            "kept_count": float((fit_probs > 0).sum().item()),
+            "retained_mass": float("nan"),
+            "radius_cap": float("nan"),
+            "raw_radius_q50": float("nan"),
+            "kept_radius_q50": float("nan"),
+            "top1_radius": float("nan"),
+        }
+
+    raw_probs = raw_target_probs.detach().reshape(-1).to(dtype=fit_probs.dtype, device=fit_probs.device)
+    raw_probs = torch.nan_to_num(raw_probs, nan=0.0, posinf=0.0, neginf=0.0).clamp_min(0.0)
+    raw_sum = raw_probs.sum()
+    if (not torch.isfinite(raw_sum)) or raw_sum <= 0:
+        raw_probs = torch.ones_like(raw_probs) / float(raw_probs.numel())
+    else:
+        raw_probs = raw_probs / raw_sum
+
+    n_candidates = int(raw_probs.numel())
+    elite_k = max(int(refit_min_samples), int(math.ceil(float(elite_fraction) * n_candidates)))
+    elite_k = min(n_candidates, min(int(elite_cap), elite_k))
+
+    rho_aho = x_candidates.detach().norm(dim=-1)
+    rho_aho = rho_aho.reshape(rho_aho.shape[0], -1).mean(dim=1)
+    rho_aho = rho_aho.to(device=fit_probs.device, dtype=fit_probs.dtype)
+    rho_aho = rho_aho * math.sqrt(float(omega))
+
+    top_idx = torch.argmax(raw_probs)
+    top1_radius = float(rho_aho[top_idx].item())
+
+    raw_q = _weighted_quantile_1d(
+        rho_aho,
+        raw_probs,
+        torch.tensor([0.5], device=rho_aho.device, dtype=rho_aho.dtype),
+    )
+    kept_mask = fit_probs > 0
+    kept_count = int(kept_mask.sum().item())
+    retained_mass = float(raw_probs[kept_mask].sum().item()) if kept_count > 0 else 0.0
+
+    if kept_count > 0:
+        kept_probs = fit_probs[kept_mask]
+        kept_probs = kept_probs / kept_probs.sum().clamp_min(1e-12)
+        kept_q = _weighted_quantile_1d(
+            rho_aho[kept_mask],
+            kept_probs,
+            torch.tensor([0.5], device=rho_aho.device, dtype=rho_aho.dtype),
+        )
+        radius_cap_value = float(rho_aho[kept_mask].max().item())
+        kept_radius_q50 = float(kept_q[0].item())
+    else:
+        radius_cap_value = float("nan")
+        kept_radius_q50 = float("nan")
+
+    return {
+        "candidate_count": float(n_candidates),
+        "elite_count": float(elite_k),
+        "kept_count": float(kept_count),
+        "retained_mass": retained_mass,
+        "radius_cap": radius_cap_value,
+        "raw_radius_q50": float(raw_q[0].item()),
+        "kept_radius_q50": kept_radius_q50,
+        "top1_radius": top1_radius,
+    }
 
 
 def setup(n_elec=None, omega=None, e_dmc=None, seed=None, allow_missing_dmc=False):
@@ -229,6 +358,136 @@ def adapt_sigma_fs(omega, sigma_fs_default=(0.8, 1.3, 2.0)):
         return (0.08, 0.15, 0.25, 0.4, 0.6, 1.0, 1.5, 2.5, 4.0, 6.0, 10.0, 16.0, 25.0, 40.0)
 
 
+def default_shell_templates(n_elec: int) -> tuple[tuple[int, ...], ...]:
+    n = int(n_elec)
+    if n == 6:
+        return ((6, 0), (1, 5))
+    if n == 12:
+        return ((12, 0), (1, 11), (3, 9))
+    if n == 20:
+        return ((20, 0, 0), (1, 19, 0), (1, 7, 12))
+    return ((n, 0),)
+
+
+def default_shell_radii_init(n_elec: int, n_shells: int, omega: float | None = None) -> tuple[float, ...]:
+    if n_shells <= 1:
+        return (0.0,)
+    # Low-omega systems are much tighter in a_ho units; conservative defaults
+    # avoid catastrophic ESS collapse at epoch 0 for shellflow proposal starts.
+    if omega is None:
+        radius_scale = 0.55
+    else:
+        w = float(omega)
+        if w <= 0.002:
+            radius_scale = 0.15
+        elif w <= 0.02:
+            radius_scale = 0.22
+        elif w <= 0.10:
+            radius_scale = 0.35
+        else:
+            radius_scale = 0.55
+    outer_radius_aho = radius_scale * math.sqrt(float(n_elec))
+    return tuple(outer_radius_aho * i / float(n_shells - 1) for i in range(n_shells))
+
+
+def parse_shell_templates(spec: str, n_elec: int) -> tuple[tuple[int, ...], ...]:
+    s = spec.strip()
+    if s == "":
+        return default_shell_templates(n_elec)
+
+    out: list[tuple[int, ...]] = []
+    n_shells = None
+    for tok in s.split(","):
+        t = tok.strip()
+        if t == "":
+            continue
+        parts = t.split("-")
+        counts = tuple(int(p) for p in parts)
+        if any(v < 0 for v in counts):
+            raise ValueError(f"Shell template '{t}' has negative counts")
+        if sum(counts) != int(n_elec):
+            raise ValueError(f"Shell template '{t}' does not sum to n_elec={n_elec}")
+        if n_shells is None:
+            n_shells = len(counts)
+        elif len(counts) != n_shells:
+            raise ValueError(f"All shell templates must have the same shell count; got '{t}'")
+        out.append(counts)
+
+    if len(out) == 0:
+        raise ValueError("No valid shell templates provided")
+    return tuple(out)
+
+
+def parse_shell_values(spec: str, n_shells: int, *, name: str, default: tuple[float, ...] | None = None) -> tuple[float, ...]:
+    s = spec.strip()
+    if s == "":
+        if default is None:
+            raise ValueError(f"{name} requires at least one value")
+        values = tuple(float(v) for v in default)
+    else:
+        values = tuple(float(v) for v in s.split(",") if v.strip())
+
+    if len(values) == 1 and n_shells > 1:
+        values = tuple(values[0] for _ in range(n_shells))
+    elif len(values) == 2 and n_shells > 2:
+        start, end = values
+        values = tuple(start + (end - start) * i / float(n_shells - 1) for i in range(n_shells))
+
+    if len(values) != n_shells:
+        raise ValueError(f"{name} must contain 1, 2, or exactly {n_shells} values; got {values}")
+    return values
+
+
+def _spin_token_to_int(token: str) -> int:
+    t = token.strip().lower()
+    if t in ("0", "u", "up", "alpha", "+"):
+        return 0
+    if t in ("1", "d", "dn", "down", "beta", "-"):
+        return 1
+    raise ValueError(f"Invalid spin token '{token}'. Use 0/1, u/d, up/down, or alpha/beta.")
+
+
+def parse_spin_pattern(
+    spec: str,
+    n_elec: int,
+    *,
+    layout: str = "block",
+    seed: int | None = None,
+) -> tuple[int, ...]:
+    n = int(n_elec)
+    if n <= 0 or (n % 2) != 0:
+        raise ValueError("Closed-shell spin patterns require a positive even n_elec.")
+
+    s = spec.strip()
+    if s:
+        compact = s.replace(" ", "").replace(",", "").replace(";", "").replace("-", "").replace("_", "")
+        if compact and all(ch.lower() in ("0", "1", "u", "d") for ch in compact):
+            vals = [_spin_token_to_int(ch) for ch in compact]
+        else:
+            parts = s.replace(",", " ").replace(";", " ").replace("-", " ").replace("_", " ").split()
+            vals = [_spin_token_to_int(p) for p in parts]
+    elif layout == "block":
+        vals = [0] * (n // 2) + [1] * (n // 2)
+    elif layout == "alternating":
+        vals = [i % 2 for i in range(n)]
+    elif layout == "random-balanced":
+        vals = [0] * (n // 2) + [1] * (n // 2)
+        rng = random.Random(0 if seed is None else int(seed))
+        rng.shuffle(vals)
+    else:
+        raise ValueError(f"Unknown spin layout: {layout}")
+
+    if len(vals) != n:
+        raise ValueError(f"Spin pattern has {len(vals)} entries but n_elec={n}.")
+    n_up = sum(1 for v in vals if v == 0)
+    n_down = sum(1 for v in vals if v == 1)
+    if n_up != n // 2 or n_down != n // 2:
+        raise ValueError(
+            f"Current Slater determinant requires closed shell N/2,N/2; got up={n_up}, down={n_down}."
+        )
+    return tuple(int(v) for v in vals)
+
+
 def sample_mixture(n, omega, sigma_fs=(0.8, 1.3, 2.0)):
     """Sample from Gaussian mixture, return (x, log_q).
 
@@ -272,6 +531,7 @@ def importance_resample(
     langevin_steps=0,
     langevin_step_size=0.01,
     return_stats=False,
+    return_proposal_data=False,
 ):
     """Multinomial resampling: sample from q, resample ∝ |Ψ|²/q.
 
@@ -296,6 +556,7 @@ def importance_resample(
         langevin_steps=langevin_steps,
         langevin_step_size=langevin_step_size,
         return_stats=return_stats,
+        return_proposal_data=return_proposal_data,
     )
 
 
@@ -345,7 +606,8 @@ def colloc_fd_loss(psi_log_fn, x, omega, params, h=0.01,
 
 def rayleigh_hybrid_loss(psi_log_fn, x, omega, params, direct_weight=0.1,
                          clip_el=5.0, reward_qtrim=0.0,
-                         reward_normalize=False):
+                         reward_normalize=False,
+                         sample_weights=None):
     """Hybrid REINFORCE + weak-form direct gradient.
 
     Uses E_L (with Laplacian, FORWARD-ONLY) for low-variance REINFORCE
@@ -373,6 +635,7 @@ def rayleigh_hybrid_loss(psi_log_fn, x, omega, params, direct_weight=0.1,
         clip_el=clip_el,
         reward_qtrim=reward_qtrim,
         reward_normalize=reward_normalize,
+        sample_weights=sample_weights,
     )
 
 
@@ -529,17 +792,41 @@ def train_weak_form(
     min_ess=0,
     sigma_fs=(0.8, 1.3, 2.0),
     adaptive_proposal=False,
+    proposal_model="gmm",
     gmm_components=8,
     gmm_refit_every=50,
     gmm_refit_min_samples=500,
     gmm_covariance="diag",
+    shell_templates=((6, 0), (1, 5)),
+    shell_mix_logits_init=(),
+    shell_radii_init=(0.0, 1.0),
+    shell_sigmas=(0.35, 1.4),
+    shell_refit_steps=100,
+    shell_refit_lr=1e-3,
+    shell_flow_layers=2,
+    shell_flow_hidden=128,
+    shell_ring_warmup_steps=0,
+    shell_radius_anchor_weight=0.0,
+    shell_curriculum_mode="none",
+    shell_curriculum_unlock_epoch=0,
+    shell_curriculum_unlock_ess=0.0,
+    shell_curriculum_unlock_patience=1,
+    shell_curriculum_radius_quantile=0.85,
+    shell_curriculum_radius_threshold_aho=0.0,
+    shell_curriculum_inactive_logit_offset=-12.0,
+    shell_curriculum_centered_mass_floor=0.0,
+    proposal_resume_state=None,
     min_pair_cutoff=0.0,
+    ess_update_floor=0.0,
     ess_floor_ratio=0.0,
+    ess_floor_metric="raw",
     ess_oversample_max=0,
     ess_oversample_step=2,
     ess_resample_tries=1,
     resample_weight_temp=1.0,
     resample_logw_clip_q=0.0,
+    top1_mass_update_ceiling=0.0,
+    top10_mass_update_ceiling=0.0,
     langevin_steps=0,
     langevin_step_size=0.01,
     replay_frac=0.0,
@@ -584,6 +871,8 @@ def train_weak_form(
     allow_missing_dmc=False,
     save_best_window: int = 0,
     best_ckpt_path=None,
+    spin_pattern: tuple[int, ...] | None = None,
+    max_epoch_seconds: float = 0.0,
 ):
     omega = float(OMEGA if omega is None else omega)
     n_elec = int(N_ELEC if n_elec is None else n_elec)
@@ -592,10 +881,9 @@ def train_weak_form(
         if e_ref is None
         else float(e_ref)
     )
-    up = n_elec // 2
-    spin = torch.cat(
-        [torch.zeros(up, dtype=torch.long), torch.ones(n_elec - up, dtype=torch.long)]
-    ).to(DEVICE)
+    if spin_pattern is None:
+        spin_pattern = parse_spin_pattern("", n_elec, layout="block", seed=seed)
+    spin = torch.tensor(spin_pattern, dtype=torch.long, device=DEVICE)
 
     # Build the psi_log_fn
     if psi_log_fn_factory is not None:
@@ -739,10 +1027,35 @@ def train_weak_form(
     if ess_floor_ratio > 0:
         print("  ESS adaptive sampler: "
               f"floor={ess_floor_ratio:.3f} oversample={oversample}->{max(oversample, int(ess_oversample_max))} "
-              f"step={int(max(1, ess_oversample_step))} tries={int(max(1, ess_resample_tries))}")
+              f"step={int(max(1, ess_oversample_step))} tries={int(max(1, ess_resample_tries))} "
+              f"metric={ess_floor_metric}")
+    if max_epoch_seconds > 0:
+        print(f"  Runtime guard: stop if a training epoch exceeds {max_epoch_seconds:.1f}s")
+    if ess_update_floor > 0:
+        print(f"  ESS optimizer gate: skip updates when ESS<{ess_update_floor:.0f} (proposal keeps adapting)")
+    if proposal_model == "shellflow" and adaptive_proposal:
+        print(
+            "  ShellFlow anti-collapse: "
+            f"ring_warmup_steps={int(max(0, shell_ring_warmup_steps))} "
+            f"radius_anchor_weight={float(max(0.0, shell_radius_anchor_weight)):.3f}"
+        )
+        if shell_curriculum_mode != "none":
+            print(
+                "  ShellFlow curriculum: "
+                f"mode={shell_curriculum_mode} patience={int(max(1, shell_curriculum_unlock_patience))} "
+                f"unlock_epoch={int(max(0, shell_curriculum_unlock_epoch))} "
+                f"unlock_ess={float(max(0.0, shell_curriculum_unlock_ess)):.2f} "
+                f"radius_q={float(shell_curriculum_radius_quantile):.2f} "
+                f"radius_thr_aho={float(max(0.0, shell_curriculum_radius_threshold_aho)):.2f} "
+                f"centered_floor={float(max(0.0, shell_curriculum_centered_mass_floor)):.3f}"
+            )
     if resample_weight_temp != 1.0 or resample_logw_clip_q > 0:
         print("  Resample regularization: "
               f"temp={resample_weight_temp:.3f} logw_clip_q={resample_logw_clip_q:.4f}")
+    if top1_mass_update_ceiling > 0 or top10_mass_update_ceiling > 0:
+        top1_thr = float(top1_mass_update_ceiling) if top1_mass_update_ceiling > 0 else float("inf")
+        top10_thr = float(top10_mass_update_ceiling) if top10_mass_update_ceiling > 0 else float("inf")
+        print(f"  Resample mass gate: top1<={top1_thr:.3f} top10<={top10_thr:.3f}")
     if langevin_steps > 0:
         print(f"  Langevin proposal refinement: {langevin_steps} steps, "
               f"ε={langevin_step_size:.4f}")
@@ -777,6 +1090,8 @@ def train_weak_form(
     _best_rolling_E: float = float("inf")
     n_ess_reject = 0
     n_rollbacks = 0
+    n_update_skips = 0
+    n_mass_gate_skips = 0
     n_minsr_guard_skips = 0
     replay_X = None
     prev_stable_E = None
@@ -788,27 +1103,81 @@ def train_weak_form(
     proposal_obj = None
 
     if adaptive_proposal:
-        proposal_obj = AdaptiveGMMProposal(
-            n_elec=n_elec,
-            dim=DIM,
-            omega=omega,
-            n_components=gmm_components,
-            sigma_fs=sigma_fs,
-            refit_every=gmm_refit_every,
-            refit_min_samples=gmm_refit_min_samples,
-            covariance_type=gmm_covariance,
-            random_state=seed if seed is not None else 0,
-            device=DEVICE,
-            dtype=DTYPE,
-        )
-        print(
-            "  Adaptive proposal: "
-            f"components={gmm_components} refit_every={gmm_refit_every} "
-            f"min_samples={gmm_refit_min_samples} cov={gmm_covariance}"
-        )
+        if proposal_model == "gmm":
+            proposal_obj = AdaptiveGMMProposal(
+                n_elec=n_elec,
+                dim=DIM,
+                omega=omega,
+                n_components=gmm_components,
+                sigma_fs=sigma_fs,
+                refit_every=gmm_refit_every,
+                refit_min_samples=gmm_refit_min_samples,
+                covariance_type=gmm_covariance,
+                random_state=seed if seed is not None else 0,
+                device=DEVICE,
+                dtype=DTYPE,
+            )
+            print(
+                "  Adaptive proposal (GMM): "
+                f"components={gmm_components} refit_every={gmm_refit_every} "
+                f"min_samples={gmm_refit_min_samples} cov={gmm_covariance}"
+            )
+        elif proposal_model == "shellflow":
+            mix_init = tuple(float(v) for v in shell_mix_logits_init) if len(shell_mix_logits_init) > 0 else None
+            proposal_obj = AdaptiveShellFlowProposal(
+                n_elec=n_elec,
+                dim=DIM,
+                omega=omega,
+                shell_templates=tuple(shell_templates),
+                mix_logits_init=mix_init,
+                shell_radii_init=tuple(float(v) for v in shell_radii_init),
+                shell_sigmas=tuple(float(v) for v in shell_sigmas),
+                refit_every=gmm_refit_every,
+                refit_min_samples=gmm_refit_min_samples,
+                refit_steps=shell_refit_steps,
+                refit_lr=shell_refit_lr,
+                flow_layers=shell_flow_layers,
+                flow_hidden=shell_flow_hidden,
+                ring_warmup_steps=shell_ring_warmup_steps,
+                radius_anchor_weight=shell_radius_anchor_weight,
+                curriculum_mode=shell_curriculum_mode,
+                curriculum_unlock_epoch=shell_curriculum_unlock_epoch,
+                curriculum_unlock_ess=shell_curriculum_unlock_ess,
+                curriculum_unlock_patience=shell_curriculum_unlock_patience,
+                curriculum_radius_quantile=shell_curriculum_radius_quantile,
+                curriculum_radius_threshold_aho=shell_curriculum_radius_threshold_aho,
+                curriculum_inactive_logit_offset=shell_curriculum_inactive_logit_offset,
+                curriculum_centered_mass_floor=shell_curriculum_centered_mass_floor,
+                random_state=seed if seed is not None else 0,
+                device=DEVICE,
+                dtype=DTYPE,
+            )
+            print(
+                "  Adaptive proposal (ShellFlow): "
+                f"templates={shell_templates} refit_every={gmm_refit_every} "
+                f"min_samples={gmm_refit_min_samples} fit_steps={shell_refit_steps} "
+                f"fit_lr={shell_refit_lr:.1e} flow_layers={shell_flow_layers} "
+                f"flow_hidden={shell_flow_hidden} shell_radii_init={shell_radii_init} "
+                f"shell_sigmas={shell_sigmas}"
+            )
+        else:
+            raise ValueError(f"Unsupported proposal_model={proposal_model}")
+
+        if proposal_resume_state is not None and hasattr(proposal_obj, "load_state_dict"):
+            try:
+                proposal_obj.load_state_dict(proposal_resume_state)
+                print("  Loaded adaptive proposal state from resume checkpoint")
+            except Exception as exc:
+                print(f"  WARNING: failed to load adaptive proposal state: {exc}")
         sys.stdout.flush()
 
-    # Save initial state for ESS-gated rollback
+    rollback_enabled = (
+        rollback_decay < 1.0
+        or rollback_err_pct > 0
+        or rollback_jump_sigma > 0
+    )
+
+    # Save initial state for rollback / recovery.
     def _save_state():
         st = {"jas_state": {k: v.clone() for k, v in f_net.state_dict().items()}}
         if backflow_net is not None:
@@ -817,6 +1186,10 @@ def train_weak_form(
             st["pf_state"] = {k: v.clone() for k, v in npf_net.state_dict().items()}
         if fisher_precond is not None:
             st["fisher_state"] = fisher_precond.state_dict()
+        if proposal_obj is not None and hasattr(proposal_obj, "state_dict"):
+            st["proposal_state"] = proposal_obj.state_dict()
+        st["opt_state"] = copy.deepcopy(opt.state_dict())
+        st["sch_state"] = copy.deepcopy(sch.state_dict())
         return st
 
     def _restore_state(st):
@@ -827,6 +1200,12 @@ def train_weak_form(
             npf_net.load_state_dict(st["pf_state"])
         if fisher_precond is not None and "fisher_state" in st:
             fisher_precond.load_state_dict(st["fisher_state"])
+        if proposal_obj is not None and "proposal_state" in st and hasattr(proposal_obj, "load_state_dict"):
+            proposal_obj.load_state_dict(st["proposal_state"])
+        if "opt_state" in st:
+            opt.load_state_dict(st["opt_state"])
+        if "sch_state" in st:
+            sch.load_state_dict(st["sch_state"])
 
     last_good_state = _save_state()
 
@@ -844,6 +1223,14 @@ def train_weak_form(
         ess = 0.0
         # Adapt sigma_fs for low-omega regimes (fixes ESS collapse at ω<<1)
         sigma_fs_adapted = adapt_sigma_fs(omega, sigma_fs)
+        proposal_fit_data = None
+        sample_reweight = None
+        ess_train = 0.0
+        need_resample_aux = (
+            (proposal_obj is not None and hasattr(proposal_obj, "maybe_refit_weighted"))
+            or resample_weight_temp != 1.0
+            or resample_logw_clip_q > 0.0
+        )
         for _ in range(n_resample_tries):
             rs = importance_resample(
                 psi_log_sample_fn,
@@ -858,9 +1245,24 @@ def train_weak_form(
                 langevin_steps=langevin_steps,
                 langevin_step_size=langevin_step_size,
                 return_stats=True,
+                return_proposal_data=need_resample_aux,
             )
-            X, ess, last_rs_stats = rs
-            if target_ess <= 0 or ess >= target_ess:
+            if len(rs) == 4:
+                X, ess, last_rs_stats, proposal_fit_data = rs
+            else:
+                X, ess, last_rs_stats = rs
+                proposal_fit_data = None
+            if proposal_fit_data is not None:
+                sample_reweight = proposal_fit_data.get("sample_reweight")
+            else:
+                sample_reweight = None
+            raw_ess = finite_or(last_rs_stats.get("ess_raw"))
+            eff_ess = finite_or(last_rs_stats.get("ess_eff"), ess)
+            if ess_floor_metric == "eff":
+                ess_train = eff_ess if math.isfinite(eff_ess) else ess
+            else:
+                ess_train = raw_ess if math.isfinite(raw_ess) else ess
+            if target_ess <= 0 or ess_train >= target_ess:
                 break
             if used_oversample >= max_oversample:
                 break
@@ -868,8 +1270,67 @@ def train_weak_form(
         curr_oversample = used_oversample
 
         if proposal_obj is not None:
-            proposal_obj.accumulate(X)
-            _ = proposal_obj.maybe_refit(ep + 1)
+            top1_now = finite_or(last_rs_stats.get("top1_mass"))
+            top10_now = finite_or(last_rs_stats.get("top10_mass"))
+            severe_weight_collapse = (
+                ess_train <= 1.5
+                or (math.isfinite(top1_now) and top1_now >= 0.50)
+                or (math.isfinite(top10_now) and top10_now >= 0.98)
+            )
+            if proposal_fit_data is not None and hasattr(proposal_obj, "maybe_refit_weighted"):
+                refit_epoch = ep + 1
+                should_consider_refit = (refit_epoch % int(getattr(proposal_obj, "refit_every", 1))) == 0
+                fit_probs = proposal_fit_data["resample_probs"]
+                recovery_mode = False
+                recovery_summary = None
+                if severe_weight_collapse:
+                    fit_probs = collapse_recovery_fit_probs(
+                        proposal_fit_data,
+                        omega=omega,
+                        refit_min_samples=int(getattr(proposal_obj, "refit_min_samples", 500)),
+                    )
+                    recovery_summary = summarize_collapse_recovery_fit(
+                        proposal_fit_data,
+                        fit_probs,
+                        omega=omega,
+                        refit_min_samples=int(getattr(proposal_obj, "refit_min_samples", 500)),
+                    )
+                    recovery_mode = True
+
+                did_refit = proposal_obj.maybe_refit_weighted(
+                    refit_epoch,
+                    proposal_fit_data["x_candidates"],
+                    fit_probs,
+                    diagnostic_ess=ess_train,
+                )
+                if should_consider_refit and ep % print_every == 0:
+                    if did_refit and recovery_mode:
+                        print(
+                            f"  [{ep:4d}] PROPOSAL RECOVERY REFIT "
+                            f"(ESS={ess_train:.2f}, top1={top1_now:.3f}, top10={top10_now:.3f})"
+                        )
+                        if recovery_summary is not None:
+                            print(
+                                "  [Recovery fit] "
+                                f"epoch={refit_epoch} candidates={int(recovery_summary['candidate_count'])} "
+                                f"elite={int(recovery_summary['elite_count'])} "
+                                f"kept={int(recovery_summary['kept_count'])} "
+                                f"retained_mass={recovery_summary['retained_mass']:.3f} "
+                                f"top1_radius_aho={recovery_summary['top1_radius']:.3f} "
+                                f"raw_q50_aho={recovery_summary['raw_radius_q50']:.3f} "
+                                f"kept_q50_aho={recovery_summary['kept_radius_q50']:.3f} "
+                                f"radius_cap_aho={recovery_summary['radius_cap']:.3f}"
+                            )
+                        sys.stdout.flush()
+                    elif (not did_refit) and severe_weight_collapse:
+                        print(
+                            f"  [{ep:4d}] PROPOSAL REFIT SKIP "
+                            f"(ESS={ess_train:.2f}, top1={top1_now:.3f}, top10={top10_now:.3f})"
+                        )
+                        sys.stdout.flush()
+            else:
+                proposal_obj.accumulate(X)
+                _ = proposal_obj.maybe_refit(ep + 1)
 
         if replay_frac > 0 and replay_X is not None and replay_X.numel() > 0:
             n_rep = int(min(n_coll - 1, round(replay_frac * n_coll)))
@@ -884,12 +1345,45 @@ def train_weak_form(
                 X = torch.cat([X[:n_new], rep], dim=0)
 
         # ── ESS gate: skip step if ESS too low (revert to last good state) ──
-        if min_ess > 0 and ess < min_ess:
+        if min_ess > 0 and ess_train < min_ess:
             _restore_state(last_good_state)
             n_ess_reject += 1
             if ep % print_every == 0 or ep == 0:
-                print(f"  [{ep:4d}] ESS={ess:.0f} < {min_ess} → SKIP (reverted, "
+                print(f"  [{ep:4d}] ESS={ess_train:.0f} < {min_ess} → SKIP (reverted, "
                       f"{n_ess_reject} rejects total)")
+                sys.stdout.flush()
+            continue
+
+        if ess_update_floor > 0 and ess_train < ess_update_floor:
+            n_update_skips += 1
+            if ep % print_every == 0 or ep == 0:
+                print(f"  [{ep:4d}] ESS={ess_train:.0f} < {ess_update_floor:.0f} → SKIP OPT STEP "
+                      f"(proposal-only, count={n_update_skips})")
+                sys.stdout.flush()
+            continue
+
+        top1_now = finite_or(last_rs_stats.get("top1_mass"))
+        top10_now = finite_or(last_rs_stats.get("top10_mass"))
+        top1_bad = (
+            top1_mass_update_ceiling > 0
+            and math.isfinite(top1_now)
+            and top1_now > float(top1_mass_update_ceiling)
+        )
+        top10_bad = (
+            top10_mass_update_ceiling > 0
+            and math.isfinite(top10_now)
+            and top10_now > float(top10_mass_update_ceiling)
+        )
+        if top1_bad or top10_bad:
+            n_mass_gate_skips += 1
+            if ep % print_every == 0 or ep == 0:
+                reasons = []
+                if top1_bad:
+                    reasons.append(f"top1={top1_now:.3f}>{float(top1_mass_update_ceiling):.3f}")
+                if top10_bad:
+                    reasons.append(f"top10={top10_now:.3f}>{float(top10_mass_update_ceiling):.3f}")
+                print(f"  [{ep:4d}] MASS GATE ({', '.join(reasons)}) → SKIP OPT STEP "
+                      f"(proposal-only, count={n_mass_gate_skips})")
                 sys.stdout.flush()
             continue
 
@@ -912,9 +1406,11 @@ def train_weak_form(
         ep_cusp_pen = 0.0
         all_EL = []
         all_e_weak = []
+        loss_failure = None
 
         for i in range(0, n_coll, micro_batch):
             xb = X[i:i + micro_batch]
+            xb_weights = None if sample_reweight is None else sample_reweight[i:i + micro_batch]
 
             if loss_type == "fd-colloc":
                 lp_prev_mb = None
@@ -933,6 +1429,7 @@ def train_weak_form(
                     clip_el=clip_el,
                     reward_qtrim=reward_qtrim,
                     reward_normalize=reward_normalize,
+                    sample_weights=xb_weights,
                 )
 
             if bf_cusp_reg > 0 and backflow_net is not None:
@@ -949,13 +1446,27 @@ def train_weak_form(
                 L = L + bf_cusp_reg * cusp_pen
                 ep_cusp_pen += float(cusp_pen.detach().item()) / nmb
 
-            if torch.isnan(L) or torch.isinf(L):
-                raise RuntimeError(f"NaN/Inf loss at epoch {ep}. Check sampling weights and local energies.")
+            if not torch.isfinite(L):
+                loss_failure = f"non-finite loss at microbatch {i // micro_batch}"
+                break
 
             (L / nmb).backward()
             ep_loss += L.item() / nmb
             all_EL.append(EL_det)
             all_e_weak.append(ew_det)
+
+        if loss_failure is not None:
+            opt.zero_grad(set_to_none=True)
+            _restore_state(last_good_state)
+            n_rollbacks += 1
+            if rollback_decay < 1.0:
+                for gi, g in enumerate(opt.param_groups):
+                    g["lr"] = max(g["lr"] * rollback_decay, 1e-7)
+                    if gi < len(sch.base_lrs):
+                        sch.base_lrs[gi] = max(sch.base_lrs[gi] * rollback_decay, 1e-7)
+            print(f"  [{ep:4d}] rollback: {loss_failure} (count={n_rollbacks}, lr_decay={rollback_decay:.3f})")
+            sys.stdout.flush()
+            continue
 
         EL_for_sr = torch.cat(all_EL).detach()
 
@@ -1068,6 +1579,7 @@ def train_weak_form(
             )
 
         epdt = time.time() - ept0
+        epoch_too_slow = max_epoch_seconds > 0 and epdt > float(max_epoch_seconds)
         entry = dict(
             ep=ep,
             E=Em,
@@ -1084,6 +1596,8 @@ def train_weak_form(
             rs_top10_mass=finite_or(last_rs_stats.get("top10_mass")),
             rs_logw_clip_thr=finite_or(last_rs_stats.get("logw_clip_thr")),
             rs_temp=finite_or(last_rs_stats.get("weight_temp")),
+            rs_n_candidates=finite_or(last_rs_stats.get("n_candidates")),
+            rs_n_cand_mult=finite_or(last_rs_stats.get("n_cand_mult")),
             cusp_pen=ep_cusp_pen,
             replay_min_pair_mean=replay_min_pair_mean,
             replay_r_mean=replay_r_mean,
@@ -1130,10 +1644,12 @@ def train_weak_form(
                         _bst["bf_state"] = {k: v.clone().cpu() for k, v in backflow_net.state_dict().items()}
                     if npf_net is not None:
                         _bst["pf_state"] = {k: v.clone().cpu() for k, v in npf_net.state_dict().items()}
+                    if proposal_obj is not None and hasattr(proposal_obj, "state_dict"):
+                        _bst["proposal_state"] = proposal_obj.state_dict()
                     torch.save(_bst, best_ckpt_path)
 
-        # Update last-good state for ESS rollback
-        if min_ess > 0:
+        # Update last-good state after any stable epoch when rollback is active.
+        if min_ess > 0 or rollback_enabled:
             last_good_state = _save_state()
         if target_ess > 0:
             if ess < target_ess and curr_oversample < max_oversample:
@@ -1142,7 +1658,7 @@ def train_weak_form(
                 curr_oversample = max(oversample, curr_oversample - 1)
 
         # ── VMC probe ──
-        if vmc_every > 0 and ep > 0 and ep % vmc_every == 0:
+        if (not epoch_too_slow) and vmc_every > 0 and ep > 0 and ep % vmc_every == 0:
             try:
                 for net in [f_net, backflow_net, npf_net]:
                     if net is not None:
@@ -1156,6 +1672,7 @@ def train_weak_form(
                         f_net, C_dummy, psi_fn=_psi_wrap,
                         compute_coulomb_interaction=compute_coulomb_interaction,
                         params=params, n_samples=vmc_n, batch_size=512,
+                        spin=spin,
                         sampler_steps=60, sampler_step_sigma=0.12, lap_mode="exact",
                         persistent=True, sampler_burn_in=400, sampler_thin=3, progress=False,
                     )
@@ -1164,14 +1681,17 @@ def train_weak_form(
                         f_net, C_occ, psi_fn=psi_fn,
                         compute_coulomb_interaction=compute_coulomb_interaction,
                         backflow_net=backflow_net, params=params,
+                        spin=spin,
                         n_samples=vmc_n, batch_size=512,
                         sampler_steps=60, sampler_step_sigma=0.12, lap_mode="exact",
                         persistent=True, sampler_burn_in=400, sampler_thin=3, progress=False,
                     )
                 vE = float(vp["E_mean"])
+                vSe = float(vp.get("E_stderr", float("nan")))
                 vErr = abs(vE - E_ref) / abs(E_ref) if math.isfinite(E_ref) and E_ref != 0 else float("nan")
-                entry.update(vmc_E=vE, vmc_err=vErr)
+                entry.update(vmc_E=vE, vmc_se=vSe, vmc_err=vErr)
                 vSelE = None
+                vSelSe = None
                 vSelErr = None
                 if vmc_select_n > 0:
                     vp_sel = evaluate_energy_vmc(
@@ -1181,6 +1701,7 @@ def train_weak_form(
                         compute_coulomb_interaction=compute_coulomb_interaction,
                         backflow_net=None if npf_net is not None else backflow_net,
                         params=params,
+                        spin=spin,
                         n_samples=vmc_select_n,
                         batch_size=512,
                         sampler_steps=60,
@@ -1192,8 +1713,9 @@ def train_weak_form(
                         progress=False,
                     )
                     vSelE = float(vp_sel["E_mean"])
+                    vSelSe = float(vp_sel.get("E_stderr", float("nan")))
                     vSelErr = abs(vSelE - E_ref) / abs(E_ref) if math.isfinite(E_ref) and E_ref != 0 else float("nan")
-                    entry.update(vmc_sel_E=vSelE, vmc_sel_err=vSelErr)
+                    entry.update(vmc_sel_E=vSelE, vmc_sel_se=vSelSe, vmc_sel_err=vSelErr)
                 # When E_ref is NaN (no DMC reference), fall back to minimizing vE directly
                 if math.isfinite(E_ref) and E_ref != 0:
                     metric = vSelErr if vSelErr is not None and math.isfinite(vSelErr) else vErr
@@ -1221,6 +1743,12 @@ def train_weak_form(
             err = safe_percent_err(Em, E_ref) if math.isfinite(Em) else float("nan")
             khat = finite_or(last_rs_stats.get("psis_khat"))
             khat_s = f" khat={khat:.2f}" if math.isfinite(khat) else ""
+            ess_raw = finite_or(last_rs_stats.get("ess_raw"))
+            ess_raw_s = ""
+            if math.isfinite(ess_raw):
+                ess_raw_s = f" rawESS={ess_raw:.0f}"
+            n_candidates = finite_or(last_rs_stats.get("n_candidates"))
+            cand_s = f" cand={int(n_candidates)}" if math.isfinite(n_candidates) else ""
             vs = ""
             if "vmc_E" in entry:
                 vs = f"  vmc={entry['vmc_E']:.4f}({entry['vmc_err'] * 100:.2f}%)"
@@ -1230,10 +1758,17 @@ def train_weak_form(
             sr_tag = " [adam-fb]" if minsr_skipped_this_epoch else ""
             print(
                 f"  [{ep:4d}] E={Em:.4f}±{Es:.3f} var={Ev:.2e} ESS={ess:.0f} "
-                f"loss={ep_loss:.3e} {epdt:.1f}s err={err:+.2f}%{khat_s} "
-                f"eta={eta:.0f}m{vs}{sr_tag}"
+                f"loss={ep_loss:.3e} {epdt:.1f}s err={err:+.2f}%{ess_raw_s}{khat_s} "
+                f"{cand_s} eta={eta:.0f}m{vs}{sr_tag}"
             )
             sys.stdout.flush()
+        if epoch_too_slow:
+            print(
+                f"  Early stop: epoch runtime {epdt:.1f}s exceeded "
+                f"--max-epoch-seconds={float(max_epoch_seconds):.1f}"
+            )
+            sys.stdout.flush()
+            break
 
     # ── Restore best ──
     if best_vmc_state:
@@ -1255,7 +1790,7 @@ def train_weak_form(
     tot = time.time() - t0
     print(f"  Done {tot:.0f}s ({tot / 60:.1f}min)")
     sys.stdout.flush()
-    return f_net, backflow_net, npf_net, hist
+    return f_net, backflow_net, npf_net, hist, proposal_obj
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -1267,6 +1802,10 @@ def main():
     # Mode
     ap.add_argument("--mode", choices=["bf", "pfaffian", "jastrow"], default="bf",
                     help="bf: BF+Jastrow, pfaffian: NeuralPfaffian+Jastrow, jastrow: Jastrow-only")
+    ap.add_argument("--spin-layout", choices=["block", "alternating", "random-balanced"], default="block",
+                    help="Balanced closed-shell spin ordering used when --spin-pattern is empty")
+    ap.add_argument("--spin-pattern", type=str, default="",
+                    help="Explicit balanced spin pattern, e.g. 000111, 010101, uudd, or comma-separated up/down tokens")
     # Training
     ap.add_argument("--epochs", type=int, default=800)
     ap.add_argument("--n-coll", type=int, default=4096)
@@ -1307,6 +1846,10 @@ def main():
                     help="Drop candidate samples with min pair distance below cutoff (0=off)")
     ap.add_argument("--ess-floor-ratio", type=float, default=0.0,
                     help="Adaptive resample target as fraction of n_coll ESS (0=off)")
+    ap.add_argument("--ess-floor-metric", choices=["raw", "eff"], default="raw",
+                    help="ESS metric used for adaptive oversample floor and update gates")
+    ap.add_argument("--ess-update-floor", type=float, default=0.0,
+                    help="Skip optimizer updates (proposal-only epoch) when ESS is below this floor (0=off)")
     ap.add_argument("--ess-oversample-max", type=int, default=0,
                     help="Max oversample multiplier for adaptive ESS resampling (0=use --oversample)")
     ap.add_argument("--ess-oversample-step", type=int, default=2,
@@ -1317,8 +1860,14 @@ def main():
                     help="Importance-weight tempering exponent (alpha); <1 flattens spikes")
     ap.add_argument("--resample-logw-clip-q", type=float, default=0.0,
                     help="Upper quantile for clipping log-weights before resampling (0=off)")
+    ap.add_argument("--top1-mass-update-ceiling", type=float, default=0.0,
+                    help="Skip optimizer update when top1 resampling mass exceeds this value (0=off)")
+    ap.add_argument("--top10-mass-update-ceiling", type=float, default=0.0,
+                    help="Skip optimizer update when top10 resampling mass exceeds this value (0=off)")
     ap.add_argument("--adaptive-proposal", action="store_true",
                     help="Enable adaptive GMM proposal fitted to recent resampled points")
+    ap.add_argument("--proposal-model", choices=["gmm", "shellflow"], default="gmm",
+                    help="Adaptive proposal family: gmm or shellflow")
     ap.add_argument("--gmm-components", type=int, default=8,
                     help="Number of mixture components for adaptive proposal")
     ap.add_argument("--gmm-refit-every", type=int, default=50,
@@ -1327,6 +1876,42 @@ def main():
                     help="Minimum buffered samples required before GMM refit")
     ap.add_argument("--gmm-covariance", choices=["diag", "full", "tied"], default="diag",
                     help="Covariance type for adaptive GMM proposal")
+    ap.add_argument("--shell-templates", type=str, default="",
+                    help="Shell occupancy templates like '6-0,1-5' (auto defaults by N when empty)")
+    ap.add_argument("--shell-mix-logits-init", type=str, default="",
+                    help="Optional initial logits for shell template mixture, comma-separated")
+    ap.add_argument("--shell-radii-init", type=str, default="",
+                    help="Initial shell radii in oscillator units; accepts 1, 2, or K values")
+    ap.add_argument("--shell-sigmas", type=str, default="0.35,1.4",
+                    help="Initial shell widths in oscillator units; accepts 1, 2, or K values")
+    ap.add_argument("--shell-refit-steps", type=int, default=100,
+                    help="Optimization steps per shellflow refit")
+    ap.add_argument("--shell-refit-lr", type=float, default=1e-3,
+                    help="Learning rate for shellflow proposal refits")
+    ap.add_argument("--shell-flow-layers", type=int, default=2,
+                    help="Number of affine coupling layers in shellflow proposal")
+    ap.add_argument("--shell-flow-hidden", type=int, default=128,
+                    help="Hidden width for shellflow coupling networks")
+    ap.add_argument("--shell-ring-warmup-steps", type=int, default=0,
+                    help="Refit steps that update only ring params before joint ring+flow updates")
+    ap.add_argument("--shell-radius-anchor-weight", type=float, default=0.0,
+                    help="Weight for radius anchor penalty against buffer radial quantiles (a_ho units)")
+    ap.add_argument("--shell-curriculum-mode", choices=["none", "epoch", "ess", "radius"], default="none",
+                    help="Start from the centered shell template and unlock outer templates by epoch, ESS, or radius")
+    ap.add_argument("--shell-curriculum-unlock-epoch", type=int, default=0,
+                    help="Unlock outer shell templates once refit epoch reaches this value (epoch mode)")
+    ap.add_argument("--shell-curriculum-unlock-ess", type=float, default=0.0,
+                    help="Unlock outer shell templates once raw ESS reaches this value at refit time (ESS mode)")
+    ap.add_argument("--shell-curriculum-unlock-patience", type=int, default=1,
+                    help="Require this many consecutive satisfied refit checks before unlocking shell curriculum")
+    ap.add_argument("--shell-curriculum-radius-quantile", type=float, default=0.85,
+                    help="Weighted quantile of mean sample radius used for radius-triggered shell curriculum")
+    ap.add_argument("--shell-curriculum-radius-threshold-aho", type=float, default=0.0,
+                    help="Unlock outer shell templates once the weighted mean-radius quantile exceeds this a_ho value")
+    ap.add_argument("--shell-curriculum-inactive-logit-offset", type=float, default=-12.0,
+                    help="Logit offset applied to inactive outer shell templates before the curriculum unlock")
+    ap.add_argument("--shell-curriculum-centered-mass-floor", type=float, default=0.0,
+                    help="Minimum centered-template mass retained after curriculum unlock (0=off)")
     ap.add_argument("--langevin-steps", type=int, default=0,
                     help="Langevin refinement steps on proposal samples (0=off)")
     ap.add_argument("--langevin-step-size", type=float, default=0.01,
@@ -1368,13 +1953,31 @@ def main():
                     help="In pfaffian mode with --use-backflow, keep BF trainable (default: frozen)")
     # Resume
     ap.add_argument("--resume", type=str, default=None,
-                    help="Path to checkpoint to resume from (loads pf_state, bf_state, jas_state)")
+                    help="Path to checkpoint to resume from (loads pf_state, bf_state, jas_state, proposal_state when present)")
     # Eval
     ap.add_argument("--vmc-every", type=int, default=50)
     ap.add_argument("--vmc-n", type=int, default=10000)
     ap.add_argument("--vmc-select-n", type=int, default=0,
                     help="Optional additional VMC samples for checkpoint selection at probe epochs (0=off)")
     ap.add_argument("--n-eval", type=int, default=30000)
+    ap.add_argument("--eval-only", action="store_true",
+                    help="Skip training and run only the final VMC evaluation/save path")
+    ap.add_argument("--print-every", type=int, default=10,
+                    help="Training log interval in epochs")
+    ap.add_argument("--max-epoch-seconds", type=float, default=0.0,
+                    help="Stop training if one non-VMC epoch exceeds this runtime (0=off)")
+    ap.add_argument("--final-vmc-steps", type=int, default=120,
+                    help="MCMC steps per final VMC sample batch")
+    ap.add_argument("--final-vmc-step-sigma", type=float, default=0.08,
+                    help="Proposal step sigma for final VMC")
+    ap.add_argument("--final-vmc-burn-in", type=int, default=800,
+                    help="Burn-in steps for final VMC")
+    ap.add_argument("--final-vmc-thin", type=int, default=5,
+                    help="Thinning interval for final VMC")
+    ap.add_argument("--final-vmc-batch-size", type=int, default=512,
+                    help="Batch size for final VMC")
+    ap.add_argument("--final-vmc-no-progress", action="store_true",
+                    help="Disable final VMC progress bar")
     # Misc
     ap.add_argument("--seed", type=int, default=42)
     ap.add_argument("--tag", type=str, default="weak_form")
@@ -1424,14 +2027,30 @@ def main():
     ap.add_argument("--minsr-max-khat", type=float, default=0.0,
                     help="Skip MinSR update when PSIS khat exceeds this value (0=off)")
     # Architecture
-    ap.add_argument("--jas-arch", choices=["vcycle", "ctnn"], default="vcycle",
-                    help="Jastrow architecture: vcycle=CTNNJastrowVCycle, ctnn=CTNNJastrow")
+    ap.add_argument("--jas-arch", choices=["vcycle", "ctnn", "shellaware"], default="vcycle",
+                    help="Jastrow architecture: vcycle=CTNNJastrowVCycle, ctnn=CTNNJastrow, shellaware=soft radial-shell CTNN")
     ap.add_argument("--jas-hidden", type=int, default=0,
                     help="Jastrow node/edge hidden dim (0=arch default: vcycle=24, ctnn=64)")
     ap.add_argument("--jas-mp-steps", type=int, default=0,
                     help="Jastrow message-passing steps (0=arch default: vcycle n_down/n_up=1, ctnn=2)")
     ap.add_argument("--jas-readout-hidden", type=int, default=64,
                     help="Jastrow readout MLP hidden dim")
+    ap.add_argument("--jas-shells", type=int, default=0,
+                    help="Number of soft radial shells for --jas-arch shellaware (0=default)")
+    ap.add_argument("--jas-shell-radius-aho", type=float, default=0.0,
+                    help="Outermost soft shell center in oscillator-length units for shellaware (0=auto)")
+    ap.add_argument("--jas-shell-width-aho", type=float, default=0.0,
+                    help="Soft shell width in oscillator-length units for shellaware (0=auto)")
+    ap.add_argument("--jas-input-radius-cap-aho", type=float, default=0.0,
+                    help="Clamp per-particle Jastrow inputs to this radius in a_ho units before message passing (0=off)")
+    ap.add_argument("--jas-tail-guard-radius-aho", type=float, default=0.0,
+                    help="Subtract a radial tail guard once mean particle radius exceeds this value in a_ho units (0=off)")
+    ap.add_argument("--jas-tail-guard-strength", type=float, default=0.0,
+                    help="Strength of the radial Jastrow tail guard (0=off)")
+    ap.add_argument("--jas-tail-guard-power", type=float, default=4.0,
+                    help="Power used by the radial Jastrow tail guard")
+    ap.add_argument("--cusp-len-mode", choices=["physical", "legacy"], default="physical",
+                    help="physical uses exp(-r/a_ho); legacy uses the pre-fix exp(-r) cusp for old checkpoints")
     ap.add_argument("--bf-hidden", type=int, default=128,
                     help="Backflow node hidden dim")
     ap.add_argument("--bf-msg-hidden", type=int, default=0,
@@ -1466,6 +2085,33 @@ def main():
     sigma_fs = tuple(float(s) for s in a.sigma_fs.split(",") if s.strip())
     if len(sigma_fs) == 0:
         raise ValueError("--sigma-fs must contain at least one value")
+
+    shell_templates = parse_shell_templates(a.shell_templates, N_ELEC)
+    n_shells = len(shell_templates[0])
+    shell_radii_init = parse_shell_values(
+        a.shell_radii_init,
+        n_shells,
+        name="--shell-radii-init",
+        default=default_shell_radii_init(N_ELEC, n_shells, OMEGA),
+    )
+    shell_sigmas = parse_shell_values(
+        a.shell_sigmas,
+        n_shells,
+        name="--shell-sigmas",
+    )
+    shell_mix_logits_init = tuple(float(s) for s in a.shell_mix_logits_init.split(",") if s.strip())
+    if len(shell_mix_logits_init) > 0 and len(shell_mix_logits_init) != len(shell_templates):
+        raise ValueError(
+            f"--shell-mix-logits-init length ({len(shell_mix_logits_init)}) must match "
+            f"number of shell templates ({len(shell_templates)})"
+        )
+    spin_pattern = parse_spin_pattern(
+        a.spin_pattern,
+        N_ELEC,
+        layout=a.spin_layout,
+        seed=a.seed,
+    )
+    spin_tensor = torch.tensor(spin_pattern, dtype=torch.long, device=DEVICE)
     # Note: sigma_fs values are in oscillator-length units.
     # sample_gauss already scales by 1/sqrt(omega).
     # Adaptive widening is applied in train_weak_form() via adapt_sigma_fs().
@@ -1496,6 +2142,27 @@ def main():
                 n_mp_steps=jmp, msg_layers=2, node_layers=2,
                 readout_hidden=a.jas_readout_hidden, readout_layers=2, act="silu",
             ).to(DEVICE).to(DTYPE)
+        elif a.jas_arch == "shellaware":
+            jh = a.jas_hidden if a.jas_hidden > 0 else 48
+            jmp = a.jas_mp_steps if a.jas_mp_steps > 0 else 2
+            n_shells = a.jas_shells if a.jas_shells > 0 else 3
+            shell_radius = (
+                a.jas_shell_radius_aho
+                if a.jas_shell_radius_aho > 0.0
+                else max(3.0, 0.65 * (N_ELEC ** 0.5))
+            )
+            shell_width = a.jas_shell_width_aho if a.jas_shell_width_aho > 0.0 else 0.6
+            return CTNNShellAwareJastrow(
+                n_particles=N_ELEC, d=DIM, omega=OMEGA,
+                node_hidden=jh, edge_hidden=jh,
+                n_shells=n_shells, shell_radius_aho=shell_radius, shell_width_aho=shell_width,
+                n_mp_steps=jmp, msg_layers=2, node_layers=2,
+                readout_hidden=a.jas_readout_hidden, readout_layers=2, act="silu",
+                input_radius_cap_aho=a.jas_input_radius_cap_aho,
+                tail_guard_radius_aho=a.jas_tail_guard_radius_aho,
+                tail_guard_strength=a.jas_tail_guard_strength,
+                tail_guard_power=a.jas_tail_guard_power,
+            ).to(DEVICE).to(DTYPE)
         else:  # vcycle (default)
             jh = a.jas_hidden if a.jas_hidden > 0 else 24
             jmp = a.jas_mp_steps if a.jas_mp_steps > 0 else 1
@@ -1504,6 +2171,10 @@ def main():
                 node_hidden=jh, edge_hidden=jh, bottleneck_hidden=max(jh // 2, 8),
                 n_down=jmp, n_up=jmp, msg_layers=1, node_layers=1,
                 readout_hidden=a.jas_readout_hidden, readout_layers=2, act="silu",
+                input_radius_cap_aho=a.jas_input_radius_cap_aho,
+                tail_guard_radius_aho=a.jas_tail_guard_radius_aho,
+                tail_guard_strength=a.jas_tail_guard_strength,
+                tail_guard_power=a.jas_tail_guard_power,
             ).to(DEVICE).to(DTYPE)
 
     bf_msg_h = a.bf_msg_hidden if a.bf_msg_hidden > 0 else a.bf_hidden
@@ -1629,6 +2300,7 @@ def main():
     print(f"  Weak-Form Collocation — {a.tag}")
     print(f"  Mode: {a.mode}   Device: {DEVICE}   Seed: {a.seed}")
     print(f"  N={N_ELEC}  omega={OMEGA}  basis={nx}x{ny} (n_basis={n_basis}, n_occ={n_occ})")
+    print(f"  Spin layout: {a.spin_layout}   pattern={''.join(str(v) for v in spin_pattern)}")
     if math.isfinite(E_DMC):
         print(f"  DMC reference: {E_DMC}")
     else:
@@ -1640,6 +2312,9 @@ def main():
     backflow_net = None
     npf_net = None
     f_net = build_jastrow_model()
+    if a.cusp_len_mode == "legacy" and hasattr(f_net, "cusp_len"):
+        f_net.cusp_len = 1.0
+        print("  Cusp compatibility: legacy exp(-r) cusp decay")
 
     if a.mode == "bf":
         backflow_net = build_default_backflow()
@@ -1741,9 +2416,34 @@ def main():
         raise ValueError(f"Unknown mode: {a.mode}")
 
     # ── Resume from checkpoint ──
+    proposal_resume_state = None
     if a.resume:
         print(f"  Resuming from {a.resume}")
         rckpt = torch.load(a.resume, map_location=DEVICE)
+        ckpt_cusp_mode = rckpt.get("cusp_len_mode")
+        if ckpt_cusp_mode is None and a.cusp_len_mode == "physical":
+            print(
+                "    WARNING: checkpoint has no cusp_len_mode metadata; if it predates "
+                "the oscillator-length cusp fix, use --cusp-len-mode legacy"
+            )
+        elif ckpt_cusp_mode is not None and str(ckpt_cusp_mode) != a.cusp_len_mode:
+            print(
+                "    WARNING: checkpoint cusp_len_mode="
+                f"{ckpt_cusp_mode!r} differs from requested {a.cusp_len_mode!r}"
+            )
+        if "spin_pattern" in rckpt:
+            ckpt_spin = tuple(int(v) for v in rckpt["spin_pattern"])
+            if ckpt_spin != spin_pattern:
+                if a.spin_pattern.strip() == "" and a.spin_layout == "block":
+                    spin_pattern = ckpt_spin
+                    spin_tensor = torch.tensor(spin_pattern, dtype=torch.long, device=DEVICE)
+                    print(f"    Loaded spin_pattern={''.join(str(v) for v in spin_pattern)}")
+                else:
+                    print(
+                        "    WARNING: resume checkpoint spin_pattern differs from requested "
+                        f"pattern ({''.join(str(v) for v in ckpt_spin)} != "
+                        f"{''.join(str(v) for v in spin_pattern)})"
+                    )
         if "pf_state" in rckpt and npf_net is not None:
             npf_net.load_state_dict(rckpt["pf_state"])
             print(f"    Loaded pf_state")
@@ -1756,84 +2456,118 @@ def main():
             if not try_load_state(f_net, rckpt["jas_state"], "resume jas"):
                 raise RuntimeError(f"Failed to load required Jastrow state from resume checkpoint: {a.resume}")
             print("    Loaded jas_state")
+        if "proposal_state" in rckpt:
+            proposal_resume_state = rckpt["proposal_state"]
+            print("    Found proposal_state for adaptive proposal resume")
 
     sys.stdout.flush()
 
     # ── Train ──
-    f_net, backflow_net, npf_net, hist = train_weak_form(
-        f_net, C_occ, params,
-        backflow_net=backflow_net,
-        npf_net=npf_net,
-        n_epochs=a.epochs, lr=a.lr, lr_jas=a.lr_jas,
-        lr_min_frac=a.lr_min_frac,
-        lr_warmup_epochs=a.lr_warmup_epochs,
-        lr_warmup_init_frac=a.lr_warmup_init_frac,
-        n_coll=a.n_coll,
-        oversample=a.oversample,
-        micro_batch=a.micro_batch,
-        grad_clip=a.grad_clip,
-        direct_weight=a.direct_weight,
-        clip_el=a.clip_el,
-        reward_qtrim=a.reward_qtrim,
-        reward_normalize=a.reward_normalize,
-        loss_type=a.loss_type,
-        fd_h=a.fd_h,
-        fd_huber_delta=a.fd_huber_delta,
-        prox_mu=a.prox_mu,
-        min_ess=a.min_ess,
-        sigma_fs=sigma_fs,
-        adaptive_proposal=a.adaptive_proposal,
-        gmm_components=a.gmm_components,
-        gmm_refit_every=a.gmm_refit_every,
-        gmm_refit_min_samples=a.gmm_refit_min_samples,
-        gmm_covariance=a.gmm_covariance,
-        min_pair_cutoff=a.min_pair_cutoff,
-        ess_floor_ratio=a.ess_floor_ratio,
-        ess_oversample_max=a.ess_oversample_max,
-        ess_oversample_step=a.ess_oversample_step,
-        ess_resample_tries=a.ess_resample_tries,
-        resample_weight_temp=a.resample_weight_temp,
-        resample_logw_clip_q=a.resample_logw_clip_q,
-        langevin_steps=a.langevin_steps,
-        langevin_step_size=a.langevin_step_size,
-        replay_frac=a.replay_frac,
-        replay_top_frac=a.replay_top_frac,
-        replay_stratified=a.replay_stratified,
-        replay_geo_bins=a.replay_geo_bins,
-        rollback_decay=a.rollback_decay,
-        rollback_err_pct=a.rollback_err_pct,
-        rollback_jump_sigma=a.rollback_jump_sigma,
-        bf_cusp_reg=a.bf_cusp_reg,
-        bf_cusp_radius_aho=a.bf_cusp_radius_aho,
-        bf_diag_q=a.bf_diag_q,
-        n_elec=N_ELEC,
-        omega=OMEGA,
-        e_ref=E_DMC,
-        print_every=10, patience=a.patience,
-        vmc_every=a.vmc_every, vmc_n=a.vmc_n, tag=a.tag,
-        mode=a.mode,
-        seed=a.seed,
-        vmc_select_n=a.vmc_select_n,
-        natural_grad=a.natural_grad,
-        sr_mode=a.sr_mode,
-        fisher_damping=a.fisher_damping,
-        fisher_damping_end=a.fisher_damping_end,
-        fisher_damping_anneal=a.fisher_damping_anneal,
-        fisher_ema=a.fisher_ema,
-        fisher_probes=a.fisher_probes,
-        fisher_subsample=a.fisher_subsample,
-        fisher_max=a.fisher_max,
-        nat_momentum=a.nat_momentum,
-        sr_max_param_change=a.sr_max_param_change,
-        sr_trust_region=a.sr_trust_region,
-        sr_cg_iters=a.sr_cg_iters,
-        sr_center=a.sr_center,
-        minsr_min_ess=a.minsr_min_ess,
-        minsr_max_khat=a.minsr_max_khat,
-        allow_missing_dmc=a.allow_missing_dmc_ref,
-        save_best_window=a.save_best_window,
-        best_ckpt_path=(RESULTS_DIR / f"{a.tag}_best.pt") if a.save_best_window > 0 else None,
-    )
+    if a.eval_only or a.epochs <= 0:
+        print("  Eval-only: skipping training")
+        hist = []
+        proposal_obj = None
+    else:
+        f_net, backflow_net, npf_net, hist, proposal_obj = train_weak_form(
+            f_net, C_occ, params,
+            backflow_net=backflow_net,
+            npf_net=npf_net,
+            n_epochs=a.epochs, lr=a.lr, lr_jas=a.lr_jas,
+            lr_min_frac=a.lr_min_frac,
+            lr_warmup_epochs=a.lr_warmup_epochs,
+            lr_warmup_init_frac=a.lr_warmup_init_frac,
+            n_coll=a.n_coll,
+            oversample=a.oversample,
+            micro_batch=a.micro_batch,
+            grad_clip=a.grad_clip,
+            direct_weight=a.direct_weight,
+            clip_el=a.clip_el,
+            reward_qtrim=a.reward_qtrim,
+            reward_normalize=a.reward_normalize,
+            loss_type=a.loss_type,
+            fd_h=a.fd_h,
+            fd_huber_delta=a.fd_huber_delta,
+            prox_mu=a.prox_mu,
+            min_ess=a.min_ess,
+            sigma_fs=sigma_fs,
+            adaptive_proposal=a.adaptive_proposal,
+            proposal_model=a.proposal_model,
+            gmm_components=a.gmm_components,
+            gmm_refit_every=a.gmm_refit_every,
+            gmm_refit_min_samples=a.gmm_refit_min_samples,
+            gmm_covariance=a.gmm_covariance,
+            shell_templates=shell_templates,
+            shell_mix_logits_init=shell_mix_logits_init,
+            shell_radii_init=shell_radii_init,
+            shell_sigmas=shell_sigmas,
+            shell_refit_steps=a.shell_refit_steps,
+            shell_refit_lr=a.shell_refit_lr,
+            shell_flow_layers=a.shell_flow_layers,
+            shell_flow_hidden=a.shell_flow_hidden,
+            shell_ring_warmup_steps=a.shell_ring_warmup_steps,
+            shell_radius_anchor_weight=a.shell_radius_anchor_weight,
+            shell_curriculum_mode=a.shell_curriculum_mode,
+            shell_curriculum_unlock_epoch=a.shell_curriculum_unlock_epoch,
+            shell_curriculum_unlock_ess=a.shell_curriculum_unlock_ess,
+            shell_curriculum_unlock_patience=a.shell_curriculum_unlock_patience,
+            shell_curriculum_radius_quantile=a.shell_curriculum_radius_quantile,
+            shell_curriculum_radius_threshold_aho=a.shell_curriculum_radius_threshold_aho,
+            shell_curriculum_inactive_logit_offset=a.shell_curriculum_inactive_logit_offset,
+            shell_curriculum_centered_mass_floor=a.shell_curriculum_centered_mass_floor,
+            proposal_resume_state=proposal_resume_state,
+            min_pair_cutoff=a.min_pair_cutoff,
+            ess_update_floor=a.ess_update_floor,
+            ess_floor_ratio=a.ess_floor_ratio,
+            ess_floor_metric=a.ess_floor_metric,
+            ess_oversample_max=a.ess_oversample_max,
+            ess_oversample_step=a.ess_oversample_step,
+            ess_resample_tries=a.ess_resample_tries,
+            resample_weight_temp=a.resample_weight_temp,
+            resample_logw_clip_q=a.resample_logw_clip_q,
+            top1_mass_update_ceiling=a.top1_mass_update_ceiling,
+            top10_mass_update_ceiling=a.top10_mass_update_ceiling,
+            langevin_steps=a.langevin_steps,
+            langevin_step_size=a.langevin_step_size,
+            replay_frac=a.replay_frac,
+            replay_top_frac=a.replay_top_frac,
+            replay_stratified=a.replay_stratified,
+            replay_geo_bins=a.replay_geo_bins,
+            rollback_decay=a.rollback_decay,
+            rollback_err_pct=a.rollback_err_pct,
+            rollback_jump_sigma=a.rollback_jump_sigma,
+            bf_cusp_reg=a.bf_cusp_reg,
+            bf_cusp_radius_aho=a.bf_cusp_radius_aho,
+            bf_diag_q=a.bf_diag_q,
+            n_elec=N_ELEC,
+            omega=OMEGA,
+            e_ref=E_DMC,
+            print_every=max(1, a.print_every), patience=a.patience,
+            vmc_every=a.vmc_every, vmc_n=a.vmc_n, tag=a.tag,
+            mode=a.mode,
+            seed=a.seed,
+            vmc_select_n=a.vmc_select_n,
+            natural_grad=a.natural_grad,
+            sr_mode=a.sr_mode,
+            fisher_damping=a.fisher_damping,
+            fisher_damping_end=a.fisher_damping_end,
+            fisher_damping_anneal=a.fisher_damping_anneal,
+            fisher_ema=a.fisher_ema,
+            fisher_probes=a.fisher_probes,
+            fisher_subsample=a.fisher_subsample,
+            fisher_max=a.fisher_max,
+            nat_momentum=a.nat_momentum,
+            sr_max_param_change=a.sr_max_param_change,
+            sr_trust_region=a.sr_trust_region,
+            sr_cg_iters=a.sr_cg_iters,
+            sr_center=a.sr_center,
+            minsr_min_ess=a.minsr_min_ess,
+            minsr_max_khat=a.minsr_max_khat,
+            allow_missing_dmc=a.allow_missing_dmc_ref,
+            save_best_window=a.save_best_window,
+            best_ckpt_path=(RESULTS_DIR / f"{a.tag}_best.pt") if a.save_best_window > 0 else None,
+            spin_pattern=spin_pattern,
+            max_epoch_seconds=a.max_epoch_seconds,
+        )
 
     # ── Final heavy VMC eval ──
     E = se = err = float("nan")
@@ -1853,18 +2587,24 @@ def main():
             vmc = evaluate_energy_vmc(
                 f_net, C_dummy, psi_fn=_psi_wrap,
                 compute_coulomb_interaction=compute_coulomb_interaction,
-                params=params, n_samples=a.n_eval, batch_size=512,
-                sampler_steps=120, sampler_step_sigma=0.08, lap_mode="exact",
-                persistent=True, sampler_burn_in=800, sampler_thin=5, progress=True,
+                params=params, n_samples=a.n_eval, batch_size=a.final_vmc_batch_size,
+                spin=spin_tensor,
+                sampler_steps=a.final_vmc_steps, sampler_step_sigma=a.final_vmc_step_sigma,
+                lap_mode="exact",
+                persistent=True, sampler_burn_in=a.final_vmc_burn_in,
+                sampler_thin=a.final_vmc_thin, progress=not a.final_vmc_no_progress,
             )
         else:
             vmc = evaluate_energy_vmc(
                 f_net, C_occ, psi_fn=psi_fn,
                 compute_coulomb_interaction=compute_coulomb_interaction,
                 backflow_net=backflow_net, params=params,
-                n_samples=a.n_eval, batch_size=512,
-                sampler_steps=120, sampler_step_sigma=0.08, lap_mode="exact",
-                persistent=True, sampler_burn_in=800, sampler_thin=5, progress=True,
+                spin=spin_tensor,
+                n_samples=a.n_eval, batch_size=a.final_vmc_batch_size,
+                sampler_steps=a.final_vmc_steps, sampler_step_sigma=a.final_vmc_step_sigma,
+                lap_mode="exact",
+                persistent=True, sampler_burn_in=a.final_vmc_burn_in,
+                sampler_thin=a.final_vmc_thin, progress=not a.final_vmc_no_progress,
             )
         E = float(vmc["E_mean"])
         se = float(vmc["E_stderr"])
@@ -1879,6 +2619,29 @@ def main():
                 "Non-finite final metrics detected; refusing to save checkpoint "
                 f"(E={E}, se={se}, err={err}, e_dmc={E_DMC})."
             )
+    else:
+        vmc_probe_rows = [
+            row for row in hist
+            if math.isfinite(finite_or(row.get("vmc_E")))
+        ]
+        if vmc_probe_rows:
+            if math.isfinite(E_DMC) and E_DMC != 0.0:
+                best_probe = min(
+                    vmc_probe_rows,
+                    key=lambda row: finite_or(row.get("vmc_err"), float("inf")),
+                )
+            else:
+                best_probe = min(
+                    vmc_probe_rows,
+                    key=lambda row: finite_or(row.get("vmc_E"), float("inf")),
+                )
+            E = finite_or(best_probe.get("vmc_E"))
+            se = finite_or(best_probe.get("vmc_se"))
+            err = safe_percent_err(E, E_DMC)
+            print(
+                f"\n  Final VMC eval skipped; reporting best probe: "
+                f"E = {E:.5f} ± {se:.5f}   err = {err:+.3f}%"
+            )
 
     # ── Save ──
     save_path = RESULTS_DIR / f"{a.tag}.pt"
@@ -1892,11 +2655,16 @@ def main():
         e_dmc=E_DMC,
         nx=nx,
         ny=ny,
+        spin_pattern=spin_pattern,
+        spin_layout=a.spin_layout,
+        cusp_len_mode=a.cusp_len_mode,
     )
     if backflow_net is not None:
         ckpt_dict["bf_state"] = backflow_net.state_dict()
     if npf_net is not None:
         ckpt_dict["pf_state"] = npf_net.state_dict()
+    if proposal_obj is not None and hasattr(proposal_obj, "state_dict"):
+        ckpt_dict["proposal_state"] = proposal_obj.state_dict()
     torch.save(ckpt_dict, save_path)
     print(f"  Saved → {save_path}")
 

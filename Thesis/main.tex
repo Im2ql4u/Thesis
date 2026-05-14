@@ -7,10 +7,7 @@
 \usepackage{amsmath}
 \usepackage{amssymb} % For advanced mathematical symbols
 \usepackage{fancyhdr}
-\usepackage{graphicx}
 \usepackage{booktabs}
-\usepackage{multirow}
-\usepackage{makecell}
 \usepackage[utf8]{inputenc}
 \usepackage{adjustbox}
 \usepackage{bm}
@@ -24,14 +21,9 @@
 \usepackage{braket}
 \usepackage{tikz}
 \usepackage{siunitx}
-\usepackage{makecell} % for multi-line cells in tables
 \usetikzlibrary{calc}
 \usetikzlibrary{arrows.meta,positioning,fit}
 \usepackage[flushleft]{threeparttable}  % provides the threeparttable and tablenotes environments
-
-\usetikzlibrary{positioning, arrows.meta, shapes.geometric}
-
-
 
 \usetikzlibrary{positioning, arrows.meta, shapes.geometric}
 
@@ -101,8 +93,6 @@
 \newtheorem{lemma}[theorem]{Lemma}
 \newtheorem{proposition}[theorem]{Proposition}
 
-\usepackage{subcaption}
-\usepackage{graphicx}
 \newlength\figgutter
 \setlength{\figgutter}{0.3em} % tweak gutter size
 \newcommand{\threecolw}{\dimexpr(\textwidth-2\figgutter)/3\relax}
@@ -126,7 +116,8 @@
 
 \pagestyle{fancy}
 
-\title{On the state of Many body quantum mechanics, and on PINNs}
+\title{Neural Variational Wavefunctions for Two-Dimensional Quantum Dots:\\
+       Ansatz Design, MCMC-Free Training, and Wigner-Molecule Diagnostics}
 \author{Aleksander Sekkelsten}
 
 \date{\today}
@@ -136,27 +127,15 @@
 
 \include{abstract}
 \include{acknowledgement}
+\include{preface}
 \tableofcontents
 
-\part{Introduction}
 \input{introduction}
-
-\part{Theory}
 \input{theory}
-
-\part{Methods}
 \input{method}
-
-\part{Results}
 \input{results}
-
-\part{Discussion}
 \input{discussion}
-
-\part{Conclusion}
 \input{conclusion}
-
-\part{Appendices}
 \appendix
 \input{appendix}
 

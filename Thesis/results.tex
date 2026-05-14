@@ -1,46 +1,72 @@
 \graphicspath{{../results/figures/results/}}
 
-\chapter{Quantum Dots}
+\chapter{Results: Accuracy, Scaling, and Physical Content}
 \label{ch:results}
 
-This chapter presents the central results of the thesis.
-We apply the CTNN-augmented Slater--Jastrow ansatz developed in
-Chapter~\ref{ch:trial_wavefunction} to two-dimensional harmonic quantum
-dots---a numerically demanding benchmark due to the Coulomb singularity at
-short range, the second-order derivatives in the kinetic energy, and the
-wide dynamic range spanned by the confinement parameter.
-We study $N\in\{2,6,12,20\}$ electrons across trap frequencies
-$\omega\in\{1.0,\,0.5,\,0.1,\,0.01,\,0.001\}$, covering three decades of
-correlation strength.
+This chapter reports what happens when the training pipeline of
+Chapter~\ref{ch:optimization} meets the quantum dot system of
+Chapter~\ref{ch:trial_wavefunction}.
+We study $N\in\{2,6,12,20\}$ electrons in a two-dimensional harmonic trap
+across five confinement strengths $\omega\in\{1.0,\,0.5,\,0.1,\,0.01,\,0.001\}$,
+covering three decades of correlation strength and the full crossover from
+Fermi-liquid to Wigner-molecule behavior.
 
-The chapter is organized around three questions.
-First, \emph{how accurate is the method?}
-Section~\ref{sec:energy-overview} benchmarks variational energies against
-diffusion Monte Carlo (DMC) references, showing that the compact
-Slater--Jastrow PINN with soft-core pair features and an explicit analytic
-cusp achieves DMC-level accuracy across the full grid.
-Second, \emph{what does the network learn?}
-Section~\ref{sec:repr-analysis} dissects the internal representations of
-the trained wavefunction, revealing a remarkably low-dimensional correlator
-manifold whose content---but not dimensionality---reorganises across
-physical regimes, and a complementary backflow field that partitions labor
-with the correlator in a regime-dependent way.
-Third, \emph{can the learned wavefunction serve as a scientific instrument?}
-Section~\ref{sec:wigner-molecule} uses the trained models to map out the
-Wigner--molecule crossover in real space, establishing shell topologies,
-angular order, and melting trajectories from $N{=}2$ up to $N{=}20$ at
-confinements where electrons localize into geometric arrangements that
-minimize Coulomb repulsion while balancing the trap potential.
+The comparison is not only against numerical benchmarks.
+Energies are checked against DMC where references exist, but the trained states
+are also interrogated for physical content: shell topology, orientational order,
+and pair correlations that distinguish a Fermi liquid from a Wigner molecule.
+A network that achieves a competitive energy by encoding the wrong physics is
+not a solution; the diagnostics reported here are intended to rule that out.
 
-\section{Training protocol and energy overview}
+The results are organized around the three-layer framework.
+Section~\ref{sec:energy-overview} reports the Layer~2 comparative study:
+variational energies benchmarked against DMC, and the broader context of
+HF, FCI, CCSD, and DMC references that locates neural VMC in the hierarchy
+of quantum chemistry methods.
+Section~\ref{sec:collocation} reports the MCMC-free training pipeline and
+its Layer~3 constraints: what ESS collapse costs, where SR and Adam exchange
+roles, and what the memory budget at large~$N$ actually buys.
+Section~\ref{sec:wigner-molecule} then uses the trained states as scientific
+instruments to map the Wigner crossover, validating that the wavefunctions
+are physically correct rather than merely energetically convenient---the physics
+is established before the network's internal geometry is examined.
+Section~\ref{sec:repr-analysis} closes with a Layer~1 perspective: what the
+network has learned internally, and how the function-space separation of
+correlator and backflow connects to the physical structures identified in the
+preceding section.
+
+\section{Layer~2: the conditioned ansatz and its energies}
 \label{sec:energy-overview}
-Unless otherwise stated, we first apply residual-based pretraining to obtain a
-well-conditioned initializer, and then run a Stochastic Reconfiguration (SR)
-tail to refine the last digits of the energy. In the residual phase, the
-network initially chooses its own target energy as a stabilizer, before we
-switch to the DMC reference energy (and optionally add a variance penalty).
-The SR phase then uses on the order of $10^3$--$3\times10^3$ iterations with
-batches of $\sim 3{\times}10^3$ samples per iteration.
+
+\paragraph{Context: the method hierarchy.}
+Neural VMC does not exist in isolation.
+Before comparing specific energies, it is useful to locate the method in
+the hierarchy of approaches for the quantum dot problem.
+
+Hartree--Fock provides a physically motivated upper bound by optimizing
+a single Slater determinant; it captures exchange exactly but misses all
+inter-particle correlation.
+For the quantum dots studied here, HF overestimates the ground-state energy
+by a correlation energy that grows with both $N$ and the coupling strength
+$\Gamma\propto 1/\sqrt{\omega}$~\cite{HaasHFQD}.
+Full configuration interaction (FCI) is in principle exact within a
+one-particle basis, but scales as $\mathcal{O}\!\binom{M}{N}$ in the number
+of single-particle states $M$: for $N{=}6$ in a moderate basis the Hilbert
+space already contains millions of Slater determinants, and for $N{=}12$
+it is essentially intractable without aggressive symmetry reduction.
+Diffusion Monte Carlo (DMC) bypasses the basis expansion by representing
+$|\Psi|^2$ stochastically, and provides the accurate benchmarks used
+throughout this chapter.
+Neural VMC---parameterized by the Slater--Jastrow(+Backflow) ansatz---aims
+for DMC-level accuracy while retaining full differentiability with respect
+to the ansatz parameters and avoiding the fixed-node constraint that
+limits standard DMC to the nodal structure of a chosen trial state.
+
+The SR-pipeline results reported below are obtained with residual-based
+pretraining followed by a stochastic reconfiguration tail using MCMC
+samples from $|\Psi_\theta|^2$.
+The SR phase runs for $10^3$--$3{\times}10^3$ iterations with batches of
+${\sim}3{\times}10^3$ samples each.
 
 The architecture size is identical for all $N$: the base PINN has
 $\approx\!54\text{k}$ parameters, the conventional BackflowNet adds
@@ -61,8 +87,8 @@ smooths convergence.
 \begin{table}[h!]
 \centering
 \caption{Ground-state energies (Hartree) for two electrons in a harmonic trap
-using \emph{residual-only} training. DMC references as in [Ref.]. Parentheses
-denote $1\sigma$ on the last digits.}
+using \emph{residual-only} training. DMC references from~\cite{Pederiva2000-QD-DMC}.
+Parentheses denote $1\sigma$ on the last digits.}
 \label{tab:Residual}
 \begin{tabular}{c c c c}
 \hline
@@ -150,312 +176,11 @@ We attribute the stability to conditioning choices (trap-unit scaling,
 soft-core features with $ds/dr\!\to\!0$ at coalescence, and an explicit cusp),
 which keep both gradients and Laplacians numerically tame from shallow to tight
 traps.
-\textbf{\textcolor{red}{[TODO: Add convergence traces and ablation figures
-(activation, initialization, SR settings, backflow on/off)
-to an appendix and reference it here.]}}
-
-\section{What the networks learn}
-\label{sec:repr-analysis}
-
-We probe the internal representations of the CTNN-augmented wavefunction across
-$N\in\{2,6,12,20\}$ and $\omega\in\{10^{-3},10^{-2},0.1,0.5,1.0\}$.
-The analysis targets three objects:
-the \emph{correlator head} $f_{\mathrm{net}}$ (whose input concatenates the orbital, pair, and auxiliary branches
-$\overline\phi\|\overline\psi\|\mathbf{g}$),
-the \emph{backflow displacement field} $\Delta\mathbf{x}$ produced by the CTNN,
-and the \emph{coupling} between these two components.
-All diagnostics are evaluated on samples drawn from $|\Psi|^2$.
-
-Three results organise this section.
-First, the correlator operates on a manifold of remarkably low dimension ($r_{\mathrm{eff}}\lesssim 3$),
-whose \emph{content}---but not dimensionality---reorganises across regimes via a
-$\phi\leftrightarrow\psi$ transition in the leading principal axis (\S\ref{sec:repr-geom}).
-Second, the CTNN displacement field is a high-rank, full-dimensional correction
-($\mathrm{rank}\approx 2N$) that nonetheless leaves the correlator manifold nearly unchanged,
-acting as a complementary rather than redundant channel (\S\ref{sec:repr-backflow}).
-Third, PINN and CTNN switch from operating independently at strong correlation
-to cooperating tightly at moderate-to-weak correlation, with a sharp transition near $\omega\approx 0.1$
-that coincides with the physical crossover in $\Gamma = V_{\mathrm{int}}/T$ (\S\ref{sec:repr-coupling}).
-
-%% ──────────────────────────────────────────────────────────────────────
-\subsection{Correlator geometry: a compact manifold that reorganises}
-\label{sec:repr-geom}
-
-We characterise the correlator feature space $Z = \overline\phi\|\overline\psi\|\mathbf{g}$
-by its entropy-based effective rank $r_{\mathrm{eff}}(Z)$, the correlation
-$|\rho(\mathrm{head},\mathrm{PC1})|$ between the head output and its first principal component,
-and the power of PC1 decomposed across architectural branches.
-Table~\ref{tab:correlator-geom} reports these quantities for all CTNN configurations.
-
-\begin{table}[t]
-\centering
-\caption{Correlator geometry (CTNN).
-$r_{\mathrm{eff}}$: entropy-based effective rank of $Z$.
-$|\rho|$: absolute correlation between head output and PC1 reconstruction.
-$\phi/\psi/\mathrm{g}$: fraction of PC1 variance from the orbital, pair, and auxiliary branches.
-The $\psi$-dominated entries ($\psi > 0.5$) are shown in bold.}
-\label{tab:correlator-geom}
-\small
-\setlength{\tabcolsep}{4pt}
-\begin{tabular}{rr cccccc}
-\toprule
-$N$ & $\omega$ & $r_{\mathrm{eff}}$ & $|\rho|$ & $\phi$ & $\psi$ & $\mathrm{g}$ \\
-\midrule
- 2 & 0.001 & 1.00 & 1.00 & 0.00 & \textbf{1.00} & 0.00 \\
- 2 & 0.01  & 1.04 & 0.66 & 0.00 & \textbf{1.00} & 0.00 \\
- 2 & 0.1   & 1.31 & 0.99 & 0.00 & \textbf{0.53} & 0.46 \\
- 2 & 0.5   & 1.25 & 1.00 & 0.00 & \textbf{0.58} & 0.42 \\
- 2 & 1.0   & 1.53 & 0.98 & 0.00 & 0.35 & \textbf{0.65} \\
-\midrule
- 6 & 0.001 & 1.52 & 0.97 & 0.01 & 0.12 & \textbf{0.87} \\
- 6 & 0.01  & 1.38 & 0.99 & 0.05 & 0.44 & \textbf{0.50} \\
- 6 & 0.1   & 2.73 & 0.94 & \textbf{0.66} & 0.21 & 0.14 \\
- 6 & 0.5   & 2.69 & 0.98 & 0.15 & \textbf{0.63} & 0.22 \\
- 6 & 1.0   & 2.69 & 0.99 & 0.03 & \textbf{0.62} & 0.35 \\
-\midrule
-12 & 0.001 & 1.66 & 0.96 & \textbf{0.54} & 0.13 & 0.33 \\
-12 & 0.01  & 1.54 & 0.97 & 0.43 & 0.09 & \textbf{0.48} \\
-12 & 0.1   & 3.08 & 0.99 & 0.12 & \textbf{0.63} & 0.26 \\
-12 & 0.5   & 2.32 & 0.99 & 0.12 & \textbf{0.69} & 0.19 \\
-12 & 1.0   & 1.76 & 0.99 & 0.08 & \textbf{0.73} & 0.19 \\
-\midrule
-20 & 0.001 & 2.59 & 0.99 & 0.18 & \textbf{0.74} & 0.08 \\
-20 & 0.01  & 1.09 & 0.79 & 0.04 & \textbf{0.94} & 0.01 \\
-20 & 0.1   & 2.20 & 0.97 & 0.36 & 0.44 & 0.20 \\
-20 & 0.5   & 2.30 & 1.00 & 0.17 & \textbf{0.70} & 0.13 \\
-20 & 1.0   & 2.32 & 0.99 & 0.18 & \textbf{0.71} & 0.11 \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-\paragraph{The manifold is low-dimensional everywhere.}
-The effective rank stays below $3.1$ across the entire grid,
-and the head output is almost perfectly reconstructed from PC1 alone
-($|\rho| > 0.94$ for all $N\geq 6$ and all $\omega$).
-This holds even at strong correlation where the real-space density develops pronounced shell
-structure---the correlator does not respond by expanding its latent dimensionality.
-The modest peak at $N{=}12$, $\omega{=}0.1$ ($r_{\mathrm{eff}} = 3.08$) coincides with the
-intermediate-correlation regime where neither the shell picture nor the crystalline picture provides
-a clean single-mode description.
-
-\paragraph{A $\phi\leftrightarrow\psi$ transition in the leading axis.}
-The more interesting variation is in \emph{which branch dominates PC1}.
-At moderate-to-weak correlation ($\omega \geq 0.1$, $N\geq 6$),
-PC1 is predominantly $\psi$-loaded: the pair branch carries 60--73\% of the variance,
-meaning the correlator's primary degree of freedom tracks pair correlations.
-At strong correlation ($\omega \leq 0.01$, $N\geq 12$),
-the loading shifts toward $\phi$ (orbital) or $\mathbf{g}$ (auxiliary) branches,
-with $\psi$ dropping below 15\%.
-The transition is sharpest at $N{=}12$, where $\psi$ goes from 0.09 at $\omega{=}0.01$
-to 0.63 at $\omega{=}0.1$.
-
-The physical interpretation is direct.
-When interactions are weak relative to the trap ($\omega \gtrsim 0.1$),
-the non-interacting shell structure provides a good zeroth-order description,
-and the correlator's primary role is refining pair correlations on top of that.
-When interactions dominate ($\omega \lesssim 0.01$),
-the orbital structure itself must reorganise---which orbitals are occupied and how they mix
-becomes the dominant variational degree of freedom.
-The network discovers this distinction autonomously:
-regime changes appear as a rotation of a low-dimensional axis across branches,
-not as a growth of latent dimensionality.
-
-
-%% ──────────────────────────────────────────────────────────────────────
-\subsection{Backflow: a high-rank field with a low-rank footprint}
-\label{sec:repr-backflow}
-
-Table~\ref{tab:backflow-geom} characterises the CTNN displacement field.
-We report the normalised displacement magnitude $\|\Delta\mathbf{x}\|/\ell$,
-the effective rank of $\Delta\mathbf{x}$ (viewed as a $B\times 2N$ matrix of flattened displacements),
-and the CKA similarity between the correlator features with and without backflow.
-
-\begin{table}[t]
-\centering
-\caption{CTNN backflow geometry.
-$\|\Delta\mathbf{x}\|/\ell$: mean displacement magnitude normalised by harmonic length.
-Rank: effective rank of the displacement covariance.
-$2N$: maximum possible rank.
-CKA: linear centred kernel alignment between correlator features with and without backflow
-(1.0 = identical feature manifolds).}
-\label{tab:backflow-geom}
-\small
-\setlength{\tabcolsep}{5pt}
-\begin{tabular}{rr cccc}
-\toprule
-$N$ & $\omega$ & $\|\Delta\mathbf{x}\|/\ell$ & Rank & $2N$ & CKA \\
-\midrule
- 2 & 0.001 & 0.003  & 1.9  &  4 & 1.000 \\
- 2 & 1.0   & 0.029  & 2.0  &  4 & 1.000 \\
-\midrule
- 6 & 0.001 & 0.017  & 10.0 & 12 & 0.999 \\
- 6 & 0.01  & 0.035  & 9.9  & 12 & 0.998 \\
- 6 & 0.1   & 0.096  & 10.0 & 12 & 0.995 \\
- 6 & 0.5   & 0.093  & 10.0 & 12 & 0.991 \\
- 6 & 1.0   & 0.089  & 10.0 & 12 & 0.979 \\
-\midrule
-12 & 0.001 & 0.017  & 21.9 & 24 & 1.000 \\
-12 & 0.01  & 0.030  & 21.9 & 24 & 0.998 \\
-12 & 0.1   & 0.096  & 21.9 & 24 & 0.993 \\
-12 & 0.5   & 0.096  & 21.9 & 24 & 0.993 \\
-12 & 1.0   & 0.091  & 21.9 & 24 & 0.995 \\
-\midrule
-20 & 0.001 & 0.023  & 37.7 & 40 & 0.999 \\
-20 & 0.01  & 0.046  & 37.4 & 40 & 1.000 \\
-20 & 0.1   & 0.075  & 37.8 & 40 & 0.997 \\
-20 & 0.5   & 0.099  & 37.6 & 40 & 0.990 \\
-20 & 1.0   & 0.099  & 37.6 & 40 & 0.991 \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-\paragraph{Displacement magnitude scales with $\omega$ but saturates near $\|\Delta\mathbf{x}\|/\ell \sim 0.1$.}
-At strong correlation ($\omega \leq 0.01$), displacements are small relative to the harmonic length,
-$\|\Delta\mathbf{x}\|/\ell \sim 0.02$--$0.05$.
-As the trap tightens and the system enters the moderate-to-weak correlation regime,
-the magnitude grows and saturates at $\sim$\,8--10\% of $\ell$ for $\omega \gtrsim 0.1$.
-The CTNN never produces large displacements---its $\tanh$ output bound and continuous-time architecture
-act as implicit regularisers, in contrast to the conventional BackflowNet which can exhibit
-displacements comparable to the system scale in poorly converged regimes
-(e.g.\ $\|\Delta\mathbf{x}\|/\ell \sim 0.95$ for $N{=}6$, $\omega{=}0.001$ with BackflowNet).
-
-\paragraph{Full-rank displacements, near-unity CKA.}
-The effective rank of the displacement field is consistently $\approx 2N - 2$,
-saturating the available spatial degrees of freedom modulo centre-of-mass conservation
-(confirmed by COM shifts of order $10^{-14}$--$10^{-17}$).
-The backflow transformation is not a low-rank collective mode
-such as a breathing or rigid rotation; each particle receives a genuinely independent correction
-conditioned on the full configuration.
-
-Yet the CKA between correlator features with and without backflow exceeds 0.99 in nearly all cases
-(and exceeds 0.979 everywhere).
-The correlator manifold is almost unperturbed by the displacement field.
-This establishes a clean separation of concerns:
-the CTNN operates in the orthogonal complement of the correlator's feature space,
-providing configuration-dependent corrections that the globally organised correlator does not
-and need not represent.
-
-
-%% ──────────────────────────────────────────────────────────────────────
-\subsection{PINN--CTNN coupling: from independence to cooperation}
-\label{sec:repr-coupling}
-
-The previous subsection established that backflow leaves the correlator manifold intact.
-But are the PINN and CTNN \emph{functionally} coupled---does the CTNN's correction depend on
-what the PINN computes?
-We measure this through three diagnostics:
-(i) the mean cosine similarity $\langle\cos(\nabla_{\mathbf{x}} f,\,\Delta\mathbf{x})\rangle$
-between the PINN's gradient in configuration space and the CTNN displacement
-(gradient alignment implies the CTNN pushes along directions the PINN is sensitive to);
-(ii) the fraction of configurations where $\Delta\mathbf{x}$ is aligned with $\nabla f$;
-and (iii) $|\delta f|/\sigma_f$, the relative impact of backflow on the PINN output.
-Table~\ref{tab:pinn-ctnn-coupling} reports these alongside the fraction of particles pushed
-toward their nearest neighbour.
-
-\begin{table}[t]
-\centering
-\caption{PINN--CTNN coupling diagnostics (CTNN ansatz).
-$\langle\cos\rangle$: mean cosine between $\nabla f$ and $\Delta\mathbf{x}$.
-Aligned: fraction of configs with $\nabla f \cdot \Delta\mathbf{x} > 0$.
-$|\delta f|/\sigma_f$: BF-induced change in PINN output relative to its standard deviation.
-$\rightarrow$NN: fraction of particles displaced toward their nearest neighbour ($0.5 =$ isotropic).
-Only $N\geq 6$ shown; $N{=}2$ displacements are near-zero for most $\omega$.}
-\label{tab:pinn-ctnn-coupling}
-\small
-\setlength{\tabcolsep}{4.5pt}
-\begin{tabular}{rr cccc}
-\toprule
-$N$ & $\omega$ & $\langle\cos\rangle$ & Aligned & $|\delta f|/\sigma_f$ & $\rightarrow$NN \\
-\midrule
- 6 & 0.001 &  0.14 & 0.63 & 0.03 & 0.43 \\
- 6 & 0.01  &  0.18 & 0.77 & 0.05 & 0.28 \\
- 6 & 0.1   &  0.49 & 0.99 & 0.25 & 0.16 \\
- 6 & 0.5   &  0.62 & 1.00 & 0.33 & 0.19 \\
- 6 & 1.0   &  0.77 & 1.00 & 0.41 & 0.18 \\
-\midrule
-12 & 0.001 & $-$0.48 & 0.01 & 0.03 & 0.61 \\
-12 & 0.01  &  0.22 & 0.82 & 0.05 & 0.29 \\
-12 & 0.1   &  0.56 & 1.00 & 0.39 & 0.12 \\
-12 & 0.5   &  0.65 & 1.00 & 0.49 & 0.20 \\
-12 & 1.0   &  0.75 & 1.00 & 0.55 & 0.21 \\
-\midrule
-20 & 0.001 &  0.32 & 0.97 & 0.06 & 0.44 \\
-20 & 0.01  &  0.22 & 0.89 & 0.07 & 0.45 \\
-20 & 0.1   &  0.39 & 1.00 & 0.25 & 0.17 \\
-20 & 0.5   &  0.65 & 1.00 & 0.58 & 0.22 \\
-20 & 1.0   &  0.78 & 1.00 & 0.69 & 0.25 \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-\paragraph{A transition at $\omega\approx 0.1$.}
-The data reveal a sharp regime change.
-At $\omega \leq 0.01$, the PINN and CTNN are weakly coupled:
-$\langle\cos\rangle \sim 0.1$--$0.2$, the alignment fraction is well below unity,
-and backflow barely affects the PINN output ($|\delta f|/\sigma_f < 0.07$).
-In this regime the CTNN operates in a subspace largely orthogonal to the PINN's gradient---it
-modifies the wavefunction in directions that $f_{\mathrm{net}}$ is insensitive to,
-consistent with its role being to adjust the Slater determinant's orbital positions rather than
-the correlator.
-
-At $\omega \geq 0.1$, the picture changes qualitatively.
-The gradient cosine jumps to 0.5--0.8, the alignment fraction reaches 1.0 for $N\geq 6$,
-and backflow accounts for 25--69\% of the PINN's output variance.
-Here the CTNN acts as a cooperative refinement: it pushes configurations along
-directions the PINN is maximally sensitive to, systematically correcting the correlator's
-residual errors.
-The transition is sharpest between $\omega=0.01$ and $\omega=0.1$,
-coinciding with the crossover in $\Gamma = V_{\mathrm{int}}/T$ from $\Gamma > 10$
-(interaction-dominated) to $\Gamma \sim 3$--$6$ (moderate correlation).
-
-\paragraph{Directional structure: correlation-hole deepening.}
-The nearest-neighbour direction fraction provides a complementary signature.
-At $\omega \geq 0.1$ for $N\geq 6$, only 12--25\% of particles are displaced toward their
-nearest neighbour.
-The CTNN preferentially pushes particles \emph{apart}, actively deepening the correlation hole.
-This directional bias is strongest at $N{=}12$, $\omega{=}0.1$ ($\rightarrow$NN\,$=0.12$),
-exactly where the correlator effective rank peaks and the $\phi\leftrightarrow\psi$ transition occurs.
-At strong correlation ($\omega\leq 0.01$, large $N$), the fraction rises toward 0.5
-(isotropic), because the large equilibrium inter-particle separations leave little room for
-further correlation-hole deepening.
-
-%% ──────────────────────────────────────────────────────────────────────
-\subsection{Synthesis}
-\label{sec:repr-synthesis}
-
-The representation analysis supports a coherent picture of how the CTNN-augmented architecture
-partitions the variational problem across its components.
-\textbf{\textcolor{red}{[TODO: Consider adding a schematic figure showing the
-PINN/CTNN partition and information flow.]}}
-
-The \textbf{correlator head} $f_{\mathrm{net}}$ forms a $\sim$\,1--3 dimensional manifold whose
-leading axis tracks the dominant global coordinate of the electron cloud.
-The identity of that coordinate shifts across regimes:
-pair correlations ($\psi$ branch) dominate at moderate-to-weak coupling ($\omega \gtrsim 0.1$),
-while orbital structure ($\phi$) or auxiliary features ($\mathbf{g}$) take over at strong coupling
-($\omega \lesssim 0.01$).
-This $\phi\leftrightarrow\psi$ recomposition is the primary way the architecture adapts to changing physics;
-dimensionality expansion plays a negligible role.
-
-The \textbf{CTNN backflow} provides a full-rank ($\sim 2N$), configuration-dependent displacement
-field that is implicitly regularised to $\sim$\,10\% of the harmonic length.
-Despite its geometric complexity, it leaves the correlator manifold almost invariant (CKA\,$>0.98$),
-confirming that it operates in a complementary subspace.
-At strong correlation, the CTNN and PINN function independently:
-backflow adjusts orbital positions via the Slater determinant while the correlator
-tracks global structure.
-At moderate-to-weak correlation, the two components become tightly coupled:
-the CTNN's displacements align with the PINN's gradient ($\langle\cos\rangle \sim 0.5$--$0.8$),
-and backflow accounts for up to 70\% of the correlator's output variance.
-The transition between these regimes is sharp and coincides with the physical crossover at
-$\omega \approx 0.1$.
-
-This division of labour is architecturally desirable.
-It means the base correlator can robustly learn compact collective coordinates across regimes,
-while backflow provides an optional, fine-grained correction channel
-whose character---independent adjustment versus cooperative refinement---adapts
-automatically to the strength of electron--electron correlation.
-
+The stability of these results is attributable to the geometric conditioning
+choices of Chapter~\ref{ch:trial_wavefunction}---trap-unit scaling,
+soft-core pair features with $ds/dr \to 0$ at coalescence, and an analytic
+cusp---which keep both gradients and Laplacians numerically well-behaved
+from tight to shallow traps.
 
 \section{Wigner--molecule crossover}
 \label{sec:wigner-molecule}
@@ -857,268 +582,368 @@ state~\cite{Egger_1999,Filinov_2001,schweigert1994spectralpropertieschargedparti
 %% SECTION:  Collocation-assisted training
 %% ═══════════════════════════════════════════════════════════════════════
 
-\section{Collocation-assisted training}
+\section{What the networks learn}
+\label{sec:repr-analysis}
+
+We probe the internal representations of the CTNN-augmented wavefunction across
+$N\in\{2,6,12,20\}$ and $\omega\in\{10^{-3},10^{-2},0.1,0.5,1.0\}$.
+The analysis targets three objects:
+the \emph{correlator head} $f_{\mathrm{net}}$ (whose input concatenates the orbital, pair, and auxiliary branches
+$\overline\phi\|\overline\psi\|\mathbf{g}$),
+the \emph{backflow displacement field} $\Delta\mathbf{x}$ produced by the CTNN,
+and the \emph{coupling} between these two components.
+All diagnostics are evaluated on samples drawn from $|\Psi|^2$.
+
+Three results organise this section.
+First, the correlator operates on a manifold of remarkably low dimension ($r_{\mathrm{eff}}\lesssim 3$),
+whose \emph{content}---but not dimensionality---reorganises across regimes via a
+$\phi\leftrightarrow\psi$ transition in the leading principal axis (\S\ref{sec:repr-geom}).
+Second, the CTNN displacement field is a high-rank, full-dimensional correction
+($\mathrm{rank}\approx 2N$) that nonetheless leaves the correlator manifold nearly unchanged,
+acting as a complementary rather than redundant channel (\S\ref{sec:repr-backflow}).
+Third, PINN and CTNN switch from operating independently at strong correlation
+to cooperating tightly at moderate-to-weak correlation, with a sharp transition near $\omega\approx 0.1$
+that coincides with the physical crossover in $\Gamma = V_{\mathrm{int}}/T$ (\S\ref{sec:repr-coupling}).
+
+%% ──────────────────────────────────────────────────────────────────────
+\subsection{Correlator geometry: a compact manifold that reorganises}
+\label{sec:repr-geom}
+
+We characterise the correlator feature space $Z = \overline\phi\|\overline\psi\|\mathbf{g}$
+by its entropy-based effective rank $r_{\mathrm{eff}}(Z)$, the correlation
+$|\rho(\mathrm{head},\mathrm{PC1})|$ between the head output and its first principal component,
+and the power of PC1 decomposed across architectural branches.
+Table~\ref{tab:correlator-geom} reports these quantities for all CTNN configurations.
+
+\begin{table}[t]
+\centering
+\caption{Correlator geometry (CTNN).
+$r_{\mathrm{eff}}$: entropy-based effective rank of $Z$.
+$|\rho|$: absolute correlation between head output and PC1 reconstruction.
+$\phi/\psi/\mathrm{g}$: fraction of PC1 variance from the orbital, pair, and auxiliary branches.
+The $\psi$-dominated entries ($\psi > 0.5$) are shown in bold.}
+\label{tab:correlator-geom}
+\small
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{rr cccccc}
+\toprule
+$N$ & $\omega$ & $r_{\mathrm{eff}}$ & $|\rho|$ & $\phi$ & $\psi$ & $\mathrm{g}$ \\
+\midrule
+ 2 & 0.001 & 1.00 & 1.00 & 0.00 & \textbf{1.00} & 0.00 \\
+ 2 & 0.01  & 1.04 & 0.66 & 0.00 & \textbf{1.00} & 0.00 \\
+ 2 & 0.1   & 1.31 & 0.99 & 0.00 & \textbf{0.53} & 0.46 \\
+ 2 & 0.5   & 1.25 & 1.00 & 0.00 & \textbf{0.58} & 0.42 \\
+ 2 & 1.0   & 1.53 & 0.98 & 0.00 & 0.35 & \textbf{0.65} \\
+\midrule
+ 6 & 0.001 & 1.52 & 0.97 & 0.01 & 0.12 & \textbf{0.87} \\
+ 6 & 0.01  & 1.38 & 0.99 & 0.05 & 0.44 & \textbf{0.50} \\
+ 6 & 0.1   & 2.73 & 0.94 & \textbf{0.66} & 0.21 & 0.14 \\
+ 6 & 0.5   & 2.69 & 0.98 & 0.15 & \textbf{0.63} & 0.22 \\
+ 6 & 1.0   & 2.69 & 0.99 & 0.03 & \textbf{0.62} & 0.35 \\
+\midrule
+12 & 0.001 & 1.66 & 0.96 & \textbf{0.54} & 0.13 & 0.33 \\
+12 & 0.01  & 1.54 & 0.97 & 0.43 & 0.09 & \textbf{0.48} \\
+12 & 0.1   & 3.08 & 0.99 & 0.12 & \textbf{0.63} & 0.26 \\
+12 & 0.5   & 2.32 & 0.99 & 0.12 & \textbf{0.69} & 0.19 \\
+12 & 1.0   & 1.76 & 0.99 & 0.08 & \textbf{0.73} & 0.19 \\
+\midrule
+20 & 0.001 & 2.59 & 0.99 & 0.18 & \textbf{0.74} & 0.08 \\
+20 & 0.01  & 1.09 & 0.79 & 0.04 & \textbf{0.94} & 0.01 \\
+20 & 0.1   & 2.20 & 0.97 & 0.36 & 0.44 & 0.20 \\
+20 & 0.5   & 2.30 & 1.00 & 0.17 & \textbf{0.70} & 0.13 \\
+20 & 1.0   & 2.32 & 0.99 & 0.18 & \textbf{0.71} & 0.11 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\paragraph{The manifold is low-dimensional everywhere.}
+The effective rank stays below $3.1$ across the entire grid,
+and the head output is almost perfectly reconstructed from PC1 alone
+($|\rho| > 0.94$ for all $N\geq 6$ and all $\omega$).
+This holds even at strong correlation where the real-space density develops pronounced shell
+structure---the correlator does not respond by expanding its latent dimensionality.
+The modest peak at $N{=}12$, $\omega{=}0.1$ ($r_{\mathrm{eff}} = 3.08$) coincides with the
+intermediate-correlation regime where neither the shell picture nor the crystalline picture provides
+a clean single-mode description.
+
+\paragraph{A $\phi\leftrightarrow\psi$ transition in the leading axis.}
+The more interesting variation is in \emph{which branch dominates PC1}.
+At moderate-to-weak correlation ($\omega \geq 0.1$, $N\geq 6$),
+PC1 is predominantly $\psi$-loaded: the pair branch carries 60--73\% of the variance,
+meaning the correlator's primary degree of freedom tracks pair correlations.
+At strong correlation ($\omega \leq 0.01$, $N\geq 12$),
+the loading shifts toward $\phi$ (orbital) or $\mathbf{g}$ (auxiliary) branches,
+with $\psi$ dropping below 15\%.
+The transition is sharpest at $N{=}12$, where $\psi$ goes from 0.09 at $\omega{=}0.01$
+to 0.63 at $\omega{=}0.1$.
+
+The physical interpretation is direct.
+When interactions are weak relative to the trap ($\omega \gtrsim 0.1$),
+the non-interacting shell structure provides a good zeroth-order description,
+and the correlator's primary role is refining pair correlations on top of that.
+When interactions dominate ($\omega \lesssim 0.01$),
+the orbital structure itself must reorganise---which orbitals are occupied and how they mix
+becomes the dominant variational degree of freedom.
+The network discovers this distinction autonomously:
+regime changes appear as a rotation of a low-dimensional axis across branches,
+not as a growth of latent dimensionality.
+
+
+%% ──────────────────────────────────────────────────────────────────────
+\subsection{Backflow: a high-rank field with a low-rank footprint}
+\label{sec:repr-backflow}
+
+Table~\ref{tab:backflow-geom} characterises the CTNN displacement field.
+We report the normalised displacement magnitude $\|\Delta\mathbf{x}\|/\ell$,
+the effective rank of $\Delta\mathbf{x}$ (viewed as a $B\times 2N$ matrix of flattened displacements),
+and the CKA similarity between the correlator features with and without backflow.
+
+\begin{table}[t]
+\centering
+\caption{CTNN backflow geometry.
+$\|\Delta\mathbf{x}\|/\ell$: mean displacement magnitude normalised by harmonic length.
+Rank: effective rank of the displacement covariance.
+$2N$: maximum possible rank.
+CKA: linear centred kernel alignment between correlator features with and without backflow
+(1.0 = identical feature manifolds).}
+\label{tab:backflow-geom}
+\small
+\setlength{\tabcolsep}{5pt}
+\begin{tabular}{rr cccc}
+\toprule
+$N$ & $\omega$ & $\|\Delta\mathbf{x}\|/\ell$ & Rank & $2N$ & CKA \\
+\midrule
+ 2 & 0.001 & 0.003  & 1.9  &  4 & 1.000 \\
+ 2 & 1.0   & 0.029  & 2.0  &  4 & 1.000 \\
+\midrule
+ 6 & 0.001 & 0.017  & 10.0 & 12 & 0.999 \\
+ 6 & 0.01  & 0.035  & 9.9  & 12 & 0.998 \\
+ 6 & 0.1   & 0.096  & 10.0 & 12 & 0.995 \\
+ 6 & 0.5   & 0.093  & 10.0 & 12 & 0.991 \\
+ 6 & 1.0   & 0.089  & 10.0 & 12 & 0.979 \\
+\midrule
+12 & 0.001 & 0.017  & 21.9 & 24 & 1.000 \\
+12 & 0.01  & 0.030  & 21.9 & 24 & 0.998 \\
+12 & 0.1   & 0.096  & 21.9 & 24 & 0.993 \\
+12 & 0.5   & 0.096  & 21.9 & 24 & 0.993 \\
+12 & 1.0   & 0.091  & 21.9 & 24 & 0.995 \\
+\midrule
+20 & 0.001 & 0.023  & 37.7 & 40 & 0.999 \\
+20 & 0.01  & 0.046  & 37.4 & 40 & 1.000 \\
+20 & 0.1   & 0.075  & 37.8 & 40 & 0.997 \\
+20 & 0.5   & 0.099  & 37.6 & 40 & 0.990 \\
+20 & 1.0   & 0.099  & 37.6 & 40 & 0.991 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\paragraph{Displacement magnitude scales with $\omega$ but saturates near $\|\Delta\mathbf{x}\|/\ell \sim 0.1$.}
+At strong correlation ($\omega \leq 0.01$), displacements are small relative to the harmonic length,
+$\|\Delta\mathbf{x}\|/\ell \sim 0.02$--$0.05$.
+As the trap tightens and the system enters the moderate-to-weak correlation regime,
+the magnitude grows and saturates at $\sim$\,8--10\% of $\ell$ for $\omega \gtrsim 0.1$.
+The CTNN never produces large displacements---its $\tanh$ output bound and continuous-time architecture
+act as implicit regularisers, in contrast to the conventional BackflowNet which can exhibit
+displacements comparable to the system scale in poorly converged regimes
+(e.g.\ $\|\Delta\mathbf{x}\|/\ell \sim 0.95$ for $N{=}6$, $\omega{=}0.001$ with BackflowNet).
+
+\paragraph{Full-rank displacements, near-unity CKA.}
+The effective rank of the displacement field is consistently $\approx 2N - 2$,
+saturating the available spatial degrees of freedom modulo centre-of-mass conservation
+(confirmed by COM shifts of order $10^{-14}$--$10^{-17}$).
+The backflow transformation is not a low-rank collective mode
+such as a breathing or rigid rotation; each particle receives a genuinely independent correction
+conditioned on the full configuration.
+
+Yet the CKA between correlator features with and without backflow exceeds 0.99 in nearly all cases
+(and exceeds 0.979 everywhere).
+The correlator manifold is almost unperturbed by the displacement field.
+This establishes a clean separation of concerns:
+the CTNN operates in the orthogonal complement of the correlator's feature space,
+providing configuration-dependent corrections that the globally organised correlator does not
+and need not represent.
+
+
+%% ──────────────────────────────────────────────────────────────────────
+\subsection{PINN--CTNN coupling: from independence to cooperation}
+\label{sec:repr-coupling}
+
+The previous subsection established that backflow leaves the correlator manifold intact.
+But are the PINN and CTNN \emph{functionally} coupled---does the CTNN's correction depend on
+what the PINN computes?
+We measure this through three diagnostics:
+(i) the mean cosine similarity $\langle\cos(\nabla_{\mathbf{x}} f,\,\Delta\mathbf{x})\rangle$
+between the PINN's gradient in configuration space and the CTNN displacement
+(gradient alignment implies the CTNN pushes along directions the PINN is sensitive to);
+(ii) the fraction of configurations where $\Delta\mathbf{x}$ is aligned with $\nabla f$;
+and (iii) $|\delta f|/\sigma_f$, the relative impact of backflow on the PINN output.
+Table~\ref{tab:pinn-ctnn-coupling} reports these alongside the fraction of particles pushed
+toward their nearest neighbour.
+
+\begin{table}[t]
+\centering
+\caption{PINN--CTNN coupling diagnostics (CTNN ansatz).
+$\langle\cos\rangle$: mean cosine between $\nabla f$ and $\Delta\mathbf{x}$.
+Aligned: fraction of configs with $\nabla f \cdot \Delta\mathbf{x} > 0$.
+$|\delta f|/\sigma_f$: BF-induced change in PINN output relative to its standard deviation.
+$\rightarrow$NN: fraction of particles displaced toward their nearest neighbour ($0.5 =$ isotropic).
+Only $N\geq 6$ shown; $N{=}2$ displacements are near-zero for most $\omega$.}
+\label{tab:pinn-ctnn-coupling}
+\small
+\setlength{\tabcolsep}{4.5pt}
+\begin{tabular}{rr cccc}
+\toprule
+$N$ & $\omega$ & $\langle\cos\rangle$ & Aligned & $|\delta f|/\sigma_f$ & $\rightarrow$NN \\
+\midrule
+ 6 & 0.001 &  0.14 & 0.63 & 0.03 & 0.43 \\
+ 6 & 0.01  &  0.18 & 0.77 & 0.05 & 0.28 \\
+ 6 & 0.1   &  0.49 & 0.99 & 0.25 & 0.16 \\
+ 6 & 0.5   &  0.62 & 1.00 & 0.33 & 0.19 \\
+ 6 & 1.0   &  0.77 & 1.00 & 0.41 & 0.18 \\
+\midrule
+12 & 0.001 & $-$0.48 & 0.01 & 0.03 & 0.61 \\
+12 & 0.01  &  0.22 & 0.82 & 0.05 & 0.29 \\
+12 & 0.1   &  0.56 & 1.00 & 0.39 & 0.12 \\
+12 & 0.5   &  0.65 & 1.00 & 0.49 & 0.20 \\
+12 & 1.0   &  0.75 & 1.00 & 0.55 & 0.21 \\
+\midrule
+20 & 0.001 &  0.32 & 0.97 & 0.06 & 0.44 \\
+20 & 0.01  &  0.22 & 0.89 & 0.07 & 0.45 \\
+20 & 0.1   &  0.39 & 1.00 & 0.25 & 0.17 \\
+20 & 0.5   &  0.65 & 1.00 & 0.58 & 0.22 \\
+20 & 1.0   &  0.78 & 1.00 & 0.69 & 0.25 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\paragraph{A transition at $\omega\approx 0.1$.}
+The data reveal a sharp regime change.
+At $\omega \leq 0.01$, the PINN and CTNN are weakly coupled:
+$\langle\cos\rangle \sim 0.1$--$0.2$, the alignment fraction is well below unity,
+and backflow barely affects the PINN output ($|\delta f|/\sigma_f < 0.07$).
+In this regime the CTNN operates in a subspace largely orthogonal to the PINN's gradient---it
+modifies the wavefunction in directions that $f_{\mathrm{net}}$ is insensitive to,
+consistent with its role being to adjust the Slater determinant's orbital positions rather than
+the correlator.
+
+At $\omega \geq 0.1$, the picture changes qualitatively.
+The gradient cosine jumps to 0.5--0.8, the alignment fraction reaches 1.0 for $N\geq 6$,
+and backflow accounts for 25--69\% of the PINN's output variance.
+Here the CTNN acts as a cooperative refinement: it pushes configurations along
+directions the PINN is maximally sensitive to, systematically correcting the correlator's
+residual errors.
+The transition is sharpest between $\omega=0.01$ and $\omega=0.1$,
+coinciding with the crossover in $\Gamma = V_{\mathrm{int}}/T$ from $\Gamma > 10$
+(interaction-dominated) to $\Gamma \sim 3$--$6$ (moderate correlation).
+
+\paragraph{Directional structure: correlation-hole deepening.}
+The nearest-neighbour direction fraction provides a complementary signature.
+At $\omega \geq 0.1$ for $N\geq 6$, only 12--25\% of particles are displaced toward their
+nearest neighbour.
+The CTNN preferentially pushes particles \emph{apart}, actively deepening the correlation hole.
+This directional bias is strongest at $N{=}12$, $\omega{=}0.1$ ($\rightarrow$NN\,$=0.12$),
+exactly where the correlator effective rank peaks and the $\phi\leftrightarrow\psi$ transition occurs.
+At strong correlation ($\omega\leq 0.01$, large $N$), the fraction rises toward 0.5
+(isotropic), because the large equilibrium inter-particle separations leave little room for
+further correlation-hole deepening.
+
+%% ──────────────────────────────────────────────────────────────────────
+\subsection{Synthesis}
+\label{sec:repr-synthesis}
+
+The representation analysis supports a coherent picture of how the CTNN-augmented architecture
+partitions the variational problem across its components.
+
+The \textbf{correlator head} $f_{\mathrm{net}}$ forms a $\sim$\,1--3 dimensional manifold whose
+leading axis tracks the dominant global coordinate of the electron cloud.
+The identity of that coordinate shifts across regimes:
+pair correlations ($\psi$ branch) dominate at moderate-to-weak coupling ($\omega \gtrsim 0.1$),
+while orbital structure ($\phi$) or auxiliary features ($\mathbf{g}$) take over at strong coupling
+($\omega \lesssim 0.01$).
+This $\phi\leftrightarrow\psi$ recomposition is the primary way the architecture adapts to changing physics;
+dimensionality expansion plays a negligible role.
+
+The \textbf{CTNN backflow} provides a full-rank ($\sim 2N$), configuration-dependent displacement
+field that is implicitly regularised to $\sim$\,10\% of the harmonic length.
+Despite its geometric complexity, it leaves the correlator manifold almost invariant (CKA\,$>0.98$),
+confirming that it operates in a complementary subspace.
+At strong correlation, the CTNN and PINN function independently:
+backflow adjusts orbital positions via the Slater determinant while the correlator
+tracks global structure.
+At moderate-to-weak correlation, the two components become tightly coupled:
+the CTNN's displacements align with the PINN's gradient ($\langle\cos\rangle \sim 0.5$--$0.8$),
+and backflow accounts for up to 70\% of the correlator's output variance.
+The transition between these regimes is sharp and coincides with the physical crossover at
+$\omega \approx 0.1$.
+
+This division of labour is architecturally desirable.
+It means the base correlator can robustly learn compact collective coordinates across regimes,
+while backflow provides an optional, fine-grained correction channel
+whose character---independent adjustment versus cooperative refinement---adapts
+automatically to the strength of electron--electron correlation.
+
+\section{MCMC-free training: the collocation pipeline}
 \label{sec:collocation}
 
-The results in
-Sections~\ref{sec:energy-overview}--\ref{sec:wigner-molecule}
-rely on a two-phase protocol in which a residual-loss pretraining
-stage conditions the ansatz, followed by a stochastic-reconfiguration
-(SR) refinement phase that uses Markov-chain Monte Carlo (MCMC) sampling
-from $|\Psi|^2$ to optimise the variational energy.
-This section reports a complementary investigation: can an accurate
-many-body wavefunction be trained \emph{without any MCMC sampling
-during training}, using instead a purely importance-sampled collocation
-approach?
+The preceding sections establish that the conditioned ansatz is accurate and
+that the learned states are physically correct.
+This section addresses a different question, and one that is the primary
+methodological concern of this thesis: can an accurate many-body
+wavefunction be trained \emph{without any MCMC sampling at any stage of
+optimisation}?
 
-The motivation is threefold.
-First, MCMC introduces autocorrelation, burn-in overhead, and
-mixing timescales that grow with particle number and correlation
-strength---particularly problematic at low~$\omega$ where the
-wavefunction support is diffuse.
-Second, a collocation-only pipeline is embarrassingly parallel:
-each batch is drawn independently from a fixed analytic proposal,
-eliminating the sequential dependence inherent in MCMC chains.
-Third, collocation exposes the optimisation geometry more
-directly, making it a useful laboratory for understanding which
-architectural and sampling choices are load-bearing.
+The motivation goes beyond convenience.
+MCMC introduces autocorrelation, burn-in overhead, and mixing timescales
+that grow with particle number and correlation strength---exactly the
+regimes where the method needs to work.
+At low confinement, the wavefunction support diffuses across a
+configuration space that a Markov chain must traverse step by step;
+at large $N$, mixing times lengthen while the energy landscape becomes
+increasingly ill-conditioned for the SR step that MCMC supports.
+A collocation pipeline that draws each batch independently from an analytic
+proposal has none of this overhead: it is embarrassingly parallel, free of
+burn-in artifacts, and---crucially---it exposes every failure mode
+directly in the gradient signal rather than hiding it in sampling
+statistics.
+The cost is that the gradient estimator must work with whatever overlap the
+proposal achieves against $|\Psi|^2$, which is the ESS, and this is the
+binding constraint throughout Layer~3.
 
-The key finding is that collocation training with the same
-Slater--Jastrow--backflow ansatz achieves near-DMC accuracy for
-$N\in\{6,12\}$ and establishes preliminary but improving results
-for $N{=}20$, while revealing a rich landscape of what works and
-what fails across regimes.
-
-
-\subsection{Training methodology}
-\label{sec:colloc-method}
-
-\subsubsection{Objective function}
-
-The collocation objective replaces the VMC gradient estimator with
-a REINFORCE-style policy gradient that treats the local energy
-$E_L(\mathbf{R})$ as a reward signal:
-\begin{equation}
-\nabla_\theta \langle E \rangle
-\;=\; 2\,\EE_{\mathbf{R}\sim|\Psi_\theta|^2}\!\bigl[
-  \bigl(E_L(\mathbf{R})-b\bigr)\,
-  \nabla_\theta \log|\Psi_\theta(\mathbf{R})|\bigr],
-\label{eq:reinforce}
-\end{equation}
-where $b$ is a variance-reducing baseline (running mean of $E_L$),
-and the local energy is
-\begin{equation}
-E_L(\mathbf{R})
-= -\tfrac{1}{2}
-  \bigl[\Delta\log\Psi(\mathbf{R})
-       + \|\nabla\log\Psi(\mathbf{R})\|^2\bigr]
-  + V(\mathbf{R}).
-\label{eq:el}
-\end{equation}
-The crucial implementation choice is that the Laplacian
-$\Delta\log\Psi$ enters the \emph{reward} but is \emph{not}
-differentiated through: gradients $\nabla_\theta$ act only on
-the score function $\nabla_\theta\log|\Psi|$.
-This avoids the ill-conditioned second-derivative pathways
-identified in the catch-22 analysis (Appendix~\ref{app:catch22})
-while preserving the full local-energy signal for optimisation.
-
-Two robustness mechanisms stabilise the gradient:
-\begin{enumerate}
-\item \textbf{Local-energy clipping} (\texttt{clip\_el}).
-  Outlier local energies are clipped relative to a robust
-  location--scale estimate (median and MAD), with a typical
-  threshold of $5\sigma$.
-  This prevents rare pathological configurations (e.g.\ near
-  nodes or coalescence points) from dominating the gradient.
-\item \textbf{Reward quantile trimming} (\texttt{reward\_qtrim}).
-  The most extreme rewards are symmetrically trimmed before
-  computing the policy gradient, reducing sensitivity to
-  heavy-tailed noise.
-\end{enumerate}
-
-An optional direct weak-form term
-$\beta\,\EE[\tilde{E}]$ with
-$\tilde{E}=\tfrac{1}{2}\|\nabla\log\Psi\|^2+V$ was also explored,
-but the historically successful runs set $\beta=0$ (pure REINFORCE).
-A finite-difference collocation residual loss was additionally tested
-but proved more brittle and less competitive than the REINFORCE
-objective (see~\S\ref{sec:colloc-negatives}).
-
-
-\subsubsection{Proposal distribution and importance resampling}
-\label{sec:colloc-sampling}
-
-Because MCMC is avoided, the collocation points must be drawn from
-an analytic proposal distribution $q(\mathbf{R})$ and reweighted
-to approximate sampling from $|\Psi_\theta|^2$.
-The proposal is a mixture of isotropic Gaussians centered at the
-trap minimum:
-\begin{equation}
-q(\mathbf{R})
-= \frac{1}{K}\sum_{k=1}^{K}
-  \mathcal{N}\!\bigl(\mathbf{R};\,0,\,
-  \sigma_{f,k}^2/\omega\,\cdot\,I_{Nd}\bigr),
-\qquad
-\sigma_f \in \{0.8,\,1.3,\,2.0\},
-\label{eq:proposal}
-\end{equation}
-where the $1/\omega$ scaling ensures that the proposal width
-tracks the harmonic-oscillator length scale $\ell=1/\sqrt{\omega}$.
-The three components provide coverage of the inner core
-($\sigma_f{=}0.8$), the bulk ($1.3$), and the tails ($2.0$).
-
-From this proposal, $M = m \times n_{\text{coll}}$ candidate points
-are drawn (typically $m{=}8$--$16$), and importance weights are
-computed:
-\begin{equation}
-w_i = \frac{|\Psi_\theta(\mathbf{R}_i)|^2}{q(\mathbf{R}_i)},
-\qquad
-p_i = \frac{w_i}{\sum_j w_j}.
-\label{eq:is-weights}
-\end{equation}
-The final training batch of $n_{\text{coll}}$ points is obtained
-by multinomial resampling according to $\{p_i\}$.
-
-The quality of this procedure is monitored through the effective
-sample size (ESS):
-\begin{equation}
-\text{ESS}
-= \frac{\bigl(\sum_i w_i\bigr)^2}{\sum_i w_i^2},
-\label{eq:ess}
-\end{equation}
-which measures how many independent samples the importance-weighted
-batch is worth.
-When $q$ has poor overlap with $|\Psi|^2$---as happens at large~$N$
-or small~$\omega$---the ESS can collapse toward~1, concentrating all
-weight on a single sample and destroying the gradient signal.
-
-Two additional weight-space controls were developed to manage this:
-\begin{itemize}
-\item \textbf{Weight tempering.}
-  The importance weights are raised to a fractional power
-  $\alpha < 1$ before normalisation, flattening the weight
-  distribution and increasing the effective ESS at the cost of
-  introducing a controlled bias.
-\item \textbf{Log-weight clipping.}
-  The upper tail of $\log w$ is clipped at a specified quantile
-  (e.g.\ the 99th percentile), preventing a single extreme sample
-  from dominating the batch.
-\end{itemize}
-
-
-\subsubsection{ESS-adaptive oversampling}
-
-For difficult regimes where the ESS is persistently low, an adaptive
-mechanism was introduced: if the achieved ESS falls below a specified
-floor (e.g.\ $0.1\%$ of the batch), the oversampling multiplier~$m$ is
-increased in steps of~$2$ up to a maximum (typically~$16$),
-and the resampling is retried.
-This allows the system to automatically allocate more proposal
-samples when the overlap with $|\Psi|^2$ is poor, without manual
-tuning per regime.
-
-
-\subsubsection{Instability rollback}
-
-An instability-rollback mechanism monitors two quantities between
-successive checkpoints: the absolute relative error from the DMC
-reference, and the magnitude of energy jumps in units of the
-running standard deviation.
-If either exceeds a threshold, the model is reverted to the previous
-checkpoint and the learning rate is decayed by a factor
-(typically $0.85$--$0.92$).
-This prevents catastrophic divergence in regimes where gradient
-noise is high, at the cost of slower progress.
-
-
-\subsubsection{Optimiser comparison: Adam vs.\ CG-SR}
-
-Two optimiser families were compared extensively.
-\textbf{Adam} (with separate learning rates for the Jastrow and
-backflow parameters, typically $\text{lr}=5{\times}10^{-4}$ and
-$\text{lr}_{\text{jas}}=5{\times}10^{-5}$) provided stable
-convergence across all regimes and was the most robust default.
-
-\textbf{Conjugate-gradient stochastic reconfiguration}
-(CG-SR)---a natural-gradient method that preconditions the gradient
-with the inverse Fisher information matrix, solved approximately
-via conjugate gradients with Tikhonov damping---produced faster
-convergence and better final energies at moderate-to-strong
-confinement ($\omega \ge 0.1$).
-However, CG-SR was found to be catastrophically unstable for
-ultra-low~$\omega$ ($\le 0.01$): the Fisher matrix becomes
-extremely ill-conditioned in the weakly confined regime, causing
-parameter updates to diverge regardless of damping schedule
-(\S\ref{sec:colloc-negatives}).
-
-
-\subsubsection{Cascade warm-start}
-\label{sec:colloc-cascade}
-
-A crucial strategy for difficult regimes was \emph{cascade
-warm-starting}: networks trained at one confinement strength are
-used to initialise training at a neighboring, more difficult value.
-A typical cascade follows the sequence
-\begin{equation}
-\omega: 1.0 \;\to\; 0.5 \;\to\; 0.1 \;\to\; 0.01 \;\to\; 0.001,
-\end{equation}
-where each stage inherits both the Jastrow and (when applicable)
-backflow parameters from the converged checkpoint of the previous
-stage.
-This exploits the observation that the geometric correlation
-patterns learned at higher~$\omega$ transfer effectively to lower
-confinement, providing a far better starting point than random
-initialisation.
+The key finding is that the REINFORCE-based collocation pipeline achieves
+$+0.009\%$ relative error against DMC at $(N{=}6,\,\omega{=}1.0)$ and
+sub-$0.25\%$ errors across all five confinement strengths tested for
+$N{=}6$---without a single MCMC step at any stage of training.
+The pipeline is described in full in Chapter~\ref{ch:optimization}
+(Sections~\ref{sec:colloc-training}--\ref{sec:opt-overview}).
+This section reports what it produces and where it breaks.
 
 
 \subsection{Architecture variants}
 \label{sec:colloc-architectures}
 
-Three ansatz families were explored within the collocation
-framework, all built on the same Slater--Jastrow core:
-$\Psi(\mathbf{R}) = \det[\phi_i(\mathbf{r}_j + \Delta\mathbf{r}_j)]
-\cdot e^{J(\mathbf{R})}$.
-
-\paragraph{Jastrow-only (no backflow).}
-The Jastrow factor is parameterised by a graph neural network
-(\texttt{CTNNJastrowVCycle}) with ${\sim}25\text{k}$ parameters.
-It operates on node features (single-particle orbital values) and
-edge features (pairwise distances with soft-core regularisation).
-The V-cycle variant uses a coarse-to-fine message-passing scheme.
-This family was the fastest to train and the most robust, serving
-both as a standalone ansatz and as an initialiser for backflow runs.
-
-\paragraph{Coordinate backflow + Jastrow (BF).}
-The \texttt{CTNNBackflowNet} adds a copresheaf-style message-passing
-network that predicts electron displacement vectors
-$\Delta\mathbf{r}_j$ fed into the Slater determinant.
-Edge features in the backflow network scale as
-$\mathcal{O}(N^2 \times h_{\text{bf}})$ where $h_{\text{bf}}$ is
-the hidden dimension, creating a memory bottleneck at large~$N$.
-For $N{=}6$ and $N{=}12$, the default $h_{\text{bf}}{=}128$
-was used (total ${\sim}49\text{k}$ parameters); for $N{=}20$,
-reduced variants with $h_{\text{bf}}\in\{48,64\}$ were necessary.
-The BF+Jastrow family produced the best results at $N{=}6$ and
-$N{=}12$.
-
-\paragraph{Neural Pfaffian.}
-The Pfaffian ansatz replaces the Slater determinant with a more
-general antisymmetric form $\text{Pf}[A_{ij}]$, which in principle
-offers richer nodal topology.
-Representative results: $E{=}20.261\pm0.004$ and
-$E{=}20.245\pm0.005$ at $N{=}6$, $\omega{=}1.0$ (both ${\sim}0.4\%$
-above DMC), compared to $+0.009\%$ for BF+Jastrow.
-The Pfaffian's greater expressivity was not exploitable within the
-current training pipeline; the simpler BF+Jastrow family
-consistently outperformed it.
+Three ansatz families were explored within the collocation pipeline,
+all built on the same Slater--Jastrow core.
+The \textbf{Jastrow-only} family (${\sim}25\text{k}$ parameters) was
+the fastest to train and the most robust, serving both as a standalone
+ansatz and as an initialiser for backflow runs.
+The \textbf{coordinate backflow} family (BF+Jastrow, ${\sim}49\text{k}$
+parameters) adds a message-passing network that predicts electron
+displacement vectors $\Delta\mathbf{r}_j$; its edge features scale as
+$\mathcal{O}(N^2 \times h_{\text{bf}})$, creating a memory bottleneck
+at large $N$.
+The \textbf{Neural Pfaffian}, despite its richer antisymmetric structure,
+achieved only ${\sim}0.4\%$ error at $(N{=}6,\,\omega{=}1.0)$---more
+than $40{\times}$ worse than BF+Jastrow---because the larger parameter
+space amplified gradient noise from importance sampling.
+The BF+Jastrow family produced the best results for $N\leq 12$;
+Jastrow-only was superior at $N{=}20$ for reasons discussed below.
 
 
 \subsection{Results}
 \label{sec:colloc-results}
 
 Table~\ref{tab:collocation} presents the best energies achieved by
-collocation-assisted training across all $(N,\omega)$ combinations
+the collocation pipeline across all $(N,\omega)$ combinations
 studied.
 All energies are evaluated by independent VMC with
 ${\sim}30\text{k}$ MCMC samples after training (a ``heavy evaluation''),
@@ -1127,7 +952,7 @@ training-time importance sampling.
 
 \begin{table}[htbp]
   \centering
-  \caption{Best ground-state energies from collocation-assisted training.
+  \caption{Best ground-state energies from the collocation pipeline.
   ``Multi-stage'' denotes the best result from earlier campaigns using
   hand-tuned continuation chains; ``Campaign'' denotes the best single
   result from the 30-run reliability campaign
@@ -1138,7 +963,9 @@ training-time importance sampling.
   are marked ``---''.
   Architecture: J~=~Jastrow-only, BF~=~backflow+Jastrow.
   Parentheses denote $1\sigma$ statistical uncertainty on the last
-  digit(s).}
+  digit(s). ``---'' in the Campaign column indicates that no standalone
+  30-run reliability campaign was conducted for that system; the
+  Multi-stage entry is the best available collocation energy.}
   \label{tab:collocation}
   \begin{tabular}{c c c c c c c}
     \toprule
@@ -1150,13 +977,13 @@ training-time importance sampling.
       & 0.01  & $0.69036$      & $0.69141(8)$   & $0.69200(1)$   & $+0.237$ & BF \\
       & 0.001 & $0.140832$     & $0.14118(1)$   & $0.14118(1)$   & $+0.250$ & BF \\
     \midrule
-    12 & 1.0   & $65.7001(1)$  & $65.712(4)$    & $+0.018$ & BF \\
-       & 0.5   & $39.1596(1)$  & $39.171(4)$    & $+0.028$ & BF \\
-       & 0.1   & $12.2698(1)$  & $12.285(1)$    & $+0.122$ & BF \\
+    12 & 1.0   & $65.7001(1)$  & $65.712(4)$    & ---            & $+0.018$ & BF \\
+       & 0.5   & $39.1596(1)$  & $39.171(4)$    & ---            & $+0.028$ & BF \\
+       & 0.1   & $12.2698(1)$  & $12.285(1)$    & ---            & $+0.122$ & BF \\
     \midrule
-    20 & 1.0   & $155.882(1)$  & $158.14(2)$    & $+1.45$  & J \\
-       & 0.5   & $93.875(1)$   & $96.45(3)$     & $+2.74$  & J \\
-       & 0.1   & $29.978(1)$   & $31.68(1)$     & $+5.68$  & J \\
+    20 & 1.0   & $155.882(1)$  & $158.14(2)$    & ---            & $+1.45$  & J \\
+       & 0.5   & $93.875(1)$   & $96.45(3)$     & ---            & $+2.74$  & J \\
+       & 0.1   & $29.978(1)$   & $31.68(1)$     & ---            & $+5.68$  & J \\
     \bottomrule
   \end{tabular}
 \end{table}
@@ -1181,7 +1008,7 @@ compared to the ${\sim}3{\times}10^3$ MCMC samples per step in the
 SR-based approach.
 
 The best $N{=}6$ result at $\omega{=}1.0$ was obtained through a
-three-stage continuation chain (see~\S\ref{sec:colloc-cascade}):
+three-stage cascade (see~\S\ref{sec:opt-overview}):
 an initial BF+Jastrow joint REINFORCE run (900~epochs,
 $\text{lr}{=}5{\times}10^{-4}$), followed by a low-LR continuation
 (750~epochs, $\text{lr}{=}3{\times}10^{-4}$), and a final
@@ -1209,7 +1036,7 @@ and the rollback mechanism rejecting all gradient updates.
 This marks the boundary of the current collocation approach for
 $N{=}12$.
 
-\paragraph{$N{=}20$: first results with room to improve.}
+\paragraph{$N{=}20$: scaling boundary of the MCMC-free approach.}
 For twenty electrons in two dimensions (40-dimensional
 configuration space), the importance-sampling challenge becomes
 acute.
@@ -1217,8 +1044,8 @@ The Gaussian mixture proposal has rapidly diminishing overlap with
 $|\Psi|^2$, and the ESS is typically $2$--$15$ per epoch even at
 $\omega{=}1.0$.
 
-The results in Table~\ref{tab:collocation} represent the first
-collocation-trained wavefunctions for $N{=}20$ quantum dots.
+The results in Table~\ref{tab:collocation} establish the practical
+boundary of the MCMC-free approach at $N{=}20$.
 A notable finding is that the Jastrow-only architecture
 outperforms backflow at this particle number: the best BF result
 at $\omega{=}1.0$ achieved only $+18\%$ error (with
@@ -1237,119 +1064,85 @@ collocation budgets ($n_{\text{coll}}{=}4096$--$8192$).
 These polishing runs improved the $\omega{=}1.0$ result from
 $+2.6\%$ to $+1.45\%$ in ${\sim}400$ epochs, and the
 $\omega{=}0.5$ result from $+7.0\%$ to $+2.74\%$.
-Training is ongoing and further improvement is expected.
+The remaining error budget at $N{=}20$ reflects the fundamental
+ESS collapse identified in §\ref{subsec:ess} rather than
+optimizer or architecture deficiency; further improvement at this
+particle number would require a higher-quality proposal distribution,
+such as a normalizing flow trained concurrently with the wavefunction.
 
 
-\subsection{What worked and what did not}
+\subsection{Layer~3: the optimizer regime boundary}
 \label{sec:colloc-negatives}
 
-The collocation programme explored a large space of methods.
-This section documents the key positive and negative findings.
+The collocation results expose a sharp and physically interpretable
+boundary between the regimes where SR and Adam are the correct optimizer.
 
-\paragraph{Positive: pure REINFORCE over mixed objectives.}
-Setting $\beta{=}0$ in the hybrid loss (pure REINFORCE, no direct
-weak-form term) was consistently more stable and produced better
-final energies than any nonzero~$\beta$.
-The direct term
-$\tilde{E}{=}\tfrac{1}{2}\|\nabla\log\Psi\|^2{+}V$ provided
-a cheaper but noisier gradient signal; at $\beta{>}0$ it interfered
-with the REINFORCE gradient by pulling toward a local-kinetic
-minimum that did not correspond to the variational minimum.
+Natural-gradient preconditioning via conjugate-gradient SR produced the
+best results at moderate-to-strong confinement ($\omega \geq 0.1$),
+where the Fisher information matrix is well-estimated from the
+importance-weighted batch: fastest convergence, best final energies for
+$N{=}6$ and $N{=}12$.
+At ultra-low confinement ($\omega \leq 0.01$), SR was catastrophically
+wrong.
+The Fisher matrix becomes ill-conditioned---its eigenvalues span many
+orders of magnitude because the wavefunction's sensitivity to parameters
+varies enormously across the diffuse, weakly confined state---and the
+curvature correction amplifies noise rather than geometry.
+SR updates produced errors of $+4$--$36\%$ for $N{=}6$ at $\omega{=}0.01$
+and $\omega{=}0.001$, against $+0.15\%$ and $+0.24\%$ from Adam with
+per-parameter adaptive rates.
 
-\paragraph{Positive: cascade warm-start for low~$\omega$.}
-Cold-start training at $\omega{=}0.01$ never converged for
-$N{\ge}6$.
-Cascade initialisation from $\omega{=}0.1$ made the
-$\omega{=}0.01$ regime accessible, reducing the initial error from
-${\sim}30\%$ (random init) to ${\sim}5\%$ (warm-started) and enabling
-subsequent optimisation to reach $+0.15\%$ within ${\sim}1000$ epochs.
-
-\paragraph{Positive: ESS-adaptive oversampling + rollback.}
-The combination of ESS-adaptive oversampling (automatically
-increasing the proposal budget when overlap is poor) and
-instability rollback (reverting to a good checkpoint when the
-energy spikes) was essential for the ultra-low-$\omega$ results.
-Without these mechanisms, training at $\omega{=}0.001$ diverged
-within a few hundred epochs.
-
-\paragraph{Negative: CG-SR at ultra-low~$\omega$.}
-Natural-gradient preconditioning via CG-SR produced excellent results
-at $\omega\ge 0.1$ (fastest convergence, best final energies for
-$N{=}6,12$).
-However, at $\omega\le 0.01$ the Fisher information matrix becomes
-extremely ill-conditioned: the eigenvalues span many orders of
-magnitude because the wavefunction's sensitivity to parameters
-varies enormously across the diffuse, weakly confined state.
-CG-SR updates in this regime produced errors of $+4$--$36\%$
-for $N{=}6$ at $\omega{=}0.01$ and $\omega{=}0.001$, compared to
-$+0.15\%$ and $+0.24\%$ from Adam with per-parameter adaptive
-learning rates.
-This demonstrates a sharp \emph{optimiser regime boundary}: natural
-gradients are beneficial when the Fisher matrix is well-conditioned,
-but catastrophically wrong when it is not.
-
-\paragraph{Negative: Langevin proposal refinement.}
-To address the ESS catastrophe at high~$N$, we implemented
-overdamped Langevin dynamics on the proposal samples:
-$\mathbf{R}' = \mathbf{R} + \varepsilon\,\nabla_{\mathbf{R}}
-\log|\Psi(\mathbf{R})|^2 + \sqrt{2\varepsilon}\,\boldsymbol\eta$,
-applied for $K{=}10$--$20$ steps before importance resampling.
-The intent was to push proposal samples toward high-$|\Psi|^2$
-regions without running a full MCMC chain.
-
-This approach was systematically worse than standard importance
-resampling in every configuration tested:
+A sharper illustration of why the boundary matters is the Langevin
+refinement experiment.
+To improve ESS at large $N$, overdamped Langevin dynamics were applied
+to push proposal samples toward high-$|\Psi|^2$ regions before importance
+resampling.
+The results were uniformly worse:
 \begin{itemize}
-\item $N{=}20$, $\omega{=}0.1$: Langevin VMC error $+153\%$ vs.\
-  standard $+5.7\%$ (catastrophic divergence).
+\item $N{=}20$, $\omega{=}0.1$: Langevin $+153\%$ vs.\ standard
+  $+5.7\%$.
 \item $N{=}20$, $\omega{=}1.0$: Langevin $+5.2\%$ vs.\ standard
   $+1.5\%$.
-\item $N{=}6$, $\omega{=}0.001$: Langevin $+0.30\%$ vs.\ Adam
-  $+0.24\%$.
+\item $N{=}6$, $\omega{=}0.001$: Langevin $+0.30\%$ vs.\ Adam $+0.24\%$.
 \end{itemize}
-The failure mechanism is that $K{=}10$--$20$ Langevin steps from a
-Gaussian starting point in $Nd{=}40$ dimensions do not equilibrate
-to $|\Psi|^2$.
-The resulting non-equilibrium sample distribution biases the
-REINFORCE gradient, which in turn pushes the wavefunction to
-concentrate further around the biased distribution---a
-positive-feedback loop that rapidly destroys the ansatz.
-Langevin refinement would require either much longer chains
-($K{\gtrsim}100$, negating the computational advantage over MCMC) or
-a Metropolis--Hastings acceptance step (reintroducing MCMC).
+The failure is clean and structural.
+Langevin steps from a Gaussian starting point in $Nd{=}40$ dimensions
+do not equilibrate to $|\Psi|^2$; the resulting non-equilibrium
+distribution invalidates the importance weights, which then bias the
+REINFORCE gradient, which pushes the wavefunction further toward the
+biased distribution---a positive-feedback loop.
+Any strategy that modifies samples before importance resampling must
+account for the changed effective proposal.
+If it does not, the weights are wrong, and in high dimension the error
+grows exponentially.
 
-\paragraph{Negative: finite-difference residual loss.}
-The FD collocation loss, which computes $E_L$ via graph-safe
-finite differences and penalises its spread, was tested extensively.
-Representative BF results at $N{=}6$, $\omega{=}1.0$:
-$E{=}20.204\pm0.002$ ($+0.22\%$), compared to $+0.009\%$ from
-REINFORCE.
-FD training was more sensitive to step-size $h$ and noise in the
-Laplacian estimate, and never matched the REINFORCE objective for
-final accuracy.
+\subsection{Architecture under memory pressure at large $N$}
+\label{sec:colloc-n20-layer5}
 
-\paragraph{Negative: Neural Pfaffian.}
-Despite its richer antisymmetric structure, the Pfaffian ansatz
-underperformed the simpler BF+Jastrow family in all collocation
-experiments.
-The best Pfaffian result at $N{=}6$, $\omega{=}1.0$ was
-$E{=}20.245\pm0.005$ ($+0.43\%$), more than $40{\times}$ worse
-than BF+Jastrow.
-The Pfaffian's larger parameter space amplified the gradient
-noise from importance sampling, making it harder to optimise
-reliably.
-
-\paragraph{Negative: backflow at $N{=}20$.}
-Backflow training at $N{=}20$ was severely limited by memory.
-The edge-feature tensor scales as $\mathcal{O}(N^2 \times h_{\text{bf}})$,
-requiring $h_{\text{bf}}$ to be reduced from $128$ to $48$--$64$
-for $N{=}20$.
+At $N{=}20$, the $\mathcal{O}(N^2 \times h_{\text{bf}})$ edge-feature
+scaling of backflow is not merely expensive---it directly displaces
+gradient quality.
+The hidden dimension must be reduced from $h_{\text{bf}}{=}128$ to
+$48$--$64$ to fit the model and a working batch simultaneously in GPU
+memory.
 This reduced-capacity backflow achieved only $+18\%$ error at
 $\omega{=}1.0$, compared to $+1.45\%$ for the Jastrow-only ansatz.
-The gradient signal at $N{=}20$ is too noisy for the additional
-backflow parameters to be trained effectively; the simpler Jastrow
-network with its smaller parameter count permits higher
-oversampling and better gradient quality.
+
+The comparison is instructive.
+The same memory that would fund a $h_{\text{bf}}{=}64$ backflow head
+can instead fund an eightfold oversampling factor on a Jastrow-only
+network.
+At $N{=}20$, where every proposal sample is precious and the ESS is
+typically $2$--$15$ per epoch, that oversampling factor translates
+directly into gradient quality.
+Jastrow-only with a full collocation budget outperforms backflow with a
+reduced one because the optimization signal matters more than the
+ansatz expressiveness when the signal is near the noise floor.
+
+The complete experimental record of methods explored during the
+collocation programme---including further architecture comparisons,
+alternative losses, and sampling variants---is collected in
+Appendix~\ref{app:experimental-record}.
 
 
 %% ═══════════════════════════════════════════════════════════════════════
@@ -1382,7 +1175,7 @@ Two training recipes are compared head-to-head:
   $\text{lr}{=}5{\times}10^{-4}$, $\text{lr}_{\text{jas}}{=}5{\times}10^{-5}$,
   4096 collocation points, $8{\times}$ oversampling, local-energy
   clipping at $5\sigma$, no reward normalisation, no rollback, fixed
-  Gaussian mixture proposal (Eq.~\ref{eq:proposal}).
+  Gaussian mixture proposal (Eq.~\ref{eq:proposal-method}).
 
 \item \textbf{Config~B (robust):} Identical to Config~A plus four
   stabilisation mechanisms: $16{\times}$ oversampling (doubling the
@@ -1460,15 +1253,17 @@ The reliability campaign exposes a simple causal chain that governs
 the quality of collocation-trained wavefunctions:
 \begin{equation}
 \boxed{
-  \text{proposal mismatch}
+  \begin{aligned}
+  &\text{proposal mismatch}
   \;\xrightarrow{\text{causes}}\;
   \hat{k}\text{ inflation}
   \;\xrightarrow{\text{causes}}\;
-  \text{gradient noise}
-  \;\xrightarrow{\text{causes}}\;
+  \text{gradient noise}\\
+  &\hspace{4em}\xrightarrow{\text{causes}}\;
   \text{optimisation stochasticity}
   \;\xrightarrow{\text{causes}}\;
   \text{run-to-run variance}
+  \end{aligned}
 }
 \label{eq:chain}
 \end{equation}
@@ -1478,19 +1273,20 @@ We now explain each component and the evidence supporting each
 causal link.
 
 \paragraph{Step 1: proposal--target mismatch.}
-As described in~\S\ref{sec:colloc-sampling}, the REINFORCE estimator
-in Eq.~\eqref{eq:reinforce} requires samples from $|\Psi_\theta|^2$,
+The REINFORCE estimator
+(Eq.~\eqref{eq:reinforce-method}, Section~\ref{sec:colloc-training})
+requires samples from $|\Psi_\theta|^2$,
 but collocation draws from the analytic Gaussian mixture proposal
-$q(\mathbf{R})$ in Eq.~\eqref{eq:proposal} and reweights via importance
-sampling.
-The quality of this reweighting depends on how well $q$ overlaps
+$q(\mathbf{R})$ (Eq.~\eqref{eq:proposal-method}) and corrects by importance
+resampling.
+The quality of this correction depends on how well $q$ overlaps
 with $|\Psi_\theta|^2$.
 
 For the harmonic quantum dot, $|\Psi|^2$ concentrates on a manifold
 whose geometry depends on $\omega$:
 at $\omega{=}1.0$, electrons occupy a compact cloud of radius
 ${\sim}1/\sqrt{\omega}$ oscillator lengths, and the three-component
-Gaussian mixture in Eq.~\eqref{eq:proposal} provides adequate coverage.
+Gaussian mixture provides adequate coverage.
 At $\omega{=}0.001$, the electron cloud extends to
 ${\sim}30$ oscillator lengths, the pair correlation function develops
 sharp shell structure (Section~\ref{sec:wigner-molecule}), and

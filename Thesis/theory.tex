@@ -1,36 +1,31 @@
 \graphicspath{{../results/figures/theory/}}
-This section will lay the foundation for which everything preceding will rely on. First, focusing on quantum mechanics, we will introduce the mathematical framework of quantum mechanics.
- We will then discuss the challenges of many-body systems and how second quantization provides a more tractable approach. 
-Then, we will introduce the model systems that will be used throughout this thesis to benchmark and test our methods. Following this, we will present the Hartree-Fock method, a fundamental mean-field approach to approximate many-body wavefunctions.
- Finally, we will discuss Full Configuration Interaction (FCI) theory, which provides an exact solution to the many-body problem within a finite basis set, and Variational Monte Carlo (VMC), a stochastic method for approximating ground-state properties of quantum systems.
 
- The focus will then shift, and proceeds to introduce the essential concepts of machine learning, covering statistical learning theory, optimization techniques, neural networks and Physics informed neural networks (PINNS). This section will provide the theoretical underpinnings necessary for understanding how machine learning can be applied to quantum many-body problems.
+The three decisions of this thesis each draw from a different part of the
+theoretical landscape, and neither domain alone is sufficient to understand
+any of them.
+The first decision---what ansatz to use---requires antisymmetry, the Kato
+cusp conditions, and the theory of equivariant architectures and Deep Sets.
+The second---how to train---requires the hierarchy of quantum chemistry
+methods, diffusion Monte Carlo, and the scaling properties of the quantum
+dot model.
+The third---how to optimize---requires the information geometry of the
+variational manifold, the natural-gradient framework underlying stochastic
+reconfiguration, and the PINN formulation and its pathologies.
+These chapters develop all of these, covering quantum theory through the many-body
+Hamiltonian, Hartree--Fock, FCI, coupled-cluster, and VMC/DMC, then machine
+learning through neural network theory, equivariant architectures, and
+the PINN framework with its theoretical difficulties.
+The material is organized in the order the decisions require, not the order a
+standard textbook would present it.
+The goal is not completeness but orientation: to give each design choice its
+theoretical warrant before the implementation begins, so that the failure modes
+encountered later can be read against the geometry that produced them.
 
 \chapter{Quantum Theory}
 \label{sec:theory}
 
 \section{Mathematical Foundations}
 At the center of quantum mechanics lies a rich mathematical framework built upon linear algebra and functional analysis. This section introduces the essential mathematical concepts and notations that underpin quantum theory, including Dirac notation, operators, Hilbert spaces, and the representation of quantum states and observables.
-\subsection{Hilbert Spaces and Function Representations}
-In essence, quantum mechanics is formulated in complex vector spaces, specifically infinite-dimensional Hilbert spaces, where vectors generalize to square-integrable functions. The inner product becomes:  
-\[
-\braket{\psi_i|\psi_j} = \int \psi_i^*(x)\psi_j(x) dx = \delta_{ij}.
-\]
-A function \(a(x)\) expands in a basis \(\{\psi_i(x)\}\):  
-\[
-a(x) = \sum_i \psi_i(x) a_i, \quad a_i = \int \psi_i^*(x)a(x) dx.
-\]
-The Dirac delta \(\delta(x-y)\) replaces the Kronecker delta in continuous spaces.
-A vector \(\ket{a}\) in an \(n\)-dimensional Hilbert space \(\mathcal{H}\) can be decomposed into a complete orthonormal basis \(\{\ket{i}\}\):  
-\[
-\ket{a} = \sum_i \ket{i}\braket{i|a} = \sum_i a_i \ket{i},
-\]
-where \(a_i = \braket{i|a}\) are complex coefficients. The completeness relation,  
-\[
-I = \sum_i \ket{i}\bra{i},
-\]
-ensures the basis spans \(\mathcal{H}\). Vectors in Dirac notation have dual "bra" counterparts \(\bra{a} = \ket{a}^\dagger\), enabling inner products \(\braket{a|b}\) and outer products \(\ket{a}\bra{b}\). A more complete discussion on hilbert spaces are found in \cite{Rudin1976-Analysis}. 
-
 \subsection{Operators and Matrix Representations}
 Linear operators \(\hat{\mathcal{O}}\) map vectors to vectors: \(\hat{\mathcal{O}}\ket{a} = \ket{b}\). Their adjoints \(\hat{\mathcal{O}}^\dagger\) satisfy \(\bra{a}\hat{\mathcal{O}}^\dagger = \bra{b}\). Hermitian operators (\(\hat{\mathcal{O}}^\dagger = \hat{\mathcal{O}}\)) represent observables, while unitary operators (\(\hat{\mathcal{O}}^\dagger = \hat{\mathcal{O}}^{-1}\)) preserve inner products \cite{BereraDelDebbio2021-QuantumMechanics,GriffithsSchroeter2018-IntroQM}.
  In a basis \(\{\ket{i}\}\), operators are represented by matrices:  
@@ -42,7 +37,7 @@ Non-commutativity of operators is quantified by the commutator:
 [\hat{A}, \hat{B}] = \hat{A}\hat{B} - \hat{B}\hat{A}.
 \]
 
-\subsection{Hilbert Spaces}
+\subsection{Hilbert Spaces and Dirac Notation}
 
 In quantum mechanics a state is a vector $\ket{\psi}$ in a complex Hilbert space $\mathcal H$.
 A Hilbert space is a complex inner-product space that is \emph{complete} in the norm induced by
@@ -55,7 +50,7 @@ the inner product $\braket{\phi|\psi}$ obeys
 \text{positivity:}\quad & \braket{\psi|\psi}\ge 0 \text{ with equality iff } \ket{\psi}=0.
 \end{align*}
 These allow us to define the norm $\|\psi\|=\sqrt{\braket{\psi|\psi}}$. \emph{Completeness} means every Cauchy sequence in this metric
-converges to a vector in $\mathcal H$, ensuring limits and expansions are well defined. For a more detailed explaination, refer to \cite{BereraDelDebbio2021-QuantumMechanics,GriffithsSchroeter2018-IntroQM}.
+converges to a vector in $\mathcal H$, ensuring limits and expansions are well defined. For a more detailed explanation, refer to \cite{BereraDelDebbio2021-QuantumMechanics,GriffithsSchroeter2018-IntroQM}.
 
 
 \subsection{States in Hilbert Space}
@@ -128,168 +123,6 @@ $V_{\text{ext}}(\mathbf r)=\tfrac12 \omega^2 r^2$ and $V_{\text{int}}(r)=1/r$ (i
 understood with the usual Laplacian in two dimensions). Our computations therefore amount to
 approximating low-lying eigenpairs $(E,\Psi)$ of the many-body Hamiltonian above using compact
 basis expansions and variational ansätze.
-% \subsubsection{Rayleigh--Ritz in a Finite Subspace}
-% Let $H$ be self-adjoint on a separable Hilbert space $\mathcal H$. For any nonzero $\ket{\psi}\in\mathcal H$,
-% the Rayleigh quotient
-% \[
-% E[\psi]\;=\;\frac{\braket{\psi|H|\psi}}{\braket{\psi|\psi}}
-% \]
-% satisfies $E[\psi]\ge E_0$, where $E_0$ is the exact ground-state energy. In practice we project
-% onto a finite-dimensional subspace
-% \[
-% \mathcal V_M=\mathrm{span}\{\ket{\varphi_p}\}_{p=1}^M
-% \]
-% (the \emph{computational basis}). The constrained minimization
-% $\min_{\psi\in \mathcal V_M\setminus\{0\}} E[\psi]$ yields the generalized eigenproblem
-% \[
-% \mathbf H\,\mathbf c \;=\; E\,\mathbf S\,\mathbf c,\qquad
-% H_{pq}=\braket{\varphi_p|H|\varphi_q},\quad
-% S_{pq}=\braket{\varphi_p|\varphi_q}.
-% \]
-% If $\{\varphi_p\}$ is orthonormal then $\mathbf S=\mathbf I$. More generally, $\mathbf S$ is
-% Hermitian positive definite and can be handled by (i) solving the generalized problem directly,
-% or (ii) orthonormalizing the basis via a Cholesky/Löwdin transform:
-% $\mathbf S=\mathbf L\mathbf L^\dagger$, $\ket{\tilde\varphi_p}=\sum_q (L^{-1})_{qp}\ket{\varphi_q}$,
-% so that in the orthonormal set one solves $\tilde{\mathbf H}\mathbf d=E\mathbf d$ with
-% $\tilde{\mathbf H}=\mathbf L^{-1\,\dagger}\mathbf H\,\mathbf L^{-1}$.
-
-% \paragraph{Monotonicity and bounds.}
-% Let $E_k^{(M)}$ denote Ritz values in $\mathcal V_M$ ordered increasingly. Then
-% $E_0^{(M+1)}\le E_0^{(M)}$ and $E_k^{(M)}\ge E_k$ (Hylleraas--Undheim--MacDonald). Thus,
-% increasing $M$ provides a systematic sequence of \emph{variational upper bounds}.
-% This justifies investing effort in basis choices that deliver fast convergence (e.g.\ harmonic
-% oscillator/Fock--Darwin orbitals for confined charges, plane waves for periodic systems).
-
-% \paragraph{Conditioning.}
-% The quality of Ritz estimates is limited not only by truncation but also by numerical
-% conditioning of $\mathbf S$ and $\mathbf H$. Near-linear dependencies in $\{\varphi_p\}$ inflate
-% $\kappa(\mathbf S)$ and degrade eigenpairs. In practice one removes small-eigenvalue directions
-% of $\mathbf S$ (thresholding in the Löwdin step) or re-optimizes the one-body basis to improve
-% conditioning before diagonalization.
-
-% \medskip
-
-% \subsubsection{Nonlinear Variational Ansatz}
-% Linear subspaces are often too rigid for many-body problems. We therefore adopt a parametric,
-% symmetry-respecting ansatz $\Psi_\theta$ (e.g.\ Slater–Jastrow with PINN/Jastrow/backflow factors)
-% and minimize the energy functional
-% \[
-% E(\theta)\;=\;\frac{\braket{\Psi_\theta|H|\Psi_\theta}}{\braket{\Psi_\theta|\Psi_\theta}}.
-% \]
-% Stationarity requires $\partial_{\theta_k}E(\theta^\star)=0$ for all $k$.
-
-% \paragraph{Normalization and invariances.}
-% The energy is scale-invariant under $\Psi_\theta\!\mapsto\!\alpha\,\Psi_\theta$ ($\alpha\!\ne\!0$),
-% so we can work with unnormalized wavefunctions and write the ansatz in terms of a log-amplitude:
-% $\ln\Psi_\theta(R)=f_\theta(R)$ with $R=(\mathbf r_1,\dots,\mathbf r_N)$. Built-in fermionic
-% antisymmetry (e.g.\ Slater determinant), spin structure, short-/long-range constraints
-% (e.g.\ electron--electron cusp in Coulomb systems), and simple coordinate scalings (e.g.\
-% $r\!\mapsto\! r\sqrt{\omega}$ in harmonic traps) typically reduce variance and bias and
-% improve optimizer conditioning.
-
-% \paragraph{Zero-variance principle.}
-% Define the \emph{local energy}
-% \[
-% E_L(R)\;=\;\frac{(H\Psi_\theta)(R)}{\Psi_\theta(R)}.
-% \]
-% Then $E(\theta)=\mathbb E_{\pi_\theta}[E_L]$ with sampling density
-% $\pi_\theta(R)=|\Psi_\theta(R)|^2/\!\int |\Psi_\theta|^2$. Moreover,
-% $\mathrm{Var}_{\pi_\theta}(E_L)=0$ if and only if $\Psi_\theta$ is an exact eigenstate.
-% This makes the variance of $E_L$ a sensitive diagnostic of ansatz quality.
-
-% \medskip
-
-% \subsubsection{Monte Carlo Estimator and Local Energy}
-% For general many-body Hamiltonians
-% \[
-% H \;=\; -\tfrac12\sum_{i=1}^{N}\nabla_{\mathbf r_i}^2
-% \;+\;\sum_{i=1}^{N} V_{\mathrm{ext}}(\mathbf r_i)
-% \;+\;\sum_{i<j} V_{\mathrm{int}}(|\mathbf r_i-\mathbf r_j|),
-% \]
-% the local energy reads
-% \[
-% E_L(R)\;=\; -\tfrac12 \sum_{i}\frac{\nabla_{\mathbf r_i}^2\Psi_\theta(R)}{\Psi_\theta(R)}
-% \;+\;\sum_i V_{\mathrm{ext}}(\mathbf r_i)
-% \;+\;\sum_{i<j} V_{\mathrm{int}}(r_{ij}).
-% \]
-% With samples $\{R^{(s)}\}_{s=1}^{S}$ drawn from $\pi_\theta$, we estimate
-% \[
-% \widehat E=\frac{1}{S}\sum_{s=1}^S E_L(R^{(s)}),\qquad
-% \widehat{\sigma}^2_{E_L}=\frac{1}{S-1}\sum_{s=1}^S\Big(E_L(R^{(s)})-\widehat E\Big)^2.
-% \]
-% Because Markov-chain samples are correlated, the standard error is
-% \[
-% \mathrm{SE}(\widehat E)\;\approx\;\sqrt{\frac{\widehat{\sigma}^2_{E_L}}{S_{\mathrm{eff}}}},
-% \qquad
-% S_{\mathrm{eff}}\;=\;\frac{S}{2\tau_{\mathrm{int}}}\!,
-% \]
-% where $\tau_{\mathrm{int}}$ is the integrated autocorrelation time (estimated via blocking/batch
-% means). Acceptance rates and proposal scales (Metropolis, MALA) are tuned to keep
-% $\tau_{\mathrm{int}}$ moderate while maintaining stable exploration of high-probability regions.
-
-% \paragraph{Regularity and variance control.}
-% Finite variance requires sufficient smoothness of $\Psi_\theta$ so that $\nabla^2\Psi_\theta/\Psi_\theta$
-% remains integrable, particularly near nodal surfaces and coalescence points. Enforcing known
-% short-distance behavior (e.g.\ cusp conditions) tames the kinetic-energy singularities and
-% reduces $\mathrm{Var}(E_L)$. In practice we also (i) center observables, (ii) use large, well-mixed
-% chains, and (iii) report blocking-based confidence intervals.
-
-% \paragraph{Reweighting for small parameter moves.}
-% When updating $\theta\mapsto\theta'$, one may reuse samples via importance reweighting
-% $w_s \propto |\Psi_{\theta'}(R^{(s)})|^2/|\Psi_{\theta}(R^{(s)})|^2$ to form a low-variance
-% line-search along the proposed step. We restrict to small steps to control weight degeneracy.
-
-% \medskip
-
-% \subsubsection{Gradients and Stochastic Reconfiguration (Natural Gradient)}
-
-% Write the log-derivative observables
-% \[
-% O_k(R)\;=\;\partial_{\theta_k}\ln \Psi_\theta(R),
-% \qquad
-% \langle \cdot \rangle \equiv \mathbb E_{\pi_\theta}[\cdot].
-% \]
-% Assuming $H$ does not depend explicitly on $\theta$, the energy gradient admits the covariance form
-% \[
-% g_k\;=\;\partial_{\theta_k}E
-% \;=\;\big\langle \big(E_L-\langle E_L\rangle\big)\,O_k\big\rangle,
-% \]
-% which avoids differentiating $E_L$ itself. This is the standard VMC ``covariance trick.''
-
-% \paragraph{Derivation of SR from a linearized step.}
-% Consider the linearized ansatz
-% $\ket{\Psi_{\theta+\Delta\theta}} \approx \ket{\Psi_\theta}
-% + \sum_k \Delta\theta_k\,\partial_{\theta_k}\ket{\Psi_\theta}$.
-% Minimizing $E(\theta+\Delta\theta)$ to first order under a small-step constraint measured in the
-% overlap metric of $\mathcal H$ leads to the normal equations
-% \[
-% \mathbf S\,\Delta\theta\;=\;-\eta\,\mathbf g,
-% \qquad
-% S_{kl}\;=\;\langle O_k O_l\rangle - \langle O_k\rangle\langle O_l\rangle,
-% \]
-% where $\mathbf S$ is the covariance (Fisher) matrix of log-derivatives, $\mathbf g$ the gradient, and
-% $\eta>0$ a step scale. This is the \emph{Stochastic Reconfiguration} (SR) or \emph{natural-gradient}
-% update; it is equivalent to steepest descent under the Fubini--Study metric and closely related to
-% discrete imaginary-time evolution in the variational manifold.
-
-% \paragraph{Practical solver and regularization.}
-% We form $\mathbf g$ and apply conjugate gradients (CG) to the linear system using products
-% $\mathbf v\mapsto \mathbf S\mathbf v$ estimated from the same samples:
-% $\mathbf S\mathbf v \approx \frac{1}{S}\sum_s
-% \big(O(R^{(s)})-\bar O\big)\big(O(R^{(s)})-\bar O\big)^\top \mathbf v$.
-% To stabilize, we use Tikhonov damping and (optionally) diagonal loading:
-% $\mathbf S \leftarrow \mathbf S + \lambda\,\mathbf I + \epsilon\,\mathrm{diag}(\mathbf S)$,
-% with a trust-region rule limiting $\|\Delta\theta\|$.
-% Centering $O_k\!\leftarrow\!O_k-\langle O_k\rangle$ improves conditioning and reduces estimator bias.
-
-% \paragraph{Diagnostics.}
-% Convergence is monitored via (i) decay of $\|\mathbf g\|$, (ii) stabilization of $\widehat E$ and
-% its standard error, and (iii) reduction of $\mathrm{Var}(E_L)$. Ill-conditioning (large CG
-% iterations, noisy steps) typically indicates either insufficient sampling (large $\tau_{\mathrm{int}}$),
-% poorly constrained short-range behavior, or highly correlated parameters; remedies include larger
-% batches, stronger damping, parameter tying, or revising the ansatz architecture.
-
-
 
 \section{Second Quantization}
 
@@ -336,59 +169,14 @@ $\langle pq\Vert rs\rangle=\langle pq|v|rs\rangle-\langle pq|v|sr\rangle$ denote
 antisymmetrized integral. In this form, operator algebra and particle indistinguishability
 are handled by the CAR, independent of $N$.
 
-% \subsection{Many-body Hamiltonian for quantum dots}
-% For $N$ electrons in $d$ dimensions with harmonic confinement and Coulomb repulsion,
-% \[
-% H \;=\; \sum_{i=1}^N \Big(-\tfrac12 \nabla_{\mathbf r_i}^2 + \tfrac12 \omega^2 r_i^2 \Big)
-% \;+\; \sum_{i<j} \frac{1}{|\mathbf r_i-\mathbf r_j|}.
-% \]
-% In a chosen one-particle basis $\{\ket{p}\}$ (e.g.\ Fock–Darwin/H.O.\ orbitals with spin),
-% this becomes
-% \[
-% H \;=\; \sum_{pq} t_{pq}\, a_p^\dagger a_q
-% \;+\; \frac14 \sum_{pqrs} \langle pq \Vert rs \rangle \, a_p^\dagger a_q^\dagger a_s a_r,
-% \]
-% with
-% \[
-% t_{pq}=\!\int\! \phi_p^*(\mathbf r)\Big(-\tfrac12\nabla^2+\tfrac12\omega^2 r^2\Big)\phi_q(\mathbf r)\,d\mathbf r,
-% \quad
-% \langle pq|v|rs\rangle=\!\iint\! \frac{\phi_p^*(\mathbf r)\phi_q^*(\mathbf r')\phi_r(\mathbf r)\phi_s(\mathbf r')}
-% {|\mathbf r-\mathbf r'|}\,d\mathbf r\,d\mathbf r'.
-% \]
-% Indices $p,q,\dots$ run over spin-orbitals; spin is included in the labels and integrals.
-
-% \paragraph{Why this helps.}
-% Second quantization (i) encodes antisymmetry algebraically, (ii) yields compact operator forms
-% that do not change with $N$, (iii) maps Slater determinants to bitstrings amenable to fast
-% updates, and (iv) cleanly supports truncations (active spaces) and unitary basis rotations used
-% throughout the rest of this thesis.
-
-
-\section{Model Systems}
-% \subsection{One-Dimensional Spinless Fermions}
-% For \(N\) fermions in a harmonic trap with Gaussian interactions:  
-% \[
-% \hat{H} = \sum_{i=1}^N \left(-\frac{1}{2} \nabla_i^2 + \frac{1}{2} x_i^2 \right) + \frac{V_0}{\sigma_0 \sqrt{2\pi}} \sum_{i<j} e^{-(x_i - x_j)^2/(2\sigma_0^2)}.
-% \]
-% \begin{itemize}
-%     \item \textbf{Non-interacting limit:} The ground state is a Slater determinant of Hermite polynomials:  
-%     \[
-%     \phi_n(x) = \frac{H_n(x)e^{-x^2/2}}{\sqrt{2^n n! \sqrt{\pi}}}.
-%     \]
-%     Energy: \(E_{\text{gs}} = \frac{N^2}{2}\) (in \(\hbar\omega\) units).
-%     \item \textbf{Interacting case:} Attractive (\(V_0 < 0\)) or repulsive (\(V_0 > 0\)) interactions modify spatial correlations and energy spectra (see Fig.~\ref{fig:interactions}).
-% \end{itemize}
-
-% \subsection{Two-Dimensional Quantum Dots}
-% For fermions in a 2D harmonic trap with Coulomb repulsion:  
-% \[
-% \hat{H} = \sum_{i=1}^N \left(-\frac{1}{2} \nabla_i^2 + \frac{1}{2} \omega^2 r_i^2 \right) + \sum_{i<j} \frac{1}{|\bm{r}_i - \bm{r}_j|}.
-% \]
-% \begin{itemize}
-%     \item \textbf{Closed-shell configurations:} Magic numbers \(N = 2\binom{n+2}{2}\) arise from filling degenerate orbitals with spin-up/down pairs.
-%     \item \textbf{Trap frequency \(\omega\):} Lower \(\omega\) increases spatial spread and enhances correlation effects (Fig.~\ref{fig:omega_dependence}).
-% \end{itemize}
-
+Second quantization does not appear directly in the variational neural
+ansatz developed in this thesis, which operates in first quantization.
+It provides the natural language for the FCI many-body expansion
+(§\ref{sec:fci}) and for understanding the exponential growth of the
+configuration space that motivates all of the approximations that follow.
+The Hartree--Fock and FCI methods described next are most cleanly stated
+in second-quantized form; the Slater--Jastrow ansatz in Chapter~\ref{ch:trial_wavefunction}
+then returns to first quantization and coordinates.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Hartree--Fock (HF)}
@@ -445,6 +233,7 @@ can provide a rough diagnostic but is not used for final energetics here.
 \medskip
 
 \section{Full Configuration Interaction (FCI)}
+\label{sec:fci}
 
 FCI gives the exact ground state \emph{within the chosen one-particle basis} by expanding in
 \emph{all} $N$-electron Slater determinants,
@@ -476,10 +265,20 @@ few-electron quantum dots (e.g.\ $N=2,6$) this makes high-accuracy FCI feasible 
 $M$; for larger $N$ the determinant growth becomes the bottleneck.
 
 \subsection{Role in this thesis}
-HF provides physically meaningful orbitals and an upper bound; FCI (in the same one-particle
-basis) provides benchmark energies for small systems. We use these as references to assess the
-accuracy of our variational Slater–Jastrow/PINN results for 2D quantum dots. For larger $N$
-(where FCI is prohibitive) we rely on variational energies plus uncertainty estimates.
+HF provides physically meaningful orbitals and an upper bound; FCI (in the same
+one-particle basis) is exact within the basis but scales as $\mathcal{O}\!\binom{M}{N}$
+in the number of single-particle states $M$---exponentially in $N$---making it
+tractable only for very small systems.
+For $N{=}6$ electrons in a moderate basis this already requires diagonalizing a
+Hilbert space of millions of Slater determinants; for $N{=}12$ it is essentially
+intractable without symmetry reduction.
+This scaling behavior is one of the central motivations for neural-network
+variational methods: they parameterize the wavefunction in a space whose size grows
+polynomially with $N$ rather than exponentially.
+In Chapter~\ref{ch:results} we place our neural VMC results in the context of
+HF and DMC benchmarks, illustrating where the variational ansatz sits in the
+accuracy hierarchy and at what computational cost.
+
 \section{Quantum Dots}
 
 \subsection{Model and units}
@@ -520,29 +319,6 @@ one for each spin:
 where $\Xi$ is the singlet spin function. This is the \emph{restricted} HF (RHF) reference and a
 natural starting point for correlated ansätze.
 
-% \paragraph{Open shells.}
-% When the top shell is partially filled, the noninteracting ground space is degenerate.
-% Physically relevant sectors are labeled by $(N,S,S_z,L_z)$. One may:
-% (i) use ROHF (doubly occupied core $+$ singly occupied open-shell orbitals, spin-adapted to
-% a chosen $(S,S_z)$), (ii) allow UHF (different spatial orbitals for $\uparrow,\downarrow$), or
-% (iii) build a small multi-determinant reference within the top shell to enforce good $S$ and $L_z$.
-% In our variational approach we keep a compact Slater reference (RHF for closed shells; ROHF/UHF
-% or a minimal multi-determinant for open shells) and capture residual correlation with a Jastrow/PINN
-% correlation factor.
-
-% \subsection{Occupation representation (for later use)}
-% Let $a^\dagger_{p\sigma}$ create $\ket{\phi_p\sigma}$. A closed shell is the bitstring
-% $\prod_{p\le K\text{ shell}} a^\dagger_{p\uparrow} a^\dagger_{p\downarrow}\ket{0}$.
-% Open shells occupy a subset of the top-shell spin–orbitals consistent with the target $(S,S_z)$;
-% Hund-like choices (maximizing spin within the degenerate shell) often lower the mean-field energy
-% via exchange and provide better trial nodes for correlated methods.
-
-% \subsection{Why this split matters}
-% Closed shells provide a unique, symmetry-singlet reference with well-conditioned SCF and typically
-% smoother local energies. Open shells require an explicit choice of spin and angular-momentum sector
-% and (if single-determinant) may have higher variance and more delicate conditioning; this motivates
-% either spin-adapted references or adding a minimal set of top-shell configurations before applying
-% our Slater–Jastrow/PINN optimization.
 \subsection{Kato’s Cusp Conditions (2D Coulomb systems)}
 
 For Coulomb interactions the potential diverges as $1/r$ at coalescence. Finiteness of the
@@ -582,16 +358,17 @@ For electron–nucleus coalescence ($\mu_{eA}\!\approx\!1$, $Z_i Z_j=-Z_A$):
 These conditions ensure the kinetic energy’s $r^{-1}$ singularity cancels the Coulomb $r^{-1}$
 term so that $E_L$ remains finite as particles coalesce. Enforcing the cusp explicitly improves conditioning.
 \section{Structural diagnostics and Wigner markers}
-\label{sec:analysis-struct}
+\label{th:analysis-struct}
 
-Unless stated otherwise, curves are accumulated in \emph{trap units} 
-$\tilde{\mathbf r}=\sqrt{\omega}\,\mathbf r$ so that length scales align across $\omega$, 
-while headline distances are reported in \emph{Bohr} (physical units $\mathbf r$).
-Production chains are thinned; we split samples into halves for stability checks 
-(acceptance window, JSD between halves, reproducibility under restarts).
+The diagnostics used in this thesis to validate trained wavefunctions are grounded in the
+physics of the Fermi-liquid-to-Wigner crossover.
+This section establishes the physical definitions and theoretical motivation for each
+diagnostic quantity.
+Numerical implementation details --- coordinate conventions, stability checks, and
+thresholding procedures --- are given in Chapter~\ref{ch:analysis}.
 
 \subsection{Pair distribution $g(r)$, $P(r)$, and width markers}
-\label{subsec:gr-pr}
+\label{th:gr-pr}
 
 We estimate the (spin-summed) pair distribution $g(r)$ via a shell‐area corrected histogram in trap units,
 \begin{equation}
@@ -609,18 +386,12 @@ and report the mode $r_{\mathrm{mode}}$, mean $\bar r$, standard deviation $\sig
 A compact width–to–scale marker is
 \begin{equation}
 \gamma \;=\; \sigma_r / r_{\mathrm{mode}},
-\label{eq:gamma}
+\label{th:gamma}
 \end{equation}
 which decreases as correlations stiffen (narrow distribution around a larger typical radius).\footnote{For $N{=}2$, $\gamma$ is complemented by the pair–distance Lindemann $\gamma_{r_{12}}=\mathrm{std}(r_{12})/\mathrm{mode}(r_{12})$, cf.\ Sec.~\ref{subsec:n2-scaling}.}
 
-\paragraph{Sanity anchors at $\boldsymbol{\omega\!=\!10^{-3}}$.}
-For $N{=}6$ and $N{=}12$, $P(r)$ exhibits sharp peaks with small $\gamma$; these are the expected Wigner-side shapes.\,
-For $N{=}2$ we additionally report the near-origin mass 
-$\int_0^{0.25\,r_{\mathrm{mode}}}\!\rho_1(r)\,dr$ and 
-$\Pr(r_{12}\!\le 0.25\,\mathrm{mode}(r_{12}))$, both $\ll 1$ as required by the cusp and strong repulsion.
-
 \subsection{Automatic shell detection and topology labeling}
-\label{subsec:shells}
+\label{th:shells}
 
 For each frame we sort single‐particle radii $\tilde s_1\le\cdots\le \tilde s_N$ (trap units),
 compute gaps $g_k=\tilde s_{k+1}-\tilde s_k$, and flag a frame as \emph{two‐shell} if
@@ -644,15 +415,10 @@ accumulate $g_{\mathrm{II}},g_{\mathrm{IO}},g_{\mathrm{OO}}$, and reconstruct
 with empirical weights from pair counts.
 We report $\cos\angle(g,\tilde g)$ (cosine similarity); values $\approx 1$ indicate that the observed $g(r)$ is explained by shell geometry rather than sampling artifacts.
 
-\paragraph{Sanity anchors at $\boldsymbol{\omega\!=\!10^{-3}}$.}
-For $N{=}6$, $w_{\mathrm{OO}}\!:\!w_{\mathrm{IO}}\!\approx\!2\!:\!1$ and $\cos\angle(g,\tilde g)\!=\!1.000$ within numerical precision.
-For $N{=}12$, the two‐shell fraction is $0.906$–$0.990$ across $\tau\in\{3.0,2.5,2.0\}$ and $\cos\angle(g,\tilde g)\!\in[0.989,1.000]$ depending mildly on $\tau$/seed.\,
-The \emph{modal} inner multiplicity at $\omega\!=\!10^{-3}$ is $(3,9)$, while $(2,10)$ and $(1,11)$ retain substantial weight—consistent with a rotating two-shell Wigner molecule. 
-For classical references to shellings and near-degeneracies in parabolic/cluster confinements, see
-Schweigert–Peeters and Kong–Partoens–Peeters.\cite{schweigert1994spectralpropertieschargedparticles,Kong_2002}
+Classical references for shell topologies and near-degeneracies in parabolic and cluster confinements are \cite{schweigert1994spectralpropertieschargedparticles,Kong_2002}; the resulting structural data for the trained states are reported in Chapter~\ref{ch:results}.
 
 \subsection{Orientational order and angular “Lindemann”}
-\label{subsec:orient}
+\label{th:orient}
 
 After recentring each detected ring (inner/outer) to remove global rotations, with angles $\{\phi_k\}_{k=1}^n$, we use the bond–orientational order
 \begin{equation}
@@ -670,13 +436,6 @@ Smaller $\lambda_\phi$ indicates a stiffer (more Wigner‐like) ring.
 This follows the spirit of bond–orientational order used in 2D Coulomb/Yukawa systems,\cite{Mazars_2008,Filinov_2001}
 with the Lindemann idea adapted from melting criteria to angular spacings on a fixed-$n$ ring.
 
-\paragraph{Sanity anchors at $\boldsymbol{\omega\!=\!10^{-3}}$.}
-For $N{=}6$, phase-aligned $(1,5)$ and $(0,6)$ sectors show comparable order 
-($|\Phi_5|\!\approx\!0.48$, $|\Phi_6|\!\approx\!0.52$) with $\lambda_\phi\!\approx\!0.29$—a single-ring rotating Wigner molecule.
-For $N{=}12$, $(3,9)$ frames have strong order 
-($|\Phi_3|\!\approx\!0.67$, $|\Phi_9|\!\approx\!0.50$) and small $\lambda_\phi$ ($\sim\!0.24$–$0.26$).
-$(2,10)$ exhibits very tight inner order ($|\Phi_2|\!\approx\!0.73$) with a softer outer ring ($|\Phi_{10}|\!\approx\!0.42$), and $(1,11)$ has weak outer order and a softly vibrating center—precisely the \emph{rotating Wigner molecule} (RWM) picture of fluctuating orientations across near-degenerate shellings.\cite{Egger_1999,manninen2007metalclustersquantumdots}
-
 \subsection{Scaling check and two-body benchmarks ($N=2$)}
 \label{subsec:n2-scaling-theory}
 
@@ -688,7 +447,7 @@ by linear regression in $\big(\log\omega,\log r_{\mathrm{mode}}\big)$ and compar
 At $\omega\!=\!10^{-3}$ the $r_{12}$ histogram is sharply peaked and the near-origin mass in $\rho_1$ and $p(r_{12})$ is $\ll 1$, validating the cusp implementation while confirming deep Wigner localization (see also Ref.~\cite{Egger_1999} for the crossover criterion in dots).
 
 \subsection{Reporting and stability checks}
-\label{subsec:analysis-sanity}
+\label{th:analysis-sanity}
 
 For all scalars and histograms we report standard errors from block averages over thinned frames.
 We verify: 
@@ -707,9 +466,6 @@ for $N{=}12$ as a two-shell RWM with modal $(3,9)$ but sizable $(2,10)$ and $(1,
 Classical shelling and near-degeneracies in finite Coulomb clusters\cite{schweigert1994spectralpropertieschargedparticles,Kong_2002}
 and quantum Wigner markers in parabolic dots\cite{Egger_1999,manninen2007metalclustersquantumdots,Filinov_2001,Mazars_2008}
 provide the theoretical backdrop for reading these plots.
-
-% ------------------------------------------------------------
-
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Variational Methods}
@@ -784,8 +540,7 @@ Key factors in achieving efficient QMC simulations include:
     \item \textbf{Optimized Gradient and Laplacian Calculations:} Recursive methods and efficient numerical routines for evaluating $\nabla\Psi_T/\Psi_T$ and $\nabla^2\Psi_T/\Psi_T$ are essential.
 \end{itemize}
 
-\subsection{Conclusion}
-Variational and Diffusion Monte Carlo methods together provide a robust framework for studying quantum systems. VMC offers a flexible approach for optimizing trial wavefunctions, while DMC projects out the exact ground state through imaginary-time evolution. These methods, working in concert, enable accurate and efficient investigations of systems from simple atoms to strongly correlated materials. Ongoing improvements in trial wavefunction design and stochastic algorithms continue to extend the reach of QMC in modern computational physics.
+Together VMC and DMC form the reference hierarchy against which the collocation pipeline developed in this thesis is evaluated: HF establishes the single-determinant baseline, FCI provides the exact-within-basis ceiling, and DMC supplies the external benchmark energies used in Chapter~\ref{ch:results}.
 
 \chapter{Machine Learning}
 \label{ch:ml_theory}
@@ -860,14 +615,6 @@ where $f^\ast(x)$ is the true regression function and $\sigma^2$ the intrinsic
 noise of the data. Complex models tend to have low bias but high variance, while 
 simple models have the opposite. Successful learning algorithms balance these two 
 contributions. This is discussed in more detail in \cite{HastieTibshiraniFriedman2009-ESL}.
-
-% \subsection{Statistical learning in the context of neural networks}
-% For neural networks, the hypothesis space $\{f_\theta:\theta\in\Theta\}$ is vast 
-% and highly expressive, often capable of interpolating the data exactly. Yet, 
-% empirical evidence shows that heavily overparameterized networks can still generalize 
-% well. This paradox has motivated intensive research into implicit regularization, 
-% inductive biases, and the dynamics of optimization --- topics that will be central 
-% in the subsequent sections.  
 
 \section{Optimization}
 \label{sec:ml_optimization}
@@ -1064,41 +811,6 @@ preserving gradient flow while avoiding non-differentiable kinks.
 Empirically, GELU, SiLU/Swish, and Mish improve optimization stability 
 and generalization across a wide range of tasks.  
 
-% \subsection{Spectral bias and smoothness}
-% Recent theory has highlighted the \emph{spectral bias} of gradient-based 
-% training: neural networks tend to learn low-frequency components of a 
-% function first, and high-frequency details later. The choice of activation 
-% function influences this inductive bias.  
-
-% Smooth activations (e.g.\ tanh, GELU, SiLU) yield better approximation 
-% in Sobolev spaces, where not only function values but also derivatives 
-% must be accurate. In contrast, piecewise-linear activations (ReLU) 
-% are less suited when derivatives appear explicitly in the loss.  
-
-% This distinction is crucial for physics-informed neural networks (PINNs), 
-% which require stable computation of $\nabla f_\theta$ and $\Delta f_\theta$.  
-% Using smooth activations ensures that gradients and Hessians are 
-% well-defined and numerically stable, reducing variance in physical 
-% losses involving differential operators.  
-
-% \subsection{Choosing an activation in practice}
-% Theoretical and empirical considerations suggest:
-% \begin{itemize}
-%   \item For generic tasks such as image classification, ReLU and its variants 
-%   remain popular due to simplicity and efficiency.  
-%   \item For scientific computing, PINNs, and variational wavefunction models, 
-%   smooth activations such as SiLU, GELU, or Mish are strongly preferable.  
-%   \item Tanh remains a robust choice when boundedness is desirable or when 
-%   inputs are normalized to small ranges.  
-% \end{itemize}
-
-% The activation function thus encodes an implicit inductive bias, influencing 
-% both optimization dynamics and the type of functions that can be efficiently 
-% represented. In the next section, we turn to the equally critical issue of 
-% \emph{weight initialization}, which determines how activations and gradients 
-% propagate at the start of training.  
-
-
 \subsection{Initialization}
 \label{sec:initialization}
 
@@ -1166,12 +878,6 @@ different architectures or activation functions, and often result in
 unstable training.  
 
 
-% For physics-informed networks, stable gradient propagation is crucial: 
-% losses often involve higher-order derivatives, and exploding Hessians 
-% can render training unstable. Empirically, Glorot initialization with 
-% a tuned gain has been found robust for smooth activations, while Kaiming 
-% initialization is well-suited for ReLU-like functions.  
-
 \subsection{Summary}
 Initialization is particularly delicate in deep networks. Even small 
 imbalances in variance can compound exponentially with depth. Smooth 
@@ -1191,6 +897,51 @@ Key takeaways include:
 Initialization and activation choice thus form an inseparable pair: together 
 they determine whether information propagates stably through the network. This will be discussed further in the context of physics-informed models in Chapter~\ref{ch:trial_wavefunction}\textbf{\textcolor{red}{[CHECK: was ch:pinns---verify correct target]}}.
 
+
+\section{Equivariant architectures and Deep Sets}
+\label{sec:deepsets}
+
+Standard feedforward networks make no assumptions about the structure of their inputs.
+For many physical systems this is wasteful: the Hamiltonian is symmetric under relabeling
+of identical particles, so the wavefunction amplitude must be either symmetric or
+antisymmetric under the same relabeling.
+Building this symmetry into the architecture---rather than hoping the optimizer discovers
+it---reduces effective complexity, improves generalization, and is often essential for
+the network to be trainable at all.
+
+\paragraph{Permutation invariance and equivariance.}
+A function $f:\mathbb{R}^{N\times d}\to\mathbb{R}$ is \emph{permutation-invariant} if
+$f(P X) = f(X)$ for any permutation matrix $P$.
+A function $F:\mathbb{R}^{N\times d}\to\mathbb{R}^{N\times d}$ is
+\emph{permutation-equivariant} if $F(PX) = PF(X)$.
+For a many-body correlator---a scalar function of particle positions that contributes
+to $|\Psi|^2$ without sign---invariance is required.
+For a backflow transformation---a field that maps each particle's coordinates to shifted
+coordinates and must track particle identity---equivariance is required.
+
+\paragraph{Deep Sets.}
+Zaheer et al.~\cite{zaheer2018deepsets} established that any continuous
+permutation-invariant function of a finite set can be written as
+$f(X) = \rho\!\left(\sum_{i} \phi(x_i)\right)$
+for continuous $\phi$ and $\rho$.
+The practical architecture is: apply a shared network $\phi$ to each element independently,
+pool the outputs (sum or mean), then apply an output network $\rho$ to the pooled
+representation.
+By construction this is permutation-invariant, and by the universality theorem it is
+expressive enough to approximate any target invariant function.
+
+\paragraph{Limitation for correlated systems.}
+Deep Sets processes each particle independently before pooling.
+The resulting representation encodes the \emph{single-particle density} but has no direct
+access to two-particle correlations.
+For weakly interacting systems, or for systems where correlation enters mainly through
+the Slater determinant, this may be sufficient.
+For strongly correlated systems---such as quantum dots in the Wigner-molecule regime---the
+pair distribution $g(r)$ and the correlation hole are the dominant physics, and
+no amount of per-particle processing can represent them without explicit pairwise features.
+The transition from a particle-only (Deep Sets) to a particle-and-pair architecture is
+therefore not an architectural upgrade but a physical necessity, and the correct place
+to make this decision is before training begins.
 
 \section{Modern mathematics}
 \label{sec:nn_approximation}

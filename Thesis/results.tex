@@ -1129,9 +1129,11 @@ training-time importance sampling.
   \centering
   \caption{Best ground-state energies from collocation-assisted training.
   ``Multi-stage'' denotes the best result from earlier campaigns using
-  hand-tuned continuation chains; ``Campaign'' denotes the best single
-  result from the 30-run reliability campaign
-  (Table~\ref{tab:reliability}).
+  hand-tuned continuation chains; ``Campaign (best)'' denotes the
+  best single result from the 30-run reliability campaign for $N{=}6$
+  (Table~\ref{tab:reliability}), and the best result across all
+  independent training runs for $N{=}12$ (no dedicated reliability
+  campaign was conducted for $N{=}12$).
   All values are VMC-evaluated (${\geq}20\text{k}$ samples) at the best
   checkpoint.
   DMC references as in Table~\ref{tab:energies}; entries without DMC data
@@ -1150,13 +1152,13 @@ training-time importance sampling.
       & 0.01  & $0.69036$      & $0.69141(8)$   & $0.69200(1)$   & $+0.237$ & BF \\
       & 0.001 & $0.140832$     & $0.14118(1)$   & $0.14118(1)$   & $+0.250$ & BF \\
     \midrule
-    12 & 1.0   & $65.7001(1)$  & $65.712(4)$    & $+0.018$ & BF \\
-       & 0.5   & $39.1596(1)$  & $39.171(4)$    & $+0.028$ & BF \\
-       & 0.1   & $12.2698(1)$  & $12.285(1)$    & $+0.122$ & BF \\
+    12 & 1.0   & $65.7001(1)$  & $65.712(4)$    & $65.706(4)$    & $+0.009$ & BF \\
+       & 0.5   & $39.1596(1)$  & $39.171(4)$    & $39.169(4)$    & $+0.024$ & BF \\
+       & 0.1   & $12.2698(1)$  & $12.285(1)$    & $12.2824(6)$   & $+0.102$ & BF \\
     \midrule
-    20 & 1.0   & $155.882(1)$  & $158.14(2)$    & $+1.45$  & J \\
-       & 0.5   & $93.875(1)$   & $96.45(3)$     & $+2.74$  & J \\
-       & 0.1   & $29.978(1)$   & $31.68(1)$     & $+5.68$  & J \\
+    20 & 1.0   & $155.882(1)$  & $158.14(2)$    & ---            & $+1.45$  & J \\
+       & 0.5   & $93.875(1)$   & $96.45(3)$     & ---            & $+2.74$  & J \\
+       & 0.1   & $29.978(1)$   & $31.68(1)$     & ---            & $+5.68$  & J \\
     \bottomrule
   \end{tabular}
 \end{table}

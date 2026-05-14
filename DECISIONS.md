@@ -155,3 +155,47 @@ Each entry answers: what was decided, what the alternatives were, why this was c
 **Reasoning:** Centralized references avoid silent NaN behavior for supported N/omega combinations; shared collocation helpers reduce duplication and make runner files thinner and easier to maintain.
 **Constraints introduced:** Future DMC updates must be made in [src/config.py](src/config.py); collocation helper changes now affect all runners importing from [src/functions/Neural_Networks.py](src/functions/Neural_Networks.py).
 **Confidence:** high
+
+---
+**Decision (2026-05-11):** Move the collocation training methodology out of results.tex and into the Optimization (now "Training the Wavefunction") chapter in method.tex. The results section now refers to the methods chapter and reports only findings.
+**Alternatives considered:** Keep methodology in both places (redundant); keep it only in results (methods chapter too thin).
+**Reasoning:** Methodology belongs in methods. Having it in results was causing the results chapter to read as a lab notebook rather than a scientific report.
+**Constraints introduced:** Any future updates to the pipeline description must be made in method.tex; results.tex cross-references method chapter equations by label.
+**Confidence:** high
+
+---
+**Decision (2026-05-11):** Merge `app:catch22` and `app:postcatch22` into one chapter. The post-catch22 content became a `\section` rather than a separate `\chapter`.
+**Alternatives considered:** Keep as two chapters.
+**Reasoning:** The two appendices tell a single continuous story — the discovery of the problem, then the systematic response. The chapter break implied they were unrelated.
+**Confidence:** high
+
+---
+**Decision (2026-05-11):** Move "What worked and what did not" from results.tex to appendix. Replaced in results with two proper Layer IV and Layer V result sections.
+**Reasoning:** An exhaustive catalog of tried methods is appendix material. The results chapter should report what the experiments show about the five layers, not enumerate all variants explored.
+**Confidence:** high
+
+---
+### [2026-05-14] — Section ordering in results.tex: Wigner before representation analysis
+
+**Decision:** Move §"Wigner–molecule crossover" to appear before §"What the networks learn" (representation analysis) in results.tex.
+**Alternatives considered:** Keep original order (repr first, Wigner second).
+**Reasoning:** The discussion chapter explicitly says "the learned representations dovetail with the structural analysis." The results chapter must flow in the same direction — physics established first, then show how the network's latent geometry mirrors that physics. Reading latent-space structure before knowing whether the physics is correct inverts the argument.
+**Constraints introduced:** Any new cross-reference inside repr-analysis that points forward to Wigner must be updated if added.
+**Confidence:** high
+
+---
+### [2026-05-14] — N=20 results framed as scaling-wall evidence, not incomplete work
+
+**Decision:** Reframe N=20 results paragraph from "Training is ongoing and further improvement is expected" to "These results establish the practical boundary of the MCMC-free approach at N=20."
+**Alternatives considered:** Remove N=20 from scope entirely; complete further training before submission.
+**Reasoning:** The existing data (1.45% at ω=1.0, reversal favoring Jastrow over backflow) is sufficient to make the scaling-wall argument. "Training is ongoing" implies the data is preliminary; "scaling boundary" treats it as a completed diagnostic experiment — which it is. The ESS collapse is the scientific finding, not an obstacle.
+**Constraints introduced:** No further N=20 data should be added without also updating the boundary framing.
+**Confidence:** high
+
+---
+### [2026-05-14] — Diagnostics duplication resolved by role separation
+
+**Decision:** Theory chapter §Structural diagnostics retains physics definitions and motivation only (g(r) formula, shell detection concept, bond-orientational order definition). Methods chapter §Diagnostics retains implementation (trap-unit conventions, thinning, stability checks). Cross-references added both directions.
+**Alternatives considered:** Fully merge into Methods; fully merge into Theory; keep both as-is.
+**Reasoning:** Both versions contained identical implementation sentences (trap-unit convention, production-chain thinning). The correct split is definition vs. procedure. An assessor should not read the same paragraph twice in two different chapters.
+**Confidence:** high

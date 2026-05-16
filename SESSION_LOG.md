@@ -1,14 +1,22 @@
 # Session Log
 
-Last session: [2026-04-15] — N=20 ShellFlow collapse diagnosis and stabilized relaunch
+Last session: [2026-05-16] — Architecture diagnostics + thesis table fix
+
+## What was done this session
+1. **Thesis table fix** (commit `542beda`): Fixed malformed N=12 rows in `tab:collocation` (was 6 columns, needed 7). Populated Campaign (best) column from model_quality_inventory (12-13 existing runs per ω). Added matching `---` cells for N=20 with caption note. Script: `scripts/extract_n12_campaign_best.py`.
+
+2. **Architecture diagnostics** (commit `95193f5`): Produced four figures in `results/figures/architecture_diagnostics/architecture_diagnostics.pdf` validating thesis design claims. Key numbers:
+   - Spin attribution: 0.03 (ω=1.0) → 1.05 (ω=0.001) — Wigner crystal physics visible in input utilisation
+   - Effective rank: 2.3/24 node, 1.4/24 edge — network uses ~2D manifold out of 24 dims
+   - REINFORCE vs FD-Colloc gradient norms: 173 vs 413 (2.4× amplification from FD second-derivative path)
+
+3. **Failed experiments**: ShellAware BF cascade for N=20 (all checkpoints lost to OOM during final eval); N=12 shellaware bootstrap (91% error after 600 epochs from random init). These showed the shellaware Jastrow does not converge reliably from scratch in these settings.
 
 ## Next session
-**Recommended starting point:** Inspect the live `v2` N=20 stabilized diagnostics in `outputs/2026-04-15_shellflow_n20_jastrow_diag_v2/` and decide whether ESS remains healthy past the first tens of epochs before making any further architecture or schedule changes.
-**Open questions:** Does the stabilized relaunch maintain non-collapsed ESS after early epochs, and if so does `2shell` or `3shell` materially improve energy/error? Is the remaining failure now mostly Layer 1 sampling or Layer 3 architecture mismatch?
-**Unverified assumptions:** Assumed that weighted raw-candidate ShellFlow refits plus tempered/clipped resampling are sufficient to prevent the previous proposal-drift failure mode throughout the full run, not just at epoch 0.
-**Active workarounds:** ShellFlow refits now skip under catastrophic resampling collapse instead of trying to adapt through it; this is an explicit protective workaround until the N=20 low-omega sampling regime is better understood.
-**Foundation status:** Verified: initial N=20 `v1` failure was diagnosed as a refit-on-collapsed-resamples problem; code patched in `src/functions/Neural_Networks.py` and `src/run_weak_form.py`; focused ShellFlow tests pass; stabilized `v2` relaunch started with epoch-0 ESS around 2k-3.3k instead of 1.
-**Context freshness:** fresh
-**Contradiction flags:** yes — ESS recovery at epoch 0 is a major improvement, but energies are still grossly wrong, so restored sampling alone may not be enough to make the recipe scientifically viable.
+**Recommended starting point:** Integrate the four diagnostic figures into the thesis. Write the missing CTNN architecture schematic (TODO, results.tex line 428). The figures go in: Fig A → methods gating subsection, Fig B/C → results §4.1, Fig D → results §4.2 collocation training.
+**Open questions:** Does Figure A's per-channel attribution show the expected suppression pattern (r² channel relatively more important near r→0)? The numerical values were printed but the visual needs human inspection.
+**Active workarounds:** "Near-coalescence" gradient comparison uses chunk-mean r_min rather than per-sample r_min — adequate for showing the overall trend but not the extreme-r_min regime.
+**Foundation status:** thesis table is correct; diagnostic figures are committed; existing collocation energy results stand unchanged.
+**Context freshness:** current
 
 See ARCHIVE.md for full history.

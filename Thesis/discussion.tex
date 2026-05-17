@@ -1,370 +1,23 @@
-\chapter{Quantum Dots}
+\chapter{Synthesis}
+\label{ch:discussion}
 
-\section{Discussion of energy results}
-\label{sec:energy-discussion}
+This chapter interprets the results of Chapter~\ref{ch:results} through
+the three-layer framework of the introduction.
+The three decisions---what to parameterize, how to train, and how to
+optimize---are not independent in their consequences; understanding where
+the method succeeds and where it breaks requires reading all three together.
 
-The energy benchmarks in Tables~\ref{tab:Residual} and~\ref{tab:energies}
-show that the Slater--Jastrow PINN, with and without backflow, achieves
-DMC-level accuracy for two-electron dots and maintains sub-$0.1\%$ errors
-for $N\in\{6,12\}$ across a wide range of trap frequencies. At the same
-time, it extrapolates in a controlled way into ultra-weak traps
-($\omega=10^{-3}$) where no DMC data are available.
+We begin with the collocation pipeline (Layer~3), because what the optimizer
+can and cannot do sets the context for reading the accuracy benchmarks.
+The energy benchmarks (Layer~2) then establish where the method sits
+relative to the broader hierarchy of quantum chemistry.
+The structural diagnostics confirm that the trained states are physically
+correct, not merely energetically competitive.
+The representation analysis closes the loop to Layer~1: what the network
+has actually learned about the ansatz's function space, and what that
+implies for architectural choices at larger $N$.
 
-\paragraph{Two electrons: architecture test and SR refinement.}
-For $N{=}2$, residual-only training provides a clean test of the bare
-architecture. Across $\omega\in\{1.0,0.5,0.1,0.01\}$, both the plain PINN
-and PINN+BF track DMC references at the $\sim 10^{-4}$\,Ha level or better
-(Table~\ref{tab:Residual}), with deviations fully compatible with quoted
-uncertainties except at the shallowest pretraining point $\omega=0.01$.
-There, residual-only PINN+BF remains variational but sits
-$\sim 3\times 10^{-4}$\,Ha above DMC, indicating a small residual bias
-from the PDE-based training alone.
-
-The SR tail in Table~\ref{tab:energies} removes this bias. For
-$N{=}2$ and all $\omega\ge 0.01$, the SR-refined PINN+BF energies are
-statistically indistinguishable from DMC, with relative deviations
-$\lesssim 10^{-3}\,\%$. Thus, once the ansatz is well conditioned, a short
-SR phase suffices to close the last few $10^{-4}$\,Ha of variational gap
-without changing the qualitative structure learned during residual training.
-
-The comparison between PINN and PINN+BF in Table~\ref{tab:Residual} also
-confirms that backflow is \emph{not necessary} to reach DMC accuracy for
-two electrons. Energies with and without backflow agree within error bars
-at all traps, and the only visible effect of backflow in this case is a
-mild variance reduction and smoother optimization in shallow traps. For
-$N{=}2$ the nodal structure is adequately captured by the Slater--Jastrow
-correlator alone.
-
-\paragraph{Scaling to $N{=}6$ and $N{=}12$.}
-The more demanding tests are the many-electron dots in
-Table~\ref{tab:energies}. For $N\in\{6,12\}$ and the traps with DMC
-references ($\omega\in\{0.1,0.5,1.0\}$), the final PINN+BF energies are
-consistently close to DMC and always slightly higher, as required by
-variationality. Relative deviations fall in the band
-$0.026\text{--}0.048\%$, corresponding to absolute errors of a few
-$10^{-4}$\,Ha for the interacting cases, with no sign of catastrophic
-growth in error with either particle number or trap strength. The worst
-relative deviations occur at intermediate $\omega$ and remain safely below
-the percent level.
-
-This is non-trivial for two reasons. First, the grid spans qualitatively
-different physical regimes: compact, kinetic-dominated states at
-$\omega=1.0$ and swollen, interaction-dominated states at $\omega=0.1$.
-Second, the same architecture and training protocol are used across all
-$(N,\omega)$, aside from trivial scaling in trap units. The fact that a
-single Slater--Jastrow+backflow ansatz maintains sub-$0.1\%$ accuracy
-across this grid suggests that the chosen combination of (i) trap-unit
-normalization, (ii) soft-core pair features, and (iii) an explicit analytic
-cusp is robust with respect to both particle number and confinement.
-
-\paragraph{Ultra-weak traps and extrapolation to $\omega=10^{-3}$.}
-At $\omega=10^{-3}$ there are no DMC references in
-Table~\ref{tab:energies}, so the PINN+BF values
-($E\approx 0.0138$\,Ha for $N{=}2$, $0.1409$\,Ha for $N{=}6$,
-$0.5158$\,Ha for $N{=}12$) should be viewed as variational predictions
-rather than benchmarked numbers. Several internal checks, however, support
-their reliability.
-
-First, the energies connect smoothly to the DMC-validated points at
-$\omega=0.01$ under the log--log scaling analysis of $T$, $V_{\rm int}$ and
-$V_{\rm trap}$ in Sec.~\ref{sec:wigner-molecule}, with exponents and virial
-ratios consistent with classical expectations in the Wigner regime.
-Second, for $N{=}2$ at $\omega=10^{-3}$, independent MCMC diagnostics
-(stable $r_{12}$ and $P(r)$ histograms, smooth local-energy distributions,
-consistent block estimates) indicate that sampling noise is well below the
-quoted uncertainties in Table~\ref{tab:energies}. Third, for $N{=}6$ and
-$N{=}12$, the structural and energy-based diagnostics in
-Sec.~\ref{sec:wigner-molecule} confirm that the states lie on the Wigner
-side of the crossover (correct shell topologies, near-classical virial
-ratios), with no indication of a mis-set energy scale.
-
-Within these caveats, the $\omega=10^{-3}$ energies can be regarded as
-trusted anchors for the Wigner-molecule analysis in
-Sec.~\ref{sec:wigner-molecule} and for the representation analysis in
-Sec.~\ref{sec:repr-analysis}.
-
-\paragraph{Efficiency and conditioning.}
-From an algorithmic point of view, the benchmarks highlight the importance
-of conditioning. The SR tail uses only
-$\mathcal{O}(10^3)$ iterations with $\sim 3{\times}10^3$ samples each,
-i.e.\ a few million local-energy evaluations per $(N,\omega)$ point. This is
-modest compared to some earlier neural approaches to quantum dots that
-require orders of magnitude more samples to reach similar accuracy.
-
-The key design choices are: (i) working in trap units, which keeps typical
-coordinates $\mathcal{O}(1)$ from tight to shallow traps; (ii) soft-core
-pair features with $ds/dr\to 0$ at coalescence, which control gradients and
-Laplacian spikes near $r_{ij}=0$; and (iii) an explicit analytic cusp that
-imposes the correct short-range behaviour analytically rather than learning
-it numerically. Together, these keep local energies numerically tame even in
-ultra-weak traps where electrons are far apart and the wavefunction varies
-on long length scales.
-
-\paragraph{Energetic role of backflow.}
-Finally, the tables clarify the energetic role of backflow across regimes.
-For $N{=}2$, backflow is not needed to attain DMC-level accuracy. For
-$N\in\{6,12\}$ at intermediate traps ($\omega\in\{0.1,0.5\}$), backflow
-provides a modest but systematic improvement over residual-only baselines
-(not shown in Table~\ref{tab:energies}), bringing final errors into the
-$\mathcal{O}(10^{-2}\text{--}10^{-1})\%$ band. In the deepest Wigner cases
-($\omega=10^{-3}$), however, the backflow correction becomes energetically
-tiny (Sec.~\ref{sec:repr-analysis}): the Slater--Jastrow correlator already
-captures the dominant structure and the optimizer effectively \emph{turns
-off} backflow. This regime dependence is mirrored in the representation
-analysis, where backflow appears as a high-dimensional, predominantly local
-correction channel that is only variationally active away from the
-ultra-classical limit.
-
-
-\section{Discussion of the Wigner–molecule regime}
-\label{sec:wigner-discussion}
-
-The structural diagnostics in Sec.~\ref{sec:wigner-molecule} show that the
-weakest traps considered place the dots firmly on the Wigner side of the
-crossover, in a sense that goes beyond the loose label ``strongly
-correlated''. Three strands of evidence support this: (i) localization and
-energy partitioning, (ii) shell geometry and bond order, and
-(iii) topology statistics and reconstruction of $g(r)$.
-
-\paragraph{Localization and energy partitioning.}
-On the one-body level, the weak-trap radial laws $P(r)$ are sharply peaked
-at large radii with relatively small fluctuations. For the two-electron dot
-at $\omega=10^{-3}$ we find
-$r_{\rm mode}\approx 64.3$, $\langle r\rangle\approx 64.0$ and
-$\gamma=\sigma_r/r_{\rm mode}\approx 0.29$, with only
-$\sim 4.6\times 10^{-3}$ of the single-particle mass inside
-$r\le 0.25\,r_{\rm mode}$ (Table~\ref{tab:two_e_summary}). The pair
-distribution $p(r_{12})$ is peaked at $r_{12}^{\rm mode}\approx 122$ with
-Lindemann ratio $\gamma_{r_{12}}\approx 0.20$, and the relative angle is
-sharply anti-aligned, $\sigma(\pi-\Delta\phi)\approx 0.35$, with
-$p(r_{12}\le 0.25\,r_{12}^{\rm mode})\approx 2.6\times 10^{-3}$. These
-numbers are characteristic of a dilute, essentially two-site Wigner dimer
-rather than a delocalized Fermi liquid.
-
-For $N\in\{6,12\}$ the same pattern appears in the aggregate. Both
-$r_{\rm mode}$ and $r_{\rm rms}$ grow roughly as $\omega^{-0.6}$, the
-localization ratio $\gamma$ decreases only mildly with $N$ and $\omega$, and
-the extracted $\langle r^2\rangle\propto\omega^{-\beta}$ exponents
-$\beta\simeq 1.2\text{--}1.3$ exceed the non-interacting value $\beta=1$.
-At the same time, the energy partitioning approaches the classical virial
-limit: at $\omega=10^{-3}$,
-\[
-\frac{2\langle V_{\rm trap}\rangle}{\langle V_{\rm int}\rangle}
-\simeq 1.25,\;1.12,\;1.02 \quad\text{for}\quad N=2,6,12,
-\]
-with the $N{=}12$ dot satisfying $V_{\rm int}\approx 2V_{\rm trap}$ to
-within $2\%$ (Fig.~\ref{fig:wigner_ratios}). Combined with the log--log
-scaling exponents $\alpha_T\approx 1$ and
-$\alpha_{V_{\rm int}}\approx 0.66$, this indicates that the kinetic energy
-has become a small correction on top of a nearly classical potential-energy
-landscape, as expected in the Wigner-molecule limit.
-
-\paragraph{Shell geometry and bond order.}
-Beyond global localization, the weak-trap states exhibit robust shell
-structure with non-trivial bond order. For $N{=}6$ the dot retains a single
-pronounced shell across all $\omega\in[1,10^{-3}]$; what evolves is the
-stiffness of angular correlations. The ring Lindemann index decreases from
-$\sim 0.70$ at $\omega=1$ to $\sim 0.64$ at $\omega=10^{-3}$, while the
-pair-distance Lindemann ratio drops from $\sim 0.35$ to $\sim 0.27$
-(Table~\ref{tab:N6}). After angular registration, the electrons form a
-rotating Wigner ring with clear sixfold order.
-
-At $\omega=10^{-3}$, the $N{=}6$ ensemble is dominated by two symmetry
-classes, $(1,5)$ and $(0,6)$, with fractions $\approx 0.801$ and
-$\approx 0.199$. Both show strong ring order, with
-$|\Phi_5|\approx 0.60$, $|\Phi_6|\approx 0.66$ and ring Lindemann
-indices $\approx 0.21$. The shell itself never breaks; quantum fluctuations
-manifest primarily as rotations and occasional transitions between
-$(1,5)$ and $(0,6)$. This matches classical analyses where $(1,5)$ is the
-ground-state geometry and $(0,6)$ a proximate competitor.
-
-For $N{=}12$ the structure is richer but equally ordered. At $\omega=10^{-3}$
-the two-shell fraction is very high for a broad range of radial-gap
-thresholds, confirming that shelling is robust rather than a threshold
-artifact. Within the two-shell subset the inner-ring occupancy histogram is
-sharply peaked at $(3,9)$, with $(2,10)$ and $(1,11)$ as the leading
-subdominant topologies. On $(3,9)$ frames we find
-$|\Phi_3|\approx 0.69$, $|\Phi_9|\approx 0.53$ and Lindemann indices
-$\approx 0.22$ on both rings, i.e.\ clear threefold and ninefold bond order
-with small angular fluctuations. This is precisely the commensurate,
-multi-shell crystalline order expected for a twelve-electron Wigner molecule.
-
-\paragraph{Topology statistics and reconstruction}
-A more stringent test of the Wigner picture comes from shell-resolved
-reconstruction of the pair distribution. For $N{=}12$ at $\omega=10^{-3}$ we
-partition two-shell configurations into II/IO/OO pairs, form their individual
-histograms and weight them by the observed topology mixture
-$(0.045{:}0.409{:}0.545)$. The resulting synthetic $g(r)$ has cosine
-similarity $0.9982$ to the global $g(r)$
-(Fig.~\ref{fig:N12_w0001_decomposition}), i.e.\ is indistinguishable at our
-statistical resolution. The same holds for $N{=}6$, where the global $g(r)$
-is reproduced essentially exactly by an OO/IO mixture of $(1,5)$ and $(0,6)$
-sectors.
-
-This has two important implications. First, the structure seen in $g(r)$ is
-unambiguously geometric (shells and topologies) rather than a subtle
-finite-size or sampling artifact: once the shell occupancies and topology
-statistics are fixed, the global $g(r)$ is determined. Second, it shows that
-the neural ansatz is not merely ``getting the energy right'' but also
-reproducing the detailed two-body correlation structure expected from
-classical and quantum studies of parabolic Coulomb clusters.
-
-\paragraph{From dimer to multi-shell Wigner molecules.}
-Viewed across $N=2,6,12$ and decreasing $\omega$, a coherent Wigner-molecule
-picture emerges. The two-electron dot evolves into a dilute, strongly
-anti-aligned dimer with negligible overlap near the origin. The six-electron
-dot forms a single, stiff Wigner ring whose lab-frame symmetry is restored by
-rotation but whose co-rotating frame exhibits clear sixfold order and a
-quantum mixture of classically known $(1,5)$ and $(0,6)$ topologies. The
-twelve-electron dot, finally, develops a robust two-shell structure with a
-commensurate $(3,9)$ split as the modal configuration and topology fractions
-that track classical ground-state expectations.
-
-All of this structure is obtained from samples drawn from the same
-variational neural ansatz whose energies match or closely track DMC
-benchmarks. This gives strong evidence that the states analyzed in
-Sec.~\ref{sec:repr-analysis} are bona fide Wigner molecules, and not
-artefacts of an over-flexible wavefunction. The next section discusses how
-this rich real-space structure is compressed into a remarkably low-dimensional
-latent geometry by the learned correlator, and how backflow behaves across
-the same regimes.
-
-
-\section{Discussion of learned representations}
-\label{sec:repr-discussion}
-
-The representation analysis in Sec.~\ref{sec:repr-analysis} reveals a
-surprisingly simple internal organization of the ansatz: the correlator
-$f_{\text{net}}$ lives on a low-dimensional manifold whose leading axes track
-global size and fluctuations of the electron cloud, while the BackflowNet
-implements a high-dimensional but predominantly local correction that becomes
-variationally inert in the deepest Wigner regimes. This mirrors the physical
-picture developed in Sec.~\ref{sec:wigner-molecule}.
-
-\paragraph{Low-dimensional correlator manifold.}
-Across all $(N,\omega)$, the entropy effective rank $r_{\rm eff}(Z)$ of the
-correlator features remains close to~1 and rarely exceeds~2
-\textbf{\textcolor{red}{[TODO: Tables fnet-geometry-omega-big and fnet-geometry-wigner are undefined---create or re-label]}}.
-In the most extreme case, $N{=}2$ at $\omega=10^{-3}$, we find
-$r_{\rm eff}(Z)\approx 1.00$ with head--PC1 correlation $\approx 0.998$ and
-PC1 block power almost entirely in the pair branch $\psi$. PC ablations show
-that projecting onto the top-$k$ PCs rapidly recovers the head, while random
-$k$-dimensional subspaces leave most of the error intact: for
-$(N,\omega)=(2,10^{-3})$ the relative MAE drops from $\sim 4.5\times10^{-2}$
-with $k{=}1$ to $\sim 2.0\times10^{-5}$ with $k{=}12$, whereas random
-projections of the same dimension do not achieve comparable reductions.
-
-For $N\in\{6,12\}$ and for both quantum and Wigner regimes, the picture is
-similar. Effective ranks cluster between $\sim 1.3$ and $\sim 2.5$, head--PC1
-correlations remain $\gtrsim 0.95$, and a small number of principal
-directions captures the bulk of sensitivity. From a representation-learning
-perspective, the correlator behaves more like a low-dimensional order-parameter
-model than like a generic high-dimensional feature extractor.
-
-\paragraph{What the leading axes encode.}
-Linear probes from the correlator PCs to coarse physical summaries clarify
-what these axes represent. For $N{=}2$ (both at $\omega=0.01$ and
-$\omega=10^{-3}$), the first few PCs predict the mean radius and its variance
-essentially perfectly ($R^2(r_{\rm mean})\approx 1$,
-$R^2(r_{\rm var})\approx 1$), and even near-origin masses such as
-$\Pr(r\leq 0.25\,r_{\rm mode})$ are accurately captured. For $N\in\{6,12\}$,
-the leading PCs still track global size with $R^2(r_{\rm mean})$ close to
-unity and radial fluctuations with $R^2(r_{\rm var})$ in the range
-$0.4\text{--}0.85$ across regimes, while shell contrast and angular order
-remain only weakly linearly encoded. This is consistent with the structural
-analysis: the correlator primarily encodes how big the dot is and how widely
-its shells fluctuate, whereas detailed bond order and topology require
-explicit angular registration and conditioning on shell occupancy.
-
-\paragraph{Backflow as a local, high-dimensional correction.}
-Backflow behaves very differently. For $N{=}6$ and $N{=}12$ the displacement
-field $\Delta x$ has $r_{\rm eff}(\Delta x)$ in the range
-$\sim 10\text{--}22$ \textbf{\textcolor{red}{[TODO: Table bf-geometry-smallomega is undefined---create or re-label]}}, with relatively
-flat PCA spectra and gradual reconstruction under PC ablation. Linear probes
-from $\Delta x$ PCs to global observables such as $r_{\rm mean}$,
-$r_{\rm var}$ or shell contrast yield negligible $R^2$, indicating that the
-backflow field does not act as a simple global rescaling or shape parameter.
-
-Near-field diagnostics of $\Delta E$ and $\|\Delta x\|^2$ support a
-predominantly local interpretation. At intermediate traps (e.g.\ $N{=}6$ or
-$12$ at $\omega=10^{-2}$), the lowest $q\%$ of configurations by $r_{\min}$
-carry a disproportionately large fraction of the backflow energy correction:
-for $N{=}12$ at $\omega=10^{-2}$ the lowest $5\%$ bin accounts for about six
-times its fair share of $\Delta E$ while the corresponding share of
-$\|\Delta x\|^2$ remains close to unity
-\textbf{\textcolor{red}{[TODO: Table bf-energetics-smallomega is undefined---create or re-label]}}. Thus, many spatial modes contribute
-to the displacement field, but the \emph{energetic leverage} of backflow is
-concentrated in short-distance configurations where small nodal adjustments
-have a large impact on the local energy.
-
-\paragraph{Deep Wigner limit: backflow switches off.}
-The extreme Wigner points provide a clean limit. For $N{=}2$ at
-$\omega=10^{-3}$, the backflow correction to the energy is
-$\Delta E\sim 10^{-7}$\,Ha with comparable uncertainty, head--PC1 alignment
-between no-BF and BF correlator features is essentially perfect (cosine~$=1$),
-and the ranks of $Z$ and $\Delta Z$ are both $\approx 1$. PC ablations of
-$\Delta x$ show that even though $r_{\rm eff}(\Delta x)$ can be nominally high,
-the field is effectively constant over the sampled manifold (PC ablation error
-$\sim 10^{-6}$), and near-field shares of both $\Delta E$ and
-$\|\Delta x\|^2$ are $\approx 1$. In this regime, the optimizer has
-effectively \emph{learned away} backflow: the Slater--Jastrow correlator alone
-is sufficient to represent the Wigner dimer.
-
-For $N{=}6$ and $N{=}12$ at $\omega=10^{-3}$ the pattern is similar, albeit
-less extreme. The correlator manifold remains low-rank with PC1 almost
-unchanged between no-BF and BF models, $r_{\rm eff}(\Delta Z)$ stays close to
-$r_{\rm eff}(Z)$, and the energetic effect of backflow is very small. Near-field
-shares of $\Delta E$ revert to values close to one. Once the system is deep in
-the Wigner-molecule regime and the static correlator has adjusted to the
-interaction-dominated landscape, there is simply little left for backflow to
-correct.
-
-\paragraph{Regime dependence and architectural implications.}
-Taken together, the representation results show a clear regime dependence:
-\begin{itemize}
-  \item In \emph{weakly to moderately correlated} traps (larger $\omega$,
-        smaller $r_s$), the correlator remains low-rank but backflow carries
-        a non-trivial fraction of the energy correction, focused on
-        near-field configurations. Here it is beneficial to allocate
-        capacity to a reasonably wide BackflowNet with rich pairwise inputs,
-        while keeping the correlator compact.
-  \item In the \emph{deep Wigner} regime (ultra-weak traps such as
-        $\omega=10^{-3}$), the correlator alone captures both the global
-        size/shelling and the relevant near-field structure; backflow
-        becomes nearly variationally idle. Additional expressivity in
-        backflow does not translate into better energies or qualitatively
-        different correlations.
-\end{itemize}
-From a design perspective, this suggests that Slater--Jastrow PINNs with a
-small, smooth correlator and moderately wide backflow layers are a natural
-default for parabolic dots. The correlator behaves like a learned set of
-collective coordinates summarizing dot size and shell fluctuations, while
-backflow functions as a flexible local correction channel that is activated
-only where near-field physics is delicate. In the Wigner limit, the model
-naturally reduces to a static Wigner-molecule ansatz with low-rank latent
-geometry.
-
-\paragraph{Connection to the physical picture.}
-Finally, the learned representations dovetail with the structural analysis in
-Sec.~\ref{sec:wigner-molecule}. The same correlator that reproduces shell
-topologies, bond order and virial partitioning in the Wigner regime is found
-to live on a one- or two-dimensional manifold whose leading axis correlates
-almost perfectly with global size and radial spread. Backflow, in turn, is
-high-dimensional and local exactly in the regimes where shell structure is
-less rigid and close encounters are more frequent. This supports a physically
-meaningful decomposition: a small set of global ``collective coordinates''
-captured by $f_{\text{net}}$ and a many-body, predominantly local correction
-channel implemented by BackflowNet. The success of this decomposition in
-capturing both energies and detailed Wigner-molecule structure suggests that
-similar architectures may be effective for other strongly correlated finite
-fermion systems.
-
-
-%% ═══════════════════════════════════════════════════════════════════════
-%% SECTION:  Discussion of collocation-assisted training
-%% ═══════════════════════════════════════════════════════════════════════
-
-\section{Discussion of collocation-assisted training}
+\section{Discussion of the collocation pipeline}
 \label{sec:collocation-discussion}
 
 The collocation experiments reported in Sec.~\ref{sec:collocation}
@@ -423,7 +76,7 @@ pathological gradients that destabilise training.
 
 The REINFORCE formulation resolves this by construction.
 The Laplacian enters only through the \emph{reward} (the local energy
-in Eq.~\ref{eq:el}), and gradients act exclusively on the score
+in Eq.~\ref{eq:local-energy}), and gradients act exclusively on the score
 function $\nabla_\theta \log|\Psi|$.
 The score function is typically smooth even near nodes (where $\Psi$
 changes sign but $\log|\Psi|$ merely diverges logarithmically, and the
@@ -487,6 +140,31 @@ The ESS-adaptive oversampling mechanism delays this collapse but cannot
 prevent it: eventually, the number of proposal samples needed to
 maintain a given ESS grows exponentially, making the approach
 intractable.
+
+
+\paragraph{The hidden cost of errors in log-density.}
+A concrete illustration of this fragility is an importance-sampling bug
+that corrupted training silently for an extended period.
+The log-probability used in importance weights was computed as the density
+of the individual Gaussian component that generated each sample, not the
+mixture density $q(\mathbf{R}) = \tfrac{1}{K}\sum_k \mathcal{N}(\mathbf{R};\,0,\sigma_k^2 I)$.
+The correct evaluation---a \texttt{logsumexp} over all components---was
+already implemented but never wired in.
+In a configuration space of dimension $Nd$, this error introduced a bias
+of order $Nd$ nats in $\log q$, corresponding to importance weights
+corrupted by a factor of $e^{Nd}$.
+At $N{=}6$, $d{=}2$, $\omega{=}0.01$, this meant weights off by a factor
+of $e^{12}\approx 160{,}000$.
+The failure was invisible in tight traps ($\omega{=}1.0$), where the three
+Gaussian component widths overlap sufficiently that the component density is
+a reasonable approximation to the mixture density, and catastrophic at low
+confinement where the width spread grows as $1/\sqrt\omega$.
+This explains why systematic anomalies at low $\omega$ and large $N$ had
+been attributed to architecture insufficiency for months: the symptom and
+the misdiagnosis are the same function of $(N,\omega)$ as the bug.
+The episode is a practical lesson: in high-dimensional importance sampling,
+a per-dimension error in log-density is not a small perturbation but an
+exponential corruption of the estimator.
 
 This explains the systematic pattern in Table~\ref{tab:collocation}:
 accuracy degrades smoothly from excellent ($+0.009\%$) at
@@ -716,3 +394,377 @@ convergence.
 This two-stage protocol---collocation pretraining followed by SR
 polish---combines the embarrassing parallelism of collocation with
 the asymptotic accuracy of MCMC-based methods.
+
+\section{Discussion of energy results}
+\label{sec:energy-discussion}
+
+The energy benchmarks in Tables~\ref{tab:Residual} and~\ref{tab:energies}
+show that the Slater--Jastrow PINN, with and without backflow, achieves
+DMC-level accuracy for two-electron dots and maintains sub-$0.1\%$ errors
+for $N\in\{6,12\}$ across a wide range of trap frequencies. At the same
+time, it extrapolates in a controlled way into ultra-weak traps
+($\omega=10^{-3}$) where no DMC data are available.
+
+\paragraph{Two electrons: architecture test and SR refinement.}
+For $N{=}2$, residual-only training provides a clean test of the bare
+architecture. Across $\omega\in\{1.0,0.5,0.1,0.01\}$, both the plain PINN
+and PINN+BF track DMC references at the $\sim 10^{-4}$\,Ha level or better
+(Table~\ref{tab:Residual}), with deviations fully compatible with quoted
+uncertainties except at the shallowest pretraining point $\omega=0.01$.
+There, residual-only PINN+BF remains variational but sits
+$\sim 3\times 10^{-4}$\,Ha above DMC, indicating a small residual bias
+from the PDE-based training alone.
+
+The SR tail in Table~\ref{tab:energies} removes this bias. For
+$N{=}2$ and all $\omega\ge 0.01$, the SR-refined PINN+BF energies are
+statistically indistinguishable from DMC, with relative deviations
+$\lesssim 10^{-3}\,\%$. Thus, once the ansatz is well conditioned, a short
+SR phase suffices to close the last few $10^{-4}$\,Ha of variational gap
+without changing the qualitative structure learned during residual training.
+
+The comparison between PINN and PINN+BF in Table~\ref{tab:Residual} also
+confirms that backflow is \emph{not necessary} to reach DMC accuracy for
+two electrons. Energies with and without backflow agree within error bars
+at all traps, and the only visible effect of backflow in this case is a
+mild variance reduction and smoother optimization in shallow traps. For
+$N{=}2$ the nodal structure is adequately captured by the Slater--Jastrow
+correlator alone.
+
+\paragraph{Scaling to $N{=}6$ and $N{=}12$.}
+The more demanding tests are the many-electron dots in
+Table~\ref{tab:energies}. For $N\in\{6,12\}$ and the traps with DMC
+references ($\omega\in\{0.1,0.5,1.0\}$), the final PINN+BF energies are
+consistently close to DMC and always slightly higher, as required by
+variationality. Relative deviations fall in the band
+$0.026\text{--}0.048\%$, corresponding to absolute errors of a few
+$10^{-4}$\,Ha for the interacting cases, with no sign of catastrophic
+growth in error with either particle number or trap strength. The worst
+relative deviations occur at intermediate $\omega$ and remain safely below
+the percent level.
+
+This is non-trivial for two reasons. First, the grid spans qualitatively
+different physical regimes: compact, kinetic-dominated states at
+$\omega=1.0$ and swollen, interaction-dominated states at $\omega=0.1$.
+Second, the same architecture and training protocol are used across all
+$(N,\omega)$, aside from trivial scaling in trap units. The fact that a
+single Slater--Jastrow+backflow ansatz maintains sub-$0.1\%$ accuracy
+across this grid suggests that the chosen combination of (i) trap-unit
+normalization, (ii) soft-core pair features, and (iii) an explicit analytic
+cusp is robust with respect to both particle number and confinement.
+
+\paragraph{Ultra-weak traps and extrapolation to $\omega=10^{-3}$.}
+At $\omega=10^{-3}$ there are no DMC references in
+Table~\ref{tab:energies}, so the PINN+BF values
+($E\approx 0.0138$\,Ha for $N{=}2$, $0.1409$\,Ha for $N{=}6$,
+$0.5158$\,Ha for $N{=}12$) should be viewed as variational predictions
+rather than benchmarked numbers. Several internal checks, however, support
+their reliability.
+
+First, the energies connect smoothly to the DMC-validated points at
+$\omega=0.01$ under the log--log scaling analysis of $T$, $V_{\rm int}$ and
+$V_{\rm trap}$ in Sec.~\ref{sec:wigner-molecule}, with exponents and virial
+ratios consistent with classical expectations in the Wigner regime.
+Second, for $N{=}2$ at $\omega=10^{-3}$, independent MCMC diagnostics
+(stable $r_{12}$ and $P(r)$ histograms, smooth local-energy distributions,
+consistent block estimates) indicate that sampling noise is well below the
+quoted uncertainties in Table~\ref{tab:energies}. Third, for $N{=}6$ and
+$N{=}12$, the structural and energy-based diagnostics in
+Sec.~\ref{sec:wigner-molecule} confirm that the states lie on the Wigner
+side of the crossover (correct shell topologies, near-classical virial
+ratios), with no indication of a mis-set energy scale.
+
+Within these caveats, the $\omega=10^{-3}$ energies can be regarded as
+trusted anchors for the Wigner-molecule analysis in
+Sec.~\ref{sec:wigner-molecule} and for the representation analysis in
+Sec.~\ref{sec:repr-analysis}.
+
+\paragraph{Efficiency and conditioning.}
+From an algorithmic point of view, the benchmarks highlight the importance
+of conditioning. The SR tail uses only
+$\mathcal{O}(10^3)$ iterations with $\sim 3{\times}10^3$ samples each,
+i.e.\ a few million local-energy evaluations per $(N,\omega)$ point. This is
+modest compared to some earlier neural approaches to quantum dots that
+require orders of magnitude more samples to reach similar accuracy.
+
+The key design choices are: (i) working in trap units, which keeps typical
+coordinates $\mathcal{O}(1)$ from tight to shallow traps; (ii) soft-core
+pair features with $ds/dr\to 0$ at coalescence, which control gradients and
+Laplacian spikes near $r_{ij}=0$; and (iii) an explicit analytic cusp that
+imposes the correct short-range behaviour analytically rather than learning
+it numerically. Together, these keep local energies numerically tame even in
+ultra-weak traps where electrons are far apart and the wavefunction varies
+on long length scales.
+
+\paragraph{Energetic role of backflow.}
+Finally, the tables clarify the energetic role of backflow across regimes.
+For $N{=}2$, backflow is not needed to attain DMC-level accuracy. For
+$N\in\{6,12\}$ at intermediate traps ($\omega\in\{0.1,0.5\}$), backflow
+provides a modest but systematic improvement over residual-only baselines
+(not shown in Table~\ref{tab:energies}), bringing final errors into the
+$\mathcal{O}(10^{-2}\text{--}10^{-1})\%$ band. In the deepest Wigner cases
+($\omega=10^{-3}$), however, the backflow correction becomes energetically
+tiny (Sec.~\ref{sec:repr-analysis}): the Slater--Jastrow correlator already
+captures the dominant structure and the optimizer effectively \emph{turns
+off} backflow. This regime dependence is mirrored in the representation
+analysis, where backflow appears as a high-dimensional, predominantly local
+correction channel that is only variationally active away from the
+ultra-classical limit.
+The force-alignment diagnostic in §\ref{sec:bfforce} makes the regime
+switch mechanistically explicit: at $\omega\geq 0.1$ the CTNN displacement
+aligns with the confining trap force (cos\,$\approx+0.97$) and opposes
+Coulomb repulsion, while at $\omega{=}0.001$ both signs reverse and the
+displacement instead follows the Coulomb force---a direct signature of the
+backflow switching from a trap-restoring correction to a lattice-correction
+mode at the Wigner crossover.
+
+
+
+\section{Discussion of the Wigner–molecule regime}
+\label{sec:wigner-discussion}
+
+The structural diagnostics in Sec.~\ref{sec:wigner-molecule} show that the
+weakest traps considered place the dots firmly on the Wigner side of the
+crossover, in a sense that goes beyond the loose label ``strongly
+correlated''. Three strands of evidence support this: (i) localization and
+energy partitioning, (ii) shell geometry and bond order, and
+(iii) topology statistics and reconstruction of $g(r)$.
+
+\paragraph{Localization and energy partitioning.}
+On the one-body level, the weak-trap radial laws $P(r)$ are sharply peaked
+at large radii with relatively small fluctuations. For the two-electron dot
+at $\omega=10^{-3}$ we find
+$r_{\rm mode}\approx 64.3$, $\langle r\rangle\approx 64.0$ and
+$\gamma=\sigma_r/r_{\rm mode}\approx 0.29$, with only
+$\sim 4.6\times 10^{-3}$ of the single-particle mass inside
+$r\le 0.25\,r_{\rm mode}$ (Table~\ref{tab:two_e_summary}). The pair
+distribution $p(r_{12})$ is peaked at $r_{12}^{\rm mode}\approx 122$ with
+Lindemann ratio $\gamma_{r_{12}}\approx 0.20$, and the relative angle is
+sharply anti-aligned, $\sigma(\pi-\Delta\phi)\approx 0.35$, with
+$p(r_{12}\le 0.25\,r_{12}^{\rm mode})\approx 2.6\times 10^{-3}$. These
+numbers are characteristic of a dilute, essentially two-site Wigner dimer
+rather than a delocalized Fermi liquid.
+
+For $N\in\{6,12\}$ the same pattern appears in the aggregate. Both
+$r_{\rm mode}$ and $r_{\rm rms}$ grow roughly as $\omega^{-0.6}$, the
+localization ratio $\gamma$ decreases only mildly with $N$ and $\omega$, and
+the extracted $\langle r^2\rangle\propto\omega^{-\beta}$ exponents
+$\beta\simeq 1.2\text{--}1.3$ exceed the non-interacting value $\beta=1$.
+At the same time, the energy partitioning approaches the classical virial
+limit: at $\omega=10^{-3}$,
+\[
+\frac{2\langle V_{\rm trap}\rangle}{\langle V_{\rm int}\rangle}
+\simeq 1.25,\;1.12,\;1.02 \quad\text{for}\quad N=2,6,12,
+\]
+with the $N{=}12$ dot satisfying $V_{\rm int}\approx 2V_{\rm trap}$ to
+within $2\%$ (Fig.~\ref{fig:wigner_ratios}). Combined with the log--log
+scaling exponents $\alpha_T\approx 1$ and
+$\alpha_{V_{\rm int}}\approx 0.66$, this indicates that the kinetic energy
+has become a small correction on top of a nearly classical potential-energy
+landscape, as expected in the Wigner-molecule limit.
+
+\paragraph{Shell geometry and bond order.}
+Beyond global localization, the weak-trap states exhibit robust shell
+structure with non-trivial bond order. For $N{=}6$ the dot retains a single
+pronounced shell across all $\omega\in[1,10^{-3}]$; what evolves is the
+stiffness of angular correlations. The ring Lindemann index decreases from
+$\sim 0.70$ at $\omega=1$ to $\sim 0.64$ at $\omega=10^{-3}$, while the
+pair-distance Lindemann ratio drops from $\sim 0.35$ to $\sim 0.27$
+(Table~\ref{tab:N6}). After angular registration, the electrons form a
+rotating Wigner ring with clear sixfold order.
+
+At $\omega=10^{-3}$, the $N{=}6$ ensemble is dominated by two symmetry
+classes, $(1,5)$ and $(0,6)$, with fractions $\approx 0.801$ and
+$\approx 0.199$. Both show strong ring order, with
+$|\Phi_5|\approx 0.60$, $|\Phi_6|\approx 0.66$ and ring Lindemann
+indices $\approx 0.21$. The shell itself never breaks; quantum fluctuations
+manifest primarily as rotations and occasional transitions between
+$(1,5)$ and $(0,6)$. This matches classical analyses where $(1,5)$ is the
+ground-state geometry and $(0,6)$ a proximate competitor.
+
+For $N{=}12$ the structure is richer but equally ordered. At $\omega=10^{-3}$
+the two-shell fraction is very high for a broad range of radial-gap
+thresholds, confirming that shelling is robust rather than a threshold
+artifact. Within the two-shell subset the inner-ring occupancy histogram is
+sharply peaked at $(3,9)$, with $(2,10)$ and $(1,11)$ as the leading
+subdominant topologies. On $(3,9)$ frames we find
+$|\Phi_3|\approx 0.69$, $|\Phi_9|\approx 0.53$ and Lindemann indices
+$\approx 0.22$ on both rings, i.e.\ clear threefold and ninefold bond order
+with small angular fluctuations. This is precisely the commensurate,
+multi-shell crystalline order expected for a twelve-electron Wigner molecule.
+
+\paragraph{Topology statistics and reconstruction}
+A more stringent test of the Wigner picture comes from shell-resolved
+reconstruction of the pair distribution. For $N{=}12$ at $\omega=10^{-3}$ we
+partition two-shell configurations into II/IO/OO pairs, form their individual
+histograms and weight them by the observed topology mixture
+$(0.045{:}0.409{:}0.545)$. The resulting synthetic $g(r)$ has cosine
+similarity $0.9982$ to the global $g(r)$
+(Fig.~\ref{fig:N12_w0001_decomposition}), i.e.\ is indistinguishable at our
+statistical resolution. The same holds for $N{=}6$, where the global $g(r)$
+is reproduced essentially exactly by an OO/IO mixture of $(1,5)$ and $(0,6)$
+sectors.
+
+This has two important implications. First, the structure seen in $g(r)$ is
+unambiguously geometric (shells and topologies) rather than a subtle
+finite-size or sampling artifact: once the shell occupancies and topology
+statistics are fixed, the global $g(r)$ is determined. Second, it shows that
+the neural ansatz is not merely ``getting the energy right'' but also
+reproducing the detailed two-body correlation structure expected from
+classical and quantum studies of parabolic Coulomb clusters.
+
+\paragraph{From dimer to multi-shell Wigner molecules.}
+Viewed across $N=2,6,12$ and decreasing $\omega$, a coherent Wigner-molecule
+picture emerges. The two-electron dot evolves into a dilute, strongly
+anti-aligned dimer with negligible overlap near the origin. The six-electron
+dot forms a single, stiff Wigner ring whose lab-frame symmetry is restored by
+rotation but whose co-rotating frame exhibits clear sixfold order and a
+quantum mixture of classically known $(1,5)$ and $(0,6)$ topologies. The
+twelve-electron dot, finally, develops a robust two-shell structure with a
+commensurate $(3,9)$ split as the modal configuration and topology fractions
+that track classical ground-state expectations.
+
+All of this structure is obtained from samples drawn from the same
+variational neural ansatz whose energies match or closely track DMC
+benchmarks. This gives strong evidence that the states analyzed in
+Sec.~\ref{sec:repr-analysis} are bona fide Wigner molecules, and not
+artefacts of an over-flexible wavefunction. The next section discusses how
+this rich real-space structure is compressed into a remarkably low-dimensional
+latent geometry by the learned correlator, and how backflow behaves across
+the same regimes.
+
+
+
+\section{Discussion of learned representations}
+\label{sec:repr-discussion}
+
+The representation analysis in Sec.~\ref{sec:repr-analysis} reveals a
+surprisingly simple internal organization of the ansatz: the correlator
+$f_{\text{net}}$ lives on a low-dimensional manifold whose leading axes track
+global size and fluctuations of the electron cloud, while the BackflowNet
+implements a high-dimensional but predominantly local correction that becomes
+variationally inert in the deepest Wigner regimes. This mirrors the physical
+picture developed in Sec.~\ref{sec:wigner-molecule}.
+
+\paragraph{Low-dimensional correlator manifold.}
+Across all $(N,\omega)$, the entropy effective rank $r_{\rm eff}(Z)$ of the
+correlator features remains close to~1 and rarely exceeds~3
+(Table~\ref{tab:correlator-geom}).
+In the most extreme case, $N{=}2$ at $\omega=10^{-3}$, we find
+$r_{\rm eff}(Z)\approx 1.00$ with head--PC1 correlation $\approx 0.998$ and
+PC1 block power almost entirely in the pair branch $\psi$. PC ablations show
+that projecting onto the top-$k$ PCs rapidly recovers the head, while random
+$k$-dimensional subspaces leave most of the error intact: for
+$(N,\omega)=(2,10^{-3})$ the relative MAE drops from $\sim 4.5\times10^{-2}$
+with $k{=}1$ to $\sim 2.0\times10^{-5}$ with $k{=}12$, whereas random
+projections of the same dimension do not achieve comparable reductions.
+
+For $N\in\{6,12\}$ and for both quantum and Wigner regimes, the picture is
+similar. Effective ranks cluster between $\sim 1.3$ and $\sim 2.5$, head--PC1
+correlations remain $\gtrsim 0.95$, and a small number of principal
+directions captures the bulk of sensitivity. From a representation-learning
+perspective, the correlator behaves more like a low-dimensional order-parameter
+model than like a generic high-dimensional feature extractor.
+
+\paragraph{What the leading axes encode.}
+Linear probes from the correlator PCs to coarse physical summaries clarify
+what these axes represent. For $N{=}2$ (both at $\omega=0.01$ and
+$\omega=10^{-3}$), the first few PCs predict the mean radius and its variance
+essentially perfectly ($R^2(r_{\rm mean})\approx 1$,
+$R^2(r_{\rm var})\approx 1$), and even near-origin masses such as
+$\Pr(r\leq 0.25\,r_{\rm mode})$ are accurately captured. For $N\in\{6,12\}$,
+the leading PCs still track global size with $R^2(r_{\rm mean})$ close to
+unity and radial fluctuations with $R^2(r_{\rm var})$ in the range
+$0.4\text{--}0.85$ across regimes, while shell contrast and angular order
+remain only weakly linearly encoded. This is consistent with the structural
+analysis: the correlator primarily encodes how big the dot is and how widely
+its shells fluctuate, whereas detailed bond order and topology require
+explicit angular registration and conditioning on shell occupancy.
+
+\paragraph{Backflow as a local, high-dimensional correction.}
+Backflow behaves very differently.
+For $N{=}6$ and $N{=}12$ the displacement field $\Delta x$ has an
+effective rank $r_{\rm eff}(\Delta x)$ substantially larger than the
+correlator's---typically $10$--$22$---with relatively flat PCA spectra
+and gradual reconstruction under PC ablation.
+Linear probes from $\Delta x$ PCs to global observables such as $r_{\rm mean}$,
+$r_{\rm var}$, or shell contrast yield negligible $R^2$: the backflow field
+does not act as a simple global rescaling or shape parameter.
+
+Near-field diagnostics of $\Delta E$ and $\|\Delta x\|^2$ support a
+predominantly local interpretation.
+At intermediate traps (e.g.\ $N{=}6$ or $N{=}12$ at $\omega{=}10^{-2}$),
+configurations in the lowest $5\%$ by minimum pair distance $r_{\min}$
+carry approximately six times their fair share of the backflow energy
+correction $\Delta E$, while their share of $\|\Delta x\|^2$ remains
+close to unity.
+Many spatial modes contribute to the displacement field, but its
+\emph{energetic leverage} is concentrated in short-distance configurations
+where small nodal adjustments have a large impact on the local energy.
+
+\paragraph{Deep Wigner limit: backflow switches off.}
+The extreme Wigner points provide a clean limit. For $N{=}2$ at
+$\omega=10^{-3}$, the backflow correction to the energy is
+$\Delta E\sim 10^{-7}$\,Ha with comparable uncertainty, head--PC1 alignment
+between no-BF and BF correlator features is essentially perfect (cosine~$=1$),
+and the ranks of $Z$ and $\Delta Z$ are both $\approx 1$. PC ablations of
+$\Delta x$ show that even though $r_{\rm eff}(\Delta x)$ can be nominally high,
+the field is effectively constant over the sampled manifold (PC ablation error
+$\sim 10^{-6}$), and near-field shares of both $\Delta E$ and
+$\|\Delta x\|^2$ are $\approx 1$. In this regime, the optimizer has
+effectively \emph{learned away} backflow: the Slater--Jastrow correlator alone
+is sufficient to represent the Wigner dimer.
+
+For $N{=}6$ and $N{=}12$ at $\omega=10^{-3}$ the pattern is similar, albeit
+less extreme. The correlator manifold remains low-rank with PC1 almost
+unchanged between no-BF and BF models, $r_{\rm eff}(\Delta Z)$ stays close to
+$r_{\rm eff}(Z)$, and the energetic effect of backflow is very small. Near-field
+shares of $\Delta E$ revert to values close to one. Once the system is deep in
+the Wigner-molecule regime and the static correlator has adjusted to the
+interaction-dominated landscape, there is simply little left for backflow to
+correct.
+
+\paragraph{Regime dependence and architectural implications.}
+Taken together, the representation results show a clear regime dependence:
+\begin{itemize}
+  \item In \emph{weakly to moderately correlated} traps (larger $\omega$,
+        smaller $r_s$), the correlator remains low-rank but backflow carries
+        a non-trivial fraction of the energy correction, focused on
+        near-field configurations. Here it is beneficial to allocate
+        capacity to a reasonably wide BackflowNet with rich pairwise inputs,
+        while keeping the correlator compact.
+  \item In the \emph{deep Wigner} regime (ultra-weak traps such as
+        $\omega=10^{-3}$), the correlator alone captures both the global
+        size/shelling and the relevant near-field structure; backflow
+        becomes nearly variationally idle. Additional expressivity in
+        backflow does not translate into better energies or qualitatively
+        different correlations.
+\end{itemize}
+From a design perspective, this suggests that Slater--Jastrow PINNs with a
+small, smooth correlator and moderately wide backflow layers are a natural
+default for parabolic dots. The correlator behaves like a learned set of
+collective coordinates summarizing dot size and shell fluctuations, while
+backflow functions as a flexible local correction channel that is activated
+only where near-field physics is delicate. In the Wigner limit, the model
+naturally reduces to a static Wigner-molecule ansatz with low-rank latent
+geometry.
+
+\paragraph{Connection to the physical picture.}
+Finally, the learned representations dovetail with the structural analysis in
+Sec.~\ref{sec:wigner-molecule}. The same correlator that reproduces shell
+topologies, bond order and virial partitioning in the Wigner regime is found
+to live on a one- or two-dimensional manifold whose leading axis correlates
+almost perfectly with global size and radial spread. Backflow, in turn, is
+high-dimensional and local exactly in the regimes where shell structure is
+less rigid and close encounters are more frequent. This supports a physically
+meaningful decomposition: a small set of global ``collective coordinates''
+captured by $f_{\text{net}}$ and a many-body, predominantly local correction
+channel implemented by BackflowNet. The success of this decomposition in
+capturing both energies and detailed Wigner-molecule structure suggests that
+similar architectures may be effective for other strongly correlated finite
+fermion systems.
+
+
+%% ═══════════════════════════════════════════════════════════════════════
+%% SECTION:  Discussion of collocation-assisted training
+%% ═══════════════════════════════════════════════════════════════════════
+

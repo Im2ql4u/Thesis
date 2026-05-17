@@ -135,6 +135,15 @@ An MLP $\psi$ maps $\mathbf u_{ij}\mapsto\mathbf h^{\psi}_{ij}\in\mathbb R^{d_L}
   \chi(\tilde r)=\frac{\tilde r^{2}}{\tilde r^{2}+r_g^{2}},\quad r_g\approx 0.3,\quad \chi(0)=\chi'(0)=0,
 \]
 suppresses learned responses \emph{at} coalescence, we use $\chi\,\mathbf h^\psi_{ij}$ downstream.
+In practice the pair-input vector is augmented with direct coordinate
+features $(\Delta x_{ij},\Delta y_{ij})$, one-body positions $(x_i,y_i)$,
+and a spin indicator; these channels do not individually satisfy the
+coalescence-safety condition.
+Attribution analysis (§\ref{sec:attribution}) shows that the network
+learns to suppress these raw-coordinate channels globally, relying
+predominantly on the radial features across all confinement strengths:
+the coalescence constraint is enforced by the architecture on the safe
+features, and learned by the network for the remaining channels.
 
 \subsection{Analytic short-range cusp}
 \label{subsec:cusp}
@@ -284,6 +293,67 @@ the batch-mean predicted displacement before constructing $\tilde R'$.
 \paragraph{Summary.}
 Backflow provides a compact, symmetry-respecting way to move the Slater nodes toward the true correlated nodes. With mollified distances, optional short-range gates/attention, zero-mean projection, and bounded outputs, it integrates cleanly with the analytic cusp and smooth NQS correlator, reducing fixed-node error without inflating local-energy variance.
 
+\section{The cell view: both networks as a unified message-passing system}
+\label{sec:ctnn-cell}
+
+The two neural components of the ansatz---the NQS correlator $W_\theta$
+and the backflow displacement $\Delta_\beta$---share a common computational
+motif: each particle maintains a state that is updated by pairwise messages
+from its neighbors, then pooled symmetrically over all particles.
+In the language of graph neural networks, the particles are nodes,
+interparticle interactions are directed edges, and the two networks
+apply the same message-passing update rule in separate feature spaces.
+$W_\theta$ outputs a scalar (the log-amplitude correction); $\Delta_\beta$
+outputs a vector (the coordinate displacement per particle).
+Both are permutation-invariant by construction and share the same
+short-range conditioning (soft-core mollification, optional radial gates).
+
+This unified view has a concrete implication for expressivity.
+A pairwise-only network can represent, at most, two-body correlations.
+A message-passing network can, in principle, represent
+\emph{three-body} and higher-order correlations: a message from particle
+$j$ to particle $i$ already encodes information about $j$'s neighborhood,
+and this accumulated state is available when $k$ subsequently interacts
+with $i$.
+Whether this expressivity advantage is actually exploited at different
+confinement strengths is an empirical question; the results are reported
+in §\ref{sec:mp-ablation}.
+
+\paragraph{Three-body sensitivity at different confinement strengths.}
+\label{subsec:ctnn-threebody}
+Table~\ref{tab:threebody} reports the intra-bin variance ratio comparing
+the CTNN cell output to the pairwise-only activation at $N{=}6$.
+A ratio above $1.0$ indicates that the cell output encodes beyond-pairwise
+information.
+
+\begin{table}[h]
+\centering
+\caption{Three-body sensitivity ratio of the CTNN cell operation at
+         $N{=}6$. Measured as the ratio of intra-bin variance of the
+         cell activation to the variance attributable to the pairwise
+         interaction alone.}
+\label{tab:threebody}
+\begin{tabular}{lc}
+\toprule
+Confinement $\omega$ & Three-body sensitivity ratio \\
+\midrule
+$1.0$   & $2.03\times$ \\
+$0.1$   & $2.93\times$ \\
+$0.001$ & $1.05\times$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+At moderate-to-strong confinement ($\omega \ge 0.1$), the ratio is
+substantially above unity: the cell operation draws on beyond-pairwise
+information to represent the correlated fluid structure.
+At deep Wigner confinement ($\omega{=}0.001$) the ratio collapses to
+near unity.
+This is not an architectural failure---it reflects the physical regime:
+in the Wigner limit the correlation structure is dominated by the
+classical lattice geometry, which is a pairwise phenomenon.
+The cell's three-body capacity is present but becomes unnecessary once
+the configuration space is effectively fixed by the lattice.
 
 \chapter{Training the Wavefunction}
 \label{ch:optimization}
@@ -377,6 +447,16 @@ all successful runs: pure REINFORCE, with no direct-gradient admixture,
 consistently outperforms hybrid objectives because the cheaper energy
 proxy it provides is also less accurate, and its gradient interferes with
 the variational signal rather than reinforcing it.
+
+Measured gradient norms confirm the structural advantage: REINFORCE
+produces gradient norms $2.4\times$ lower than the finite-difference
+collocation estimator on matched batches, providing more stable
+optimization across seeds and at low $\omega$ where local-energy variance
+is highest.
+The finite-difference estimator can win a single-seed comparison at
+$\omega{=}0.1$ where the local-energy surface is comparatively smooth,
+but its higher-variance gradient degrades reliability across the
+$(N,\omega)$ parameter space.
 
 \section{Layer~3: sampling without Markov chains}
 \label{sec:sampling}

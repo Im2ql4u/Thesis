@@ -1056,19 +1056,18 @@ $|\Psi_\theta|^2$ at every step, so the sampling distribution
 co-adapts with the node position.
 
 
-% =========================================================
-% APPENDIX D: Post-Catch-22 Experimental History and Philosophy
-% =========================================================
-\chapter{Post-catch-22 experimental history and philosophy}
+\section{From pathology to practice: the experimental record}
 \label{app:postcatch22}
 
-This appendix documents the full experimental program executed after the
-backflow catch-22 analysis in Appendix~\ref{app:catch22}. The goal here is not
-to present a single best number, but to make explicit the strategy, the failed
-branches, the partial recoveries, and the current status for difficult regimes
-($\omega\in\{0.01,0.001\}$ and larger $N$).
+The analysis above establishes what breaks and why.
+This section documents the full experimental program that followed: the
+strategy, the failed branches, the partial recoveries, and the current status
+for difficult regimes ($\omega\in\{0.01,0.001\}$ and larger $N$).
+The goal is not to present a single best number, but to make the decision
+record explicit---so that the results in Chapter~\ref{ch:results} can be read
+against the evidence that produced them, not merely the evidence that survived.
 
-\section{Program-level philosophy}
+\subsubsection{Program-level philosophy}
 \label{app:postcatch22:philosophy}
 
 After establishing that naive collocation backflow training can stall on nodal
@@ -1088,12 +1087,12 @@ Operationally, this produced a sequence of campaign scripts rather than a
 single training script. The scripts define matrices of controlled variants over
 sampling, loss, architecture, and preconditioning.
 
-\section{What was tried (complete family map)}
+\subsection{What was tried (complete family map)}
 \label{app:postcatch22:families}
 
 This section groups all post-catch-22 explorations by mechanism.
 
-\subsection{Sampling schemes}
+\subsubsection{Sampling schemes}
 \label{app:postcatch22:sampling}
 
 The following sampling and batch-formation ideas were tested:
@@ -1116,7 +1115,7 @@ Most important empirical conclusion: for low $\omega$, regularising the
 resampling distribution (ESS control and top-mass reduction) was beneficial,
 while hard cusp gating alone had negligible effect at the tested scale.
 
-\subsection{Architecture families}
+\subsubsection{Architecture families}
 \label{app:postcatch22:architectures}
 
 The architecture search did not only vary width/depth; it also compared model
@@ -1136,7 +1135,7 @@ The main pattern was that optimisation quality dominated architectural novelty:
 moderately sized BF+Jastrow models with stable training often outperformed more
 ambitious variants with weaker optimisation geometry.
 
-\subsection{Loss functions and objective styles}
+\subsubsection{Loss functions and objective styles}
 \label{app:postcatch22:losses}
 
 Three objective styles were actively explored:
@@ -1154,7 +1153,7 @@ the forward reward path, while optimisation uses score-function gradients with
 robust clipping/selection controls. This was one of the practical stability
 levers after the catch-22 findings.
 
-\subsection{Optimiser and preconditioning styles}
+\subsubsection{Optimiser and preconditioning styles}
 \label{app:postcatch22:optimisers}
 
 The project tested progressively richer preconditioning:
@@ -1169,7 +1168,7 @@ The project tested progressively richer preconditioning:
 Empirically, SR-style preconditioning in CG mode became central for transferring
 performance from solved regimes to harder ones.
 
-\subsection{Training styles}
+\subsubsection{Training styles}
 \label{app:postcatch22:styles}
 
 The workflow evolved from isolated runs to structured orchestration:
@@ -1184,10 +1183,10 @@ The workflow evolved from isolated runs to structured orchestration:
   $\omega$).
 \end{itemize}
 
-\section{Campaign chronology and key outcomes}
+\subsection{Campaign chronology and key outcomes}
 \label{app:postcatch22:chronology}
 
-\subsection{Natural-gradient sweeps}
+\subsubsection{Natural-gradient sweeps}
 \label{app:postcatch22:natgrad}
 
 The natural-gradient program (baseline/high-LR/low-damping controls and
@@ -1195,7 +1194,7 @@ continuations) established that diagonal Fisher alone was not sufficient for all
 hard regimes, but identified stable hyperparameter corridors and motivated the
 move to SR-style CG preconditioning.
 
-\subsection{SR sweep and refinement}
+\subsubsection{SR sweep and refinement}
 \label{app:postcatch22:sr}
 
 Woodbury and CG SR variants were benchmarked, then refined with lower LR,
@@ -1203,7 +1202,7 @@ larger SR subsamples, damping anneals, and tighter trust controls. These runs
 substantially improved reliability near the best $N=6,\omega=1.0$ basin and
 provided the best warm-start sources for cross-regime transfer.
 
-\subsection{Generalisation runs across $\omega$}
+\subsubsection{Generalisation runs across $\omega$}
 \label{app:postcatch22:generalize}
 
 The SR generalisation campaign showed the strongest and weakest transfer cases
@@ -1216,7 +1215,7 @@ simultaneously:
 
 This directly motivated multi-wave cascade campaigns.
 
-\subsection{Cascade campaigns}
+\subsubsection{Cascade campaigns}
 \label{app:postcatch22:cascade}
 
 Cascade campaigns implemented structured inheritance:
@@ -1238,7 +1237,7 @@ The strongest concrete successes to date in this phase include:
   ($E=65.70699\pm0.00595$, error $+0.010\%$).
 \end{itemize}
 
-\subsection{Coalescence-focused matrix}
+\subsubsection{Coalescence-focused matrix}
 \label{app:postcatch22:coalescence}
 
 The $2\times2\times3$ coalescence matrix (hard cusp gate on/off,
@@ -1253,7 +1252,7 @@ regularised-resampling on/off, three seeds) provided a useful controlled test:
 This result narrowed the practical hypothesis space: in the tested low-$\omega$
 setting, sampling regularisation mattered more than structural hard gating.
 
-\section{Current frontier: low-$\omega$ and high-$N$ stabilisation}
+\subsection{Current frontier: low-$\omega$ and high-$N$ stabilisation}
 \label{app:postcatch22:frontier}
 
 The current unresolved front remains the combination of extreme correlation
@@ -1272,7 +1271,7 @@ process-level relaunch hygiene for GPU memory contention. These changes improved
 operational stability but have not yet closed the full accuracy gap for the
 hardest targets.
 
-\section{Interpretive summary}
+\subsection{Interpretive summary}
 \label{app:postcatch22:summary}
 
 The post-catch-22 phase supports six robust conclusions.
@@ -1298,4 +1297,117 @@ From a thesis perspective, the philosophical shift was from
 ``find one better architecture'' to
 ``engineer a reliable optimisation-and-sampling pipeline that makes physically
 good ans\"atze trainable across regimes.''
+
+\subsection{Key positive and negative findings}
+\label{app:experimental-record}
+
+What follows is the complete record of methods that mattered---both those that
+worked and those that did not.
+Documenting the failures is not a concession; it is the only honest way to
+distinguish which design choices are load-bearing from which are merely
+correlated with success.
+
+\paragraph{Positive: pure REINFORCE over mixed objectives.}
+Setting $\beta{=}0$ in the hybrid loss---pure REINFORCE with no direct
+weak-form term---was consistently more stable and produced better final
+energies than any nonzero $\beta$.
+The direct term $\tilde{E}=\tfrac{1}{2}\|\nabla\log\Psi\|^2+V$ provides
+a cheaper but noisier gradient signal; at $\beta{>}0$ it interferes with
+the REINFORCE gradient by pulling toward a local-kinetic minimum that does
+not correspond to the variational minimum.
+
+\paragraph{Positive: cascade warm-start for low~$\omega$.}
+Cold-start training at $\omega{=}0.01$ never converged for $N{\ge}6$.
+Cascade initialisation from $\omega{=}0.1$ reduced the initial error from
+${\sim}30\%$ (random initialisation) to ${\sim}5\%$ and enabled subsequent
+optimisation to reach $+0.15\%$ within ${\sim}1000$ epochs.
+The geometric correlation patterns learned at higher $\omega$ transfer
+effectively to lower confinement---the network has already learned the
+relevant length scales.
+
+\paragraph{Positive: ESS-adaptive oversampling and rollback.}
+The combination of ESS-adaptive oversampling (automatically increasing
+the proposal budget when overlap is poor) and instability rollback
+(reverting to a good checkpoint when the energy jumps beyond $3\sigma$,
+with learning-rate decay) was essential for the ultra-low-$\omega$ results.
+Without these mechanisms, training at $\omega{=}0.001$ diverged within a
+few hundred epochs.
+
+\paragraph{Negative: finite-difference residual loss.}
+A finite-difference collocation loss---computing $E_L$ via graph-safe
+finite differences and penalising its spread---was tested extensively.
+At $(N{=}6,\,\omega{=}1.0)$ with the BF+Jastrow ansatz: $E{=}20.204\pm0.002$
+($+0.22\%$), against $+0.009\%$ from REINFORCE.
+FD training was more sensitive to step-size $h$ and noise in the Laplacian
+estimate, and never matched the REINFORCE objective for final accuracy.
+This is expected: the direct weak-form gradient differentiates through the
+Laplacian, which is precisely what the catch-22 shows to be pathological.
+
+\paragraph{Negative: Neural Pfaffian.}
+The Pfaffian ansatz achieved only $+0.43\%$ at $(N{=}6,\,\omega{=}1.0)$,
+more than $40{\times}$ worse than BF+Jastrow.
+The larger parameter space amplified gradient noise from importance
+sampling, making it harder to optimise reliably.
+Greater architectural expressiveness is not useful when the gradient is
+too noisy to steer it.
+
+\paragraph{Negative: backflow at $N{=}20$.}
+Backflow training at $N{=}20$ was severely limited by memory.
+The edge-feature tensor requires reducing $h_{\text{bf}}$ from $128$ to
+$48$--$64$, and this reduced-capacity backflow achieved only $+18\%$
+error at $\omega{=}1.0$, compared to $+1.45\%$ for Jastrow-only.
+The decisive factor is not expressiveness but gradient quality:
+the same GPU memory that would fund the backflow head can instead fund
+an eightfold oversampling factor, which is the correct investment when
+the ESS is $2$--$15$ per epoch.
+
+\section{Safe-feature sensitivity analysis}
+\label{app:safe-features}
+
+The pair branch of the CTNN Jastrow receives 9 input channels: four
+pair-relative features ($\Delta x$, $\Delta y$, $|r|$, $r^2$), two
+one-body position features ($x_i$, $y_i$), and three global/spin
+features (spin indicator, mean squared radius $\bar r^2$, mean soft
+radius $\bar s_1$).
+The safe-core pair features ($s_1$, $s_2$, $s_3$, RBF) are enforced to
+have bounded derivatives at coalescence, but the raw-coordinate channels
+$\Delta x$ and $\Delta y$ are not individually safe.
+
+Figure~\ref{fig:safe-sensitivity} investigates whether the network has
+learned to handle this inconsistency.
+We report two complementary quantities as a function of the pair
+distance $r$: the per-channel input \emph{sensitivity}
+$\partial f / \partial c_k$ (gradient magnitude, measuring how much
+the output changes if a channel is perturbed), and the per-channel
+\emph{attribution} (integrated gradient, measuring how much each channel
+actually contributes to the output).
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.90\textwidth]{fig_arch_sensitivity}
+\caption{Safe-feature sensitivity and attribution for the CTNN Jastrow
+at $N{=}6$, $\omega{=}1.0$.
+\emph{Left}: per-channel sensitivity (gradient magnitude) as a function
+of pair distance $r$.
+\emph{Right}: per-channel attribution integrated over sample
+configurations, shown for three confinement strengths.
+Raw-coordinate channels $\Delta x$ and $\Delta y$ exhibit high
+sensitivity (the network's gradients are large with respect to them)
+but consistently low attribution (they contribute little to the output),
+indicating that the network has learned to globally suppress these
+channels rather than relying on them for the variational signal.}
+\label{fig:safe-sensitivity}
+\end{figure}
+
+The diagnostic confirms the mechanism described in §\ref{subsec:nqs}.
+Although $\Delta x$ and $\Delta y$ are not individually safe at
+coalescence, the network avoids using them as primary inputs: their
+attribution remains low at all confinement strengths tested, while the
+radial channel $|r|$ and the spin indicator dominate.
+The coalescence constraint is enforced by the safe-core features for the
+channels that matter most to the output; the unsafe channels are present
+but suppressed.
+This is a learned regularity, not an architectural guarantee, and it
+explains why the local-energy variance remains bounded in practice despite
+the presence of unsafe input channels.
 

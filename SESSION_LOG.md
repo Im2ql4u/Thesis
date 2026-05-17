@@ -14,6 +14,32 @@ Last session: [2026-04-15] — N=20 ShellFlow collapse diagnosis and stabilized 
 See ARCHIVE.md for full history.
 
 ---
+## Session 2026-05-17 — Architecture diagnostics integration
+
+**Tasks completed:**
+1. Generated thesis-ready figures from pre-computed npz data (`scripts/plot_arch_thesis.py`):
+   - `fig_arch_attribution.pdf` — 3-panel Jastrow channel attribution by ω
+   - `fig_arch_bfgeo.pdf` — backflow direction and spin-resolved displacement
+   - `fig_arch_force_alignment.pdf` — force alignment sign reversal across Wigner crossover (centerpiece result)
+   - `fig_arch_sensitivity.pdf` — safe-feature sensitivity vs attribution (for appendix)
+   - Three-body and ablation data → tables, not figures
+2. Copied 4 keeper figures to `results/figures/results/`
+3. `method.tex`: Added `\section{The cell view: both networks as a unified message-passing system}` with three-body table (2.03×/2.93×/1.05× across ω); added safe-core channel suppression note in pair branch; added REINFORCE gradient-norm qualifier (2.4× lower than FD-Colloc)
+4. `results.tex`: Added architecture overview paragraph; added `\subsection{Message-passing is essential}` with ablation table (22–30% energy cost, 100% kinetic); added attribution figure with spin-channel shift story; added BF geometry figure; added `\subsection{Force-aligned backflow across the Wigner crossover}` with force_alignment figure and full narrative of the sign reversal
+5. `appendix.tex`: Added `\section{Safe-feature sensitivity analysis}` with sensitivity figure documenting global channel suppression mechanism
+6. `discussion.tex`: Added force-alignment result reference in energetic-role-of-backflow paragraph
+7. PDF compiles cleanly: 96 pages, no undefined references
+
+**Key new results integrated:**
+- Force alignment sign reversal: trap-aligned at ω≥0.1 (cos≈+0.97), full sign flip at ω=0.001 (cos_trap≈−0.83, cos_Coul≈+0.83) — lattice-correction mode at Wigner crossover
+- Message-passing cell accounts for 22–30% energy at moderate ω, all kinetic; 100% ΔE is kinetic (potentials unchanged)
+- Three-body sensitivity collapses at ω=0.001 (1.05×) from 2.93× at ω=0.1 — physical interpretation: Wigner lattice is pairwise-dominated
+
+**Changed files:** method.tex, results.tex, appendix.tex, discussion.tex + figures copied to results/figures/results/
+
+**Status:** PDF compiles cleanly. All new diagnostic results from architecture_diagnostics runs are integrated.
+
+---
 ## Session 2026-05-11 — Thesis restructuring: full five-layer integration
 
 **Tasks completed:**

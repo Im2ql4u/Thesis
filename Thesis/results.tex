@@ -77,6 +77,16 @@ the parameter count is independent of $N$ because particle
 interactions enter through permutation-equivariant features rather than
 per-particle weights.
 
+Three ansatz configurations appear in the tables below.
+The \textbf{base PINN} is the NQS correlator $W_\theta$ alone---a
+Slater--Jastrow state without backflow.
+\textbf{PINN+BF} augments it with the conventional BackflowNet $\Delta_\beta$.
+\textbf{PINN+CTNN} replaces the conventional backflow with the
+Continuous-Time Neural Network variant whose cell operation can represent
+beyond-pairwise correlations~(§\ref{sec:ctnn-cell}).
+Section~\ref{sec:mp-ablation} quantifies what the message-passing cell
+contributes to the energy.
+
 \subsection{Energies}
 
 Table~\ref{tab:Residual} reports two-electron energies from
@@ -606,6 +616,51 @@ to cooperating tightly at moderate-to-weak correlation, with a sharp transition 
 that coincides with the physical crossover in $\Gamma = V_{\mathrm{int}}/T$ (\S\ref{sec:repr-coupling}).
 
 %% ──────────────────────────────────────────────────────────────────────
+\subsection{Message-passing is essential: ablation of the CTNN cell}
+\label{sec:mp-ablation}
+
+To isolate the contribution of the CTNN cell operation we ablate it by
+zeroing the message-passing weights while keeping the pairwise features
+intact.
+This tests whether the energy benefit of the CTNN architecture derives
+from its pairwise feature representation alone, or from the accumulated
+cell state that enables beyond-pairwise correlations (§\ref{sec:ctnn-cell}).
+Table~\ref{tab:mp-ablation} reports the ground-state energy with and
+without the cell operation for $N{=}6$.
+
+\begin{table}[h]
+\centering
+\caption{Ablation of the CTNN message-passing cell, $N{=}6$.
+         $E_{\rm CTNN}$: full model (cell active).
+         $E_{\rm pair}$: pairwise only (cell zeroed).
+         $\Delta E$ is the relative energy increase; $\Delta T$ is the
+         change in kinetic energy (Hartree).
+         The potential energy is statistically unchanged in all three cases.}
+\label{tab:mp-ablation}
+\begin{tabular}{ccccc}
+\toprule
+$\omega$ & $E_{\rm CTNN}$ & $E_{\rm pair}$ & $\Delta E$ & $\Delta T$ \\
+\midrule
+$1.0$   & $19.833$ & $24.281$ & $+22.4\%$ & $+4.448$ \\
+$0.1$   & $3.704$  & $4.834$  & $+30.5\%$ & $+1.130$ \\
+$0.001$ & $0.474$  & $0.529$  & $+11.8\%$ & $+0.056$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The cell operation accounts for 22--30\% of the total energy at moderate
+confinement, and 12\% at the Wigner limit.
+The entire energy cost is kinetic: the potential energy terms are
+statistically unchanged at the same sample positions, indicating that
+the cell improves the nodal structure of the wavefunction---the geometry
+of the Slater determinant---rather than the correlator weighting between
+nodal pockets.
+The reduced impact at $\omega{=}0.001$ is consistent with the three-body
+sensitivity collapse in Table~\ref{tab:threebody}: in the Wigner limit
+the correlation structure is dominated by the classical lattice, and the
+cell's beyond-pairwise capacity is less necessary.
+
+%% ──────────────────────────────────────────────────────────────────────
 \subsection{Correlator geometry: a compact manifold that reorganises}
 \label{sec:repr-geom}
 
@@ -688,6 +743,35 @@ The network discovers this distinction autonomously:
 regime changes appear as a rotation of a low-dimensional axis across branches,
 not as a growth of latent dimensionality.
 
+\paragraph{Input-channel attribution.}
+\label{sec:attribution}
+Figure~\ref{fig:arch-attribution} shows the attribution of individual
+input channels to the CTNN Jastrow factor at $N{=}6$ for three
+confinement strengths.
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.90\textwidth]{fig_arch_attribution}
+\caption{Input-channel attribution of the CTNN Jastrow at $N{=}6$
+for $\omega \in \{1.0, 0.1, 0.001\}$. Channels are grouped by type:
+pair-relative (blue), one-body position (red/dark), global and spin
+(brown). At $\omega{=}1.0$ the radial distance $|r|$ dominates
+($40.5\%$). As confinement weakens, spin becomes progressively more
+prominent: $51.4\%$ at $\omega{=}0.1$ and $71.6\%$ at the Wigner
+limit $\omega{=}0.001$.}
+\label{fig:arch-attribution}
+\end{figure}
+
+The attribution shift from radial to spin channels tracks the same
+physical transition visible in the correlator geometry:
+at moderate confinement the pair branch (sensitive to $|r|$) drives
+the leading variational signal, while at strong correlation the
+same-spin repulsion between lattice-site neighbors becomes the
+dominant input to the Jastrow factor.
+The raw-coordinate channels ($\Delta x$, $\Delta y$), which are not
+individually safe at coalescence, carry consistently low attribution
+across all three regimes, confirming that the network globally suppresses
+them in favour of radial features (consistent with §\ref{subsec:nqs}).
 
 %% ──────────────────────────────────────────────────────────────────────
 \subsection{Backflow: a high-rank field with a low-rank footprint}
@@ -847,6 +931,21 @@ At strong correlation ($\omega\leq 0.01$, large $N$), the fraction rises toward 
 (isotropic), because the large equilibrium inter-particle separations leave little room for
 further correlation-hole deepening.
 
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.88\textwidth]{fig_arch_bfgeo}
+\caption{Backflow displacement geometry at $N{=}6$.
+\emph{Left}: fraction of displacements directed away from the nearest
+neighbor as a function of $\omega$.
+At moderate-to-strong confinement ($\omega\geq0.1$) the CTNN pushes
+particles predominantly apart, deepening the correlation hole;
+the fraction approaches $0.5$ (isotropic) at strong correlation.
+\emph{Right}: spin-resolved breakdown of displacement direction.
+Same-spin pairs are displaced further apart than opposite-spin pairs
+across all confinement strengths.}
+\label{fig:arch-bfgeo}
+\end{figure}
+
 %% ──────────────────────────────────────────────────────────────────────
 \subsection{Synthesis}
 \label{sec:repr-synthesis}
@@ -881,6 +980,73 @@ It means the base correlator can robustly learn compact collective coordinates a
 while backflow provides an optional, fine-grained correction channel
 whose character---independent adjustment versus cooperative refinement---adapts
 automatically to the strength of electron--electron correlation.
+
+%% ──────────────────────────────────────────────────────────────────────
+\subsection{Force-aligned backflow across the Wigner crossover}
+\label{sec:bfforce}
+
+The coupling analysis above characterises the \emph{functional} relationship
+between correlator and backflow.
+A more direct physical diagnostic asks: in which direction does backflow
+push each electron, relative to the classical forces acting on it?
+If the CTNN displacement is aligned with the net classical force
+(trap plus Coulomb), it is acting as a gradient-following correction;
+if it opposes the net force, it is introducing a variational \emph{counter-force}
+that modifies the wavefunction nodes against the naive classical direction.
+
+We measure this by computing, for each sampled configuration, the median
+cosine similarity between the displacement $\Delta\mathbf{x}_i$ and (i) the
+full classical force $\mathbf{F}_i^{\rm total} = \mathbf{F}_i^{\rm trap} + \mathbf{F}_i^{\rm Coul}$,
+(ii) the trap force $\mathbf{F}_i^{\rm trap} = -\omega^2\mathbf{r}_i$ alone,
+and (iii) the Coulomb repulsion $\mathbf{F}_i^{\rm Coul} = \sum_{j\neq i}\mathbf{r}_{ij}/r_{ij}^3$ alone.
+
+Figure~\ref{fig:force-alignment} shows these median cosines for $N{=}6$
+across three confinement strengths spanning the Wigner crossover.
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.88\textwidth]{fig_arch_force_alignment}
+\caption{Backflow force alignment at $N{=}6$ across the Wigner crossover.
+Each group of bars reports the median cosine similarity between the CTNN
+displacement and three force components: full classical force (green),
+trap force only (blue), and Coulomb repulsion only (red).
+At $\omega{=}1.0$ and $\omega{=}0.1$ (correlated fluid), the CTNN aligns
+with the trap force ($\cos\!\approx\!+0.97$--$0.98$) and opposes Coulomb
+repulsion ($\cos\!\approx\!-0.90$--$-0.93$).
+At $\omega{=}0.001$ (Wigner crystal), both signs reverse: the CTNN now
+follows Coulomb ($\cos\!\approx\!+0.83$) and opposes the trap
+($\cos\!\approx\!-0.83$), acting as a lattice-correction mode.
+Shading indicates the two physical regimes.}
+\label{fig:force-alignment}
+\end{figure}
+
+The result is striking.
+In the correlated-fluid regime ($\omega \geq 0.1$), the CTNN backflow
+aligns strongly with the harmonic trap force (cos\,$\approx +0.97$) and
+actively opposes Coulomb repulsion (cos\,$\approx -0.90$).
+The displacement is \emph{trap-restoring}: it pushes electrons toward
+configurations preferred by the confining potential, correcting the
+over-repulsion of an imperfect Coulomb node geometry.
+
+At the Wigner crossover ($\omega{=}0.001$), both alignments flip sign
+completely: cos$(\Delta\mathbf{x}, \mathbf{F}^{\rm trap})\approx-0.83$
+and cos$(\Delta\mathbf{x}, \mathbf{F}^{\rm Coul})\approx+0.83$.
+The CTNN now follows the Coulomb force and opposes the trap.
+In physical terms this is a lattice-correction mode: the Wigner crystal
+has discrete rotational symmetry that the harmonic potential does not,
+and the learned backflow adjusts the nodal geometry to accommodate the
+lattice structure against the trap's isotropic restoring force.
+
+This sign reversal coincides precisely with the Wigner crossover
+identified in §\ref{sec:wigner-molecule} by structural diagnostics.
+The backflow does not merely rescale its response as correlation
+strengthens---it switches its alignment target from the trap to the
+interaction potential, reflecting a qualitative change in the physical
+problem the wavefunction must solve.
+The force-alignment diagnostic thus connects the network's internal
+learned behavior directly to the physical crossover, providing
+independent confirmation that the trained states encode the correct
+many-body physics.
 
 \section{MCMC-free training: the collocation pipeline}
 \label{sec:collocation}

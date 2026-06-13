@@ -1,0 +1,1021 @@
+\documentclass[11pt]{article}
+\usepackage[margin=2cm]{geometry}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{microtype}
+\usepackage{enumitem}
+\usepackage{booktabs}
+\usepackage{xcolor}
+\usepackage{tcolorbox}
+\tcbuselibrary{skins,breakable}
+\usepackage{hyperref}
+\hypersetup{colorlinks=true,linkcolor=blue!50!black,urlcolor=blue!50!black}
+
+\newtcolorbox{slide}[1]{
+  colback=blue!3,colframe=blue!40!black,
+  title={#1},fonttitle=\bfseries,
+  breakable, enhanced, before skip=12pt, after skip=12pt
+}
+\newtcolorbox{paper}{
+  colback=blue!5,colframe=blue!50!black,
+  title={\textbf{What the article says}},fonttitle=\bfseries,
+  breakable, enhanced
+}
+\newtcolorbox{apply}{
+  colback=green!4,colframe=green!40!black,
+  title={\textbf{How this applies to our PINN}},fonttitle=\bfseries,
+  breakable, enhanced
+}
+\newtcolorbox{say}{
+  colback=yellow!6,colframe=orange!50!black,
+  title={\textbf{What to say (rough script)}},fonttitle=\bfseries,
+  breakable, enhanced
+}
+\newtcolorbox{depth}{
+  colback=gray!7,colframe=gray!50!black,
+  title={\textbf{Depth (for your own understanding)}},fonttitle=\bfseries,
+  breakable, enhanced
+}
+\newtcolorbox{anticipate}{
+  colback=red!3,colframe=red!50!black,
+  title={\textbf{Likely examiner questions}},fonttitle=\bfseries,
+  breakable, enhanced
+}
+
+\title{\textbf{Oral exam prep --- Special curriculum}\\
+\large Presenting the two articles in depth, with our PINN work as the worked example}
+\author{Aleksander Sekkelsten}
+\date{}
+
+\begin{document}
+\maketitle
+
+\section*{Approach (30-minute talk)}
+
+The talk is a \emph{tour of the two articles}, in their own logical order, with our 2D
+quantum-dot PINN as the running worked example. Two papers, two halves, then a synthesis.
+
+\begin{itemize}[leftmargin=*]
+\item \textbf{Paper A --- Berner, Grohs, Kutyniok, Petersen, \emph{The Modern Mathematics of
+Deep Learning}.} Surveys the field around four questions: (Q1) why does over-parameterization
+still generalize, (Q2) what does depth buy in expressivity, (Q3) why do networks beat the curse
+of dimensionality, (Q4) why does non-convex optimization work --- plus a section on architectural
+priors and one on the natural sciences (PDEs, Schr\"odinger).
+\item \textbf{Paper B --- De~Ryck \& Mishra, \emph{Numerical Analysis of PINNs}.} Takes one method
+and gives it a numerical-analysis treatment in four matching questions: approximation error,
+stability, generalization (quadrature), and \textbf{training}. Its punchline: training difficulty
+is governed by the condition number of the \emph{Hermitian square} $L^\ast L$ of the differential
+operator, and almost every successful PINN trick is really \emph{preconditioning}.
+\end{itemize}
+
+\textbf{The single thread tying the whole talk together:} \emph{the many-body problem is
+nominally infinite-dimensional (FCI/HF expand into an exponentially large Hilbert space), but the
+physical ground state lives on a low-dimensional manifold, and a neural network is a machine for
+finding that manifold --- provided the problem is conditioned well enough for the optimizer to
+reach it.} Approximation theory says the manifold exists (Barron, depth, PDE-regularity);
+the conditioning theory says whether we can train to it.
+
+\textbf{Slide budget: 18 main + backups. About 90--100\,s per slide.}
+
+\vspace{1em}\hrule\vspace{1em}
+
+% ============================================================
+\begin{slide}{Slide 1 --- Outline (45\,s)}
+\textbf{On the slide:} two papers; two halves; a one-line statement of our system
+(2D parabolic quantum dots, $N\in\{2,6,12,20\}$, $\omega\in\{1,\dots,10^{-3}\}$,
+Slater--Jastrow--backflow PINN); and the closing thread (manifold + conditioning).
+\end{slide}
+
+\begin{say}
+``I'll present the two papers in two halves. First the modern-mathematics review --- approximation,
+optimization, generalization, and architecture. Then the De~Ryck--Mishra numerical analysis of
+PINNs, which is more focused and whose central result is about conditioning. Throughout I'll use
+our 2D quantum-dot calculations as the worked example, and I'll close on the one idea that connects
+both papers to our results: the many-body wavefunction lives on a low-dimensional manifold, neural
+networks are good at finding such manifolds, and whether we can actually train to it is a question
+of how well the problem is conditioned.''
+\end{say}
+
+% ============================================================
+\begin{slide}{Slide 2 --- Why machine learning for the many-body problem at all (90\,s)}
+\textbf{On the slide:}
+\begin{itemize}[leftmargin=*]
+\item The many-body Hilbert space is exponentially large: FCI expands $\Psi$ in a basis whose
+size grows combinatorially with $N$ and the number of orbitals; HF collapses it to a single
+determinant and discards correlation.
+\item But the physical ground state is \emph{not} a generic vector in that space --- it is smooth,
+symmetric, short-range-correlated, and concentrated near a low-dimensional set of configurations.
+\item A neural network does not expand in a fixed basis; it \emph{learns} a parameterization that
+adapts to the intrinsic structure. This is the core reason ML is attractive here.
+\item Empirically (our work): the learned correlator's feature space has \emph{effective rank
+$r_{\rm eff}\lesssim 3$} across the whole $(N,\omega)$ grid, even at $N{=}20$ (40-dimensional
+configuration space). The network finds a 1--3 dimensional order-parameter manifold.
+\end{itemize}
+\end{slide}
+
+\begin{say}
+``Before either paper, the motivating question: why use a neural network for a quantum many-body
+ground state at all? The traditional methods --- full configuration interaction, Hartree--Fock ---
+work by expanding the wavefunction in a basis. FCI's basis grows combinatorially; it is exact in
+principle and intractable in practice beyond a handful of particles. Hartree--Fock truncates to a
+single determinant and throws away correlation. Both are fighting the dimensionality of the Hilbert
+space head-on.
+
+The key realization, which both papers articulate in different languages, is that the physical
+ground state does not use that whole space. It is smooth, it respects permutation and rotational
+symmetry, its correlations are short-ranged, and it concentrates on a low-dimensional set of
+configurations. A neural network is precisely a tool for discovering and parameterizing that
+low-dimensional structure rather than expanding against it. In our own results we can measure this
+directly: the correlator's internal feature space has an effective rank below three across the
+entire phase diagram, even for twenty electrons in a forty-dimensional configuration space. The
+network compresses an apparently astronomical problem onto a one-to-three dimensional manifold.
+That compression is the whole game, and it is what the modern-mathematics article calls escaping
+the curse of dimensionality.''
+\end{say}
+
+\begin{depth}
+\textbf{This frame pays off three times.} (1) In Paper A's approximation theory: Barron spaces and
+PDE-regularity are exactly the structural assumptions under which the curse is provably broken ---
+they are formal statements of ``the manifold exists.'' (2) In Paper A's architecture section:
+equivariance is how we tell the network where the manifold's symmetries are, so it does not waste
+capacity. (3) In Paper B's training analysis: even if the manifold exists, gradient descent only
+reaches it quickly if the problem is well-conditioned. So ``manifold exists'' (approximation) and
+``manifold reachable'' (conditioning) are the two halves, and our thesis is largely about the
+second.
+\end{depth}
+
+\vspace{2em}\hrule
+\begin{center}\Large\textbf{Part I --- The Modern Mathematics of Deep Learning}\end{center}
+\hrule\vspace{1em}
+
+% ============================================================
+\begin{slide}{Slide 3 --- Paper A: the four questions and the bias--variance puzzle (75\,s)}
+\textbf{On the slide:}
+\begin{itemize}[leftmargin=*]
+\item Classical learning theory: risk $=$ approximation error $+$ estimation (generalization) error;
+controlling generalization requires limiting hypothesis-class complexity (VC, Rademacher).
+\item Deep networks violate the classical wisdom: they have far more parameters than data, interpolate
+the training set, yet generalize. Classical bounds are vacuous.
+\item The article's four questions: (Q1) generalization of over-parameterized nets; (Q2) role of
+depth; (Q3) beating the curse of dimensionality; (Q4) why optimization succeeds.
+\item Section map: 1.2 generalization, 1.3 depth/expressivity, 1.4 curse of dimensionality,
+1.5 optimization, 1.6 architectures, 1.7 learned features, 1.8 natural sciences (PDEs/Schr\"odinger).
+\end{itemize}
+\end{slide}
+
+\begin{say}
+``The modern-mathematics article opens by setting up classical statistical learning theory --- the
+decomposition of risk into approximation error and estimation error --- and then immediately points
+out that deep learning breaks it. Classical theory says: to generalize, restrict the complexity of
+your hypothesis class so that fitting the training data means something. Deep networks do the
+opposite. They have orders of magnitude more parameters than training points, they interpolate the
+data exactly, and they still generalize to new data. Every classical bound --- VC dimension,
+Rademacher complexity --- is vacuous in this regime. So the article organizes the modern theory
+around four questions: why over-parameterized networks generalize, what depth buys you, how networks
+beat the curse of dimensionality, and why a non-convex optimization problem is solvable at all. I'll
+take these roughly in the article's order, and tie each to our work.''
+\end{say}
+
+% ============================================================
+\begin{slide}{Slide 4 --- Approximation I: universal approximation is not enough; the curse (90\,s)}
+\textbf{On the slide:}
+\begin{itemize}[leftmargin=*]
+\item Universal approximation (Cybenko 1989, Hornik 1991): a one-hidden-layer network with
+non-polynomial activation is dense in $C(K)$. A \emph{topological} statement --- no rate.
+\item With rates, the curse appears: approximating a $C^s$ function on $\mathbb R^d$ to accuracy
+$\varepsilon$ needs $\sim\varepsilon^{-d/s}$ parameters. Exponential in $d$.
+\item \textbf{Dimensional analysis of our problem.} $d_{\rm config}=Nd$: $N{=}2\to4$,
+$N{=}6\to12$, $N{=}12\to24$, $N{=}20\to40$. A naive $C^s$ rate at $d{=}40$ is hopeless
+($\varepsilon^{-40/s}$).
+\item Escape routes the article names: smoothness, compositionality, low-dimensional support
+(manifold), \textbf{symmetry}, and \textbf{Barron regularity} (next slide).
+\end{itemize}
+\end{slide}
+
+\begin{say}
+``The first pillar is approximation. The theorem everyone remembers is universal approximation: one
+hidden layer suffices to approximate any continuous function on a compact set. The article is
+careful to call this what it is --- a topological density statement with no rate attached. The
+moment you ask how many neurons you need for accuracy $\varepsilon$, the curse of dimensionality
+appears: for a function with $s$ derivatives on a $d$-dimensional domain, you need on the order of
+$\varepsilon^{-d/s}$ parameters.
+
+For our problem this is the central obstacle. The configuration space is $Nd$-dimensional: four
+dimensions for two electrons, but forty for twenty electrons in 2D. A naive smoothness-based rate at
+$d{=}40$ is utterly hopeless --- $\varepsilon^{-40/s}$ is astronomical for any realistic $s$. So the
+entire question of whether a neural wavefunction is feasible reduces to: does our target have extra
+structure that breaks the curse? The article lists the escape routes --- smoothness alone is not
+enough, but compositional structure, low-dimensional support, symmetry, and what's called Barron
+regularity all are. Our ansatz is engineered to exploit every one of these.''
+\end{say}
+
+\begin{depth}
+\textbf{Why FCI/HF do not escape and NN can.} FCI is essentially a linear approximation in a fixed
+(if huge) basis --- it is a spectral method, and spectral/finite-element/sparse-grid methods
+provably suffer the curse for generic high-dimensional targets (the article states this explicitly
+in 1.4.3). HF is a rank-one nonlinear approximation that discards correlation. Neural networks are
+\emph{nonlinear, adaptive} approximators: the basis functions move during training to where the
+target has mass. The article's depth and Barron results are the rigorous statements that this
+adaptivity can beat the curse.
+\end{depth}
+
+% ============================================================
+\begin{slide}{Slide 5 --- Approximation II: Barron spaces and dimension-independent rates (100\,s)}
+\textbf{On the slide:}
+\begin{itemize}[leftmargin=*]
+\item \textbf{Barron's theorem (1.27).} If $g$ has a finite first Fourier moment,
+$C_g=\int_{\mathbb R^d}\|\xi\|_2\,|\hat g(\xi)|\,d\xi<\infty$, then a two-layer network with $n$
+neurons approximates $g$ in $L^2$ with error $\le c\,C_g/\sqrt n$.
+\item The rate $n^{-1/2}$ is \textbf{independent of dimension $d$}. The price of dimension is hidden
+in $C_g$, not in the exponent.
+\item Mechanism: write $g$ via its inverse Fourier transform as an expectation, then approximate the
+expectation by Monte Carlo over $n$ random neurons (law of large numbers). The $n^{-1/2}$ is the MC
+rate.
+\item \textbf{Generalized / spectral Barron spaces} (E, Wojtowytsch; Barron--Klusowski) extend this
+to deep, compositional functions --- and crucially to PDE solutions, including \emph{static
+Schr\"odinger equations in spectral Barron spaces} (Chen--Lu--Lu--Zhou 2023, cited by Paper B).
+\end{itemize}
+\end{slide}
+
+\begin{say}
+``This is the result the article uses to break the curse, and it is the one I'd want to be able to
+state precisely. Andrew Barron showed in 1992--93 that if a function's Fourier transform has a finite
+first moment --- the integral of the frequency magnitude times the spectrum is finite --- then a
+two-layer network with $n$ neurons approximates it with $L^2$ error proportional to $1/\sqrt n$. The
+remarkable thing is that the exponent does not depend on the dimension at all. The dimension
+dependence is pushed into the constant $C_g$, the Barron norm. So for functions in this class, the
+curse of dimensionality in the \emph{rate} is gone.
+
+The proof idea is beautiful and physical: you write the function via its inverse Fourier transform as
+an integral, reinterpret that integral as an expectation over a probability distribution on
+frequencies, and then approximate the expectation by drawing $n$ random neurons. The $1/\sqrt n$ is
+just the Monte Carlo rate from the law of large numbers --- each neuron is one sample. So a wide
+network is doing Monte Carlo integration in frequency space.
+
+Why this matters for us: the theory was later generalized --- E and Wojtowytsch, Barron and
+Klusowski --- to deep and compositional Barron spaces, and then to PDE solutions. There is now a
+regularity theory for the \emph{static Schr\"odinger equation in spectral Barron spaces}, which
+Paper B cites. So the claim that our wavefunction is efficiently approximable by a neural network is
+not just hope --- it sits inside an existing approximation-theoretic framework.''
+\end{say}
+
+\begin{depth}
+\textbf{The connection to conditioning (preview of Part II).} The Barron norm weights the Fourier
+tail by $\|\xi\|$. Apply a differential operator and you multiply the spectrum by powers of
+$\|\xi\|$, so the residual of a PDE lives in a \emph{worse} Barron space than the solution: the
+derivative amplifies high frequencies. This is the single most important bridge between the two
+papers --- it is why a strong-form residual loss is harder to approximate \emph{and} harder to
+condition than the solution itself, and why our analytic cusp (which removes the high-frequency
+content the network would otherwise have to represent) is doing approximation-theoretic work, not
+just numerical hygiene. We return to this on slides 13--15.
+
+\textbf{The multi-electron Schr\"odinger equation appears in Paper A itself.} Section 1.4.3 cites
+Al-Hamdani et al.\ (2020): two gold-standard methods disagree on interaction energies for large
+delocalized molecules because classical numerical representations are not expressive enough for
+high-dimensional wavefunctions with long-range interactions. The article then cites results showing
+NNs provably avoid the curse for elliptic PDEs, Hamilton--Jacobi--Bellman, parametric PDEs, etc.
+Our work is an empirical instance of exactly this claim.
+\end{depth}
+
+% ============================================================
+\begin{slide}{Slide 6 --- Approximation III: depth, compositionality, and non-smooth obstructions (75\,s)}
+\textbf{On the slide:}
+\begin{itemize}[leftmargin=*]
+\item Depth separation (Telgarsky; Eldan--Shamir): functions a depth-$L$ network represents with
+$O(L)$ neurons need $\Omega(2^L)$ neurons at constant depth. Depth is qualitatively, not
+incrementally, more expressive.
+\item Compositionality (1.4.1): NNs efficiently represent compositions of low-dimensional functions;
+local-coordinate / manifold structure reduces effective dimension $d\to d'\ll d$.
+\item \textbf{Non-smooth obstruction in our problem:} the Kato cusp. $\partial_r\log\Psi$ has a
+\emph{kink} at coalescence; the wavefunction is not $C^1$ there. A smooth (or Barron-regular)
+network needs unbounded spectral budget to represent it $\Rightarrow$ we hard-wire it analytically.
+\end{itemize}
+\end{slide}
+
+\begin{say}
+``Two more approximation results, then the obstruction. First, depth separation: there are functions
+a deep network represents with linearly many neurons that a shallow network needs exponentially many
+to match. Depth is not a tuning knob; it gives access to a categorically larger function class at
+fixed budget. Second, compositionality: the article shows networks efficiently represent compositions
+of low-dimensional maps, which is how they exploit manifold structure --- they reduce the effective
+dimension from the ambient $d$ to the intrinsic $d'$.
+
+But there is an obstruction specific to our physics that no amount of depth fixes: the cusp. The
+Coulomb interaction forces the exact wavefunction to have a kink --- a discontinuous radial
+derivative --- wherever two electrons meet. That is a non-smooth feature; in Barron or Sobolev terms
+it has slowly decaying high-frequency content. A smooth network can only approximate a kink with
+ever-growing weights. So rather than spend the network's capacity fighting a singularity it can never
+exactly represent, we hard-wire the cusp with an analytic term and let the network learn only the
+smooth remainder. This is the approximation-theory justification for a choice that looks like mere
+engineering.''
+\end{say}
+
+% ============================================================
+\begin{slide}{Slide 7 --- Optimization: loss landscape, NTK, spectral bias, implicit bias (100\,s)}
+\textbf{On the slide:}
+\begin{itemize}[leftmargin=*]
+\item The loss is non-convex; no global guarantee exists. The article's resolution is the
+\textbf{wide-network / kernel regime}.
+\item \textbf{Neural Tangent Kernel:} $\Theta(x,x')=\langle\nabla_\theta f_\theta(x),
+\nabla_\theta f_\theta(x')\rangle$. As width $\to\infty$, $\Theta$ is constant along training and the
+dynamics linearize --- training becomes kernel regression.
+\item \textbf{Spectral bias:} components along large-eigenvalue NTK eigenvectors are learned fast,
+small-eigenvalue (high-frequency) components slow.
+\item \textbf{Implicit bias:} among many interpolating minima, GD selects the minimum-norm one ---
+generalization without explicit regularization.
+\item Our optimizer: \textbf{Stochastic Reconfiguration} $=$ natural gradient with the quantum Fisher
+matrix $S_{ij}=\mathrm{Cov}[O_i,O_j]$, $O_i=\partial_{\theta_i}\log\Psi$. $S$ is the QMC NTK.
+\end{itemize}
+\end{slide}
+
+\begin{say}
+``The optimization pillar. The loss surface of a deep network is non-convex with exponentially many
+critical points, and there is no worst-case guarantee that gradient descent finds a good minimum.
+The article's resolution is the wide-network limit and the Neural Tangent Kernel. The NTK is the
+inner product of parameter-gradients of the network output at two inputs. Jacot's result is that as
+the width goes to infinity, this kernel stays constant during training, the dynamics linearize, and
+training reduces to kernel regression with the NTK --- a convex problem whose convergence is governed
+by the kernel's eigenvalue spectrum.
+
+Two phenomena drop out. Spectral bias: directions with large NTK eigenvalues are learned quickly,
+small-eigenvalue directions slowly, and for smooth kernels the small eigenvalues correspond to high
+frequencies --- so networks fit low frequencies first. Implicit bias: of the infinitely many
+parameter settings that interpolate the data, gradient descent prefers the minimum-norm one, which
+is why over-parameterized nets generalize.
+
+Our optimizer makes this concrete. We use Stochastic Reconfiguration, which is natural gradient with
+the quantum Fisher information matrix as preconditioner. The Fisher matrix is built from the
+log-derivatives of the wavefunction --- it is, up to the sampling measure, exactly the NTK of the
+log-amplitude. So when SR accelerates convergence, the reason is that it rescales the slow,
+small-eigenvalue NTK directions that spectral bias would otherwise leave untrained. This is the same
+mechanism Paper B will formalize as preconditioning.''
+\end{say}
+
+\begin{depth}
+\textbf{Where the wide-network story breaks for us, and why that is the interesting part.} The NTK
+constancy requires very wide networks; ours are deliberately compact ($\sim 50$k correlator
+parameters). So we are \emph{not} cleanly in the kernel regime, and the feature manifold genuinely
+moves during training --- which is exactly why the correlator can \emph{reorganize} which branch
+dominates as $\omega$ changes (slide 17). The kernel-regime theory is the idealization; our regime is
+the feature-learning regime where the manifold itself adapts. Both papers acknowledge this gap: the
+kernel regime is where the theory is clean, the feature-learning regime is where the empirical wins
+are. We live in the second.
+\end{depth}
+
+% ============================================================
+\begin{slide}{Slide 8 --- Generalization: kernel, norm bounds, double descent --- and our analogue (90\,s)}
+\textbf{On the slide:}
+\begin{itemize}[leftmargin=*]
+\item Article's candidates (1.2): kernel-regime generalization, norm/margin-based bounds (control the
+\emph{size} of weights, not their count), implicit regularization, and \textbf{double descent}
+(test error falls again past the interpolation threshold).
+\item Honest verdict: phenomenology is robust, a tight theory is not yet settled.
+\item \textbf{Our analogue:} no train/test split. The generalization measure is the
+\textbf{variance of the local energy}, $\mathrm{Var}[E_L]$. Zero-variance principle:
+$\mathrm{Var}[E_L]=0\iff\Psi_\theta$ is an exact eigenstate.
+\item Sample efficiency: we reach DMC-level energies with $\sim 3\times10^3$ samples per SR step,
+$\sim 10^3$ steps --- orders of magnitude fewer than typical neural-VMC.
+\end{itemize}
+\end{slide}
+
+\begin{say}
+``Generalization is the pillar where the article is most candid that the theory is incomplete. It
+surveys the serious candidates: generalization in the kernel regime; norm-based and margin-based
+bounds, which control the magnitude of the weights rather than their number and so survive
+over-parameterization; implicit regularization again; and double descent, the striking empirical
+curve where increasing capacity past the interpolation threshold makes the test error fall a second
+time, contradicting the classical bias--variance U-curve. The honest summary is that we have robust
+phenomenology and no fully settled theory.
+
+For our problem the classical notion does not even apply --- there is no held-out test set. The right
+generalization measure is the variance of the local energy over configurations. The zero-variance
+principle says this variance is zero exactly when the wavefunction is an exact eigenstate, so it is
+simultaneously a measure of accuracy and of generalization. Our practical signature is sample
+efficiency: we reach diffusion-Monte-Carlo-level energies with a few thousand samples per step and
+about a thousand steps, orders of magnitude fewer samples than comparable neural approaches. That
+efficiency is the implicit-bias story in physical form: a symmetry-restricted, well-conditioned
+ansatz needs far less data to pin down the correlator.''
+\end{say}
+
+% ============================================================
+\begin{slide}{Slide 9 --- Architectures: from CNN equivariance, via ResNet--ODE, to GNN and CTNN (100\,s)}
+\textbf{On the slide:}
+\begin{itemize}[leftmargin=*]
+\item \textbf{CNN (1.6.1):} three principles --- local receptive fields, parameter sharing,
+equivariant representations. Restricting to convolutions $=$ restricting the hypothesis class to
+translation-equivariant maps. Universality holds on that restricted class.
+\item \textbf{ResNet (1.6.2):} skip connections $\bar\Phi^{(\ell)}=\varrho(\Phi^{(\ell)})+
+\bar\Phi^{(\ell-1)}$ are an Euler discretization of an ODE $\dot\varphi=h(t,\varphi)$ ---
+``continuous-time'' networks; cures vanishing/exploding gradients.
+\item \textbf{GNN (explicitly flagged as omitted, 1.6):} non-Euclidean inputs; permutation
+equivariance; cited to Bronstein, Wu.
+\item \textbf{Generalization chain:} CNN (translation) $\to$ GNN (permutation, graph) $\to$
+\textbf{CTNN} $=$ a continuous-time / ResNet-style message-passing GNN. This is \emph{our} backflow.
+\end{itemize}
+\end{slide}
+
+\begin{say}
+``Now the architecture section, which is where the article stops being generic learning theory and
+starts being directly about our network. The article's strongest positive claim is that universal
+approximation alone does not beat the curse --- \emph{structure} does --- and architecture is how you
+encode structure. It develops this for convolutional networks: three principles --- local receptive
+fields, parameter sharing, and equivariant representations. Restricting a network to convolutions is
+exactly restricting its hypothesis class to translation-equivariant functions, and you can prove
+universality \emph{on that restricted class}. You get expressivity and reduced effective dimension
+simultaneously.
+
+Then ResNets: the skip connection turns out to be an Euler step of an ordinary differential equation,
+so a deep residual network is a discretized continuous-time flow. This is both how they cure the
+vanishing-gradient problem and how you get the ``neural ODE'' viewpoint.
+
+The article explicitly flags that it omits graph neural networks --- the generalization of CNNs to
+non-Euclidean, permutation-symmetric inputs --- and points to the Bronstein and Wu surveys. That
+omission is exactly the gap our architecture fills. The chain is: CNN encodes translation
+equivariance; GNN generalizes to permutation equivariance on a graph of interacting objects; and our
+CTNN --- continuous-time neural network --- is a ResNet-style, ODE-limit message-passing GNN. So our
+backflow is the natural composition of two ideas the article develops separately: graph
+message-passing and the continuous-time residual flow.''
+\end{say}
+
+\begin{depth}
+\textbf{Why ``continuous-time'' is the right name and the right design.} The ResNet-as-ODE picture
+(1.6.2) says a residual block integrates $\dot\varphi=h(t,\varphi)$. Our CTNN backflow produces a
+displacement field $\Delta_\beta$ as a bounded, near-identity flow: zero-initialized last layer,
+$\tanh$ output, learnable positive scale, so $\Delta_\beta\approx 0$ at initialization and grows
+smoothly --- exactly an ODE flow started at the identity. This is why its displacements stay small
+($\|\Delta x\|/\ell\lesssim 0.1$, never blowing up like the conventional BackflowNet's $0.95$): the
+continuous-time parameterization is an \emph{implicit regularizer}, the architectural analogue of the
+implicit bias from slide 7. The article's two separate observations (ResNets are ODEs; architecture
+encodes priors) combine into one design decision in our network.
+\end{depth}
+
+% ============================================================
+\begin{slide}{Slide 10 --- Our architecture in detail: three networks $+$ backflow, and why (100\,s)}
+\textbf{On the slide:}
+\[
+\Psi_{\theta,\beta}(R)=\mathrm{SD}\big(\tilde R+\Delta_\beta(\tilde R)\big)\,
+\exp\Big(\underbrace{\textstyle\sum_{i<j}u_{\sigma_i\sigma_j}(\tilde r_{ij})}_{\text{analytic cusp}}
++\underbrace{W_\theta(\tilde R)}_{\text{neural correlator}}\Big)
+\]
+\begin{itemize}[leftmargin=*]
+\item \textbf{Three correlator networks.} $\phi$: particle branch (Deep Sets), per-particle embedding
+$\to$ symmetric pool. $\psi$: pair branch, embeds every pair $(i,j)$ from \emph{safe} features $\to$
+pool. $\rho$: readout, maps $[\bar h^\phi\,\|\,\bar h^\psi\,\|\,\mathbf g]\to$ scalar.
+\item \textbf{Why Deep Sets alone fails:} particle-only pooling discards relative geometry --- cannot
+represent two-body correlation. Pair branch is mandatory (Haas: Deep Sets needs correlation terms).
+\item \textbf{Why so many inputs?} 6 soft-core radial features $+$ raw $(\Delta x,\Delta y)$ $+$
+one-body $(x_i,y_i)$ $+$ spin $+$ 2 global scalars. Redundancy gives the optimizer well-conditioned,
+bounded channels to choose from.
+\item \textbf{Backflow networks $\phi_\beta,\psi_\beta$:} the CTNN message-passing flow on the
+determinant coordinates only.
+\end{itemize}
+\end{slide}
+
+\begin{say}
+``Here is our actual ansatz and the design logic. The wavefunction is a Slater determinant times the
+exponential of an analytic cusp plus a neural correlator, with the determinant optionally evaluated
+on backflow-displaced coordinates. The neural correlator is built from three hand-crafted networks.
+The particle branch $\phi$ is a Deep Sets network: it embeds each particle and pools symmetrically,
+giving permutation invariance by construction. The pair branch $\psi$ embeds every pair of particles
+from carefully designed features and pools. The readout $\rho$ takes the pooled particle embedding,
+the pooled pair embedding, and two global scalars, and maps them to the scalar log-amplitude
+correction.
+
+Why three networks and not one Deep Sets? Because a particle-only Deep Sets, however deep, literally
+cannot represent two-body correlation: once you pool the per-particle embeddings, the relative
+geometry is gone. This is a theorem-level limitation, and it is exactly what the Haas result we cite
+points out --- Deep Sets needs explicit correlation terms. The pair branch is not an enhancement; it
+is the minimum required to capture correlation physics.
+
+Why so many inputs to the pair branch? We feed six soft-core radial features, the raw coordinate
+differences, the one-body positions, a spin indicator, and two global statistics. The redundancy is
+deliberate and it is a conditioning choice: the soft-core radial features have bounded derivatives at
+coalescence, so they are safe channels for the Laplacian, and we give the optimizer a rich, mostly
+well-behaved menu to allocate over. The attribution analysis then shows the network does the
+sensible thing --- it suppresses the unsafe raw-coordinate channels and leans on the radial features,
+and the balance it strikes shifts with the physical regime.''
+\end{say}
+
+\begin{depth}
+\textbf{Did the extra inputs help, and do they condition better?} Yes, and the attribution data
+shows how. At tight confinement ($\omega{=}1$) the radial distance $|r|$ carries $40.5\%$ of the
+Jastrow's input attribution; as the trap weakens, \emph{spin} takes over --- $51.4\%$ at $\omega{=}
+0.1$, $71.6\%$ at the Wigner limit. The raw $(\Delta x,\Delta y)$ channels, which are \emph{not} safe
+at coalescence (their derivatives don't vanish there), carry consistently low attribution: the
+network learns to avoid the badly-conditioned inputs on its own. So the many-input design is a
+conditioning device --- it offers redundant, bounded ways to express the same correlation, and the
+optimizer migrates onto whichever channel is both physically informative \emph{and} numerically safe
+in each regime. This is the architectural face of the conditioning thesis from Part II: give the
+network well-conditioned coordinates and it finds the manifold faster.
+
+\textbf{Permutation/rotation bookkeeping.} $\phi,\psi$ pool symmetrically $\Rightarrow$ permutation
+invariance. Backflow uses vector messages $\mathbf r_{ij}$ and centering $\Rightarrow$ rotation
+equivariance and (near) translation invariance. Antisymmetry is the determinant. So every symmetry
+the article would have us encode is encoded.
+\end{depth}
+
+\vspace{2em}\hrule
+\begin{center}\Large\textbf{Part II --- Numerical Analysis of PINNs}\end{center}
+\hrule\vspace{1em}
+
+% ============================================================
+\begin{slide}{Slide 11 --- Paper B: PINNs as a numerical method; four matching questions (90\,s)}
+\textbf{On the slide:}
+\begin{itemize}[leftmargin=*]
+\item A PINN solves $\mathcal L u=f$ (with BCs) by minimizing the residual in strong / weak /
+variational form over a network class. PINN $=$ strong form $+$ neural ansatz.
+\item Total error decomposition (Paper B's spine):
+\[
+\underbrace{\|u_\theta-u\|}_{\text{total}}\ \lesssim\ C_{\rm stab}\big(
+\underbrace{\mathcal E_{\rm approx}}_{\text{Q1, \S4}}+
+\underbrace{\mathcal E_{\rm gen}}_{\text{Q3 quadrature, \S6}}+
+\underbrace{\mathcal E_{\rm opt}}_{\text{Q4 training, \S7}}\big),\quad
+C_{\rm stab}\ \text{(Q2, \S5)}.
+\]
+\item Q1 approximation, Q2 stability, Q3 generalization (quadrature), Q4 training.
+\item Verdict (their conclusion, verbatim spirit): \emph{the key bottleneck is training, and it is
+governed by the spectral properties of the Hermitian square $L^\ast L$; preconditioning is the cure.}
+\end{itemize}
+\end{slide}
+
+\begin{say}
+``Now the second paper. It is much more focused: one method, full numerical-analysis treatment. A
+PINN solves a PDE by minimizing its residual --- in strong, weak, or variational form --- over a
+neural ansatz; the vanilla PINN is the strong form with a neural network. De~Ryck and Mishra
+decompose the total error, the gap between the trained network and the true solution, into a stability
+constant times the sum of three pieces that mirror Paper A's pillars exactly: approximation error,
+generalization or quadrature error, and optimization or training error. The stability constant is the
+fourth, PDE-specific ingredient.
+
+Their organizing questions are: Q1, is the solution in the network class; Q2, is the PDE stable so
+that small residual implies small error; Q3, does the finite-sample loss approximate the true loss;
+and Q4, can we actually train. And their headline conclusion --- which I'll quote almost verbatim
+later --- is that the binding constraint is Q4, training, and that training difficulty is governed by
+the spectral properties of the Hermitian square of the differential operator, with preconditioning as
+the remedy. That conclusion is the heart of what I want to connect to our work.''
+\end{say}
+
+% ============================================================
+\begin{slide}{Slide 12 --- Stability (Q2): small residual $\Rightarrow$ small error, only sometimes (90\,s)}
+\textbf{On the slide:}
+\begin{itemize}[leftmargin=*]
+\item For $\mathcal L u=f$, $C_{\rm stab}=\|\mathcal L^{-1}\|$ on the relevant space. Coercive elliptic
+$\Rightarrow$ bounded (Lax--Milgram). Navier--Stokes, conservation laws $\Rightarrow$ delicate; Paper
+B proves case-by-case stability.
+\item \textbf{Eigenproblem (us):} $\mathcal L=\hat H-E$ is \emph{not invertible} on the eigenspace;
+$C_{\rm stab}=1/\text{gap}$ to the next eigenvalue. Strong-form residual is unstable near
+degeneracy.
+\item \textbf{Fix = change the form.} Rayleigh quotient $E[\Psi]=\langle\Psi|\hat H|\Psi\rangle/
+\langle\Psi|\Psi\rangle\ge E_0$. This is the \textbf{Deep Ritz} variant; bounded below, stability
+automatic. ``Regularity dictates the form.''
+\end{itemize}
+\end{slide}
+
+\begin{say}
+``Stability is the ingredient that has no analogue in ordinary deep learning. For a generic PDE, a
+small residual implies a small solution error only if the operator is invertible with a bounded
+inverse --- the stability constant. For coercive elliptic problems this is automatic; for
+Navier--Stokes or hyperbolic conservation laws it is subtle, and a large fraction of Paper B is
+devoted to proving stability estimates PDE by PDE.
+
+For us the operator is $\hat H - E$, and at the eigenvalue it is by construction singular --- the
+stability constant is the inverse of the gap to the first excited state. Near a degeneracy the gap
+closes and the strong-form residual stops controlling the error. The fix is the one the article
+recommends in general: when the strong form is ill-posed, change the form. We minimize the Rayleigh
+quotient, the variational energy, which is bounded below by the true ground-state energy. That is the
+Deep Ritz method, and the article treats it as a PINN variant with automatic stability. Their slogan
+is `regularity dictates the form,' and our pipeline is a direct instance: strong-form residual only
+for cheap pretraining, variational form for the accurate production runs.''
+\end{say}
+
+% ============================================================
+\begin{slide}{Slide 13 --- Training (Q4): the condition number is the whole story (110\,s) \emph{[Part II centerpiece]}}
+\textbf{On the slide:}
+\begin{itemize}[leftmargin=*]
+\item Linearize GD around $\theta_0$; $q_i=\partial_{\theta_i}u_{\theta_0}$. Convergence governed by
+$A_{ij}=\langle\mathcal L q_i,\mathcal L q_j\rangle$.
+\item \textbf{Theorem (7.9, 7.21):} steps to accuracy $\varepsilon$ scale as
+$\#(\varepsilon)=O\!\big(\kappa(A)\ln\tfrac1\varepsilon\big)$, $\kappa(A)=\lambda_{\max}/\lambda_{\min}$.
+\item \textbf{Theorem 7.10:} $\kappa(A)$ equals the condition number of $A\circ TT^\ast$, where
+$A=L^\ast L$ is the \textbf{Hermitian square} of the operator and $TT^\ast$ is the \textbf{kernel
+integral operator of the NTK}.
+\item For the Laplacian $L=-\Delta$: $L^\ast L=\Delta^2$ (bi-Laplacian), Fourier symbol
+$|\mathbf k|^4\Rightarrow\kappa\sim(k_{\max}/k_{\min})^4$.
+\item \textbf{``Training complexity is entirely due to the spectral properties of $L^\ast L$.''}
+Supervised learning is the special case $L=\mathrm{Id}$, $A=$ NTK only.
+\end{itemize}
+\end{slide}
+
+\begin{say}
+``This is the technical core of the second paper and, I think, the single most important slide of the
+whole talk. They linearize gradient descent around initialization, define the matrix $A$ whose
+entries are inner products of the operator applied to the parameter-gradient features, and prove that
+the number of gradient steps to reach accuracy $\varepsilon$ scales linearly with the condition
+number of $A$ times a log factor. Slow training is large condition number, full stop.
+
+Then comes the result that names the mechanism. Theorem 7.10 shows the condition number of $A$ equals
+the condition number of the Hermitian square of the differential operator --- $L^\ast L$ --- composed
+with the kernel integral operator of the neural tangent kernel. So training speed factorizes into two
+pieces: the NTK, which is the pure machine-learning part and is all you have in ordinary supervised
+learning; and $L^\ast L$, the operator part, which is what makes PINNs special and hard. For the
+Laplacian, $L^\ast L$ is the bi-Laplacian, whose Fourier symbol is $|\mathbf k|^4$, so the condition
+number scales as the fourth power of the ratio of the largest to smallest resolved frequency. That
+quartic is the precise mathematical form of `Laplacian stiffness.'
+
+Their sentence, which I'll basically quote, is that the entire extra difficulty of training a PINN
+relative to supervised learning is due to the spectral properties of $L^\ast L$. Supervised learning
+is the special case where the operator is the identity and only the NTK remains. Once you see this,
+every PINN training trick in the literature is reinterpreted as preconditioning --- as trying to make
+$TT^\ast$ approximate the inverse of $L^\ast L$, a Green's function.''
+\end{say}
+
+\begin{depth}
+\textbf{This is in our appendix, derived independently and citing this paper.} Our Laplacian-
+conditioning appendix reproduces exactly this chain: linearize, form $A=J^\ast J$, identify the
+operator-level object $L^\ast L\approx\tfrac14\Delta^2$, get the $|\mathbf k|^4$ weight, and conclude
+$\kappa\sim(k_{\max}/k_{\min})^4$ with $k_{\max}\sim 1/\ell$ for the smallest length scale $\ell$
+(nodal/cusp/localization structure). So the slide is not borrowed --- we have the same theorem in our
+own notation, and we use it to explain our regime dependence: small-$\omega$ Wigner structure and
+sharp nodes mean small $\ell$, large $k_{\max}$, worse conditioning.
+
+\textbf{The preconditioner-as-Green's-function idea (7.4).} They show preconditioning is a linear
+reparameterization $P$ with $\tilde A=P^\top A P$, and the ideal $P$ makes $TT^\ast\approx A^{-1}$.
+Their worked example is learnable Fourier features for the Poisson equation: the natural
+preconditioner is $P_{kk}=1/k^2$, which exactly undoes the $k^4$ of the bi-Laplacian and collapses
+$\kappa$ from $\ge k^4$ to $O(1)$. SR is the QMC version of this $P$.
+\end{depth}
+
+% ============================================================
+\begin{slide}{Slide 14 --- The conditioning thesis applied: how WE reduced $\kappa$ (110\,s)}
+\textbf{On the slide:} every one of our design choices is a preconditioner.
+\begin{center}
+\begin{tabular}{ll}
+\toprule
+\textbf{Our technique} & \textbf{What it conditions} \\
+\midrule
+Trap units $\tilde r=\sqrt\omega\,r$ & rescales $\ell\to O(1)$ across $\omega$; shrinks $k_{\max}/k_{\min}$ \\
+Soft-core features $ds/dr\to0$ & removes high-$|\mathbf k|$ content from the learned part \\
+Analytic cusp $\gamma r e^{-r}$ & cancels the $1/r$ residual spike (worst high-$\mathbf k$) \\
+Variational / REINFORCE form & lowers operator order $\Rightarrow$ avoids $L^\ast L$ stiffness \\
+Stochastic Reconfiguration & explicit preconditioner $P$, $TT^\ast\!\approx\!A^{-1}$ (Fisher) \\
+\bottomrule
+\end{tabular}
+\end{center}
+\textbf{Negative result we can defend:} K-FAC / Adam preconditioning on collocation \emph{does not}
+break the $0.32\%$ error floor, because they condition \emph{parameter space} ($TT^\ast$), not the
+\emph{operator} ($L^\ast L$). Only changing the form (VMC$+$SR) reaches $<0.01\%$.
+\end{slide}
+
+\begin{say}
+``This is the analysis I most want to do, and it follows directly from Theorem 7.10. If training
+speed is set by the condition number of $L^\ast L$ composed with the NTK, then every successful
+design choice in our thesis should be readable as a preconditioner --- and it is.
+
+Trap units: rescaling coordinates by root-omega fixes the characteristic length to order one across
+three decades of confinement, which directly shrinks the ratio of largest to smallest frequency that
+the network must resolve --- it attacks $k_{\max}/k_{\min}$ in the quartic. Soft-core features with
+vanishing derivative at coalescence remove high-frequency content from the part of the wavefunction
+the network has to learn. The analytic cusp cancels the $1/r$ spike in the residual, which is
+precisely the worst high-frequency contribution. The variational form lowers the order of the
+operator --- this is the `regularity dictates form' lever, trading the stiff strong-form $L^\ast L$
+for a milder object. And Stochastic Reconfiguration is the explicit preconditioner: the Fisher matrix
+plays the role of $P$, approximating the inverse of $A$, the QMC version of the Fourier-feature
+preconditioner in their Poisson example.
+
+The most instructive part is a negative result we can defend rigorously. On the collocation pipeline,
+we tried K-FAC and various Adam schedules to fix backflow training, and nothing broke a roughly
+0.3-percent error floor --- while the identical ansatz under VMC plus SR reaches below 0.01 percent.
+Theorem 7.10 explains why: K-FAC and Adam precondition the parameter-space factor, the NTK piece
+$TT^\ast$. But our stiffness is in the operator factor $L^\ast L$ --- it is operator-level, not
+parameter-level. You cannot precondition your way out of it in parameter space; you have to change
+the form of the problem. That is exactly what switching to the variational principle does, and it is
+why the only thing that worked was abandoning the strong-form collocation framework entirely.''
+\end{say}
+
+\begin{depth}
+\textbf{This negative result is the strongest single point you have.} It is a clean, falsifiable
+prediction of Paper B's central theorem, tested in our appendix across $\sim 17$ interventions
+(sampling tricks, loss modifications, regularizations, K-FAC), \emph{all} of which fail to beat
+$0.32\%$, versus $<0.01\%$ for VMC$+$SR. The mechanism is the self-referential singularity: backflow
+parameters move the node, so collocation points that informed the gradient are invalidated by the
+step --- whereas VMC resamples from the current $|\Psi_\theta|^2$ every step, co-adapting the measure
+with the node. If an examiner asks ``so is preconditioning the answer?'', the precise answer is:
+\emph{parameter-space preconditioning is necessary but not sufficient; when the stiffness is in
+$L^\ast L$, you must also reduce operator order (change the form). Our data shows both halves.}
+\end{depth}
+
+% ============================================================
+\begin{slide}{Slide 15 --- Coulomb conditioning: the cusp as a cancellation problem (90\,s)}
+\textbf{On the slide:}
+\begin{itemize}[leftmargin=*]
+\item 2D cusp conditions (spin-resolved): antiparallel $\partial_r\log\Psi|_0=1$; parallel (node)
+$\partial_r\log J|_0=\tfrac13$.
+\item A cusp-slope error $\delta a$ gives a local-energy spike $E_L\supset -\delta a/r$ --- arbitrarily
+small mismatch, arbitrarily large spike.
+\item In 2D the squared spike $\int_{r<\varepsilon}(1/r)^2\,d^2r=\infty$ (log-divergent) --- strong
+residual is dominated by rare close-pair samples; heavy-tailed MC.
+\item $L^\ast L$ for $L=\hat T+(\hat V-E)$ contains $(\hat V-E)^2\sim 1/r^2$ and mixed terms with
+$\nabla V$, $\Delta V$ --- even more singular. Coulomb \emph{inflates} the spectral spread.
+\item \textbf{Cure (ours):} analytic cusp $+$ soft features make $E_L$ bounded $\Rightarrow$ the
+quadrature assumptions of \S6 hold and SR forces become finite-variance.
+\end{itemize}
+\end{slide}
+
+\begin{say}
+``One more conditioning slide, because Coulomb deserves its own. The cusp conditions in 2D are
+spin-resolved: for antiparallel spins the log-derivative of the wavefunction at contact must equal
+one; for parallel spins the determinant already has a linear node and the Jastrow slope must be
+one-third. The danger is sensitivity: if the learned cusp slope is off by a small amount, the local
+energy acquires a spike that goes like that error over $r$ --- an arbitrarily small cusp mismatch
+produces an arbitrarily large energy spike at coalescence.
+
+In two dimensions this is especially vicious, because the squared spike is log-divergent when you
+integrate it against the 2D area element. So a strong-form squared residual is dominated by the rare
+samples where two electrons are close, and the Monte Carlo estimator becomes heavy-tailed. In the
+operator language of the previous slides, the Hermitian square $L^\ast L$ now contains a $1/r^2$ term
+from the potential squared, plus mixed kinetic-potential terms involving gradients and Laplacians of
+the Coulomb potential, which are even more singular. Coulomb directly inflates the spectral spread
+that controls the condition number.
+
+Our cure is the analytic cusp plus the soft-core features. Together they cancel the singularity in
+the local energy and stop the network from re-introducing one, so the local energy is bounded, the
+quadrature assumptions of their generalization section actually hold, and the SR forces have finite
+variance. This is the concrete sense in which the cusp engineering is conditioning, not hygiene.''
+\end{say}
+
+\vspace{2em}\hrule
+\begin{center}\Large\textbf{Part III --- Synthesis: our results through both lenses}\end{center}
+\hrule\vspace{1em}
+
+% ============================================================
+\begin{slide}{Slide 16 --- Best results and why CTNN beats a plain FFNN backflow (100\,s)}
+\textbf{On the slide:}
+\begin{itemize}[leftmargin=*]
+\item VMC$+$SR energies vs DMC: $N{=}2$ within DMC error bars; $N\in\{6,12\}$ at
+$10^{-2}$--$10^{-1}\%$; PINN$+$CTNN best column reaches e.g.\ $-0.0000\%$ at $(6,0.5)$,
+$+0.0018\%$ at $(12,0.5)$, and extends to $N{=}20$.
+\item \textbf{CTNN cell ablation} (zero message-passing, keep pairwise features), $N{=}6$:
+$\Delta E=+22.4\%$ ($\omega{=}1$), $+30.5\%$ ($\omega{=}0.1$), $+11.8\%$ ($\omega{=}0.001$).
+\item The entire increase is \textbf{kinetic}; potential unchanged $\Rightarrow$ the cell improves
+\emph{nodal geometry}, not amplitudes.
+\item Three-body sensitivity ratio: $2.03,\,2.93,\,1.05$ --- collapses in the Wigner limit.
+\end{itemize}
+\end{slide}
+
+\begin{say}
+``Now the results, read through both papers. First the energies: with VMC and SR we match diffusion
+Monte Carlo within its error bars for two electrons and stay at hundredths-to-tenths of a percent for
+six and twelve, with the CTNN variant giving the best column and extending to twenty electrons where
+we have no other neural baseline.
+
+The sharpest single experiment is the CTNN ablation. We zero the message-passing weights but keep
+every pairwise feature, so the only thing removed is the graph-neural-network piece --- the
+accumulated node state that encodes beyond-pairwise correlation. The energy degrades by 22 percent at
+tight confinement, 30 percent at intermediate, and only 12 percent in the deep Wigner limit. Two
+facts make this a clean result. The entire degradation is in the kinetic energy --- the potential is
+statistically unchanged at the same sample positions --- which means the message passing is improving
+the geometry of the nodal surface, not the amplitudes between nodes. That is what a graph network's
+extra expressivity is supposed to buy, and we see it in the kinetic energy specifically. And the
+collapse to 12 percent in the Wigner limit is physically sensible: when the electrons crystallize
+into a classical lattice, the correlation is captured by pair distances plus the lattice constraint,
+and the beyond-pairwise capacity is no longer needed. So the GNN advantage from Paper A's architecture
+section is present exactly where the physics is genuinely many-body, and switches off where it
+reduces to pairwise --- and we can read it off a single ablation table.''
+\end{say}
+
+% ============================================================
+\begin{slide}{Slide 17 --- The latent manifold: what the learned dimensions are, and how Wigner changes them (100\,s)}
+\textbf{On the slide:}
+\begin{itemize}[leftmargin=*]
+\item \textbf{Correlator:} $r_{\rm eff}\lesssim 3$ everywhere; head reconstructed from PC1 alone
+($|\rho|>0.94$, $N\ge6$). A low-dimensional order-parameter model, not a generic feature extractor.
+\item \textbf{What the axes encode:} linear probes show PC1--2 predict mean radius and radial variance
+($R^2\approx1$ for $N{=}2$); ``how big is the dot, how much do shells fluctuate.''
+\item \textbf{$\phi\leftrightarrow\psi$ transition:} $\omega\ge0.1$ pair branch $\psi$ leads PC1
+(60--73\%); $\omega\le0.01$ leading axis shifts to orbital $\phi$ / global $\mathbf g$ ($\psi<15\%$).
+\item \textbf{Backflow:} high-rank ($r_{\rm eff}\approx 2N{-}2$) but \emph{local} --- near-field
+configurations carry $\sim6\times$ their share of $\Delta E$. In deep Wigner it \emph{switches off}
+($\Delta E\sim10^{-7}$, CKA$\approx1$).
+\end{itemize}
+\end{slide}
+
+\begin{say}
+``This slide answers the questions directly: what are the latent dimensions, are they different in
+the Wigner regime, and what conditions well. The correlator's feature space has effective rank below
+three everywhere, and for six or more electrons the scalar output is essentially perfectly
+reconstructed from the first principal component alone. So the network is not behaving like a generic
+high-dimensional feature extractor; it is behaving like a one-to-three parameter order-parameter
+model. When we run linear probes from those principal components to physical summaries, the leading
+axes predict the mean radius of the dot and the variance of the radial distribution almost perfectly.
+The latent dimensions are, literally, `how big is the electron cloud' and `how much do the shells
+fluctuate.'
+
+They \emph{are} different in the Wigner regime, and this is the most interesting finding. At moderate
+to weak correlation, the leading axis is dominated by the pair branch --- the network's primary
+degree of freedom is tracking pair correlations. At strong correlation, the leading axis shifts to
+the orbital branch and the global density statistics, with the pair branch dropping below fifteen
+percent. The same fixed network reorganizes which sub-network owns its principal axis as the physics
+crosses over. And the input attribution tells the same story from the input side: radial distance
+dominates at tight confinement, spin dominates in the Wigner limit, because there the physics is
+same-spin repulsion between lattice neighbors.
+
+Backflow is the opposite kind of object: high-rank, nearly full-dimensional, but its energetic
+leverage is local --- close pairs carry several times their share of the energy correction --- and in
+the deep Wigner limit it switches off entirely, with energy corrections at the $10^{-7}$ level and
+feature manifolds essentially identical with and without it. The correlator alone represents the
+Wigner molecule.''
+\end{say}
+
+\begin{depth}
+\textbf{Tie back to conditioning and the ``ideal information flow'' question.} The user-facing way to
+say this: the ideal architecture lets information flow so the optimizer finds the low-dimensional
+manifold as fast as possible --- which in Paper B's language means keeping $\kappa(A)$ small along the
+trajectory. Our evidence that we achieved good flow: (i) the manifold the network settles on is
+genuinely low-dimensional ($r_{\rm eff}\lesssim3$), so capacity isn't wasted; (ii) the manifold can
+\emph{move} between regimes (the $\phi\leftrightarrow\psi$ switch), which only a feature-learning (not
+frozen-NTK) network can do, and which our compact width permits; (iii) backflow is a near-identity
+ODE flow, so it adds a high-rank \emph{local} correction without destabilizing the global manifold or
+inflating local-energy variance. The redundant, mostly-safe input channels are what make this flow
+well-conditioned: the network always has a bounded coordinate to express each correlation in, so
+gradients never have to pass through an ill-conditioned feature to reach the right manifold.
+\end{depth}
+
+% ============================================================
+\begin{slide}{Slide 18 --- Synthesis and one original observation (90\,s)}
+\textbf{On the slide:}
+
+\begin{tcolorbox}[colback=yellow!10,colframe=yellow!50!black,
+title=\textbf{The two papers, unified by our example},fonttitle=\bfseries]
+\textbf{Paper A:} the manifold \emph{exists} --- Barron/depth/symmetry break the curse, architecture
+encodes the symmetry. \quad\textbf{Paper B:} the manifold is \emph{reachable} iff $\kappa(L^\ast L\circ
+TT^\ast)$ is controlled --- and almost every trick is preconditioning.
+\end{tcolorbox}
+
+\begin{tcolorbox}[colback=green!7,colframe=green!50!black,
+title=\textbf{Original observation: codimension-in-pairwise},fonttitle=\bfseries]
+Let $\mathcal F_k$ be the class of $k$-round permutation-invariant message-passing nets, and
+$r(\omega)=\mathrm{Var}_{\rm intra}[W^{(k)}]/\mathrm{Var}_{\rm intra}[W^{(0)}]$. Then $r\to1$ when the
+optimal correlator already lies in the pairwise class $\mathcal F_0$, and $r>1$ otherwise. \emph{Data:}
+$r\approx1.05$ (Wigner) vs $2$--$3$ (intermediate). A variance ratio that measures the codimension of
+the physical solution inside the architectural function class.
+\end{tcolorbox}
+\end{slide}
+
+\begin{say}
+``To close, the synthesis. The two papers are two halves of one statement. Paper A establishes that
+the manifold exists --- Barron regularity, depth, and symmetry are the rigorous reasons a neural
+wavefunction can beat the curse of dimensionality, and architecture is how we tell the network where
+the symmetries are. Paper B establishes that the manifold is reachable only if the problem is
+conditioned --- training speed is the condition number of the Hermitian square composed with the
+neural tangent kernel, and essentially every successful technique is preconditioning. Our thesis is a
+worked example of both halves, and especially of the second: trap units, soft features, the analytic
+cusp, the variational form, and SR are all preconditioners, and we have the negative result showing
+parameter-space preconditioning alone is not enough.
+
+And one observation that I think genuinely lives between the two papers and is in neither. Define the
+function class of $k$-round message-passing networks, and take the ratio of the intra-bin variance of
+our full correlator to its pairwise-ablated version. That ratio is one exactly when the optimal
+solution already lies in the pairwise sub-class, and greater than one when the physics genuinely needs
+the graph-network expressivity. Our data gives about 1.05 in the Wigner regime and 2 to 3 at
+intermediate confinement. So this variance ratio is an empirical measurement of the codimension of the
+physical solution inside the architectural function class --- a way of asking, quantitatively, `does
+this system actually need a graph neural network, or would pairwise suffice?' I'd offer it as a
+conjecture supported by data, with a clear path to a theorem.''
+\end{say}
+
+\vspace{1em}\hrule\vspace{1em}
+
+% ============================================================
+\section*{Backup slides}
+
+\begin{slide}{Backup A --- Local energy and REINFORCE gradient}
+\[
+E(\theta)=\mathbb E_{R\sim|\Psi|^2}[E_L],\quad
+E_L=-\tfrac12\big(\Delta\log|\Psi|+\|\nabla\log|\Psi|\|^2\big)+V,\quad
+\nabla_\theta E=2\,\mathbb E[(E_L-b)\nabla_\theta\log|\Psi|].
+\]
+REINFORCE differentiates only through the score $\nabla_\theta\log|\Psi|$, never through the Laplacian
+path --- this is what makes backflow trainable (the catch-22 resolution).
+\end{slide}
+
+\begin{slide}{Backup B --- SR / natural gradient as preconditioner}
+$S_{ij}=\mathrm{Cov}[O_i,O_j]$, $O_i=\partial_{\theta_i}\log\Psi$; update $S\,\delta\theta=-g$,
+$g_i=\mathrm{Cov}[E_L,O_i]$. $S$ is the quantum Fisher matrix $=$ NTK of $\log\Psi$ $=$ the
+preconditioner $P P^\top$ in Paper B's \S7.4. Fails when ESS collapses (rank-deficient $S$); Adam is
+the robust fallback there.
+\end{slide}
+
+\begin{slide}{Backup C --- Barron theorem, precise statement}
+$\varrho$ ReLU/sigmoidal. For $g$ with $C_g=\int\|\xi\|_2|\hat g(\xi)|d\xi<\infty$ and prob.\ measure
+$\mu$ on $B_1(0)$:
+$\inf_\theta\|\Phi_{(d,n,1)}(\cdot,\theta)-g\|_{L^2(\mu)}\le c\,C_g/\sqrt n$.
+Dimension-free exponent; dimension hidden in $C_g$. Proof $=$ Monte Carlo over $n$ random neurons.
+\end{slide}
+
+\begin{slide}{Backup D --- Paper B condition-number theorems}
+$\#(\varepsilon)=O(\kappa(A)\ln\tfrac1\varepsilon)$ (Thm 7.9); $\kappa(A)=\kappa(A\circ TT^\ast)$
+with $A=L^\ast L$ (Thm 7.10). Poisson example: Fourier features, $A=D+\lambda dd^\top$, $D_{kk}=k^4$;
+preconditioner $P_{kk}=1/k^2$ collapses $\kappa$. Supervised learning $=$ ($L=\mathrm{Id}$, $A=$ NTK).
+\end{slide}
+
+\begin{slide}{Backup E --- Catch-22 negative-result table (collocation backflow, $N{=}6,\omega{=}0.5$)}
+Best collocation $0.32\%$; K-FAC $0.34\%$; SIR/Gumbel $0.44$--$5.0\%$; hybrid/det-filter
+$2.6$--$24.8\%$; soft-Coulomb $1.41\%$. \textbf{Same ansatz, VMC$+$SR: $<0.01\%$.} No parameter-space
+intervention beats the floor; only changing the form does.
+\end{slide}
+
+\vspace{1em}\hrule\vspace{1em}
+
+% ============================================================
+\section*{Anticipated questions}
+
+\begin{anticipate}
+\textbf{``Summarize Paper B's main conclusion in one sentence.''}\\
+Training is the binding bottleneck for PINNs, it is governed by the condition number of the Hermitian
+square $L^\ast L$ of the differential operator composed with the NTK, and almost every successful
+training technique is a form of preconditioning. (Quote: ``the key bottleneck $\dots$ depends on the
+spectral properties of the Hermitian square of the underlying differential operator, although suitable
+preconditioning might ameliorate training issues.'')
+\end{anticipate}
+
+\begin{anticipate}
+\textbf{``What is a Barron space and why does it matter for a wavefunction?''}\\
+A function whose Fourier transform has a finite first moment $C_g=\int\|\xi\|\,|\hat g|\,d\xi$; such
+functions are approximated by two-layer nets at the dimension-free rate $C_g/\sqrt n$. It matters
+because there is now a regularity theory for the static Schr\"odinger equation in spectral Barron
+spaces, so ``a neural network can represent this wavefunction efficiently'' is a theorem-backed claim,
+not a hope. The cusp is the part that is \emph{not} Barron-nice, which is why we hard-wire it.
+\end{anticipate}
+
+\begin{anticipate}
+\textbf{``You keep saying conditioning. Concretely, what reduces the condition number in your code?''}\\
+Five things, each mapping to Paper B's $L^\ast L\circ TT^\ast$: trap units shrink $k_{\max}/k_{\min}$;
+soft-core features and the analytic cusp remove the high-frequency / singular content the residual
+would otherwise carry; the variational form lowers the operator order (avoids $L^\ast L$); SR is the
+explicit Fisher preconditioner. And the negative control: K-FAC/Adam, which only precondition $TT^\ast$,
+do not break our error floor --- because the stiffness is in $L^\ast L$.
+\end{anticipate}
+
+\begin{anticipate}
+\textbf{``Why is your backflow called continuous-time, and how does that relate to the article?''}\\
+Paper A shows a ResNet is an Euler discretization of an ODE $\dot\varphi=h(t,\varphi)$. Our backflow
+is a near-identity bounded flow (zero-init last layer, $\tanh$, learnable scale) --- an ODE started at
+the identity --- applied as message passing on a graph of particles. So it is the composition of two
+of the article's architecture ideas: the continuous-time/ResNet flow and the (omitted-but-flagged)
+graph neural network.
+\end{anticipate}
+
+\begin{anticipate}
+\textbf{``Why three networks? Isn't Deep Sets a universal approximator for symmetric functions?''}\\
+Deep Sets is universal on permutation-\emph{invariant} functions, but a particle-only Deep Sets pools
+away relative geometry and so cannot represent two-body correlation at all. The pair branch is the
+minimum needed for correlation; the readout combines particle, pair, and global information. So three
+networks is not redundancy --- it is the smallest decomposition that is both symmetric and
+correlation-capable.
+\end{anticipate}
+
+\begin{anticipate}
+\textbf{``What are the latent dimensions physically, and why so few?''}\\
+The correlator's effective rank is below three across the whole grid. Linear probes show the leading
+axes are the mean radius and the radial fluctuation of the electron cloud --- global size and shell
+breathing. So few because the ground state really is a low-dimensional object once symmetry and cusp
+are removed; that is the manifold the network finds, and finding it is why ML beats basis-expansion
+methods here.
+\end{anticipate}
+
+\begin{anticipate}
+\textbf{``Are the latent dimensions different in the Wigner regime?''}\\
+Yes. The leading principal axis switches owner: pair branch dominates at $\omega\ge0.1$, orbital and
+global-density branches dominate at $\omega\le0.01$, and input attribution shifts from radial distance
+to spin. Backflow's energetic role also collapses to near zero. The dimensionality stays low but its
+\emph{content} reorganizes across the crossover.
+\end{anticipate}
+
+\begin{anticipate}
+\textbf{``Is SR just Adam with extra steps?''}\\
+No. Adam is a diagonal (per-parameter) preconditioner; SR uses the full Fisher matrix, the QMC NTK.
+For the ill-conditioned Rayleigh quotient near the optimum, the off-diagonal structure is exactly what
+must be inverted, and Adam stalls where SR makes progress --- except at low ESS, where the Fisher
+estimate goes rank-deficient and Adam becomes the robust choice. The crossover is physically
+interpretable in $(N,\omega)$.
+\end{anticipate}
+
+\vspace{1em}\hrule\vspace{1em}
+
+\section*{Final checklist}
+\begin{enumerate}[leftmargin=*]
+\item \textbf{Names:} Berner/Grohs/Kutyniok/Petersen (A); De~Ryck/Mishra (B); Barron (1993);
+Jacot (NTK).
+\item \textbf{Paper A one-liner:} four questions (generalize / depth / curse / optimize); the curse is
+broken by structure (Barron, depth, symmetry); architecture encodes the structure.
+\item \textbf{Paper B one-liner:} four matching error sources; training is the bottleneck;
+$\#\text{steps}\sim\kappa(L^\ast L\circ\text{NTK})$; preconditioning is the cure.
+\item \textbf{The thread:} manifold exists (A) $+$ manifold reachable iff well-conditioned (B); our
+work is the worked example.
+\item \textbf{Three numbers:} CTNN ablation $22/30/12\%$ ($\omega=1/0.1/0.001$); correlator
+$r_{\rm eff}\lesssim3$; collocation floor $0.32\%$ vs VMC$+$SR $<0.01\%$.
+\item \textbf{Two equations on the whiteboard:} local energy; $\kappa(A)=\kappa(L^\ast L\circ TT^\ast)$.
+\item \textbf{Strongest single point:} the K-FAC negative result --- parameter-space preconditioning
+is necessary but not sufficient; operator-level stiffness ($L^\ast L$) needs a change of form.
+\end{enumerate}
+
+\end{document}

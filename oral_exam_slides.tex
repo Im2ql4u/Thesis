@@ -1,0 +1,686 @@
+\documentclass[10pt,aspectratio=169]{beamer}
+\usetheme{metropolis}
+\usecolortheme{seahorse}
+
+\usepackage{amsmath,amssymb}
+\usepackage{booktabs}
+\usepackage{graphicx}
+\usepackage{xcolor}
+\usepackage{tcolorbox}
+\tcbuselibrary{skins}
+
+\graphicspath{%
+  {results/figures/results/}%
+  {results/figures/architecture_diagnostics/thesis/}%
+  {Thesis/}%
+}
+
+\definecolor{papA}{HTML}{1f3864}
+\definecolor{papB}{HTML}{8b0000}
+\definecolor{ourwork}{HTML}{1e6e3a}
+
+\newcommand{\paperA}[1]{\textcolor{papA}{\textbf{#1}}}
+\newcommand{\paperB}[1]{\textcolor{papB}{\textbf{#1}}}
+\newcommand{\ours}[1]{\textcolor{ourwork}{\textbf{#1}}}
+
+\setbeamertemplate{itemize items}{\textbullet}
+\setlength{\leftmargini}{1.0em}
+\setlength{\leftmarginii}{1.0em}
+
+\title{Mathematics and Numerical Analysis of Deep Learning,\\
+Applied to Quantum Many-Body PINNs}
+\subtitle{Special-curriculum oral exam}
+\author{Aleksander Sekkelsten}
+\institute{University of Oslo}
+\date{2026-05-20}
+
+\begin{document}
+
+% ============================================================
+\begin{frame}
+\titlepage
+\end{frame}
+
+% ============================================================
+\begin{frame}{Outline of the talk}
+\small
+\begin{enumerate}\setlength\itemsep{1pt}
+\item Terminology: MBSE methods (FCI, HF, CCSD, DMC, VMC, NQS); our ansatz; CTNN.
+\item \paperA{Paper A} --- four questions on deep learning theory.
+\item \paperB{Paper B} --- four questions for PINNs; we focus on Q4 (training).
+\item \ours{Our results} --- SR$+$VMC and PINN/collocation; inputs; intrinsic dimension; three-body.
+\end{enumerate}
+
+\vfill
+\begin{tcolorbox}[colback=ourwork!8,colframe=ourwork!70!black,
+  title=\textbf{Running thread},fonttitle=\bfseries,boxsep=2pt]
+\small The MBSE is nominally infinite-dimensional, but the physical ground state lives on a
+\ours{low-dimensional manifold}. \paperA{Paper A}: when this manifold \emph{exists}.
+\paperB{Paper B}: when it is \emph{reachable}. Our PINN is the worked example.
+\end{tcolorbox}
+\end{frame}
+
+% ============================================================
+% ============================================================
+%   TERMINOLOGY / MBSE
+% ============================================================
+% ============================================================
+\section{Terminology and scope}
+
+\begin{frame}{The MBSE problem and the standard solvers}
+\small
+For $N$ electrons in 2D ($d{=}2N$ configuration space):
+\[
+  \hat H \Psi = E\Psi,\qquad
+  \hat H = \sum_i\bigl(-\tfrac12\nabla_i^2 + \tfrac12\omega^2 r_i^2\bigr)
+         + \sum_{i<j}\tfrac{1}{r_{ij}}.
+\]
+\begin{tabular}{@{}ll@{}}
+\paperA{HF}    & mean-field; one Slater determinant; misses correlation.\\
+\paperA{CCSD}  & truncated cluster expansion; scales polynomially; fails in strong-correlation regimes (Wigner).\\
+\paperA{FCI}   & exact in a basis; basis dimension grows combinatorially in $d$.\\
+\paperA{DMC}   & stochastic projection $\propto e^{-\tau\hat H}$ onto the ground state; fixed-node bias.\\
+\paperA{VMC}   & sample $|\Psi_\theta|^2$, evaluate $\langle\hat H\rangle$; minimize variationally.\\
+\paperA{NQS}   & neural ansatz used inside VMC (Carleo--Troyer 2017 onward).
+\end{tabular}
+
+\vspace{4pt}
+\begin{tcolorbox}[colback=ourwork!8,colframe=ourwork!60,boxsep=2pt]
+\small \ours{What ML buys:} expressivity \emph{and} scaling --- FCI has the first, CCSD the second.
+The bet is that a neural ansatz can have both.
+\end{tcolorbox}
+\end{frame}
+
+% ============================================================
+\begin{frame}{Our ansatz}
+\small
+\[
+  \Psi_{\theta,\beta}(R) \;=\; \mathrm{SD}\bigl(\tilde R + \Delta_\beta(\tilde R)\bigr)\,
+  \exp\!\Big(\underbrace{\textstyle\sum_{i<j}\!u_{\sigma_i\sigma_j}(\tilde r_{ij})}_{\text{analytic cusp}}
+  + \underbrace{W_\theta(\tilde R)}_{\text{neural correlator}}\Big).
+\]
+\begin{columns}[T,onlytextwidth]
+\begin{column}{0.48\textwidth}
+\textbf{Pieces.}
+\begin{itemize}\setlength\itemsep{1pt}\small
+\item \ours{Slater determinant}: antisymmetry.
+\item \ours{Analytic cusp}: $1/r$ Kato condition; removes the singular part from $E_L$.
+\item \ours{Neural correlator $W_\theta$}: three Deep-Sets-style branches ($\phi,\psi,\rho$).
+\item \ours{Backflow $\Delta_\beta$}: Deep sets style / CTNN network; deforms the nodal surface.
+\end{itemize}
+\end{column}
+\begin{column}{0.48\textwidth}
+\textbf{Trap units} $\tilde r = \sqrt\omega\,r$: makes the harmonic length $\ell\!\to\!1$ across $\omega$.
+
+\vspace{2pt}
+\textbf{Why the determinant sees backflow but the correlator does not.} Keeps the cusp/Jastrow on the
+unmodified coordinates --- prevents a self-reinforcing feedback into the local energy.
+
+\vspace{2pt}
+\textbf{Why three networks.} Particle-only Deep Sets cannot represent pair correlation
+(Haas et al.); a pair branch is mandatory.
+\end{column}
+\end{columns}
+\end{frame}
+
+% ============================================================
+\begin{frame}{CTNN architecture}
+\small
+\textbf{One round of message passing on the particle graph:}
+\[
+  \mathbf m_{ij} = \phi_\beta(\tilde{\mathbf x}_i,\tilde{\mathbf x}_j,\mathbf r_{ij},\ldots)\cdot w^{\rm spin}_{ij},
+  \quad \mathbf m_i = \sum_{j\ne i}\mathbf m_{ij},\quad
+  \delta\tilde{\mathbf x}_i = \psi_\beta(\tilde{\mathbf x}_i\|\mathbf m_i),
+\]
+\[
+  \Delta_\beta \;=\; \tanh(\delta\tilde X)\cdot s_\beta,\qquad s_\beta = \mathrm{softplus}(s^{\rm raw}_\beta)>0,\quad
+  \text{last layer of }\psi_\beta \text{ zero-initialized.}
+\]
+\begin{columns}[T,onlytextwidth]
+\begin{column}{0.50\textwidth}
+\textbf{Why these choices.}
+\begin{itemize}\setlength\itemsep{1pt}\small
+\item Permutation-invariant (sum aggregation).
+\item Rotation-equivariant (vector messages).
+\item $k{=}1$ round of MP $\Rightarrow$ up to \emph{three-body} correlations.
+\end{itemize}
+\end{column}
+\end{columns}
+\end{frame}
+
+% ============================================================
+% ============================================================
+%   PAPER A
+% ============================================================
+% ============================================================
+\section{Paper A --- Modern Mathematics of Deep Learning}
+
+\begin{frame}{Paper A --- the four organizing questions}
+\paperA{Berner, Grohs, Kutyniok, Petersen (2021).}
+\small
+\[
+  R(f_S) - R(f^\star) \;=\; \underbrace{R(f_S)-R(f_{\mathcal F})}_{\text{generalization}}
+  + \underbrace{R(f_{\mathcal F})-R(f^\star)}_{\text{approximation}}.
+\]
+Classical bounds (VC / Rademacher) need $\dim(\mathcal F)\ll n$. Deep nets have parameters $\gg$ data, fit
+the training set exactly, yet generalize. \emph{Classical bounds are vacuous.}
+
+\vspace{4pt}
+\begin{itemize}\setlength\itemsep{1pt}\small
+\item \paperA{Q1} How do over-parameterized NNs \emph{generalize}?
+\item \paperA{Q2} What role does \emph{depth} / width play in expressivity?
+\item \paperA{Q3} How do NNs beat the \emph{curse of dimensionality}?
+\item \paperA{Q4} Why does \emph{non-convex optimization} succeed?
+\end{itemize}
+\end{frame}
+
+% ----------------- A Q1 ------------------------
+\begin{frame}{\paperA{A--Q1}: Generalization}
+\small
+\textbf{The phenomenology is robust; no unified theory.}
+
+\vspace{2pt}
+\begin{itemize}\setlength\itemsep{2pt}\small
+\item \paperA{Double descent} (Belkin et al.\ 2019): past the interpolation threshold, test error
+falls a \emph{second} time. Empirical fact the classical U-curve cannot accommodate.
+\item \paperA{NTK regime} (Jacot 2018, very wide nets): training linearizes into kernel regression
+with the Neural Tangent Kernel
+$\Theta(x,x')=\langle\nabla_\theta f(x),\nabla_\theta f(x')\rangle$ frozen at init; convergence set
+by its spectrum.
+\item \ours{For us:} the SR matrix $S=\mathrm{Cov}_{|\Psi|^2}[\partial_\theta\log|\Psi|]$ is exactly
+this NTK (of $\log|\Psi|$) in parameter space.
+\end{itemize}
+
+\vspace{4pt}
+\begin{tcolorbox}[colback=papA!5,colframe=papA!60,boxsep=2pt]
+\small \textbf{Honest verdict (article, \S1.2):} robust phenomenology, no unified theory.
+\end{tcolorbox}
+\end{frame}
+
+% ----------------- A Q2 ------------------------
+\begin{frame}{\paperA{A--Q2}: Expressivity --- depth and width}
+\small
+\textbf{Universal approximation} (Cybenko 1989, Hornik 1991): one hidden layer with non-poly.\
+activation is dense in $C(K)$ --- a \emph{topological} statement, no rate.
+
+\vspace{4pt}
+\textbf{Width vs depth (article example).} Approximating $\|x-y\|$ on $[0,1]^d\times[0,1]^d$ to error
+$\varepsilon$:
+\[
+  \text{1 hidden layer: width } \Omega\!\bigl(2^{cd}\bigr),\qquad
+  \text{multi-layer: width } \mathrm{poly}(d).
+\]
+Depth provides \emph{categorically} larger function classes at fixed budget.
+
+\vspace{4pt}
+\textbf{What width is for (article).} With $\mathrm{ReLU}$, width $\ge d_{\rm in}+1$ is necessary for
+universality at all (Hanin--Sellke); width controls the dimension of the manifold along which the
+function can vary smoothly. Depth controls compositionality; width controls cross-section.
+
+\vspace{4pt}
+\begin{tcolorbox}[colback=papA!5,colframe=papA!60,boxsep=2pt]
+\small Depth is how NNs realize hierarchical / compositional structure that classical
+(sparse-grid, spectral) methods cannot.
+\end{tcolorbox}
+\end{frame}
+
+% ----------------- A Q3 ------------------------
+\begin{frame}{\paperA{A--Q3}: Curse of dimensionality --- Barron, intrinsic $d$}
+\small
+\textbf{Curse:} approx.\ $C^s$ function on $\mathbb R^d$ to error $\varepsilon$ needs
+$\sim \varepsilon^{-d/s}$ neurons --- exponential in $d$. ($s=$ smoothness order; the more
+derivatives the target has, the faster classical methods converge.)
+
+\vspace{4pt}
+\textbf{Barron's theorem.} For $g$ with
+$C_g=\!\int_{\mathbb R^d}\!\|\xi\|_2\,|\hat g(\xi)|\,d\xi<\infty$, a two-layer net with $n$ neurons satisfies
+\[
+  \inf_\theta\|\Phi_{(d,n,1),\varrho}(\cdot,\theta)-g\|_{L^2(\mu)}
+   \;\le\; \frac{c\,C_g}{\sqrt n}.
+\]
+\centering\colorbox{papA!10}{\parbox{0.72\linewidth}{\centering\small Exponent \textbf{independent of $d$.}
+Dimension hidden in $C_g$. Proof: Monte Carlo over $n$ random neurons.}}
+
+\vspace{4pt}
+\raggedright
+\textbf{Connection to MBSE.} \paperA{HF / FCI} take a $d{=}40$ problem and expand against a basis
+that grows combinatorially. \paperA{CCSD} keeps polynomial scaling by sacrificing expressivity ---
+collapses in the Wigner regime. \ours{NN ansatz}: find the \emph{intrinsic} dimension.
+
+\vspace{2pt}
+\paperA{Note (\S1.4.3):} Coulomb / cusp parts of $\Psi$ are \emph{not} in Barron space; we
+\emph{condition} the problem (cusp factor, soft features) to push the learned part into a
+Barron-friendly class.
+\end{frame}
+
+% ----------------- A Q4 ------------------------
+\begin{frame}{\paperA{A--Q4}: Optimization --- gradients, NTK, SR}
+\small
+\textbf{The puzzle.} The loss is non-convex with exponentially many critical points; worst-case
+theory says SGD should fail. It doesn't. Why?
+
+\vspace{4pt}
+\begin{itemize}\setlength\itemsep{2pt}\small
+\item \paperA{Landscape \& saddle escape}: critical points are dominated by saddles, not bad local
+minima (Dauphin 2014); the stochastic noise in SGD kicks the iterate off saddles.
+\item \paperA{Implicit regularization}: among the many interpolating solutions, (S)GD from small init
+drifts to the min-norm / flat one $\Rightarrow$ good generalization for free.
+\item \paperA{Adam}: per-coordinate adaptive step; diagonal preconditioner from the running second
+moment of the gradient. Robust, axis-aligned curvature only.
+\item \paperA{Natural gradient}: step $S^{-1}\nabla L$ with the Fisher matrix $S$.
+\end{itemize}
+
+\vspace{4pt}
+\textbf{Architecture as optimization aid.}  CNN/GNN equivariance shrinks
+the function class.
+\end{frame}
+
+% ============================================================
+% ============================================================
+%   PAPER B
+% ============================================================
+% ============================================================
+\section{Paper B --- Numerical Analysis of PINNs}
+
+\begin{frame}{Paper B --- spine, Q1--Q3 in one slide}
+\paperB{De Ryck \& Mishra (2024).}
+\small
+\[
+  \|u_\theta - u\|_{\mathcal X}
+  \;\le\; C_{\rm stab}\bigl(\underbrace{\mathcal E_{\rm approx}}_{\text{Q1}}
+  + \underbrace{\mathcal E_{\rm gen}}_{\text{Q3}}
+  + \underbrace{\mathcal E_{\rm opt}}_{\text{Q4}}\bigr).
+\]
+\begin{itemize}\setlength\itemsep{1pt}\small
+\item \paperB{Q1 --- approximation.} $\tanh$-nets reach Sobolev rate $\varepsilon^{-d/(k-j)}$;
+this is just universal approximation in $H^k$. For us \paperA{Paper A} suffices.
+\item \paperB{Q2 --- stability.} Assume a low generalization loss; \emph{then} low training loss bounds
+the solution. \ours{For us:} zero-variance principle. $\mathrm{Var}[E_L]=0 \iff \Psi$ is an exact
+eigenstate; both losses vanish together.
+\item \paperB{Q3 --- generalization.} Concentration:
+$\sup_\theta|L_{\rm train}-L_{\rm true}|\lesssim \mathrm{Lip}\sqrt{\log\mathcal N/n}$.
+\ours{For us:} always evaluated by an independent heavy VMC.
+\end{itemize}
+
+\vspace{2pt}
+\begin{tcolorbox}[colback=papB!5,colframe=papB!60,boxsep=2pt]
+\small \textbf{Paper B's headline:} the binding bottleneck is \emph{training}, and it is governed by
+the spectrum of the \emph{Hermitian square} $L^\ast L$.
+\end{tcolorbox}
+\end{frame}
+
+% ----------------- B Q4 ------------------------
+\begin{frame}{\paperB{B--Q4}: Training $=$ conditioning of $L^\ast L \circ TT^\ast$}
+\small
+Linearize GD around $\theta_0$: $q_i=\partial_{\theta_i}u_{\theta_0}$.
+\[
+  \underbrace{A_{ij}}_{\substack{p\times p,\ \text{param space}}} = \langle Lq_i,Lq_j\rangle
+  \kappa(A)=\lambda_{\max}/\lambda_{\min}\ \text{ controls training cost.}
+\]
+\textbf{Theorem 7.10.} $\kappa(A) = \kappa(\mathbf A\circ TT^\ast)$
+($\circ$ = operator composition), with $\mathbf A=L^\ast L$ \emph{the PDE operator on $L^2(\Omega)$}
+, and $TT^\ast$ the \emph{NTK as an integral operator}. Composition
+$=$ stiffness GD feels.
+
+\vspace{4pt}
+\textbf{Laplacian.} $L=-\Delta \Rightarrow L^\ast L=\Delta^2$; Fourier symbol $|k|^4 \Rightarrow
+\kappa\sim(k_{\max}/k_{\min})^4$.
+Supervised learning is the special case $L{=}\mathrm{Id}$, $\mathbf A{=}I$. All extra PINN
+difficulty is in $L^\ast L$.
+
+\vspace{4pt}
+\textbf{Preconditioning:} choose $P$ with $PP^\top \approx (L^\ast L)^{-1}$.
+\end{frame}
+
+% ----------------- B Q4 / our negative result ------------------------
+\begin{frame}{\ours{Catch-22:} $TT^\ast$-preconditioning is not enough when $L^\ast L$ is stiff}
+\small
+\textbf{Setting.} $N{=}6,\omega{=}0.5$, backflow ansatz, collocation training.
+\textbf{17 interventions} (hard mining, smoothness penalty, hybrid loss, det filter, soft
+Coulomb, kinetic clipping,Adam variants, \ldots): all give error in $[0.32,\,24.7]\%$.
+\textbf{Same ansatz, VMC$+$SR}: $<0.01\%$.
+
+\vspace{4pt}
+\textbf{What helped.} Removing the Laplacian path from backflow gradients (REINFORCE only) while
+keeping the kinetic term in the loss. $L^\ast L$ no longer couples to backflow parameters.
+
+\vspace{2pt}
+\textbf{Why the analytic cusp works.} Kato slope fixed analytically $\Rightarrow$ the network never
+represents $1/r$ in $E_L$; a non-Barron feature taken out of the function class entirely.
+\end{frame}
+
+% ============================================================
+% ============================================================
+%   OUR RESULTS
+% ============================================================
+% ============================================================
+\section{Our results}
+
+\begin{frame}{SR$+$VMC results: PINN$+$CTNN matches DMC across the phase diagram}
+\begin{columns}[T,onlytextwidth]
+\begin{column}{0.42\textwidth}
+\centering
+\includegraphics[width=\linewidth]{rel_error_vs_omega_allN.png}\\[2pt]
+{\scriptsize Relative error vs.\ $\omega$ (SR$+$VMC).}
+\end{column}
+\begin{column}{0.56\textwidth}
+\scriptsize
+\begin{tabular}{ccccc}
+\toprule
+$N$ & $\omega$ & DMC & PINN$+$BF & PINN$+$CTNN \\
+\midrule
+2  & 1.0  & 3.00000  & $-0.0003\%$ & $-0.0000\%$ \\
+\midrule
+6  & 0.1  & 3.55385  & $+0.0295\%$ & $\mathbf{+0.0008\%}$ \\
+6  & 0.5  & 11.78484 & $+0.0395\%$ & $\mathbf{-0.0000\%}$ \\
+6  & 1.0  & 20.15932 & $+0.0083\%$ & $\mathbf{-0.0041\%}$ \\
+\midrule
+12 & 0.5  & 39.1596  & $+0.0485\%$ & $\mathbf{+0.0018\%}$ \\
+12 & 1.0  & 65.7001  & $+0.0257\%$ & $\mathbf{-0.0069\%}$ \\
+\midrule
+20 & 0.5  & 93.8752  & ---         & $\mathbf{+0.0040\%}$ \\
+20 & 1.0  & 155.8822 & ---         & $\mathbf{-0.0024\%}$ \\
+\bottomrule
+\end{tabular}
+\end{column}
+\end{columns}
+
+\vspace{4pt}
+\small\textbf{CTNN cell ablation, $N{=}6$:}
+$\omega{=}1{:}+22.4\%$, $\omega{=}0.1{:}+30.5\%$, $\omega{=}0.001{:}+11.8\%$.
+\emph{Entire increase is kinetic} $\Rightarrow$ CTNN fixes nodal geometry, not amplitudes.
+\end{frame}
+
+% ============================================================
+\begin{frame}{PINN/collocation results: MCMC-free training of the CTNN}
+\small
+\begin{columns}[T,onlytextwidth]
+\begin{column}{0.56\textwidth}
+\scriptsize
+\begin{tabular}{cccc}
+\toprule
+$N$ & $\omega$ & PINN-only (best) & vs DMC \\
+\midrule
+6 & 1.0   & 20.1613(23)  & $+0.013\%$ \\
+6 & 0.5   & 11.7847(20)  & $+0.002\%$ \\
+6 & 0.1   & 3.5571(4)    & $+0.263\%$ \\
+6 & 0.01  & 0.69141(8)   & $+0.237\%$ \\
+6 & 0.001 & 0.14118(1)   & $+0.250\%$ \\
+\midrule
+12 & 1.0  & 65.712(4)    & $+0.018\%$ \\
+12 & 0.5  & 39.171(4)    & $+0.028\%$ \\
+\midrule
+20 & 1.0  & 158.14(2)    & $+1.45\%$\ \textsuperscript{J} \\
+20 & 0.5  & 96.45(3)     & $+2.74\%$\ \textsuperscript{J} \\
+\bottomrule
+\end{tabular}\\[2pt]
+{\scriptsize \textsuperscript{J}Jastrow-only beats BF at $N{=}20$ (memory scaling).}
+\end{column}
+\begin{column}{0.42\textwidth}
+\textbf{Tricks that mattered.}
+\begin{itemize}\setlength\itemsep{1pt}\small
+\item Three-stage cascade (REINFORCE $\to$ low-LR $\to$ hard-focus).
+\item Importance-resample $4096$ from $8\times$ oversampled mixture proposal.
+\item REINFORCE only (no $\nabla_\theta$ through the Laplacian).
+\item Rollback gate on per-epoch variance.
+\end{itemize}
+
+\textbf{Where SR breaks down.} $\omega\le 0.01$: Fisher matrix becomes
+rank-deficient (eigenvalues span many decades); SR gives $+4$--$36\%$, Adam recovers $+0.15$--$0.24\%$.
+\end{column}
+\end{columns}
+\end{frame}
+
+% ----------------- Inputs / attribution ----------
+\begin{frame}{Inputs the CTNN uses --- attribution across regimes}
+\begin{columns}[T,onlytextwidth]
+\begin{column}{0.58\textwidth}
+\centering
+\includegraphics[width=\linewidth]{fig_arch_attribution.pdf}\\[2pt]
+{\scriptsize $N=6$. $\omega\in\{1.0,\,0.1,\,0.001\}$.}
+\end{column}
+\begin{column}{0.40\textwidth}
+\small
+\textbf{Channels.} 6 safe radial; raw $(\Delta x,\Delta y)$; one-body $(x,y)$; spin; 2 global stats.
+
+\vspace{2pt}
+\textbf{Observed.}
+\begin{itemize}\setlength\itemsep{0pt}\small
+\item $\omega{=}1.0$: $|r|$ dominates ($40.5\%$).
+\item $\omega{=}0.1$: spin $51.4\%$.
+\item $\omega{=}0.001$: spin $71.6\%$ (Wigner).
+\item Raw $(\Delta x,\Delta y)$ suppressed in every regime.
+\end{itemize}
+\end{column}
+\end{columns}
+
+\vspace{2pt}
+\centering
+\colorbox{ourwork!8}{\parbox{0.96\linewidth}{\centering\small
+The network self-selects bounded, informative channels in each regime --- a \ours{conditioning device}.
+This is the \paperB{Paper B} principle (slide 12) realized on the input side: well-conditioned features
+lower $\kappa$ along the trajectory. The shift radial$\to$spin tracks the physical Wigner crossover.}}
+\end{frame}
+
+% ----------------- Intrinsic dim ----------
+\begin{frame}{Intrinsic dimension --- the manifold the network finds}
+\small
+\textbf{Effective rank} $r_{\rm eff}(Z)=\exp(-\sum_i p_i\log p_i)$, $p_i=\lambda_i/\sum_j\lambda_j$,
+$\lambda_i=\mathrm{eig}\,\mathrm{Cov}(Z)$; on correlator features $Z=\bar h^\phi\|\bar h^\psi\|\mathbf g$.
+
+\begin{columns}[T,onlytextwidth]
+\begin{column}{0.46\textwidth}
+\scriptsize
+\begin{tabular}{rrccc}
+\toprule
+$N$ & $\omega$ & $r_{\rm eff}$ & $|\rho|$ & PC1 leader \\
+\midrule
+2 & 0.001 & 1.00 & 1.00 & $\psi$ \\
+2 & 1.0   & 1.53 & 0.98 & $\mathbf g$ \\
+\midrule
+6 & 0.001 & 1.52 & 0.97 & $\mathbf g$ \\
+6 & 0.1   & 2.73 & 0.94 & $\phi$ \\
+6 & 1.0   & 2.69 & 0.99 & $\psi$ \\
+\midrule
+12 & 0.001 & 1.66 & 0.96 & $\phi$ \\
+12 & 0.1   & 3.08 & 0.99 & $\psi$ \\
+12 & 1.0   & 1.76 & 0.99 & $\psi$ \\
+\midrule
+20 & 0.001 & 2.59 & 0.99 & $\psi$ \\
+20 & 1.0   & 2.32 & 0.99 & $\psi$ \\
+\bottomrule
+\end{tabular}
+\end{column}
+\begin{column}{0.52\textwidth}
+\small
+\textbf{What it says.}
+\begin{itemize}\setlength\itemsep{0pt}\small
+\item $r_{\rm eff}\le 3.1$ on the whole $(N,\omega)$ grid --- even for $d{=}40$ ($N{=}20$).
+\item Head reconstructed from PC1 alone: $|\rho|>0.94$ for $N\ge 6$.
+\item The leading axis \emph{rotates} across regimes ($\phi\leftrightarrow\psi\leftrightarrow\mathbf g$); the
+manifold does not \emph{grow}.
+\end{itemize}
+
+\vspace{2pt}
+\textbf{For backflow.} Different object: rank $\approx 2N-2$ (full geometric), CKA with correlator
+$>0.98$ everywhere $\Rightarrow$ acts in the orthogonal complement.
+
+\vspace{2pt}
+\textbf{Scaling.} $r_{\rm eff}$ stays $O(1)$ from $N{=}2$ to $20$ --- low-dimensional regardless of $d$.
+\end{column}
+\end{columns}
+\end{frame}
+
+% ----------------- Three-body ----------
+\begin{frame}{Three-body sensitivity --- what one extra round of MP buys}
+\small
+\textbf{Definition.} Bin by pair distance. Pairwise-only $f$ has zero intra-bin variance by
+construction; the CTNN cell can have variance from beyond-pairwise structure (a third particle
+changes the message to $i$ even when $r_{ij}$ is fixed). Ratio:
+\[
+  r(\omega) = \mathrm{Var}_{\rm intra}[\text{CTNN cell}]\,/\,\mathrm{Var}_{\rm intra}[\text{pairwise}].
+\]
+\textbf{Data ($N{=}6$).} $r(1.0)=2.03,\ r(0.1)=2.93,\ r(0.001)=1.05$.
+
+\vspace{2pt}
+\textbf{Interpretation.} At moderate-to-weak correlation the cell genuinely needs three-body content; in
+deep Wigner the structure is set by the classical lattice (pairwise), capacity present but unused.
+
+\vspace{2pt}
+\begin{tcolorbox}[colback=ourwork!8,colframe=ourwork!60,boxsep=2pt]
+\small \ours{Codimension-in-pairwise:} $r(\omega)\to 1$ when the optimal correlator lies in
+$\mathcal F_0$; $r(\omega)>1$ otherwise. A variance ratio measuring the codimension of the
+physical solution inside the architectural function class.
+\end{tcolorbox}
+\end{frame}
+
+% ============================================================
+\begin{frame}{Synthesis}
+\small
+\begin{itemize}\setlength\itemsep{1pt}
+\item \paperA{Paper A}: the manifold \emph{exists} --- Barron, depth, compositionality, symmetry
+break the curse; architecture encodes the symmetry.
+\item \paperB{Paper B}: the manifold is \emph{reachable} iff $\kappa(L^\ast L\circ TT^\ast)$ is
+controlled --- nearly every successful trick is preconditioning.
+\item \ours{Our PINN} sits at the intersection: conditioning (cusp, soft features, trap units, REINFORCE,
+SR/Adam regime split) brings $r_{\rm eff}\le 3$ within reach for $d=40$.
+\end{itemize}
+
+\vspace{4pt}
+\begin{tcolorbox}[colback=ourwork!8,colframe=ourwork!60,boxsep=2pt]
+\small\textbf{Take-away.} The many-body wavefunction lives on a $1$--$3$-dimensional manifold that a
+symmetry-equivariant, well-conditioned network can reach with $\sim 3\times 10^3$ MCMC samples per
+SR step --- orders of magnitude better than basis blow-up implies.
+\end{tcolorbox}
+\end{frame}
+
+% ============================================================
+% ============================================================
+%   BACKUP
+% ============================================================
+% ============================================================
+\appendix
+
+\begin{frame}{Backup: NTK proof sketch and the linearization}
+\small
+$f_t(x)=f_{\theta_t}(x)$. Chain rule on $\dot\theta=-\nabla_\theta L$:
+\[
+  \dot f_t(x) \;=\; -\!\sum_{x'}\!\Theta_t(x,x')\bigl(f_t(x')-y(x')\bigr),\qquad
+  \Theta_t(x,x')=\sum_p \partial_{\theta_p}\!f_t(x)\,\partial_{\theta_p}\!f_t(x').
+\]
+\textbf{Jacot.} As width $m\!\to\!\infty$ with appropriate scaling: parameters move only
+$O(1/\sqrt m)$ while the function moves $O(1)$, so $\Theta_t\to\Theta_0=\text{const}$. Training
+linearizes; dynamics governed by $\mathrm{spec}(\Theta_0)$.
+
+\vspace{4pt}
+\textbf{Identification with SR.} $S_{ij}=\mathrm{Cov}_{|\Psi|^2}[O_i,O_j]$, $O_i=\partial_{\theta_i}\log|\Psi|$.
+$S$ is the quantum Fisher matrix = NTK of $\log|\Psi|$ in the sampling measure. SR update
+$S\,\delta\theta=-g$ is natural gradient = explicit $TT^\ast$ preconditioner.
+\end{frame}
+
+\begin{frame}{Backup: Barron proof sketch}
+\small
+$g\in L^1(\mathbb R^d)$ with $C_g=\int\|\xi\|_2|\hat g(\xi)|d\xi<\infty$. Write
+\[
+  g(x)-g(0) \;=\; \int_{\mathbb R^d}(e^{i\xi^\top x}-1)\hat g(\xi)d\xi.
+\]
+Re-express as $C_g\,\mathbb E_{(\Xi,\tilde\Xi)\sim\mu_g}[\Gamma(\Xi,\tilde\Xi)(x)]$ with $\Gamma$
+of fixed form. Average $n$ iid draws; Bienaymé's identity gives variance $\le (2\pi C_g)^2/n$, so the
+average is within $2\pi C_g/\sqrt n$ in $L^2(\mu)$. Each $\Gamma$ is well-approximated by a single
+neuron. $\Rightarrow$ two-layer net of size $n$ at MC rate.
+
+\vspace{4pt}
+\centering\colorbox{papA!10}{\parbox{0.78\linewidth}{\centering\small \textbf{The neurons are
+Monte Carlo samples in frequency space.}}}
+\end{frame}
+
+\begin{frame}{Backup: design choices $\to$ preconditioners}
+\small
+\begin{tabular}{lll}
+\toprule
+\textbf{Technique} & \textbf{What it conditions} & \textbf{Effect on $\kappa$} \\
+\midrule
+Trap units $\tilde r=\sqrt\omega r$ & rescales $\ell\!\to\!O(1)$ across $\omega$ & shrinks $k_{\max}/k_{\min}$ \\
+Soft-core feats $ds_k/d\tilde r\!\to\!0$ & caps high-$|k|$ in learned part & bounds $k_{\max}$ \\
+Analytic cusp $\gamma r e^{-r}$ & cancels $1/r$ residual spike & removes worst $|k|$ \\
+Variational / REINFORCE & lowers operator order & replaces $L^\ast L$ stiffness \\
+Stochastic Reconfiguration & explicit $P\!\approx\!\mathbf A^{-1/2}$ (Fisher) & $\kappa\!\to\!O(1)$ in good regime \\
+\bottomrule
+\end{tabular}
+
+\vspace{6pt}
+\textbf{Local energy + REINFORCE.}
+\[
+  E_L=-\tfrac12(\Delta\log|\Psi|+\|\nabla\log|\Psi|\|^2)+V,\quad
+  \nabla_\theta E=2\,\mathbb E[(E_L-b)\nabla_\theta\log|\Psi|].
+\]
+Differentiates only through the score $\Rightarrow$ no $\nabla_\theta$ through the Laplacian path
+$\Rightarrow$ resolves the backflow catch-22.
+\end{frame}
+
+\begin{frame}{Backup: 2D cusp $+$ $\log$-divergent squared spike}
+\small
+Antiparallel (no node): $\partial_r\log\Psi|_0=1$. Parallel (linear node, 2D, $k{=}1$):
+$\partial_r\log J|_0=\tfrac{1}{2k+d-1}=\tfrac13$.
+
+\vspace{4pt}
+A cusp-slope error $\delta a$ gives $E_L\supset -\delta a/r$. Squaring:
+\[
+  \int_{r<\varepsilon}(1/r)^2 d^2\mathbf r \;=\; +\infty\quad(\text{log-divergent in 2D}).
+\]
+Strong residual dominated by close-pair samples $\Rightarrow$ heavy-tailed MC. Our analytic cusp
+plus soft-core features make $E_L$ bounded $\Rightarrow$ Paper B's quadrature bounds (\S6) apply.
+\end{frame}
+
+\begin{frame}{Backup: backflow as a force-aligned object across the Wigner crossover}
+\small
+For each sample, take median $\cos(\Delta\mathbf x,\mathbf F)$ against trap, Coulomb, total
+classical force. Result for $N{=}6$:
+\[
+  \begin{array}{lccc}
+  \omega          & \cos(\Delta,\mathbf F^{\rm trap}) & \cos(\Delta,\mathbf F^{\rm Coul}) & \cos(\Delta,\mathbf F^{\rm tot})\\
+  \hline
+  1.0,\,0.1       & +0.97,\,+0.98 & -0.90,\,-0.93 & \approx +0.97 \\
+  0.001\ (\text{Wigner}) & -0.83        & +0.83        & \approx -0.6
+  \end{array}
+\]
+\textbf{Sign flip across the Wigner crossover.} In the fluid regime backflow opposes Coulomb
+(over-repulsion correction). At Wigner it switches: it now follows Coulomb and opposes the trap, i.e.\
+becomes a lattice-correction mode against the trap's isotropic restoring force. The diagnostic
+matches the Lindemann / topology-collapse signatures of the Wigner crossover.
+\end{frame}
+
+\begin{frame}{Backup: sharp PINN--CTNN coupling transition at $\omega \approx 0.1$}
+\small
+$\langle\cos(\nabla_x f,\Delta x)\rangle$ and BF-induced output variance $|\delta f|/\sigma_f$:
+\[
+  \begin{array}{rrcc}
+  N & \omega & \langle\cos\rangle & |\delta f|/\sigma_f \\
+  \hline
+  6  & 0.01 & 0.18 & 0.05 \\
+  6  & 0.1  & 0.49 & 0.25 \\
+  6  & 1.0  & 0.77 & 0.41 \\
+  12 & 0.001 & -0.48 & 0.03 \\
+  12 & 0.1  & 0.56 & 0.39 \\
+  20 & 1.0  & 0.78 & 0.69
+  \end{array}
+\]
+Below $\omega\approx 0.1$: CTNN works in the orthogonal complement of $\nabla_x f$, modifying only
+the determinant; barely affects $f$. Above $0.1$: cooperative refinement; alignment $\to 1.0$;
+BF accounts for up to 70\% of the correlator output. The transition coincides with the physical
+crossover in $\Gamma=V_{\rm int}/T$.
+\end{frame}
+
+\begin{frame}{Backup: $N{=}20$ --- Jastrow-only beats backflow}
+\small
+Best collocation results at $N{=}20$ ($d{=}40$):
+\[
+  \omega{=}1.0:\ +1.45\%\ \text{(J-only)} \quad\text{vs}\quad +18\%\ (\text{BF}).
+\]
+\textbf{Why.} BF edge features scale $\mathcal O(N^2 h_{\rm bf})$; at $N{=}20$ this forces a
+collocation-budget / hidden-dim cut that destroys gradient quality more than the extra expressivity
+compensates. \emph{Architectural expressivity must be paid for in gradient-estimation budget};
+the SR / ESS analysis predicts exactly where the trade reverses.
+\end{frame}
+
+\end{document}

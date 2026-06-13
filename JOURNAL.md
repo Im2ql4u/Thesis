@@ -24,6 +24,39 @@ The model reads this to understand what has been tried, what worked, what failed
 
 ## Journal
 
+### [2026-06-14] — Kernel-analysis program Phase A: N=2, omega=1.0 anchor
+
+**Motivation:** Validate the entire kernel-picture analysis toolchain against an exact
+ground truth before scaling. N=2, omega=1.0 has the analytic Taut solution
+(E=3.0, Psi ~ exp(-(r1^2+r2^2)/2)(1+r12), Jastrow cusp dJ/dr|0 = 1).
+**Method:** Built generalizable analysis package `src/analysis/` (reference exact 2e solver for
+any omega via finite-volume radial diagonalisation; System builder reusing the repo Slater/psi_fn;
+diagnostics for O/S/K spectrum, SR-vs-plain alignment, GS-quality, learned-correlation, exact
+overlap; fast Adam-VMC trainer). Driver `scripts/run_phase_analysis.py` (any N, omega). Trained a
+small CTNN-VCycle Jastrow (9,842 params) for N=2, omega=1.0 by Adam-VMC, 600 steps.
+**Results:** E = 2.99586 +/- 0.00009 Ha (clipped est.; raw ~3.0 to within the variational bound);
+**|<Psi_net|Psi_exact>|^2 = 0.999984**; learned Jastrow lies exactly on the exact curve, learned
+cusp recovered. Kernel: **QGT/NTK effective rank ~1.2 out of 9,842 params (numerical rank ~175),
+kappa(S) ~ 9.5e11**. **cos(SR, imaginary-time flow) = 1.000 vs cos(plain gradient, imaginary-time)
+falling 0.26 -> 0.05 over training.** NTK-whitening figure: plain gradient weights modes by mu_a
+(starves all but the top few); SR weights all supported modes equally; the physics residual has
+power spread across all modes -> plain gradient is misaligned, SR is not.
+**Interpretation:** Confirms, against exact truth, the core thesis spine: SR = NTK whitening, and it
+steps along the projected imaginary-time (Hamiltonian) flow while the plain gradient does not, with
+the gap driven by the extreme NTK ill-conditioning (kappa ~ 1e12). The ~1-dimensional effective
+tangent space at the solution (eff_rank 1.2/9842) is the N=2 instance of the low-rank-correlator
+result and is *why* SR is so effective. Expressivity is not the bottleneck at N=2 (cos_sr=1);
+conditioning is.
+**Caveats:** Energy -0.14% below exact is a MAD-clip bias in the estimator (removes high-E_L
+coalescence spikes), not a variational violation; overlap/cusp confirm the wavefunction is exact.
+cos_sr=1.0 is partly because n_eval_samples < numerical rank (overcomplete tangent space) -- the
+robust, informative quantity is cos_plain. Single seed; CTNN-VCycle only. Adam (not SR) used for
+training speed; SR remains the diagnostic and an optional polish.
+**Output reference:** results/analysis/2026-06-14_N2_w1_ctnn_vcycle/ (REPORT.md, 4 figures,
+diagnostics.npz)
+**Next question:** Push N=2 to <0.05% (lr decay / SR polish), then sweep the full omega span
+(Phase B) to watch kappa(S) and the alignment gap evolve through the Wigner crossover.
+
 ### [2026-05-16] — Architecture diagnostics: input attribution, effective rank, REINFORCE vs FD-Colloc
 
 **Motivation:** The thesis methods section argues at length for specific design choices (safe pair features, short-range gate, REINFORCE loss) but had no empirical figures backing these claims. Two explicit `[TODO]` markers in results.tex promised ablation figures. This session was devoted to producing those figures using existing trained N=6 checkpoints — no retraining.

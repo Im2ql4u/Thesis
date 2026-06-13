@@ -1,0 +1,76 @@
+\chapter*{Preface}
+\addcontentsline{toc}{chapter}{Preface}
+
+There is a particular satisfaction in variational methods: you always know
+when you are wrong.
+The variational principle guarantees that any trial wavefunction yields an
+energy above the true ground state.
+Progress is therefore unambiguous---the energy goes down or it does not---and
+the direction of error is fixed by a theorem.
+What remains open is only how close you can get, and at what cost.
+
+This thesis is a record of that question applied to the quantum many-body
+problem.
+We take two-dimensional harmonic quantum dots, attach a physics-informed
+neural network to the Schrödinger equation, and ask what breaks when one
+actually builds such a pipeline and pushes it toward accuracy.
+The answer is not one thing.
+It is a sequence of five distinct obstacles, each with its own character,
+each illuminating something about the geometry of the problem that the
+formalism alone does not reveal.
+
+The variational principle has organized computational quantum mechanics
+since the early days of the field.
+Neural networks now join a long line of function approximators---Slater
+determinants, Jastrow factors, backflow transformations---pressed into
+the same service.
+What machine learning contributes is not fundamentally new in kind, but in
+scale and in optimization infrastructure: the ability to represent functions
+across many orders of magnitude in input scale and to update them stably
+through tens of thousands of gradient steps.
+The Jastrow factor was, in a sense, already a neural wavefunction.
+It simply lacked the surrounding machinery.
+
+What this thesis discovers is that the machinery matters as much as the network.
+The connections between machine learning and quantum mechanics run deep enough
+that the obstacles encountered here have a dual nature: they are simultaneously
+physics problems and optimization problems.
+Stochastic reconfiguration---invented by physicists to optimize variational
+wavefunctions---is precisely natural gradient descent on the variational
+manifold.
+The REINFORCE estimator from reinforcement learning is the score-function
+gradient of the variational energy.
+The Fisher information matrix in statistics is the quantum geometric tensor
+in physics.
+These were not borrowed from one field by the other; they were discovered
+independently by communities that rarely read each other's papers.
+Recognizing that they are the same mathematics feels less like a connection
+between two fields and more like the realization that there was only ever
+one field, working on the same problem from different sides.
+
+Perhaps the most instructive moments in this work are the failures.
+A subtle error in the importance-sampling code went undetected for months
+because its signature---deteriorating accuracy at larger particle numbers
+and lower confinement---was indistinguishable from insufficient architecture.
+In $Nd$ dimensions, an error in log-density grows linearly with dimension
+and is catastrophically amplified in the normalized weights; the bug was
+invisible where experiments ran quickly and catastrophic where they mattered.
+A Langevin refinement step, intuitively motivated, turned out to introduce
+a systematic gradient bias because importance-resampling weights are valid
+only when samples originate from the proposal distribution, not from a
+non-equilibrium Langevin path.
+A second-order optimizer degraded precisely when the landscape became
+ill-conditioned enough to need it, because the Fisher-matrix estimate
+collapses to noise when effective sample sizes are small.
+In each case, the failure was more informative than success could have been:
+it identified exactly what the method was quietly assuming and what the
+problem was quietly violating.
+
+Negative results of this kind are not a concession.
+They are a method.
+This thesis proceeds through three ordered decisions that every practitioner
+must make when applying neural networks to the many-body Schrödinger equation:
+what to parameterize, how to train, and how to optimize.
+The decisions are simple to state and non-trivial to make correctly, and
+the record of what happens when they are made incorrectly is, in the end,
+more instructive than any table of final energies.

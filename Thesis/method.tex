@@ -2,8 +2,7 @@
 \label{ch:trial_wavefunction}
 
 The three decisions of this thesis are implemented in the order they constrain each other.
-The ansatz is fixed first, because it determines what energies the training procedure must
-compute and what gradients the optimizer must handle.
+The ansatz is fixed first, because it determines the expressitivity of the model, and the gradient stability during training.
 This chapter implements the first decision.
 
 Before any training can begin, one must decide what to train.
@@ -57,6 +56,7 @@ Open shells introduce a degenerate manifold and additional choices for the refer
 to brief remarks only where needed.
 
 \paragraph{Spin–orbitals and basis.}
+(%! do we not use regular harmonic oscillator eigenstates?)
 One-particle spatial orbitals are Fock–Darwin functions $\{\phi_{nm}(\mathbf r)\}$ with
 $E_{nm}=\omega(2n+|m|+1)$, $n\in\mathbb N_0$, $m\in\mathbb Z$. Spin–orbitals are
 $\varepsilon_\alpha(x)=\phi_{nm}(\mathbf r)\chi_\sigma(s)$, $\sigma\in\{\uparrow,\downarrow\}$.
@@ -97,6 +97,23 @@ For closed shells we use a restricted product of spin-block determinants of the 
   \label{eq:slater}
 \end{equation}
 The correlator reweights amplitudes \emph{within} nodal pockets; without backflow, the nodes are those of~\eqref{eq:slater}.
+
+\subsection{Analytic short-range cusp}
+\label{subsec:cusp}
+Due to the necessity of the safe features in the pair branch, the NQS cannot represent the Kato cusp condition exactly. 
+We therefore add an analytic cusp term to the exponent in~\eqref{eq:ansatz-overall}. 
+We enforce the electron–electron cusp in trap units via
+\begin{equation}
+  u_{\sigma\sigma'}(\tilde r)
+  =
+  \gamma_{\sigma\sigma'}\,\tilde r\,e^{-\tilde r},
+  \qquad
+  \gamma_{\uparrow\downarrow}=\tfrac{1}{d-1},\quad
+  \gamma_{\uparrow\uparrow}=\tfrac{1}{d+1}.
+  \label{eq:cusp}
+\end{equation}
+Equivalently, in physical units $r$, $u(r)=\gamma_{\sigma\sigma'}\,(r/a_{\rm ho})\,\exp[-(r/a_{\rm ho})]$.
+The linear coefficient yields the Kato slope at contact in general $d$; the exponential taper suppresses long-range interference, which means the NQS need not unlearn cusp structure at medium/long range.
 
 \section{Neural correlator $W_\theta$}
 \label{subsec:nqs}
@@ -144,24 +161,6 @@ learns to suppress these raw-coordinate channels globally, relying
 predominantly on the radial features across all confinement strengths:
 the coalescence constraint is enforced by the architecture on the safe
 features, and learned by the network for the remaining channels.
-
-\subsection{Analytic short-range cusp}
-\label{subsec:cusp}
-Due to the necessity of the safe features in the pair branch, the NQS cannot represent the Kato cusp condition exactly. 
-We therefore add an analytic cusp term to the exponent in~\eqref{eq:ansatz-overall}. 
-We enforce the electron–electron cusp in trap units via
-\begin{equation}
-  u_{\sigma\sigma'}(\tilde r)
-  =
-  \gamma_{\sigma\sigma'}\,\tilde r\,e^{-\tilde r},
-  \qquad
-  \gamma_{\uparrow\downarrow}=\tfrac{1}{d-1},\quad
-  \gamma_{\uparrow\uparrow}=\tfrac{1}{d+1}.
-  \label{eq:cusp}
-\end{equation}
-Equivalently, in physical units $r$, $u(r)=\gamma_{\sigma\sigma'}\,(r/a_{\rm ho})\,\exp[-(r/a_{\rm ho})]$.
-The linear coefficient yields the Kato slope at contact in general $d$; the exponential taper suppresses long-range interference, which means the NQS need not unlearn cusp structure at medium/long range.
-
 
 \subsection{Global readout}
 With contributions from the particle and pair branches, we form a global representation for the final readout. In addition to the pooled embeddings $\overline{\mathbf h}^\phi$ and $\overline{\mathbf h}^\psi$, we also include two global statistics that help the network gauge overall system size and density.
@@ -267,14 +266,13 @@ With inputs expressed in trap units $\tilde R$ (already centered in practice) an
 
 \subsection{Effect on the nodes and variational safety}
 Because only $\mathrm{SD}$ is evaluated at $\tilde R'$, backflow changes the \emph{nodes} but leaves the correlator exponent on $\tilde R$. No Jacobian term is introduced (we are not performing a change of variables of the full wavefunction).
-This ``Feynman--Cohen style'' design targets fixed-node error directly while keeping the amplitude model simple and smooth.
+This ``Feynman--Cohen style'' design targets fixed-node error directly while keeping the amplitude model simple and smooth [<citation>].
 
 \subsection{Regularization, initialization, and cost}
 We found the following defaults robust across $(N,\omega)$:
 (i) $\varepsilon\in[10^{-6},10^{-4}]$ (trap units) for the soft norm;
 (ii) bounded output $\tanh$ with a learnable scale $s_\beta$ initialized in $[0.02,0.10]$;
 (iii) optional gate $\chi_{\rm bf}$ with $r_g\approx 0.3$ (trap units).
-Zero-initializing the last layer of $\psi_\beta$ makes the ansatz start exactly at the Slater nodes and improves optimizer stability.
 The compute/memory cost scales as $O\!\big(BN^2(d+H)\big)$ for batch size $B$ and hidden width $H$.
 
 \subsection{Architectural summary}
@@ -404,7 +402,7 @@ evidence.
 The resolution requires changing not what we optimize, but how we estimate
 the gradient.
 
-\section{Layer~1: gradient decoupling via REINFORCE}
+\section{gradient decoupling via REINFORCE}
 \label{sec:colloc-training}
 
 The variational energy satisfies
@@ -458,7 +456,7 @@ $\omega{=}0.1$ where the local-energy surface is comparatively smooth,
 but its higher-variance gradient degrades reliability across the
 $(N,\omega)$ parameter space.
 
-\section{Layer~3: sampling without Markov chains}
+\section{sampling without Markov chains}
 \label{sec:sampling}
 
 Equation~\eqref{eq:reinforce-method} requires samples from $|\Psi_\theta|^2$.
@@ -503,7 +501,7 @@ in the normalized weights.
 At $N{=}6$, $d{=}2$, $\omega{=}0.01$ this is a corruption factor of
 $e^{12} \approx 160{,}000$---invisible at tight confinement where the
 components nearly agree, catastrophic at weak confinement and large $N$,
-precisely the regimes of greatest physical interest.
+precisely the regimes of greatest physical interest. (%!we must clarify, and missing sources  on dnesity thing)
 
 \subsection{Effective sample size and the scaling wall}
 \label{subsec:ess}
@@ -531,7 +529,7 @@ This delays but cannot prevent ESS collapse: the number of candidates
 required to maintain a fixed ESS grows exponentially with $Nd$, setting
 a fundamental scaling limit on any MCMC-free approach.
 
-\section{Layer~3: the optimizer regime boundary}
+\section{the optimizer regime boundary}
 \label{sec:sr-stage}
 
 The gradient from~\eqref{eq:reinforce-method} is a raw stochastic estimate.
@@ -546,6 +544,7 @@ S_{kl} = \mathrm{Cov}_\pi[O_k, O_l],\quad
 g_k = 2\,\mathrm{Cov}_\pi[E_L, O_k].
 \label{eq:sr}
 \end{equation}
+(%!double check)
 Stochastic reconfiguration (SR) solves this system---approximately, via
 conjugate gradients with Tikhonov damping---to produce a geometry-aware
 update that accounts for the curvature of the wavefunction manifold rather
@@ -585,7 +584,9 @@ The REINFORCE pipeline is the primary training route throughout this
 thesis for systems where MCMC is avoided.
 A complementary pipeline uses Markov-chain sampling throughout, followed
 by a natural-gradient refinement stage.
-Both share the same ansatz and the same local-energy evaluation.
+Both share the same ansatz and the same local-energy evaluation. We always valdiate the results energy
+of a trained wavefunction by running a separate MCMC chain with the final parameters,
+ and we report the energy from that chain as the final result.
 
 \paragraph{Stage I: residual pretraining.}
 For a batch $\{\tilde{\mathbf{R}}_b\}$ drawn from the current proposal,
@@ -606,7 +607,7 @@ inside nodal pockets before any external target is imposed.
 As $\alpha$ rises, the batch mean is replaced gradually by the DMC
 reference, steering the energy without abrupt objective switches.
 
-\paragraph{Stage II: stochastic reconfiguration.}
+\paragraph{Stage II: stochastic reconfiguration & VMC.}
 After pretraining, the SR update~\eqref{eq:sr} is applied using MCMC
 samples from $|\Psi_\theta|^2$.
 Centering and whitening of $O$ improve conditioning; a trust-region bound
@@ -629,7 +630,7 @@ tractable fine-tuning problems.
 
 \section{Units and scaling}
 \label{sec:units-scaling}
-
+(%!maybe drop this or move to an appendix)
 All coordinates are expressed in trap units $\tilde{\mathbf{r}} = \sqrt{\omega}\,\mathbf{r}$
 so that the harmonic confinement energy takes the universal form
 $\tfrac{1}{2}\sum_i|\tilde{\mathbf{r}}_i|^2$ and length scales are
@@ -642,7 +643,7 @@ cover comparable dimensionless regions across all confinement strengths.
 
 \chapter{Diagnostics}
 \label{ch:analysis}
-
+(%!should trim)
 The physical motivation for each diagnostic quantity --- what it measures, why it distinguishes
 Fermi-liquid from Wigner-molecule states, and which observables are theoretically expected to
 change across the crossover --- is established in §\ref{th:analysis-struct}.

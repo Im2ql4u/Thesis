@@ -1,6 +1,6 @@
 \graphicspath{{../results/figures/results/}}
 
-\chapter{Results: Accuracy, Scaling, and Physical Content}
+\chapter{Results}
 \label{ch:results}
 
 This chapter reports what happens when the training pipeline of
@@ -35,7 +35,7 @@ network has learned internally, and how the function-space separation of
 correlator and backflow connects to the physical structures identified in the
 preceding section.
 
-\section{Layer~2: the conditioned ansatz and its energies}
+\section{The conditioned Ansarz}
 \label{sec:energy-overview}
 
 \paragraph{Context: the method hierarchy.}
@@ -43,17 +43,12 @@ Neural VMC does not exist in isolation.
 Before comparing specific energies, it is useful to locate the method in
 the hierarchy of approaches for the quantum dot problem.
 
-Hartree--Fock provides a physically motivated upper bound by optimizing
-a single Slater determinant; it captures exchange exactly but misses all
-inter-particle correlation.
-For the quantum dots studied here, HF overestimates the ground-state energy
-by a correlation energy that grows with both $N$ and the coupling strength
-$\Gamma\propto 1/\sqrt{\omega}$~\cite{HaasHFQD}.
-Full configuration interaction (FCI) is in principle exact within a
-one-particle basis, but scales as $\mathcal{O}\!\binom{M}{N}$ in the number
-of single-particle states $M$: for $N{=}6$ in a moderate basis the Hilbert
-space already contains millions of Slater determinants, and for $N{=}12$
-it is essentially intractable without aggressive symmetry reduction.
+% Hartree--Fock provides a physically motivated upper bound by optimizing
+% a single Slater determinant; it captures exchange exactly but misses all
+% inter-particle correlation.
+% For the quantum dots studied here, HF overestimates the ground-state energy
+% by a correlation energy that grows with both $N$ and the coupling strength
+% $\Gamma\propto 1/\sqrt{\omega}$~\cite{HaasHFQD}.
 Diffusion Monte Carlo (DMC) bypasses the basis expansion by representing
 $|\Psi|^2$ stochastically, and provides the accurate benchmarks used
 throughout this chapter.
@@ -69,9 +64,9 @@ The SR phase runs for $10^3$--$3{\times}10^3$ iterations with batches of
 ${\sim}3{\times}10^3$ samples each.
 
 The architecture size is identical for all $N$: the base PINN has
-$\approx\!54\text{k}$ parameters, the conventional BackflowNet adds
+$\approx\!54\text{k}$ parameters, the conventional BackflowNet has
 $\approx\!83\text{k}$ (total PINN+BF $\approx\!137\text{k}$), and the
-CTNNBackflowNet adds $\approx\!182\text{k}$ (total PINN+CTNN
+CTNNBackflowNet has $\approx\!182\text{k}$ (total PINN+CTNN
 $\approx\!236\text{k}$). All components are fully trainable;
 the parameter count is independent of $N$ because particle
 interactions enter through permutation-equivariant features rather than
@@ -88,29 +83,6 @@ Section~\ref{sec:mp-ablation} quantifies what the message-passing cell
 contributes to the energy.
 
 \subsection{Energies}
-
-Table~\ref{tab:Residual} reports two-electron energies from
-\emph{residual-only} training (PINN and PINN+BF). For $N{=}2$, backflow is not
-required to reach DMC accuracy, but it slightly reduces the variance and
-smooths convergence.
-
-\begin{table}[h!]
-\centering
-\caption{Ground-state energies (Hartree) for two electrons in a harmonic trap
-using \emph{residual-only} training. DMC references from~\cite{Pederiva2000-QD-DMC}.
-Parentheses denote $1\sigma$ on the last digits.}
-\label{tab:Residual}
-\begin{tabular}{c c c c}
-\hline
-$\omega$ & PINN+BF & PINN & DMC (Ref.) \\
-\hline
-1.00  & 2.99998(3)   & 2.999940(5)  & 3.00000(1) \\
-0.50  & 1.65975(2)   & 1.65979(3)   & 1.65977(1) \\
-0.10  & 0.440795(3)  & 0.440833(1)  & 0.44079(1) \\
-0.01  & 0.0740724(6) & 0.0741679(6) & 0.073839(2) \\
-\hline
-\end{tabular}
-\end{table}
 
 Table~\ref{tab:energies} compares diffusion Monte Carlo (DMC) references with
 our \emph{final} PINN+BF energies after residual pretraining and an SR tail.
@@ -1108,7 +1080,30 @@ Jastrow-only was superior at $N{=}20$ for reasons discussed below.
 \subsection{Results}
 \label{sec:colloc-results}
 
-Table~\ref{tab:collocation} presents the best energies achieved by
+
+Table~\ref{tab:Residual} reports two-electron energies from
+\emph{residual-only} training (PINN and PINN+BF, hence no CTNN network is nesseccary). For $N{=}2$, nor backflow or CTNN architectureis not
+required to reach DMC accuracies for N=2.
+
+\begin{table}[h!]
+\centering
+\caption{Ground-state energies (Hartree) for two electrons in a harmonic trap
+using \emph{residual-only} training. DMC references from~\cite{Pederiva2000-QD-DMC}.
+Parentheses denote $1\sigma$ on the last digits.}
+\label{tab:Residual}
+\begin{tabular}{c c c c}
+\hline
+$\omega$ & PINN+BF & PINN & DMC (Ref.) \\
+\hline
+1.00  & 2.99998(3)   & 2.999940(5)  & 3.00000(1) \\
+0.50  & 1.65975(2)   & 1.65979(3)   & 1.65977(1) \\
+0.10  & 0.440795(3)  & 0.440833(1)  & 0.44079(1) \\
+0.01  & 0.0740724(6) & 0.0741679(6) & 0.073839(2) \\
+\hline
+\end{tabular}
+\end{table}
+
+Table~\ref{tab:collocation} presents the energies achieved by
 the collocation pipeline across all $(N,\omega)$ combinations
 studied.
 All energies are evaluated by independent VMC with
@@ -1119,19 +1114,11 @@ training-time importance sampling.
 \begin{table}[htbp]
   \centering
   \caption{Best ground-state energies from the collocation pipeline.
-  ``Multi-stage'' denotes the best result from earlier campaigns using
-  hand-tuned continuation chains; ``Campaign'' denotes the best single
-  result from the 30-run reliability campaign
+  ``Multi-stage'' denotes the best result accross runs; ``Campaign'' denotes the best single
+  result from a shorter 30-run campaign designed to test reliability and variance across random seeds.
   (Table~\ref{tab:reliability}).
-  All values are VMC-evaluated (${\geq}20\text{k}$ samples) at the best
-  checkpoint.
-  DMC references as in Table~\ref{tab:energies}; entries without DMC data
-  are marked ``---''.
-  Architecture: J~=~Jastrow-only, BF~=~backflow+Jastrow.
   Parentheses denote $1\sigma$ statistical uncertainty on the last
-  digit(s). ``---'' in the Campaign column indicates that no standalone
-  30-run reliability campaign was conducted for that system; the
-  Multi-stage entry is the best available collocation energy.}
+  digit(s).}
   \label{tab:collocation}
   \begin{tabular}{c c c c c c c}
     \toprule
@@ -1237,7 +1224,7 @@ particle number would require a higher-quality proposal distribution,
 such as a normalizing flow trained concurrently with the wavefunction.
 
 
-\subsection{Layer~3: the optimizer regime boundary}
+\subsection{Opitimizer Regimes}
 \label{sec:colloc-negatives}
 
 The collocation results expose a sharp and physically interpretable
@@ -1315,7 +1302,7 @@ Appendix~\ref{app:experimental-record}.
 %% SUBSECTION:  Reliability analysis and the gradient-quality chain
 %% ═══════════════════════════════════════════════════════════════════════
 
-\subsection{Reliability analysis: the gradient-quality chain}
+\subsection{Reliability analysis}
 \label{sec:colloc-reliability}
 
 The results in Table~\ref{tab:collocation} report the \emph{best} energies

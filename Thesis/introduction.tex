@@ -1,26 +1,34 @@
 \chapter*{Introduction}
-
-The many-body Schrödinger equation has a simple statement and no general solution.
+In the classical world, we find much comfort with the idea of
+reductionism: the belief that to understand the complicated whole, 
+we merely need to dissect it into its constituent parts. 
+Quantum mechanics rejects this entirely. 
+At the fundamental scale, 
+particles surrender their isolated individuality to a collective, 
+deeply entangled web where the whole is not just greater than the sum of its parts, 
+but entirely inseparable from them.
+This is especially true in the quantum many-body-problem, 
+goverened by the Schrödinger equation.
 Given $N$ interacting particles in an external field, one writes down a
 second-order partial differential equation on a configuration space of
 dimension $Nd$ and asks for its ground state.
 The difficulty is not the equation but the space: its size grows
-exponentially with $N$, and every technique that works cleanly for two
-particles runs aground long before twenty.
+exponentially with $N$, and ever techniques that works cleanly for two
+particles often run aground long before twenty [<citation>] .
 The competition between kinetic energy, which delocalizes particles across
-this space, and interaction energy, which correlates them strongly, takes
+this space, the potential energy localizing them, and interaction energy, which correlates them strongly, takes
 place in a geometry too large to treat naively and too structured to ignore.
 
 A wide range of methods has been developed to address this.
 Mean-field approaches reduce the full many-body problem to an effective
 single-particle picture, capturing Fermi statistics and exchange but
 leaving most correlation physics untreated.
-Coupled-cluster theory and full configuration interaction provide more
-systematic hierarchies but scale combinatorially.
+Full configuration interaction provide more
+systematic hierarchy but scale combinatorially [<citation>].
 Quantum Monte Carlo methods---Variational and Diffusion---sidestep
 the basis explosion by representing the wavefunction implicitly through
 stochastic sampling, and for suitable trial states they produce highly
-accurate benchmark energies.
+accurate benchmark energies [<citation>].
 In all of these, the central computational question reduces, sooner or
 later, to the same problem: how do you parameterize a function on a
 $Nd$-dimensional domain, impose antisymmetry and known short-range
@@ -35,8 +43,7 @@ equation at sampled points rather than on a grid.
 For the Schrödinger equation, this means minimizing the squared residual
 $\|(\hat H - E)\Psi_\theta\|^2$ over a set of sampled configurations, or
 equivalently using the energy expectation $\langle\Psi_\theta|\hat H|\Psi_\theta\rangle$
-as a loss and exploiting the variational principle to guarantee the result
-is an upper bound.
+as a loss.
 Neural networks are, in principle, universal approximators of the needed
 correlation functions; they scale to high dimensions by design; and
 modern automatic differentiation makes the gradient of the loss with
@@ -72,10 +79,11 @@ with sufficient near-field sensitivity; the former is more reliable and cheaper.
 Every constraint that is hard-wired into the architecture is one that the optimizer
 need not rediscover, and one that cannot be violated by an unfortunate gradient step.
 Beyond the hard constraints, the ansatz must be expressive enough to capture the
-physics of interest while scaling reasonably with $N$.
+physics of interest while scaling reasonably with $N$. The Deep Sets architecuture 
+has been shown to alone consist of limited expressivity, and required additional
+correlation terms to capture correlations [<citation> Haas].
 Backflow transformations improve the nodal geometry of the Slater reference but
-cost $\mathcal{O}(N^2\times h_{\rm bf})$ in memory; the CTNN-Jastrow alternative
-is more compact at the price of less flexible nodes.
+cost $\mathcal{O}(N^2\times h_{\rm bf})$ in memory.
 The choice of which representation to use determines what the optimizer can reach,
 and representation analysis of the trained networks reveals that backflow and the
 Jastrow correlator occupy qualitatively different function spaces: the correlator
@@ -85,18 +93,17 @@ backflow displacement field has intrinsic dimension an order of magnitude larger
 \medskip\noindent
 \textbf{Layer 2\,---\,The training paradigm.}
 Once the ansatz is fixed, one must decide how to compute energies and train.
-The choices range from classical methods---Hartree--Fock (HF) and full configuration
-interaction (FCI)---to quantum Monte Carlo variants (VMC, DMC) to the MCMC-free
-collocation approach developed here.
-These methods differ sharply in computational scaling with $N$, in the regimes where
-they are accurate, and in what they require of the user.
-HF recovers exchange but misses correlation; FCI is exact within a basis but scales
-exponentially with $N$, making it tractable only for the smallest systems.
+Traditionally, variational Monte Carlo (VMC) has been the method of choice: 
+one samples configurations from $|\Psi_\theta|^2$ using Markov chain Monte Carlo (MCMC) 
+and estimates the energy and its gradient from those samples. 
+Optionally one can use diffusion Monte Carlo (DMC) to refine the energy further, 
+using the VMC state as a trial wavefunction. In this thesis, I develop another approach: 
+a Physics-informed-Neaural-Network directions, 
+using a collocation pipeline that draws samples from an analytic Gaussian mixture proposal 
+and estimates gradients via the REINFORCE formulation, avoiding the Markov chain entirely
+during training.
 VMC with MCMC sampling from $|\Psi_\theta|^2$ is accurate but carries autocorrelation
 overhead that grows with $N$ and correlation strength.
-The MCMC-free collocation pipeline developed in this thesis draws samples from an
-analytic Gaussian mixture proposal and estimates gradients via the REINFORCE
-formulation, avoiding the Markov chain entirely.
 A fully collocation-trained Slater--Jastrow(+Backflow) network achieves $+0.009\%$
 relative error against DMC at $(N{=}6,\,\omega{=}1.0)$ and sub-$0.25\%$ errors
 across all five confinement strengths tested for $N{=}6$, without a single MCMC step.
@@ -208,16 +215,16 @@ The contributions of this thesis are organized around the three layers.
 \end{enumerate}
 
 \paragraph{Thesis structure.}
-The remainder follows the three-layer logic.
+The thesis is organized as follows.
 The Theory chapter develops the quantum mechanical and machine-learning foundations
-that each layer draws on: antisymmetry and the many-body problem (Layer~1),
-the hierarchy of computational methods and the quantum dot model (Layer~2),
-and optimization theory through natural gradients and PINNs (Layer~3).
-The Methods chapters implement the three decisions in order: the ansatz (Layer~1)
-and then the training pipeline (Layer~3).
-The Results chapter provides the Layer~2 comparative study---accuracy against HF,
+that each layer draws on: antisymmetry and the many-body problem,
+the hierarchy of computational methods and the quantum dot model,
+and optimization theory through natural gradients and PINNs.
+The Methods chapters implement the three decisions in order: the ansatz
+and then the training pipeline.
+The Results chapter provides the comparative study---accuracy against HF,
 FCI, and DMC; scaling with $N$; Wigner-molecule physics; and the
 representation geometry of the trained networks.
 The Discussion interprets all three layers against the results.
-The appendix provides the formal conditioning analysis underlying Layer~3
+The appendix provides the formal conditioning analysis underlying 
 and the complete experimental record of the optimization campaigns.

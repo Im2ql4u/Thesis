@@ -591,8 +591,8 @@ traditionally categorized as:
   observations and rewards. The task is to learn a policy that maximizes expected 
   cumulative reward.  
 \end{itemize}
-Although reinforcement learning plays a minor role in this thesis, supervised and 
-unsupervised perspectives provide the theoretical foundation for the 
+Although reinforcement and unsupervised learning plays a minor role in this thesis, 
+the supervised approach provide the theoretical foundation for the 
 physics-informed approaches discussed later.  
 
 \subsection{Generalization and the bias--variance tradeoff}
@@ -638,7 +638,7 @@ where $\eta>0$ is the \emph{learning rate}. Intuitively, the gradient points in 
 direction of steepest increase of the loss, so subtracting it decreases the loss most 
 rapidly in a local sense.  
 
-The choice of learning rate is crucial: if too small, convergence is slow; 
+The choice of learning rate is crucial: if too small, convergence may be limited to local minima or slow; 
 if too large, the algorithm may diverge.  
 
 \subsection{Stochastic gradient descent (SGD)}
@@ -707,9 +707,11 @@ and often improves conditioning of the optimization. In practice, computing
 $F^{-1}$ exactly is intractable, but approximations (e.g.\ stochastic reconfiguration 
 in variational Monte Carlo, Kronecker-factored approximations in deep learning) 
 make the method viable \cite{Pfau2020-FermiNet}. 
+Natural gradients provide better conditioning for ill-conditioned problems, 
+allowing for faster convergence and improved stabilty [<citation> (pinn therory review article)]
 
 \subsection{Optimization challenges in deep learning}
-Optimization in deep neural networks poses unique challenges:
+Optimization in deep neural networks poses unique challenges [<citaiton> mathematical theory of ML?]:
 \begin{itemize}
   \item \textbf{Non-convexity.} Loss landscapes are highly non-convex, with many local minima 
   and saddle points. Empirically, most local minima reached by SGD perform similarly well.  
@@ -731,13 +733,7 @@ and initialization strategies in detail.
 \section{Feed forward Neural Networks}
 \label{sec:FFNN}
 
-Activation functions are the nonlinear components of neural networks that 
-enable them to approximate complex functions. Without nonlinearities, 
-a stack of affine transformations would collapse to a single linear map, 
-regardless of depth. The choice of activation function therefore plays a 
-central role in the expressivity, optimization, and stability of a network.  
 
-\subsection{From linear models to nonlinear function classes}
 Classical regression models are linear in their parameters: 
 \[
   f_\theta(x) = \theta^\top x.
@@ -754,11 +750,13 @@ a composition of affine maps and nonlinear activation functions:
   \quad \ell=1,\dots,L-1, \\
   f_\theta(x) &= W^{(L)} h^{(L-1)} + b^{(L)}.
 \end{align}
-Here $\sigma:\mathbb{R}\to\mathbb{R}$ is a nonlinear activation. Without nonlinearity, 
-the network collapses to a single linear transformation; with it, the space of representable 
-functions expands dramatically.  
+Here $\sigma:\mathbb{R}\to\mathbb{R}$ is a nonlinear activation. Activation functions are the nonlinear components of neural networks that 
+enable them to approximate complex functions. Without nonlinearities, 
+a stack of affine transformations would collapse to a single linear map, 
+regardless of depth [<citation>]. 
 
 \subsection{Activation functions}
+
 \subsubsection{Classical Activation Functions}
 
 The earliest activation functions were smooth, saturating nonlinearities:
@@ -819,8 +817,8 @@ optimization. At the start of training, parameter values determine how
 signals propagate forward and backward through the network. Poor initialization 
 can lead to exploding or vanishing activations and gradients, making 
 optimization unstable or ineffective. Proper schemes balance signal magnitudes 
-across layers and preserve gradient flow, especially in deep networks.  
-
+across layers and preserve gradient flow, especially in deep networks. 
+(%!WAY TOO MUCH DETAIL IN THIS SECTION---CONSIDER TRIMMING SIGNIFICANTLY, we lack sources for every subsubsection)
 \subsubsection{The role of initialization}
 Consider a feed-forward network with layers
 \[
@@ -895,7 +893,7 @@ Key takeaways include:
 \end{itemize}
 
 Initialization and activation choice thus form an inseparable pair: together 
-they determine whether information propagates stably through the network. This will be discussed further in the context of physics-informed models in Chapter~\ref{ch:trial_wavefunction}\textbf{\textcolor{red}{[CHECK: was ch:pinns---verify correct target]}}.
+they determine whether information propagates stably through the network. This will be discussed further in the context of physics-informed models in Chapter~\ref{sec:pinns}.
 
 
 \section{Equivariant architectures and Deep Sets}
@@ -939,15 +937,16 @@ the Slater determinant, this may be sufficient.
 For strongly correlated systems---such as quantum dots in the Wigner-molecule regime---the
 pair distribution $g(r)$ and the correlation hole are the dominant physics, and
 no amount of per-particle processing can represent them without explicit pairwise features.
-The transition from a particle-only (Deep Sets) to a particle-and-pair architecture is
-therefore not an architectural upgrade but a physical necessity, and the correct place
-to make this decision is before training begins.
+It has been shown that Deep sets provide results of comparable quality as to hartree fock calculations,
+essenssially missing correlation physics completely without additional correlation-terms [<citation> Haas].
+This is an issue with the architecture, not with the optimization, and suggests that we should
+transition from a particle-only (Deep Sets) to a particle-and-pair architecture.
 
 \section{Modern mathematics}
 \label{sec:nn_approximation}
 
 The central reason neural networks have become the dominant model class in machine 
-learning is their \emph{expressivity}. However, in contrast with what classical statistical theory suggests, neural networks have been found to 
+learning is their \emph{expressivity}. In contrast with what classical statistical theory suggests, neural networks have been found to 
 mitigate the curse of dimensionality, generalize well despite overparameterization, and
 optimize effectively in highly non-convex landscapes. Understanding these phenomena
 has been a major focus of recent theoretical research. In this section, we review key
@@ -979,7 +978,7 @@ nonpolynomial sigmoidal activation is a \emph{universal approximator}:
 for every continuous $f$ on a compact domain and every $\varepsilon>0$
 there exists a one–hidden–layer network whose output $g$ satisfies
 $\|f-g\|_\infty<\varepsilon$ \cite{Cybenko1989}. The result concerns
-\emph{existence} of an approximant and does not provide constructive
+\emph{existence} of an approximant, but does not provide constructive
 bounds on the number of units required, rates of approximation, or
 generalization guarantees.
 
@@ -990,7 +989,7 @@ Classical approximation theory predicts that uniformly approximating a generic
 $f:\mathbb{R}^d\!\to\!\mathbb{R}$ requires resources that grow exponentially in $d$—the
 \emph{curse of dimensionality} (CoD). This perspective cannot explain the strong
 empirical performance of deep networks on very high–dimensional tasks, prompting
-a search for structural conditions under which the CoD does \emph{not} apply.:contentReference[oaicite:0]{index=0}
+a search for structural conditions under which the CoD does \emph{not} apply.:contentReference[oaicite:0]{index=0} (%!FIX CITATION)
 
 A first resolution is \emph{low effective dimension}: if the data (and loss) live on a
 $d'\!\ll\!d$ manifold $M$ and error is measured in $L^p(\mu)$ with $\mathrm{supp}\,\mu\subset M$,
@@ -1025,14 +1024,14 @@ Two ideas make this concrete. First, stability: if small changes in the dataset 
 \[
 \bigl|\mathcal{R}(\hat\theta)-\hat{\mathcal{R}}(\hat\theta)\bigr| \ \text{is controlled}.
 \]
-Second, implicit regularization: stochastic gradient methods (with finite batches, step sizes, and momentum) do not search the space uniformly; they are biased toward predictors with lower effective complexity—e.g., larger margins, smaller norms, or flatter basins in parameter space. In very wide nets, the dynamics are well-approximated by a linearized (kernel-like) model that interpolates while implicitly minimizing a function-space norm; at realistic widths, the same bias persists in practice. This also explains \emph{double descent}: near the interpolation threshold test error can worsen, then improves again as capacity grows and the dynamics have more low-complexity interpolants to select from.
+Second, implicit regularization: stochastic gradient methods (with finite batches, step sizes, and momentum) do not search the space uniformly; they are biased toward predictors with lower effective complexity—e.g., larger margins, smaller norms, or flatter basins in parameter space. In very wide nets, the dynamics are well-approximated by a linearized (kernel-like) model that interpolates while implicitly minimizing a function-space norm; at realistic widths, the same bias persists in practice. This also explains \emph{double descent}: near the interpolation threshold test error can worsen, then improves again as capacity grows and the dynamics have more low-complexity interpolants to select from [<citation>].
 
 \subsection{Optimization in deep networks}
 \label{sec:optimization}
 
 Training is a large-scale, nonconvex problem, yet simple first-order methods reliably drive the loss to (near) zero. Two features help. Overparameterization and modern architectures (residual connections, normalization) shape the landscape into broad, connected valleys of low loss and maintain usable descent directions through depth. As a result, poor isolated minima are less of a practical obstacle.
 
-Stochastic gradient descent can be viewed as gradient flow with noise whose effective “temperature’’ is set mainly by the learning-rate–to–batch-size ratio. A higher temperature encourages escape from sharp minima and biases the search toward wider, flatter regions that tend to generalize better; annealing the temperature over time refines the final solution. Momentum accelerates along coherent directions and damps high-frequency noise; normalization keeps activations well-scaled so larger, stable steps are possible. In short, the optimizer does more than find zero training error—it determines \emph{which} zero-error solution you reach, and that choice largely sets generalization quality.
+Stochastic gradient descent can be viewed as gradient flow with noise whose effective “temperature’’ is set mainly by the learning-rate–to–batch-size ratio. A higher temperature encourages escape from sharp minima and biases the search toward wider, flatter regions that tend to generalize better; annealing the temperature over time refines the final solution. Momentum accelerates along coherent directions and damps high-frequency noise; normalization keeps activations well-scaled so larger, stable steps are possible. In short, the optimizer does more than find zero training error—it determines \emph{which} zero-error solution you reach, and that choice largely sets generalization quality [<citation>].
 
 \subsection{Implications for physical modeling}
 In physical sciences, target functions such as wavefunctions are continuous, smooth 
@@ -1135,7 +1134,7 @@ they motivate the choice of smooth activations (for stable derivatives),
 careful initialization (to prevent exploding Hessians), and architectural 
 constraints (to encode symmetry and physical laws).  
 Thus, PINNs serve both as a methodological tool and as a theoretical lens 
-for understanding the interplay between learning and physics.  
+for understanding the interplay between machine learning and physics.  
 
 \subsection{Implications for scientific machine learning}
 For physics-informed models, generalization takes on a slightly different meaning: 

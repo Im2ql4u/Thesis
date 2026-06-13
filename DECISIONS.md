@@ -22,6 +22,22 @@ Each entry answers: what was decided, what the alternatives were, why this was c
 
 ## Decisions
 
+### [2026-05-23] — Restructure the oral-exam talk: terminology + MBSE solvers before Paper A
+
+**Decision:** Open the talk with physics terminology — the MBSE Hamiltonian and a one-row-each comparison of HF, CCSD, FCI, DMC, VMC, NQS — followed immediately by our ansatz and CTNN architecture, *before* introducing Paper A's four questions. The deep-learning theory then lands on familiar physical objects.
+**Alternatives considered:** Keep the original "paper-first" structure (Paper A → Paper B → our work) where the physics arrives only in the second half; introduce just the Hamiltonian and defer the solver comparison to a backup slide.
+**Reasoning:** Examiners are quantum many-body. The expressivity-vs-scaling tradeoff (FCI has expressivity, CCSD has scaling, ML aims for both) is the natural framing for *why* a neural ansatz is worth caring about, and it sets up Q3 (curse of dimensionality) without needing to motivate it from scratch later. The Wigner-regime failure of CCSD is exactly the regime where our results are strongest, so anchoring it early makes the results section pay off harder.
+**Constraints introduced:** Slides 3–5 are physics-heavy and must be tight; Paper A slides now assume the listener already has the ansatz in mind, which means the "compositionality" and "GNN equivariance" connections back-reference architecture choices the audience has already seen.
+**Confidence:** high (matches the user's explicit brief in `thoughts.md`).
+
+### [2026-05-23] — Collapse Paper B Q1–Q3 onto a single slide; treat B–Q4 as the centerpiece
+
+**Decision:** Paper B's first three questions are mentioned on a single compact slide. B–Q4 (training as conditioning of $L^*L \circ TT^*$) gets a full frame, immediately followed by a dedicated catch-22 frame derived from our backflow experiments.
+**Alternatives considered:** Mirror Paper A by giving each Paper-B question its own slide.
+**Reasoning:** Per the user's brief, Q1 is just universal approximation in a Sobolev norm (already covered by Paper A); Q2 is trivial for us by zero-variance; Q3 is bypassed by certifying every result with an independent heavy-VMC pass. Only Q4 has predictive bite on our work. The catch-22 result — 17 parameter-space interventions fail, only removing $\nabla_\theta$ through the Laplacian succeeds — *is* Theorem 7.10 said in negative form, and it deserves its own slide.
+**Constraints introduced:** The Q1–Q3 slide depends on the listener accepting that those three questions are derivative for our problem; if pushed, the notes give a per-question elaboration to read out.
+**Confidence:** high.
+
 ### [2026-04-15] — Refit ShellFlow from weighted raw candidates and skip refits under catastrophic collapse
 
 **Decision:** When using ShellFlow as an adaptive proposal, refit it from the raw candidate cloud with effective resampling weights, not from the already-resampled collocation batch; additionally, skip ShellFlow refits when ESS or resampling-mass diagnostics indicate catastrophic collapse.

@@ -14,6 +14,67 @@ Last session: [2026-04-15] — N=20 ShellFlow collapse diagnosis and stabilized 
 See ARCHIVE.md for full history.
 
 ---
+## Session 2026-05-25 — Oral-exam notes clarity pass + slide trims
+
+**Tasks completed:**
+1. `oral_exam_slides.tex`: per user request, dropped norm-based bounds and implicit bias from the A--Q1 (generalization) frame — it now carries only double descent, the NTK statement, and the NTK$\leftrightarrow$SR link. Reworked A--Q4 (optimization) to drop the NTK linearization (it now lives on A--Q1) and instead present non-convex landscape + saddle escape, implicit regularization, Adam, and natural gradient/SR. Rebuilt; only the harmless title-page vbox warning remains.
+2. `oral_exam_notes.md`: large clarity pass answering a list of specific examiner-style questions, section by section:
+   - Slide 5: added "Is the CTNN just a GNN?" — yes, it is a one-round message-passing GNN (copresheaf-style, node+edge feature spaces with learned node$\leftrightarrow$edge transport maps, confirmed against `src/PINN.py:CTNNBackflowNet`); the label only records the two-headed (scalar correlator + vector backflow) use and the near-identity ODE-flow parametrization.
+   - Slide 6: defined every symbol in the risk decomposition ($\mathcal F$, $R(\cdot)$, $f_S$, $f_{\mathcal F}$, $f^\star$) and tied approximation$\to$bias, estimation$\to$variance.
+   - Slide 7: rewrote the NTK explanation from scratch — what $u_t$ is, how $\dot u_t$ relates to $\dot\theta$ via the chain rule, the kernel as kernel/matrix/operator, the $JJ^\top$ (NTK) vs $J^\top J$ (SR/Fisher) identification, and what $P$ is in Paper B.
+   - Slide 8: explained the constant $c$ in $\Omega(2^{cd})$.
+   - Slide 9: defined $g$, $\inf_\theta$, $L^2(\mu)$/$\mu$, the constant $c$, and the precise meaning of "dimension hidden in $C_g$" (curse relocated from exponent to constant).
+   - Slide 10: reframed to lead with saddle escape / implicit regularization / Adam / natural gradient; demoted NTK to a pointer back to Slide 7.
+   - Slide 11: defined Sobolev rate, the generic constants, $\sup_\theta$, and $\mathrm{Lip}(\Theta)$.
+   - Slide 12: explained $\#(\varepsilon)=O(\kappa\ln 1/\varepsilon)$ in words, why we diagonalize in Fourier, what $L$ is and how it is the PDE stiffness, what "conditioning" concretely changes (two handles: shrink $L^*L$ frequency range vs reshape $TT^*$), and corrected/clarified the "$L=\mathrm{Id},\mathbf A=I$ supervised special case" (it means no operator-stiffness factor, not that supervised training is easy).
+   - Slide 18: rewrote the three-body sensitivity ratio as a concrete step-by-step ("hold $r_{ij}$ fixed, wiggle a third electron, see if the cell output wiggles"); linked the $r(\omega)$ numbers to the ablation and kinetic-only signatures.
+3. Rebuilt `oral_exam_notes.pdf` via `scripts/md2tex_notes.py` (now 29 pages, clean compile, no leftover placeholders).
+
+**Changed files:** oral_exam_slides.tex, oral_exam_slides.pdf, oral_exam_notes.md, oral_exam_notes.tex, oral_exam_notes.pdf.
+
+**Status:** Both PDFs build cleanly. Notes now answer the flagged conceptual questions inline.
+
+---
+## Session 2026-05-23 — Oral exam slides + notes full restructure
+
+**Tasks completed:**
+1. Rewrote `oral_exam_slides.tex` end-to-end per the new outline in `thoughts.md`:
+   - Reordered: terminology + MBSE solvers (HF, CCSD, FCI, DMC, VMC, NQS) and our ansatz / CTNN moved to the front, *before* Paper A, so the talk opens on physics the examiners already own.
+   - Paper A: four-question structure preserved but each frame compressed; A-Q2 now explicitly carries the article's $\|x-y\|$ example (1 layer = exp in $d$, multi-layer = poly); A-Q3 explicitly defines smoothness order $s$ and ties FCI/HF/CCSD scaling into the curse discussion; A-Q4 names natural-gradient, Adam, SGD and explicitly identifies SR with the quantum-Fisher NTK.
+   - Paper B: Q1/Q2/Q3 collapsed into a single slide (universal-approximation in Sobolev; zero-variance + heavy-VMC certification handles stability and quadrature for us); B-Q4 kept as the centerpiece with $L^*L \circ TT^*$ and the bi-Laplacian $k^4$ example.
+   - Added a dedicated "catch-22" frame: 17 parameter-space interventions vs.\ VMC+SR; the only fix was removing $\nabla_\theta$ through the Laplacian path (REINFORCE-only) while keeping the kinetic term in the loss.
+   - Results split into two frames: SR+VMC across $N \in \{2,6,12,20\}$ with the CTNN cell ablation; collocation/PINN results with explicit "tricks that mattered" and the SR↔Adam regime boundary at $\omega \le 0.01$.
+   - Inputs / attribution and intrinsic-dimensionality slides retained but trimmed; new explicit three-body slide carrying the codimension-in-pairwise observation as the single original contribution.
+2. Added 7 backup slides for material that is interesting at an abstract level but not in the main talk:
+   - NTK proof sketch + linearization (paired with SR identification);
+   - Barron proof sketch with the "neurons are MC samples in frequency space" line;
+   - Design choices → preconditioners summary table + REINFORCE gradient;
+   - 2D cusp + log-divergent $(1/r)^2$ spike;
+   - Force-aligned backflow across the Wigner crossover (sign flip);
+   - Sharp PINN–CTNN coupling transition at $\omega \approx 0.1$;
+   - $N{=}20$ Jastrow-beats-backflow as an expressivity-vs-budget tradeoff.
+3. Fixed every overflowing frame; final build has only the harmless title-page vbox warning (intrinsic to metropolis+seahorse; present in the original).
+4. Completely rewrote `oral_exam_notes.md` (1100+ lines) as a study + recital document, per slide, with the deep explanations the user asked for:
+   - NTK in full: chain-rule derivation, Jacot frozen-kernel limit, what "linear" implies (kernel regression, convex, spectrum-governed), spectral bias.
+   - Norm-based bounds explained (notes only, not on slides).
+   - Explicit NTK ↔ SR identification: $S =$ quantum Fisher $=$ empirical NTK of $\log|\Psi|$ in the sampling measure.
+   - Width vs depth example $\|x-y\|$ (1-layer exponential, multi-layer polynomial) made precise; what *width* is for per Hanin–Sellke.
+   - Barron proof step-by-step (inverse Fourier → expectation against $\mu_g$ → MC over $n$ → Bienaymé → single-neuron approx of $\Gamma$); smoothness order $s$ defined.
+   - Natural-gradient vs Adam vs SGD comparison, including how batching's noise has an implicit-regularization role.
+   - B–Q4 mechanics in depth: $\lambda$, $\kappa$, $L^*L$, $TT^*$, why $\Delta^2 \to k^4$, why backflow is specifically problematic, the catch-22 result.
+   - Three-body sensitivity ratio derivation and codimension-in-pairwise interpretation; what we could run now (per-pair / per-particle aggregated message PCA) if asked to extend.
+
+**Inputs vs.\ outputs:** `thoughts.md` was the design brief. All slide content stays within the cited papers' content (Paper A, Paper B) and our own thesis results — no external citations added.
+
+**Changed files:**
+- `oral_exam_slides.tex` (full rewrite)
+- `oral_exam_slides.pdf` (rebuilt)
+- `oral_exam_notes.md` (full rewrite)
+- This session log; `DECISIONS.md`; `JOURNAL.md` entry below.
+
+**Status:** Slides build cleanly. Notes are reorganized per the new outline with all four deep-explanation categories.
+
+---
 ## Session 2026-05-17 — Architecture diagnostics integration
 
 **Tasks completed:**

@@ -155,3 +155,11 @@ Each entry answers: what was decided, what the alternatives were, why this was c
 **Reasoning:** Centralized references avoid silent NaN behavior for supported N/omega combinations; shared collocation helpers reduce duplication and make runner files thinner and easier to maintain.
 **Constraints introduced:** Future DMC updates must be made in [src/config.py](src/config.py); collocation helper changes now affect all runners importing from [src/functions/Neural_Networks.py](src/functions/Neural_Networks.py).
 **Confidence:** high
+
+### [2026-06-13] — Analyse VMC/SR-trained ground states through the tangent-kernel picture
+
+**Decision:** The new analysis program targets primarily VMC-trained (SR / Adam) wavefunctions that pass an explicit GS-quality gate, and interprets all three research angles (SR/natural-gradient, CTNN-vs-FFNN expressivity, what-is-learned) as properties of the per-sample log-derivative matrix `O` and its Gram matrices `S=OᵀO` (Fisher/QGT) and `K=OOᵀ` (NTK). Execution is phased by system size N=2→6→12→20 (N=2 first at ω=1.0 then full ω span), with a consolidation gate before each scale-up. Plan: `plans/2026-06-13_kernel-analysis-program.md`.
+**Alternatives considered:** Analyse the existing collocation-trained checkpoints directly without a GS-quality gate; treat the three angles as independent diagnostic mini-projects; scale to all N immediately to maximise coverage.
+**Reasoning:** Internal structure is only meaningful on genuine ground states, so analysis-grade GS verification must precede interpretation. VMC/SR wavefunctions are the most trustworthy GS approximations; collocation becomes a comparison axis (energy degeneracy vs representational degeneracy). The kernel picture gives one theory connecting trainability (spectrum of S/K), expressivity (span of O), and feature learning (eigenvector rotation), rather than a loose collection of plots. N=2 has an exact reference (E=3.0 at ω=1.0) to validate every tool before scaling.
+**Constraints introduced:** No wavefunction is interpreted until it passes the §4 GS-quality gate (energy vs reference, var(E_L), ESS/khat, train-route agreement, seed stability); diagnostics must be expressible as statements about O/S/K; we do not advance to N+1 before a written consolidation of the current N.
+**Confidence:** high

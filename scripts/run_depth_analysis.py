@@ -39,6 +39,7 @@ from analysis import representation as rp  # noqa: E402
 from analysis.reference import TwoElectronExact  # noqa: E402
 from analysis.system import System  # noqa: E402
 from analysis.train import train_vmc_adam  # noqa: E402
+from analysis.fast_sr import train_sr  # noqa: E402
 
 import matplotlib  # noqa: E402
 
@@ -65,6 +66,10 @@ def main() -> None:
     ap.add_argument("--eval-samples", type=int, default=512, help="samples for per-ckpt NTK (CKA)")
     ap.add_argument("--align-samples", type=int, default=2048, help="samples for final O / eigenmodes")
     ap.add_argument("--no-cusp", action="store_true", help="disable analytic cusp prior (D2 arm)")
+    ap.add_argument("--backflow", action="store_true", help="add coordinate backflow (nodes, N>=6)")
+    ap.add_argument("--sr-polish-steps", type=int, default=0, help="SR natural-gradient polish to ~DMC")
+    ap.add_argument("--sr-lr", type=float, default=0.2)
+    ap.add_argument("--sr-damping", type=float, default=1e-3)
     ap.add_argument("--seed", type=int, default=0)
     ap.add_argument("--outdir", type=str, default="")
     a = ap.parse_args()
@@ -79,7 +84,10 @@ def main() -> None:
     akw = dict(ARCH_KWARGS[a.arch])
     if a.arch == "ctnn_vcycle":
         akw["use_analytic_cusp"] = not a.no_cusp
-    sysm = System(N=a.N, omega=a.omega, d=2, arch=a.arch, arch_kwargs=akw, seed=a.seed)
+    bf_kwargs = dict(msg_hidden=32, msg_layers=2, hidden=32, layers=2, act="silu",
+                     out_bound="tanh", bf_scale_init=0.05, zero_init_last=True)
+    sysm = System(N=a.N, omega=a.omega, d=2, arch=a.arch, arch_kwargs=akw,
+                  use_backflow=a.backflow, backflow_kwargs=bf_kwargs, seed=a.seed)
     ref = config.get().E if np.isfinite(config.get().E) else None
     exact = TwoElectronExact(omega=a.omega) if a.N == 2 else None
     print(f"[depth] N={a.N} omega={a.omega} arch={a.arch} cusp={not a.no_cusp} "
@@ -94,6 +102,11 @@ def main() -> None:
     sysm.train()
     train_vmc_adam(sysm, steps=a.steps, lr=a.lr, batch=a.batch, lap_mode="exact",
                    log_every=max(1, a.steps // 6), ckpt_every=a.ckpt_every, ckpt_fn=snap)
+    if a.sr_polish_steps > 0:
+        train_sr(sysm, steps=a.sr_polish_steps, batch=a.batch, lr=a.sr_lr,
+                 damping=a.sr_damping, damping_final=max(1e-4, a.sr_damping * 0.1),
+                 max_step=0.05, lap_mode="exact", log_every=max(1, a.sr_polish_steps // 6),
+                 ref_energy=ref)
     sysm.eval()
 
     # ---- fixed probe sets from the final |Psi|^2 ----

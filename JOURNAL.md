@@ -24,6 +24,44 @@ The model reads this to understand what has been tried, what worked, what failed
 
 ## Journal
 
+### [2026-06-14] — Depth layer + backflow reaches DMC; SR validated; N=6 CTNN-vs-FFNN (prelim)
+
+**Motivation:** Move from "SR helps + it's a GS" to the mechanistic questions (what the network
+learns, what SR does to gradient space, why CTNN>FFNN), and ensure analysed wavefunctions are
+genuine (~DMC) ground states.
+**Method:** Built the depth diagnostics (src/analysis/representation.py: NTK eigenmodes in real
+space, delta_psi SR-vs-plain maps, effective coordinate, circuit decode, lazy-vs-rich CKA, message
+decode), an additive cusp on/off flag, and a natural-gradient trainer (src/analysis/fast_sr.py:
+vmap O-builder verified to machine precision vs _score_rows; sample-space Woodbury SR step;
+train_sr warm-start polish). Ran N=2 depth; N=6 Jastrow-only CTNN vs DeepSet; then N=6 CTNN with
+coordinate backflow (Adam + polish).
+**Results:**
+- **Mechanism (N=2):** NTK eigenmodes ordered by smoothness; the plain gradient = a smooth global
+  tilt proportional to r, while the residual (= the SR update) is **localised at the cusp**. Cusp
+  prior carries short range, learned net carries long range. Dominant effective coordinate = a
+  monotone-in-r "correlation strength" knob. edge eff_rank~1.4; CKA(first,final)~0.93.
+- **Backflow was the missing piece:** Jastrow-only N=6 omega=1 plateaued at +0.09% (fixed-node
+  error); **CTNN + backflow reached E=20.1577 (-0.008%, below DMC 20.15932)**, zero-var extrap
+  20.156 (-0.015%). So a nodeless Jastrow cannot fix the N>=6 nodal surface; backflow can.
+- **SR validated:** clean *monotonic* descent (N=2: +0.77% -> +0.064% in 60 steps, var 7e-4 ->
+  1.4e-5), unlike Adam's bounce. Sample-space SR solve is practical (~5-7 s/step).
+- **N=6 CTNN vs DeepSet (Jastrow-only, sub-DMC, preliminary):** energies tied at omega=1 (CTNN
+  20.1785 vs DeepSet 20.1737) -> message-passing gives no energy edge at weak correlation; but the
+  CTNN message *decodes local physics* (probe R2: nn_distance 0.88, local_density 0.72); CTNN lazy
+  (CKA 0.94) vs DeepSet rich (0.54).
+**Interpretation:** "Gradient orthogonal to the Hamiltonian" is concrete and real-space: the plain
+gradient occupies the single smooth soft NTK mode (global tilt), the physics lives in high-frequency
+cusp-localised stiff modes; SR whitens and puts the update at the cusp. The CTNN advantage is
+regime-dependent (vacuous at omega=1, 1 effective collective coordinate); expect it to emerge at
+lower omega. To analyse genuine GS we need backflow (nodes) + SR (consistency).
+**Caveats:** N=6 comparison so far is Jastrow-only and sub-DMC; redoing with backflow + SR-polish
+(DMC quality) for both architectures, in progress. var(E_L)~0.04 at N=6 even at DMC energy (ansatz
+not exact). Small CTNN config; single seed.
+**Output reference:** results/analysis/2026-06-14_{depth_N2_w1_ctnn_vcycle, depth_N6_w1_ctnn_vcycle,
+depth_N6_w1_deepset, N6_w1_ctnn_bf}/ ; DMC-quality comparison -> ..._depthDMC_N6_w1_*_bf/.
+**Next question:** Does CTNN beat DeepSet at lower omega (Phase B/C multi-omega), where many-body
+correlation matters? Does SR-polish lower var(E_L) and lock both at DMC?
+
 ### [2026-06-14] — Kernel-analysis program Phase A: N=2, omega=1.0 anchor
 
 **Motivation:** Validate the entire kernel-picture analysis toolchain against an exact

@@ -131,11 +131,16 @@ def train_sr(
                                    adapt=True, target=0.5, adapt_lr=0.05)
 
     hist = {"step": [], "E": [], "var": []}
+    from .train import _heal_walkers
+
     for t in range(steps):
         xw, sig, _, _ = _persistent_rw(system.log_psi, xw, steps=sampler_steps, sigma=sig,
                                        adapt=True, target=0.5, adapt_lr=0.02)
+        xw = _heal_walkers(xw, ell)
         E_L = local_energy(system.log_psi, xw, system.omega, system.params, lap_mode=lap_mode)
         finite = torch.isfinite(E_L)
+        if int(finite.sum()) < 16:
+            continue
         xb, E_Lb = xw[finite].detach(), E_L[finite].detach()
         med = E_Lb.median()
         mad = (E_Lb - med).abs().median() + 1e-30

@@ -21,6 +21,21 @@ import torch
 from .diagnostics import local_energy
 
 
+def _heal_walkers(x: torch.Tensor, ell: float) -> torch.Tensor:
+    """Replace any walker that diverged to non-finite with a finite one (or re-init)."""
+    bad = ~torch.isfinite(x).reshape(x.shape[0], -1).all(dim=1)
+    if not bool(bad.any()):
+        return x
+    good = (~bad).nonzero(as_tuple=True)[0]
+    if good.numel() > 0:
+        idx = good[torch.randint(good.numel(), (int(bad.sum()),), device=x.device)]
+        x = x.clone()
+        x[bad] = x[idx]
+    else:
+        x = torch.randn_like(x) * ell
+    return x
+
+
 def train_vmc_adam(
     system,
     *,
@@ -59,8 +74,11 @@ def train_vmc_adam(
     for t in range(steps):
         x, sig, _, _ = _persistent_rw(system.log_psi, x, steps=sampler_steps, sigma=sig,
                                       adapt=True, target=0.5, adapt_lr=0.02)
+        x = _heal_walkers(x, ell)  # resample any diverged (non-finite) walkers
         E_L = local_energy(system.log_psi, x, system.omega, system.params, lap_mode=lap_mode)
         finite = torch.isfinite(E_L)
+        if int(finite.sum()) < 16:  # transient bad batch; skip update, keep healed walkers
+            continue
         xb, E_L = x[finite].detach(), E_L[finite].detach()
         med = E_L.median()
         mad = (E_L - med).abs().median() + 1e-30

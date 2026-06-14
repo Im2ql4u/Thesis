@@ -36,6 +36,7 @@ from analysis import diagnostics as dg  # noqa: E402
 from analysis.reference import TwoElectronExact  # noqa: E402
 from analysis.system import System  # noqa: E402
 from analysis.train import train_vmc_adam  # noqa: E402
+from analysis.fast_sr import train_sr  # noqa: E402
 
 import matplotlib  # noqa: E402
 
@@ -70,10 +71,16 @@ def main() -> None:
     ap.add_argument("--N", type=int, default=2)
     ap.add_argument("--omega", type=float, default=1.0)
     ap.add_argument("--arch", type=str, default="ctnn_vcycle", choices=list(ARCH_KWARGS))
+    ap.add_argument("--backflow", action="store_true",
+                    help="add CTNN/MLP coordinate backflow (needed for nodes at N>=6)")
     ap.add_argument("--optimizer", type=str, default="adam", choices=["adam", "sr"])
     ap.add_argument("--steps", type=int, default=2500, help="total training steps")
     ap.add_argument("--polish-steps", type=int, default=500,
-                    help="final low-lr settle (one optimizer call) for a clean endpoint")
+                    help="final low-lr Adam settle (one optimizer call) for a clean endpoint")
+    ap.add_argument("--sr-polish-steps", type=int, default=0,
+                    help="natural-gradient (SR) polish after Adam, for near-DMC accuracy")
+    ap.add_argument("--sr-lr", type=float, default=0.2)
+    ap.add_argument("--sr-damping", type=float, default=1e-3)
     ap.add_argument("--lr", type=float, default=3e-3, help="Adam learning rate")
     ap.add_argument("--batch", type=int, default=2048, help="VMC batch (Adam)")
     ap.add_argument("--n-seg", type=int, default=12, help="diagnostic checkpoints")
@@ -101,8 +108,11 @@ def main() -> None:
     out.mkdir(parents=True, exist_ok=True)
     print(f"[phase] N={a.N} omega={a.omega} arch={a.arch}  ->  {out}")
 
+    bf_kwargs = dict(msg_hidden=32, msg_layers=2, hidden=32, layers=2, act="silu",
+                     out_bound="tanh", bf_scale_init=0.05, zero_init_last=True)
     sysm = System(N=a.N, omega=a.omega, d=2, arch=a.arch,
-                  arch_kwargs=ARCH_KWARGS[a.arch], seed=a.seed)
+                  arch_kwargs=ARCH_KWARGS[a.arch], use_backflow=a.backflow,
+                  backflow_kwargs=bf_kwargs, seed=a.seed)
     P = sysm.n_params()
     dev = sysm.device
     ref_energy = config.get().E if np.isfinite(config.get().E) else None
@@ -170,6 +180,15 @@ def main() -> None:
             lap_mode="exact", log_every=max(1, a.polish_steps // 4),
         )
         done += a.polish_steps
+
+    # ---- SR (natural-gradient) polish: the last approach to ~DMC (Adam plateaus above it) ----
+    if a.sr_polish_steps > 0:
+        sysm.train()
+        train_sr(sysm, steps=a.sr_polish_steps, batch=a.batch, lr=a.sr_lr,
+                 damping=a.sr_damping, damping_final=max(1e-4, a.sr_damping * 0.1),
+                 max_step=0.05, lap_mode="exact", log_every=max(1, a.sr_polish_steps // 8),
+                 ref_energy=ref_energy)
+        done += a.sr_polish_steps
 
     # ---- final verification on a large sample ----
     sysm.eval()

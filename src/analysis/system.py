@@ -105,10 +105,9 @@ class System:
             .to(self.dtype)
         )
         if self.use_backflow:
+            # BackflowNet takes d (+ optional kwargs); it infers N at forward time.
             self.backflow_net = (
-                BackflowNet(n_particles=self.N, d=self.d, omega=self.omega, **self.backflow_kwargs)
-                .to(dev)
-                .to(self.dtype)
+                BackflowNet(self.d, **self.backflow_kwargs).to(dev).to(self.dtype)
             )
 
         p = config.get().as_dict()

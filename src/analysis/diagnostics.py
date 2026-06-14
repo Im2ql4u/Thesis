@@ -204,6 +204,27 @@ def two_body_correlation(log_psi_fn, log_slater_fn, x: torch.Tensor) -> dict:
     return {"r12": r12, "J": J, "n_pairs": int(ii.numel())}
 
 
+def zero_variance_extrapolation(E: np.ndarray, var: np.ndarray, *, max_points: int = 6) -> dict:
+    """Zero-variance extrapolation E(var->0).
+
+    Near a variational optimum the energy estimate and var(E_L) are linearly
+    related; the intercept of E vs var is the bias-reduced energy estimate. Fits a
+    line through the lowest-variance trajectory points. Returns the intercept and slope.
+    """
+    E = np.asarray(E, dtype=np.float64)
+    var = np.asarray(var, dtype=np.float64)
+    m = np.isfinite(E) & np.isfinite(var)
+    E, var = E[m], var[m]
+    if E.size < 2:
+        return {"E_zv": float(E[-1]) if E.size else float("nan"), "slope": 0.0, "n_points": int(E.size)}
+    order = np.argsort(var)
+    k = min(max_points, E.size)
+    vv, ee = var[order][:k], E[order][:k]
+    A = np.vstack([vv, np.ones_like(vv)]).T
+    slope, intercept = np.linalg.lstsq(A, ee, rcond=None)[0]
+    return {"E_zv": float(intercept), "slope": float(slope), "n_points": int(k)}
+
+
 @torch.no_grad()
 def overlap_with_exact(log_psi_fn, exact_log_psi_np, x: torch.Tensor) -> dict:
     """|<Psi_net|Psi_exact>|^2 estimated from samples x ~ |Psi_net|^2.

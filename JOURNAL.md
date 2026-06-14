@@ -52,10 +52,16 @@ coalescence spikes), not a variational violation; overlap/cusp confirm the wavef
 cos_sr=1.0 is partly because n_eval_samples < numerical rank (overcomplete tangent space) -- the
 robust, informative quantity is cos_plain. Single seed; CTNN-VCycle only. Adam (not SR) used for
 training speed; SR remains the diagnostic and an optional polish.
-**Output reference:** results/analysis/2026-06-14_N2_w1_ctnn_vcycle/ (REPORT.md, 4 figures,
-diagnostics.npz)
-**Next question:** Push N=2 to <0.05% (lr decay / SR polish), then sweep the full omega span
-(Phase B) to watch kappa(S) and the alignment gap evolve through the Wigner crossover.
+**Output reference:** results/analysis/2026-06-14_N2_w1_ctnn_vcycle/ (initial validation run).
+**Update (polish, same day):** added a driver-only final settle (single lower-lr Adam call; trainer
+untouched), unclipped + zero-variance energy reporting, alignment on 2048 samples (> score-matrix
+rank ~156 so cos_sr is a true representable fraction), and full data dumps (plot_data.npz + 5 CSVs +
+summary.json; every plot input saved). Result: **E_unclipped = 3.000127 +/- 0.000024 Ha (+0.004%,
+variational bound respected; clipped == unclipped), overlap^2 = 1.000000, cos(SR)=0.997 vs
+cos(plain)=0.041 at convergence (plain gradient nearly orthogonal to the Hamiltonian flow).**
+Output: results/analysis/2026-06-14_N2_w1_ctnn_vcycle_polished/.
+**Next question:** Phase B -- sweep the full omega span at N=2 to watch kappa(S) and the
+cos(SR)-vs-cos(plain) gap evolve through the Wigner crossover.
 
 ### [2026-05-16] — Architecture diagnostics: input attribution, effective rank, REINFORCE vs FD-Colloc
 

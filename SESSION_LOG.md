@@ -15,6 +15,10 @@ Last session: [2026-06-14] — Kernel-analysis program Phase A (N=2, omega=1.0)
 2. **Ran Phase A (N=2, omega=1.0).** E=2.99586 Ha, **overlap^2 with exact = 0.999984**, learned
    Jastrow matches exact, cusp recovered. Kernel: eff_rank(S) ~1.2/9842, kappa(S) ~9.5e11,
    cos(SR)=1.0 vs cos(plain) 0.26->0.05. See JOURNAL 2026-06-14.
+3. **Phase A polish (additive, trainer untouched):** unclipped + zero-variance energy reporting,
+   alignment on 2048 samples (> rank), full data dumps (plot_data.npz + 5 CSVs + summary.json; every
+   plot input saved), and a driver-only final settle. Result: **E=3.000127 (+0.004%), overlap^2 =
+   1.000000, cos(SR)=0.997 vs cos(plain)=0.041.** Output: ..._polished/.
 
 ## Debugging notes (for future runs)
 - HPC env: `source /etc/profile.d/lmod.sh; module load PyTorch/2.1.2-foss-2023a-CUDA-12.1.1`

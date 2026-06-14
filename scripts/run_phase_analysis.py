@@ -71,11 +71,15 @@ def main() -> None:
     ap.add_argument("--arch", type=str, default="ctnn_vcycle", choices=list(ARCH_KWARGS))
     ap.add_argument("--optimizer", type=str, default="adam", choices=["adam", "sr"])
     ap.add_argument("--steps", type=int, default=2500, help="total training steps")
+    ap.add_argument("--polish-steps", type=int, default=500,
+                    help="final low-lr settle (one optimizer call) for a clean endpoint")
     ap.add_argument("--lr", type=float, default=3e-3, help="Adam learning rate")
     ap.add_argument("--batch", type=int, default=2048, help="VMC batch (Adam)")
     ap.add_argument("--n-seg", type=int, default=12, help="diagnostic checkpoints")
-    ap.add_argument("--eval-samples", type=int, default=512)
-    ap.add_argument("--final-samples", type=int, default=4096)
+    ap.add_argument("--eval-samples", type=int, default=1024)
+    ap.add_argument("--final-samples", type=int, default=8192)
+    ap.add_argument("--align-samples", type=int, default=2048,
+                    help="samples for the final O/alignment (use > score-matrix rank)")
     ap.add_argument("--seed", type=int, default=0)
     ap.add_argument("--step-size", type=float, default=0.03)
     ap.add_argument("--damping", type=float, default=1e-2)
@@ -106,8 +110,8 @@ def main() -> None:
     exact = TwoElectronExact(omega=a.omega) if a.N == 2 else None
 
     # ---- train in segments, diagnosing the kernel along the way ----
-    traj = {"step": [], "E": [], "se": [], "var": [], "cond_S": [], "eff_rank_S": [],
-            "cos_sr": [], "cos_plain": [], "ntk_cond": []}
+    traj = {"step": [], "E": [], "E_raw": [], "se": [], "var": [], "cond_S": [], "eff_rank_S": [],
+            "num_rank_S": [], "cos_sr": [], "cos_plain": [], "ntk_cond": []}
     segs = build_segments(a.steps, a.n_seg)
     done = 0
     t0 = time.time()
@@ -141,17 +145,30 @@ def main() -> None:
         sp = dg.kernel_spectrum(O)
         al = dg.sr_vs_plain_alignment(O, E_L)
         traj["step"].append(done)
-        traj["E"].append(q["E_mean"]); traj["se"].append(q["E_stderr"])
+        traj["E"].append(q["E_mean"]); traj["E_raw"].append(q["E_mean_raw"])
+        traj["se"].append(q["E_stderr"])
         traj["var"].append(q["var_EL"]); traj["cond_S"].append(sp["condition_number"])
         traj["eff_rank_S"].append(sp["effective_rank"])
+        traj["num_rank_S"].append(sp["numerical_rank"])
         traj["cos_sr"].append(al["cos_sr"]); traj["cos_plain"].append(al["cos_plain"])
         traj["ntk_cond"].append(al["ntk_condition"])
         err_str = "" if ref_energy is None else f" ({q['error_pct']:+.3f}%)"
-        print(f"[seg {si+1}/{len(segs)}] step={done} E={q['E_mean']:.5f}{err_str}"
-              f" var={q['var_EL']:.3e} kappa(S)={sp['condition_number']:.2e}"
+        print(f"[seg {si+1}/{len(segs)}] step={done} E_raw={q['E_mean_raw']:.5f}{err_str}"
+              f" var={q['var_EL']:.3e} kappa(S)={sp['condition_number']:.2e} rank={sp['numerical_rank']}"
               f" cos_sr={al['cos_sr']:.3f} cos_plain={al['cos_plain']:.3f}")
 
     print(f"[phase] training done in {(time.time()-t0)/60:.1f} min")
+
+    # ---- final polish: one settled, lower-lr, larger-batch run for a clean endpoint ----
+    # (driver-only; the trainer is unchanged. A single call => no per-segment momentum resets.)
+    if a.polish_steps > 0:
+        sysm.train()
+        train_vmc_adam(
+            sysm, steps=a.polish_steps, lr=a.lr * 0.2, batch=max(a.batch, 4096),
+            sampler_steps=a.sampler_steps, sampler_sigma=a.sampler_sigma,
+            lap_mode="exact", log_every=max(1, a.polish_steps // 4),
+        )
+        done += a.polish_steps
 
     # ---- final verification on a large sample ----
     sysm.eval()
@@ -160,15 +177,37 @@ def main() -> None:
     finite = torch.isfinite(E_Lf)
     xf, E_Lf = xf[finite], E_Lf[finite]
     qf = dg.gs_quality(E_Lf, ref_energy=ref_energy)
-    Of = dg.build_O(sysm.log_psi, xf[: min(1024, a.final_samples)], sysm.modules(), center=True)
+    # Use more samples than the score-matrix rank so the representable fraction is meaningful.
+    n_align = min(a.align_samples, xf.shape[0])
+    Of = dg.build_O(sysm.log_psi, xf[:n_align], sysm.modules(), center=True)
     spf = dg.kernel_spectrum(Of)
-    alf = dg.sr_vs_plain_alignment(Of, E_Lf[: Of.shape[0]])
+    alf = dg.sr_vs_plain_alignment(Of, E_Lf[:n_align])
     tb = dg.two_body_correlation(sysm.log_psi, sysm.log_slater, xf)
 
+    # Fold the settled endpoint into the trajectory so the curves end on the polished state.
+    if a.polish_steps > 0:
+        traj["step"].append(done)
+        traj["E"].append(qf["E_mean"]); traj["E_raw"].append(qf["E_mean_raw"])
+        traj["se"].append(qf["E_stderr"]); traj["var"].append(qf["var_EL"])
+        traj["cond_S"].append(spf["condition_number"])
+        traj["eff_rank_S"].append(spf["effective_rank"])
+        traj["num_rank_S"].append(spf["numerical_rank"])
+        traj["cos_sr"].append(alf["cos_sr"]); traj["cos_plain"].append(alf["cos_plain"])
+        traj["ntk_cond"].append(alf["ntk_condition"])
+
+    zv = dg.zero_variance_extrapolation(np.array(traj["E_raw"]), np.array(traj["var"]))
+
+    err_raw = (None if ref_energy is None
+               else (qf["E_mean_raw"] - ref_energy) / abs(ref_energy) * 100.0)
+    err_zv = (None if ref_energy is None
+              else (zv["E_zv"] - ref_energy) / abs(ref_energy) * 100.0)
     summary = {
         "N": a.N, "omega": a.omega, "arch": a.arch, "n_params": P,
-        "final": qf, "spectrum": {k: spf[k] for k in spf if k != "eigenvalues"},
+        "final": qf, "energy_raw": qf["E_mean_raw"], "error_pct_raw": err_raw,
+        "energy_zv": zv["E_zv"], "error_pct_zv": err_zv, "zv_n_points": zv["n_points"],
+        "spectrum": {k: spf[k] for k in spf if k != "eigenvalues"},
         "alignment": {k: alf[k] for k in alf if not isinstance(alf[k], np.ndarray)},
+        "n_align_samples": int(n_align),
     }
     if exact is not None:
         ov = dg.overlap_with_exact(sysm.log_psi, exact.log_psi, xf)
@@ -177,98 +216,175 @@ def main() -> None:
             "overlap_sq": ov["overlap_sq"],
         }
 
-    # ---- save arrays + checkpoint ----
-    np.savez(
-        out / "diagnostics.npz",
-        **{f"traj_{k}": np.array(v) for k, v in traj.items()},
-        eig_S=spf["eigenvalues"], mu_desc=alf["mu_desc"],
-        residual_power=alf["residual_power_desc"],
-        sr_weight=alf["sr_mode_weight"], plain_weight=alf["plain_mode_weight"],
-        r12=tb["r12"], J=tb["J"],
-    )
+    # ---- assemble ALL plot-source data (compute once, save, then plot from it) ----
+    pd_ = _assemble_plot_data(traj, spf, alf, tb, exact, ref_energy, E_Lf, zv)
+    pd_["scalars"] = summary
+
+    # ---- save everything: npz (all arrays) + CSVs (key curves) + checkpoint + summary ----
+    np.savez(out / "plot_data.npz", **{k: v for k, v in pd_.items() if k != "scalars"})
+    _save_csvs(out, pd_)
+    (out / "summary.json").write_text(json.dumps(summary, indent=2, default=float) + "\n")
     torch.save({"f_net": sysm.f_net.state_dict(),
                 "backflow": None if sysm.backflow_net is None else sysm.backflow_net.state_dict(),
                 "arch": a.arch, "arch_kwargs": ARCH_KWARGS[a.arch],
                 "N": a.N, "omega": a.omega}, out / "checkpoint.pt")
 
-    _make_figures(out, a, traj, spf, alf, tb, exact, ref_energy)
-    _write_report(out, a, summary, traj)
+    _make_figures(out, a, pd_)
+    _write_report(out, a, summary)
     print("[phase] summary:\n" + json.dumps(summary, indent=2, default=float))
 
 
-def _make_figures(out, a, traj, spf, alf, tb, exact, ref_energy):
-    step = np.array(traj["step"])
-
-    # (a) energy convergence
-    fig, ax = plt.subplots(figsize=(6, 4))
-    ax.errorbar(step, traj["E"], yerr=traj["se"], marker="o", lw=1.5, capsize=2)
-    if ref_energy is not None:
-        ax.axhline(ref_energy, color="k", ls="--", label=f"reference {ref_energy:.5f}")
-        ax.legend()
-    ax.set_xlabel("CG-SR step"); ax.set_ylabel("E (Ha)")
-    ax.set_title(f"N={a.N}, omega={a.omega}: energy convergence")
-    fig.tight_layout(); fig.savefig(out / "fig_energy_convergence.png", dpi=140); plt.close(fig)
-
-    # (b) learned Jastrow vs exact (N=2 exact; else just learned)
-    r = tb["r12"].reshape(-1); J = np.repeat(tb["J"], tb["n_pairs"])
-    order = np.argsort(r)
-    nb = 40
+def _bin_curve(r: np.ndarray, y: np.ndarray, nb: int = 40):
+    """Quantile-binned mean curve y(r). Returns (r_centers, y_means, y_std, counts)."""
     edges = np.quantile(r, np.linspace(0, 1, nb + 1))
     idx = np.clip(np.digitize(r, edges[1:-1]), 0, nb - 1)
-    rc = np.array([r[idx == b].mean() if np.any(idx == b) else np.nan for b in range(nb)])
-    Jc = np.array([J[idx == b].mean() if np.any(idx == b) else np.nan for b in range(nb)])
-    r0 = np.nanmedian(rc)
-    J0 = np.interp(r0, rc[~np.isnan(rc)], Jc[~np.isnan(rc)])
-    fig, ax = plt.subplots(figsize=(6, 4))
-    ax.plot(rc, Jc - J0, "o-", label="learned  J_net")
+    rc, yc, ys, cnt = [], [], [], []
+    for b in range(nb):
+        m = idx == b
+        if np.any(m):
+            rc.append(r[m].mean()); yc.append(y[m].mean())
+            ys.append(y[m].std()); cnt.append(int(m.sum()))
+    return (np.array(rc), np.array(yc), np.array(ys), np.array(cnt))
+
+
+def _assemble_plot_data(traj, spf, alf, tb, exact, ref_energy, E_Lf, zv) -> dict:
+    """Every array behind every figure, gathered so plots and saved data are identical."""
+    r = tb["r12"].reshape(-1)
+    J = np.repeat(tb["J"], tb["n_pairs"])
+    rc, Jc, Jc_std, Jc_cnt = _bin_curve(r, J, nb=40)
+    r0 = float(np.nanmedian(rc))
+    J0 = float(np.interp(r0, rc, Jc))
+    pd_ = {
+        # energy convergence
+        "traj_step": np.array(traj["step"]), "traj_E_clip": np.array(traj["E"]),
+        "traj_E_raw": np.array(traj["E_raw"]), "traj_se": np.array(traj["se"]),
+        "traj_var": np.array(traj["var"]),
+        # kernel trajectory
+        "traj_cond_S": np.array(traj["cond_S"]), "traj_eff_rank_S": np.array(traj["eff_rank_S"]),
+        "traj_num_rank_S": np.array(traj["num_rank_S"]),
+        "traj_cos_sr": np.array(traj["cos_sr"]), "traj_cos_plain": np.array(traj["cos_plain"]),
+        "traj_ntk_cond": np.array(traj["ntk_cond"]),
+        "ref_energy": np.array([np.nan if ref_energy is None else ref_energy]),
+        "E_zv": np.array([zv["E_zv"]]),
+        # final spectrum + whitening
+        "eig_S": spf["eigenvalues"], "mu_desc": alf["mu_desc"],
+        "residual_power_desc": alf["residual_power_desc"],
+        "sr_mode_weight": alf["sr_mode_weight"], "plain_mode_weight": alf["plain_mode_weight"],
+        # learned correlation: raw scatter + binned + reference
+        "r12_raw": r, "J_raw": J,
+        "jastrow_r": rc, "jastrow_J_learned": Jc, "jastrow_J_learned_std": Jc_std,
+        "jastrow_J_count": Jc_cnt, "jastrow_r0": np.array([r0]), "jastrow_J0": np.array([J0]),
+        # local energies behind the final energy/var
+        "final_E_L": E_Lf.detach().cpu().double().numpy(),
+    }
     if exact is not None:
-        Je = exact.jastrow_log(rc) - exact.jastrow_log(np.array([r0]))[0]
-        ax.plot(rc, Je, "k--", label="exact  log u + omega r^2/4")
-        ax.text(0.05, 0.9, f"exact cusp dJ/dr|0 = {exact.jastrow_cusp_slope():.3f}",
-                transform=ax.transAxes)
+        pd_["jastrow_J_exact"] = exact.jastrow_log(rc) - exact.jastrow_log(np.array([r0]))[0]
+        r_fine = np.linspace(max(1e-3, rc.min()), rc.max(), 300)
+        pd_["jastrow_r_fine"] = r_fine
+        pd_["jastrow_J_exact_fine"] = exact.jastrow_log(r_fine) - exact.jastrow_log(np.array([r0]))[0]
+    return pd_
+
+
+def _save_csvs(out, pd_) -> None:
+    """Human-readable CSVs for the headline curves."""
+    def w(name, cols, arrs):
+        n = min(len(a) for a in arrs)
+        rows = [",".join(cols)] + [",".join(f"{arrs[c][i]:.8g}" for c in range(len(cols)))
+                                   for i in range(n)]
+        (out / name).write_text("\n".join(rows) + "\n")
+
+    w("data_energy_convergence.csv", ["step", "E_raw", "E_clip", "stderr", "var"],
+      [pd_["traj_step"], pd_["traj_E_raw"], pd_["traj_E_clip"], pd_["traj_se"], pd_["traj_var"]])
+    w("data_alignment_trajectory.csv", ["step", "cos_sr", "cos_plain", "kappa_S", "eff_rank_S",
+                                        "num_rank_S"],
+      [pd_["traj_step"], pd_["traj_cos_sr"], pd_["traj_cos_plain"], pd_["traj_cond_S"],
+       pd_["traj_eff_rank_S"], pd_["traj_num_rank_S"]])
+    w("data_S_spectrum.csv", ["index", "eigenvalue"],
+      [np.arange(1, pd_["eig_S"].size + 1), pd_["eig_S"]])
+    w("data_ntk_whitening.csv", ["mode", "mu", "sr_weight", "plain_weight", "residual_power"],
+      [np.arange(1, pd_["mu_desc"].size + 1), pd_["mu_desc"], pd_["sr_mode_weight"],
+       pd_["plain_mode_weight"], pd_["residual_power_desc"]])
+    jcols = ["r", "J_learned", "J_learned_std", "count"]
+    jarr = [pd_["jastrow_r"], pd_["jastrow_J_learned"], pd_["jastrow_J_learned_std"],
+            pd_["jastrow_J_count"]]
+    if "jastrow_J_exact" in pd_:
+        jcols.append("J_exact"); jarr.append(pd_["jastrow_J_exact"])
+    w("data_jastrow.csv", jcols, jarr)
+
+
+def _make_figures(out, a, pd_):
+    """Render figures strictly from the saved plot_data dict."""
+    step = pd_["traj_step"]
+    ref = float(pd_["ref_energy"][0])
+    has_ref = np.isfinite(ref)
+
+    # (a) energy convergence (unclipped, with zero-variance extrapolation line)
+    fig, ax = plt.subplots(figsize=(6, 4))
+    ax.errorbar(step, pd_["traj_E_raw"], yerr=pd_["traj_se"], marker="o", lw=1.5, capsize=2,
+                label="E (unclipped)")
+    ax.plot(step, pd_["traj_E_clip"], "x--", alpha=0.5, label="E (clipped est.)")
+    if has_ref:
+        ax.axhline(ref, color="k", ls="--", label=f"exact {ref:.5f}")
+    ax.axhline(float(pd_["E_zv"][0]), color="g", ls=":", label=f"zero-var extrap {float(pd_['E_zv'][0]):.5f}")
+    ax.set_xlabel("training step"); ax.set_ylabel("E (Ha)")
+    ax.set_title(f"N={a.N}, omega={a.omega}: energy convergence"); ax.legend(fontsize=8)
+    fig.tight_layout(); fig.savefig(out / "fig_energy_convergence.png", dpi=140); plt.close(fig)
+
+    # (b) learned Jastrow vs exact
+    rc = pd_["jastrow_r"]; Jc = pd_["jastrow_J_learned"]; J0 = float(pd_["jastrow_J0"][0])
+    fig, ax = plt.subplots(figsize=(6, 4))
+    ax.plot(rc, Jc - J0, "o", label="learned  J_net")
+    if "jastrow_J_exact_fine" in pd_:
+        ax.plot(pd_["jastrow_r_fine"], pd_["jastrow_J_exact_fine"], "k--",
+                label="exact  log u + omega r^2/4")
     ax.set_xlabel("pair distance r12"); ax.set_ylabel("J(r) - J(r0)")
     ax.set_title("learned correlation vs exact"); ax.legend()
     fig.tight_layout(); fig.savefig(out / "fig_jastrow_vs_exact.png", dpi=140); plt.close(fig)
 
     # (c) S spectrum
-    lam = spf["eigenvalues"]; lam = lam[lam > 0]
+    lam = pd_["eig_S"]; lam = lam[lam > 0]
+    sc = pd_["scalars"]["spectrum"]
     fig, ax = plt.subplots(figsize=(6, 4))
     ax.semilogy(np.arange(1, lam.size + 1), lam, "o-", ms=3)
     ax.set_xlabel("index"); ax.set_ylabel("eigenvalue of S = O^T O / B")
-    ax.set_title(f"QGT/NTK spectrum  (eff_rank={spf['effective_rank']:.1f}, "
-                 f"kappa={spf['condition_number']:.1e}, P={spf['n_params']})")
+    ax.set_title(f"QGT/NTK spectrum  (eff_rank={sc['effective_rank']:.1f}, "
+                 f"kappa={sc['condition_number']:.1e}, P={sc['n_params']})")
     fig.tight_layout(); fig.savefig(out / "fig_S_spectrum.png", dpi=140); plt.close(fig)
 
-    # (d) NTK whitening: per-mode weights + residual power; and alignment trajectory
+    # (d) NTK whitening + alignment trajectory
     fig, axs = plt.subplots(1, 2, figsize=(11, 4))
-    k = np.arange(1, alf["mu_desc"].size + 1)
-    axs[0].semilogy(k, alf["plain_mode_weight"], label="plain grad weight (mu_a/mu_max)")
-    axs[0].semilogy(k, np.clip(alf["sr_mode_weight"], 1e-12, None), label="SR weight (=1)")
-    rp = alf["residual_power_desc"]; rp = rp / (rp.max() + 1e-30)
+    k = np.arange(1, pd_["mu_desc"].size + 1)
+    axs[0].semilogy(k, pd_["plain_mode_weight"], label="plain grad weight (mu_a/mu_max)")
+    axs[0].semilogy(k, np.clip(pd_["sr_mode_weight"], 1e-12, None), label="SR weight (=1)")
+    rp = pd_["residual_power_desc"]; rp = rp / (rp.max() + 1e-30)
     axs[0].semilogy(k, np.clip(rp, 1e-12, None), alpha=0.5, label="residual power (norm.)")
     axs[0].set_xlabel("NTK mode (sorted by mu)"); axs[0].set_ylabel("weight")
     axs[0].set_title("NTK whitening (final)"); axs[0].legend(fontsize=8)
-    axs[1].plot(step, traj["cos_sr"], "o-", label="cos(SR, imag-time)")
-    axs[1].plot(step, traj["cos_plain"], "s-", label="cos(plain, imag-time)")
-    axs[1].set_xlabel("CG-SR step"); axs[1].set_ylabel("alignment with Hamiltonian flow")
+    axs[1].plot(step, pd_["traj_cos_sr"], "o-", label="cos(SR, imag-time)")
+    axs[1].plot(step, pd_["traj_cos_plain"], "s-", label="cos(plain, imag-time)")
+    axs[1].set_xlabel("training step"); axs[1].set_ylabel("alignment with Hamiltonian flow")
     axs[1].set_ylim(-0.05, 1.05); axs[1].legend(fontsize=8)
     axs[1].set_title("SR vs plain gradient")
     fig.tight_layout(); fig.savefig(out / "fig_ntk_whitening.png", dpi=140); plt.close(fig)
 
 
-def _write_report(out, a, summary, traj):
+def _write_report(out, a, summary):
     f = summary["final"]
+    er_raw = summary.get("error_pct_raw")
+    er_zv = summary.get("error_pct_zv")
     lines = [
         f"# Phase analysis: N={a.N}, omega={a.omega}, arch={a.arch}",
         "",
         f"- params: {summary['n_params']:,}",
-        f"- **E = {f['E_mean']:.6f} +/- {f['E_stderr']:.6f} Ha**"
-        + (f"  (ref {f.get('ref_energy')}, err {f.get('error_pct'):+.3f}%, "
-           f"{f.get('error_sigma'):+.1f} sigma)" if "ref_energy" in f else ""),
-        f"- var(E_L) = {f['var_EL']:.4e}",
+        f"- **E (unclipped) = {summary['energy_raw']:.6f} +/- {f['E_stderr']:.6f} Ha**"
+        + ("" if er_raw is None else f"  (exact {summary['final'].get('ref_energy')}, err {er_raw:+.3f}%)"),
+        f"- E (zero-variance extrap, {summary['zv_n_points']} pts) = {summary['energy_zv']:.6f} Ha"
+        + ("" if er_zv is None else f"  (err {er_zv:+.3f}%)"),
+        f"- E (clipped est.) = {f['E_mean']:.6f} Ha; var(E_L) = {f['var_EL']:.4e}",
         f"- QGT/NTK: eff_rank = {summary['spectrum']['effective_rank']:.2f}, "
         f"kappa(S) = {summary['spectrum']['condition_number']:.3e}, "
-        f"numerical rank = {summary['spectrum']['numerical_rank']}/{summary['n_params']}",
+        f"numerical rank = {summary['spectrum']['numerical_rank']}/{summary['n_params']} "
+        f"(alignment on {summary['n_align_samples']} samples)",
         f"- alignment (final): cos(SR)={summary['alignment']['cos_sr']:.3f}, "
         f"cos(plain)={summary['alignment']['cos_plain']:.3f}, "
         f"NTK kappa={summary['alignment']['ntk_condition']:.3e}",
@@ -281,8 +397,13 @@ def _write_report(out, a, summary, traj):
             f"- exact energy = {e['energy']:.6f} Ha; exact Jastrow cusp dJ/dr|0 = {e['cusp_slope']:.4f}",
             f"- **|<Psi_net|Psi_exact>|^2 = {e['overlap_sq']:.6f}**",
         ]
-    lines += ["", "Figures: fig_energy_convergence, fig_jastrow_vs_exact, fig_S_spectrum, "
-              "fig_ntk_whitening. Arrays: diagnostics.npz. Checkpoint: checkpoint.pt."]
+    lines += ["", "## Data files (all plot inputs saved)",
+              "- plot_data.npz : every array behind every figure",
+              "- data_energy_convergence.csv, data_alignment_trajectory.csv, data_S_spectrum.csv, "
+              "data_ntk_whitening.csv, data_jastrow.csv",
+              "- summary.json : all scalar metrics; checkpoint.pt : trained weights",
+              "",
+              "Figures: fig_energy_convergence, fig_jastrow_vs_exact, fig_S_spectrum, fig_ntk_whitening."]
     (out / "REPORT.md").write_text("\n".join(lines) + "\n")
 
 

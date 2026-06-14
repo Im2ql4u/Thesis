@@ -110,9 +110,12 @@ def train_sr(
     sampler_steps: int = 30,
     sampler_sigma: float = 0.4,
     lr: float = 0.3,
+    lr_final: float | None = None,
     damping: float = 1e-3,
     damping_final: float | None = None,
     max_step: float = 0.05,
+    max_step_final: float | None = None,
+    sr_samples: int = 1024,
     clip_mad: float = 8.0,
     lap_mode: str = "exact",
     log_every: int = 20,
@@ -120,8 +123,16 @@ def train_sr(
     ref_energy: float | None = None,
 ) -> dict:
     """SR (natural-gradient) VMC training. Warm-start from an Adam result for a clean approach to
-    the variational minimum (~DMC). Walkers persist; damping anneals log-linearly if damping_final
-    is set."""
+    the variational minimum (~DMC). Walkers persist; damping, learning rate, and the trust-region
+    radius anneal log-/linearly toward their *_final values so the run *settles* rather than bouncing
+    at the trust-region clip."""
+
+    def _anneal(a0, a1, frac, log=False):
+        if a1 is None:
+            return a0
+        if log:
+            return math.exp(math.log(a0) + frac * (math.log(a1) - math.log(a0)))
+        return a0 + frac * (a1 - a0)
     from functions.Stochastic_Reconfiguration import _persistent_rw
 
     ell = 1.0 / math.sqrt(system.omega)
@@ -146,16 +157,17 @@ def train_sr(
         mad = (E_Lb - med).abs().median() + 1e-30
         E_cl = E_Lb.clamp(med - clip_mad * mad, med + clip_mad * mad)
 
-        damp = damping
-        if damping_final is not None and steps > 1:
-            frac = t / (steps - 1)
-            damp = math.exp(math.log(damping) + frac * (math.log(damping_final) - math.log(damping)))
-        info = sr_natural_step(system, xb, E_cl, damping=damp, lr=lr, max_step=max_step)
+        frac = t / (steps - 1) if steps > 1 else 1.0
+        damp = _anneal(damping, damping_final, frac, log=True)
+        lr_t = _anneal(lr, lr_final, frac, log=True)
+        max_step_t = _anneal(max_step, max_step_final, frac, log=True)
+        xs, E_s = (xb[:sr_samples], E_cl[:sr_samples]) if xb.shape[0] > sr_samples else (xb, E_cl)
+        info = sr_natural_step(system, xs, E_s, damping=damp, lr=lr_t, max_step=max_step_t)
 
         if (t % log_every == 0) or (t == steps - 1):
             e = float(E_cl.mean()); v = float(E_cl.var())
             hist["step"].append(t); hist["E"].append(e); hist["var"].append(v)
             err = "" if ref_energy is None else f" ({(e-ref_energy)/abs(ref_energy)*100:+.3f}%)"
             log_fn(f"[sr {t:04d}] E={e:.6f}{err} var={v:.3e} |dθ|={info['step_norm']:.2e} "
-                   f"|g|={info['g_norm']:.2e} damp={damp:.1e}")
+                   f"|g|={info['g_norm']:.2e} damp={damp:.1e} lr={lr_t:.2e}")
     return hist

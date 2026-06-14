@@ -50,6 +50,11 @@ ARCH_KWARGS = {
         n_down=1, n_up=1, msg_layers=1, node_layers=1,
         readout_hidden=32, readout_layers=2, act="silu",
     ),
+    "ctnn_vcycle_big": dict(
+        node_hidden=32, edge_hidden=32, bottleneck_hidden=16,
+        n_down=2, n_up=2, msg_layers=2, node_layers=2,
+        readout_hidden=64, readout_layers=3, act="silu",
+    ),
     "ctnn": dict(node_hidden=16, edge_hidden=16, n_mp_steps=2, msg_layers=1,
                  node_layers=1, readout_hidden=32, readout_layers=2, act="silu"),
     "deepset": dict(pair_hidden=32, pair_layers=3, pair_out=16, readout_hidden=32,
@@ -108,9 +113,13 @@ def main() -> None:
     out.mkdir(parents=True, exist_ok=True)
     print(f"[phase] N={a.N} omega={a.omega} arch={a.arch}  ->  {out}")
 
-    bf_kwargs = dict(msg_hidden=32, msg_layers=2, hidden=32, layers=2, act="silu",
-                     out_bound="tanh", bf_scale_init=0.05, zero_init_last=True)
-    sysm = System(N=a.N, omega=a.omega, d=2, arch=a.arch,
+    big = a.arch.endswith("_big")
+    arch_builder = "ctnn_vcycle" if a.arch.startswith("ctnn_vcycle") else a.arch
+    bf_kwargs = (dict(msg_hidden=64, msg_layers=2, hidden=64, layers=3, act="silu",
+                      out_bound="tanh", bf_scale_init=0.05, zero_init_last=True) if big
+                 else dict(msg_hidden=32, msg_layers=2, hidden=32, layers=2, act="silu",
+                           out_bound="tanh", bf_scale_init=0.05, zero_init_last=True))
+    sysm = System(N=a.N, omega=a.omega, d=2, arch=arch_builder,
                   arch_kwargs=ARCH_KWARGS[a.arch], use_backflow=a.backflow,
                   backflow_kwargs=bf_kwargs, seed=a.seed)
     P = sysm.n_params()
@@ -185,8 +194,10 @@ def main() -> None:
     if a.sr_polish_steps > 0:
         sysm.train()
         train_sr(sysm, steps=a.sr_polish_steps, batch=a.batch, lr=a.sr_lr,
-                 damping=a.sr_damping, damping_final=max(1e-4, a.sr_damping * 0.1),
-                 max_step=0.05, lap_mode="exact", log_every=max(1, a.sr_polish_steps // 8),
+                 lr_final=a.sr_lr * 0.05, damping=a.sr_damping,
+                 damping_final=max(1e-4, a.sr_damping * 0.05),
+                 max_step=0.05, max_step_final=0.005,
+                 lap_mode="exact", log_every=max(1, a.sr_polish_steps // 10),
                  ref_energy=ref_energy)
         done += a.sr_polish_steps
 

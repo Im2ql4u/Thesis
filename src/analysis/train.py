@@ -33,10 +33,14 @@ def train_vmc_adam(
     lap_mode: str = "exact",
     log_every: int = 100,
     log_fn=print,
+    ckpt_every: int = 0,
+    ckpt_fn=None,
 ) -> dict:
     """Minimise <E> by Adam on the score-function (REINFORCE) gradient.
 
-    Returns a history dict {step, E, var}. Walkers persist across steps.
+    Returns a history dict {step, E, var}. Walkers and the optimiser persist across the call
+    (a single call => no momentum resets). If ckpt_every>0 and ckpt_fn is given, calls
+    ckpt_fn(step) every ckpt_every steps (for lazy-vs-rich / training-dynamics analysis).
     """
     from functions.Stochastic_Reconfiguration import _persistent_rw
 
@@ -75,4 +79,6 @@ def train_vmc_adam(
             v = float(E_cl.var())
             hist["step"].append(t); hist["E"].append(e); hist["var"].append(v)
             log_fn(f"[adam {t:05d}] E={e:.6f} var={v:.4e} sig={sig:.3f} acc~0.5 n={xb.shape[0]}")
+        if ckpt_every and ckpt_fn is not None and ((t % ckpt_every == 0) or (t == steps - 1)):
+            ckpt_fn(t)
     return hist

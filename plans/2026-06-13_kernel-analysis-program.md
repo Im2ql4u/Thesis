@@ -93,6 +93,86 @@ theory subsection + an appendix), independent of any single experiment.
 
 ---
 
+## 2.5 The mechanistic depth layer (the questions we actually care about)
+
+**Self-critique (2026-06-14).** Phase A established the tools and confirmed, against exact truth,
+that the ansatz is the ground state and that SR whitens the NTK (κ(S)≈10¹², cos(plain)→0.04). But
+global scalars of `O` (κ, eff-rank, a cosine) *describe* the geometry; they do not *explain the
+mechanism* or *open the network*. Three honest gaps:
+
+1. We characterised the **output** (J(r)=log(1+r)), never the **internal mapping**.
+2. **CTNN-vs-FFNN is structurally unanswerable at N=2** (one pair, zero many-body). That question
+   only has signal at N≥6.
+3. We showed *that* the plain gradient is misaligned, not *what function* it wastes itself on, *where
+   in space*, or *why*.
+
+This section defines the deeper questions and the minimal system each needs. The cusp is a **fixed
+analytic prior** (`u_cusp=Σγr e^{-r/ℓ}`, not learned), so the network learns the *smooth residual*
+`J − u_cusp`; this reframes both "what the cusp does" and "what the network learns".
+
+### Deep questions
+
+- **D1 — What "gradient ⊥ Hamiltonian flow" means, and where it matters.** Plain step ∝ `K·r`, SR
+  step ∝ `P_T·r`, target = `r=E_L−E`. We measured cos(plain,r)=0.04 *with* rep_fraction(SR)=0.997:
+  the residual is spread democratically over ~150 stiff NTK modes while `K` (anisotropic over 12
+  decades) collapses the plain step onto the single softest mode, so
+  `cos(plain,r) ≈ 1/√(#modes the physics occupies)`. Investigate by (i) mapping NTK eigenvectors to
+  **real-space functions of r** (soft top mode = global Jastrow amplitude? stiff modes =
+  cusp/short-range + far tail?); (ii) plotting **δψ_SR(x) vs δψ_plain(x) in real space** — *where*
+  the natural-gradient update lands (predict: coalescence cusp + density tail); (iii) treating
+  **cos(plain) at convergence as a correlation-non-triviality meter** that should shrink as Γ grows
+  (low ω, larger N).
+
+- **D2 — The cusp prior as a function-space preconditioner; cusp×SR 2×2.** The fixed cusp removes the
+  hardest (lowest-NTK-eigenvalue) direction from the *learning* problem — the same stiff direction SR
+  fixes in parameter space. Centrepiece experiment: {cusp ON/OFF} × {Adam/SR}. Predict cusp-OFF+Adam
+  worst (E_L spikes at coalescence, extra stiff mode in the NTK, energy plateau); cusp-ON+Adam works
+  *because the prior did SR's job*; SR rescues cusp-OFF. Measure the NTK spectrum ON vs OFF (a stiff
+  mode should appear/disappear). Also decompose `J = u_cusp(fixed) + f_net(learned)` and study the
+  learned correction vs ω (ℓ=1/√ω stretches the prior).
+
+- **D3 — What the network learns internally.** (i) **Effective variational coordinate**: eff-rank(S)
+  ≈1 ⇒ a ~10⁴-parameter net uses ~1 functional DOF — identify it (real-space shape of the top NTK
+  eigenfunction; perturb the wavefunction along it and watch the density). A 1-D effective theory
+  embedded in parameter space. (ii) **Mechanistic circuit decoding**: hook edge/node/message/
+  bottleneck/readout; plot activations vs r (N=2) → which units are independent, is there a
+  cusp-region unit vs a tail unit.
+
+- **D4 — Lazy vs rich (feature learning).** Is the net a kernel machine in a *fixed* feature space
+  (lazy: NTK constant → learns only coefficients) or does it *discover* features (rich: NTK rotates)?
+  Measure kernel alignment `K(t)·K(t')` and top-eigenvector rotation over training. This is the
+  rigorous form of "what are the learned hidden mappings": lazy ⇒ mappings fixed at init; rich ⇒
+  discovered, and they *are* the answer. Hypothesis: smooth N=2/ω=1 target ⇒ fairly lazy; low ω /
+  many-body ⇒ rich; **CTNN richer than FFNN may be *why* it wins**. One measurement, all three angles.
+
+- **D5 — Training dynamics.** Order of learning via the error projected on NTK modes (predict:
+  smooth/mean-field first, cusp/tail last); the **two-timescale** signature of ill-conditioning and
+  whether SR collapses it; NTK evolution (D4 time-resolved); cusp/correlation emergence in J(r) over
+  epochs. Requires clean single-optimizer trajectories with mid-training checkpoints.
+
+- **D6 — Why CTNN ≫ FFNN (needs N≥6).** Decode the **message** `m_v` (local field / effective
+  density / weighted neighbour count → did message-passing rediscover a local density functional an
+  FFNN-of-pairs cannot build?); **body-order (ANOVA)** decomposition (CTNN nonzero 3-/4-body, pairwise
+  FFNN exactly zero beyond 2-body); expressivity-at-fixed-cost (K rounds → (K+1)-body at O(N²));
+  lazy-vs-rich across architectures.
+
+### Minimal system for each question
+
+| Question | Minimal system | Why |
+|---|---|---|
+| SR mechanism, δψ maps, soft/stiff eigenfunctions (D1) | N=2 | visible at 2-body; checkable vs exact |
+| Cusp×SR 2×2, cusp role (D2) | N=2 | cusp is 2-body; exact target known |
+| Effective coordinate, circuit decoding (D3) | N=2 → N≥6 | 1-D latent at N=2; many-body features at N≥6 |
+| Lazy vs rich (D4) | N=2 (+ ω, + arch) | measurable anywhere; contrast across regimes |
+| Training dynamics (D5) | N=2 | clean, exact-anchored |
+| CTNN ≫ FFNN, message decoding, body-order (D6) | **N≥6** | needs ≥3 bodies; vacuous at N=2 |
+
+**Sequencing consequence:** do the mechanism (D1–D5) *in depth at N=2 ω=1.0 first*, then add ω as a
+second axis, then go to **N=6** for D6 (CTNN-vs-FFNN). The ω-sweep is reframed from "does SR help
+everywhere" (known) to "does the SR-advantage / richness / effective-dim track Γ" (a physics claim).
+
+---
+
 ## 3. Cross-cutting infrastructure (build once, reuse every phase)
 
 These are tools, not experiments. Build and unit-test them against `N=2` ground truth in Phase A,
@@ -157,8 +237,13 @@ Goal: establish and *validate against exact truth* every tool and every claim on
 - Dual-track: SR vs collocation wavefunction — same `Ψ` or just same `E`? (CKA, density-matrix
   overlap, `u(r)` overlap).
 
-**Consolidation gate A:** Are all six tools validated against ground truth? Does the kernel story hold
-where we can check it exactly? List anything that surprised us before moving on.
+**Phase A-depth (current focus, 2026-06-14):** the mechanism layer (§2.5), all at N=2 ω=1.0 against
+exact truth: NTK eigenfunctions → real space and δψ_SR vs δψ_plain maps (D1); cusp×SR 2×2 + the
+`J = u_cusp + f_net` decomposition (D2); effective variational coordinate + circuit decoding (D3);
+lazy-vs-rich kernel alignment (D4); training dynamics from mid-training checkpoints (D5).
+
+**Consolidation gate A:** Are all tools validated against ground truth? Does the kernel story hold
+where we can check it exactly? Is the network lazy or rich here? List surprises before moving on.
 
 ### Phase B — `N=2`, full ω span (`1e-3, 1e-2, 0.1, 0.5, 1.0`)
 Goal: the quantum→classical (Wigner) crossover in the *tractable* case.
@@ -173,12 +258,17 @@ Goal: the quantum→classical (Wigner) crossover in the *tractable* case.
 **Consolidation gate B:** Write the `N=2` story end-to-end. Is the kernel picture predictive (not just
 descriptive)? Identify low-hanging fruit (e.g. ω=0.28 fills the crossover) before adding particles.
 
-### Phase C — `N=6` (first genuine many-body; closed shell `1+5`? — confirm shell structure)
-Goal: where pair → many-body correlation first matters; richest existing diagnostics live here.
+### Phase C — `N=6` (first genuine many-body; the home of CTNN-vs-FFNN)
+Goal: where pair → many-body correlation first matters — the minimal system where **D6** has signal.
 - Secure analysis-grade GS across ω (SR primary). Reconcile with the existing
   `architecture_diagnostics` campaign — re-run any diagnostic whose checkpoint fails the §4 gate.
-- Angle 2 in force: body-order spectroscopy (B4), CTNN vs DeepSet vs Triadic FFNN-equivalence curve
-  (B3), where-it-helps map (B5), V-cycle bottleneck probe (B7), backflow-vs-Jastrow labour split (B8).
+- **D6 (CTNN vs FFNN):** train matched CTNN (message-passing) and FFNN/DeepSet (pairwise) Jastrows;
+  decode the message `m_v` (does it build a local density/field?); body-order ANOVA (CTNN nonzero
+  3-/4-body, pairwise zero); FFNN-equivalence curve (energy vs params); lazy-vs-rich across arch.
+- Carry the depth tools from Phase A-depth: δψ maps, effective coordinate, circuit decoding now on
+  the many-body message; does SR help *more* for CTNN than FFNN (better-conditioned S)?
+- Re-examine the published `N=6` claims (100% kinetic, random=zero messages) with seed sweeps before
+  they anchor a chapter.
 - Kernel: does SR help *more* for CTNN than for DeepSet/FFNN (X2)? Compare `κ(S)` across architectures.
 - Re-examine the published `N=6` claims (100% kinetic, random=zero messages) with seed sweeps before
   they anchor a chapter.

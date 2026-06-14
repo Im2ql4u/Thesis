@@ -81,14 +81,19 @@ def local_energy(
     *,
     lap_mode: str = "exact",
     lap_probes: int = 16,
+    chunk: int = 1024,
 ) -> torch.Tensor:
+    """E_L over x, chunked over the batch to bound memory (the exact Laplacian builds N*d graphs)."""
     def coul(xx):
         return compute_coulomb_interaction(xx, params=params)
 
-    E_L, _ = _local_energy_multi(
-        log_psi_fn, x, coul, omega, lap_mode=lap_mode, lap_probes=lap_probes
-    )
-    return E_L
+    outs = []
+    for s in range(0, x.shape[0], chunk):
+        E_L, _ = _local_energy_multi(
+            log_psi_fn, x[s : s + chunk], coul, omega, lap_mode=lap_mode, lap_probes=lap_probes
+        )
+        outs.append(E_L)
+    return torch.cat(outs, dim=0)
 
 
 def _blocking_stderr(v: np.ndarray, n_blocks: int = 32) -> float:

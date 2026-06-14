@@ -269,12 +269,18 @@ def decode_message(system, x: torch.Tensor, *, radius_aho: float = 1.5) -> dict:
     def hook(_m, _i, o):
         captured["h"] = o.detach() if isinstance(o, torch.Tensor) else None
 
-    # prefer the last node update if present; else node_embed
+    # Prefer the LAST post-message node update (the aggregated message content), then the
+    # skip-fusion, then the bare embedding. DeepSet/FFNN have none -> message decode N/A.
     target_mod = None
-    for name in ["node_skip_fuse", "node_embed"]:
+    for name in ["node_updates_up", "node_updates_down"]:
         m = getattr(net, name, None)
-        if m is not None:
-            target_mod = m
+        if m is not None and len(m) > 0:
+            target_mod = m[-1]; break
+    if target_mod is None:
+        for name in ["node_skip_fuse", "node_embed"]:
+            m = getattr(net, name, None)
+            if m is not None:
+                target_mod = m; break
     if target_mod is None:
         return {"available": False}
     h = target_mod.register_forward_hook(hook)

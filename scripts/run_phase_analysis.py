@@ -51,7 +51,8 @@ ARCH_KWARGS = {
     ),
     "ctnn": dict(node_hidden=16, edge_hidden=16, n_mp_steps=2, msg_layers=1,
                  node_layers=1, readout_hidden=32, readout_layers=2, act="silu"),
-    "deepset": dict(hidden=32, layers=2, readout_hidden=32, readout_layers=2, act="silu"),
+    "deepset": dict(pair_hidden=32, pair_layers=3, pair_out=16, readout_hidden=32,
+                    readout_layers=2, act="silu"),
     "pinn": dict(hidden_dim=64, n_layers=2, act="silu"),
 }
 

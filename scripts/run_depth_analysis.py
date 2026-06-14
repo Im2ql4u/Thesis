@@ -48,7 +48,8 @@ import matplotlib.pyplot as plt  # noqa: E402
 ARCH_KWARGS = {
     "ctnn_vcycle": dict(node_hidden=16, edge_hidden=16, bottleneck_hidden=8, n_down=1, n_up=1,
                         msg_layers=1, node_layers=1, readout_hidden=32, readout_layers=2, act="silu"),
-    "deepset": dict(hidden=32, layers=2, readout_hidden=32, readout_layers=2, act="silu"),
+    "deepset": dict(pair_hidden=32, pair_layers=3, pair_out=16, readout_hidden=32,
+                    readout_layers=2, act="silu"),
 }
 
 

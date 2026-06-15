@@ -78,6 +78,8 @@ def main() -> None:
     ap.add_argument("--arch", type=str, default="ctnn_vcycle", choices=list(ARCH_KWARGS))
     ap.add_argument("--backflow", action="store_true",
                     help="add CTNN/MLP coordinate backflow (needed for nodes at N>=6)")
+    ap.add_argument("--init", type=str, default="",
+                    help="warm-start from a previous checkpoint.pt (cascade across omega)")
     ap.add_argument("--optimizer", type=str, default="adam", choices=["adam", "sr"])
     ap.add_argument("--steps", type=int, default=2500, help="total training steps")
     ap.add_argument("--polish-steps", type=int, default=500,
@@ -122,6 +124,13 @@ def main() -> None:
     sysm = System(N=a.N, omega=a.omega, d=2, arch=arch_builder,
                   arch_kwargs=ARCH_KWARGS[a.arch], use_backflow=a.backflow,
                   backflow_kwargs=bf_kwargs, seed=a.seed)
+    if a.init:
+        ck = torch.load(a.init, map_location=sysm.device)
+        sysm.f_net.load_state_dict(ck["f_net"])
+        if sysm.backflow_net is not None and ck.get("backflow") is not None:
+            sysm.backflow_net.load_state_dict(ck["backflow"])
+        print(f"[phase] warm-started from {a.init} (omega {ck.get('omega')} -> {a.omega})")
+
     P = sysm.n_params()
     dev = sysm.device
     ref_energy = config.get().E if np.isfinite(config.get().E) else None

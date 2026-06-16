@@ -24,6 +24,37 @@ The model reads this to understand what has been tried, what worked, what failed
 
 ## Journal
 
+### [2026-06-15] — Accurate omega cascade (below DMC) + message-decode collapses at Wigner
+
+**Motivation:** The first DMC-quality N=6 runs sat at +0.05% with var(E_L)~0.03 — not accurate enough;
+omega=0.1 wouldn't train from scratch. Push to consistently below-DMC accuracy across omega and
+analyse what the (now genuine) ground states encode.
+**Method:** (1) Diagnosed the two limiters: SR was pinned at the trust-region clip every step
+(bouncing) and the small net floored the variance. Added lr/trust-region annealing to train_sr,
+sr_samples subsampling, chunked local_energy (exact-Laplacian OOM on big nets), and a higher-capacity
+config (ctnn_vcycle_big, ~80k params). (2) Added --init warm-start and ran a sequential omega cascade
+1->0.5->0.1->0.01 (CTNN-big + backflow + Adam + annealed SR). (3) Added --load to the depth driver and
+ran depth analysis on the accurate checkpoints in parallel across GPUs.
+**Results:**
+- **Energies all below reference:** w1 -0.028%, w0.5 -0.001%, w0.1 -0.009%, w0.01 -0.131% (w0.01 has
+  no DMC; below the thesis PINN+CTNN value). **var(E_L) collapses 1.1e-2 -> 4.6e-3 -> 5e-4 -> 3.9e-6**
+  toward low omega. Annealed SR settles (|dtheta| 2e-3 -> 5e-5) instead of bouncing.
+- **Cascade unlocks low omega:** omega=0.1/0.01 (which diverged/plateaued from scratch) converge in
+  ~60 warm-started steps.
+- **Message-decode vs omega (D6):** CTNN message linear-probe R^2 for local quantities falls from
+  high omega to Wigner: nn_distance 0.91->0.17, density 0.73->0.13, coulomb 0.82->0.44, spin
+  0.53->0.05. The message encodes the local environment where geometry fluctuates (high omega) and
+  stops encoding it where geometry freezes (Wigner crystal) — mirrors the known 3-body collapse.
+**Interpretation:** Accuracy was an optimisation+capacity issue, fixed by annealed SR + bigger net +
+cascade. The message-decode trend is a clean "what the network learns reflects the physics" result:
+the many-body representation is information-rich exactly where many-body correlation is dynamically
+active. CTNN VMC+SR now reaches or beats DMC consistently across omega.
+**Caveats:** Single seed; w0.01 ref is not DMC. CTNN-vs-FFNN at matched high accuracy still pending
+(DeepSet-big cascade running). --load depth omits the lazy-vs-rich trajectory (no training ckpts).
+**Output reference:** results/analysis/2026-06-15_N6_w{1,05,01,001}_ctnn_big_bf_{acc,casc}/ and
+2026-06-15_depthLOAD_N6_w*_ctnn_big/.
+**Next question:** Does CTNN beat DeepSet at matched high accuracy at low omega? Then N=12/N=20.
+
 ### [2026-06-14] — Depth layer + backflow reaches DMC; SR validated; N=6 CTNN-vs-FFNN (prelim)
 
 **Motivation:** Move from "SR helps + it's a GS" to the mechanistic questions (what the network

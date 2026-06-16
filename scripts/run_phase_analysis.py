@@ -59,6 +59,8 @@ ARCH_KWARGS = {
                  node_layers=1, readout_hidden=32, readout_layers=2, act="silu"),
     "deepset": dict(pair_hidden=32, pair_layers=3, pair_out=16, readout_hidden=32,
                     readout_layers=2, act="silu"),
+    "deepset_big": dict(pair_hidden=64, pair_layers=4, pair_out=32, readout_hidden=64,
+                        readout_layers=3, act="silu"),
     "pinn": dict(hidden_dim=64, n_layers=2, act="silu"),
 }
 
@@ -116,7 +118,7 @@ def main() -> None:
     print(f"[phase] N={a.N} omega={a.omega} arch={a.arch}  ->  {out}")
 
     big = a.arch.endswith("_big")
-    arch_builder = "ctnn_vcycle" if a.arch.startswith("ctnn_vcycle") else a.arch
+    arch_builder = a.arch[:-4] if big else a.arch
     bf_kwargs = (dict(msg_hidden=64, msg_layers=2, hidden=64, layers=3, act="silu",
                       out_bound="tanh", bf_scale_init=0.05, zero_init_last=True) if big
                  else dict(msg_hidden=32, msg_layers=2, hidden=32, layers=2, act="silu",

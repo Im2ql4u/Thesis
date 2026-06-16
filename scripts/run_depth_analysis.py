@@ -49,9 +49,21 @@ import matplotlib.pyplot as plt  # noqa: E402
 ARCH_KWARGS = {
     "ctnn_vcycle": dict(node_hidden=16, edge_hidden=16, bottleneck_hidden=8, n_down=1, n_up=1,
                         msg_layers=1, node_layers=1, readout_hidden=32, readout_layers=2, act="silu"),
+    "ctnn_vcycle_big": dict(node_hidden=32, edge_hidden=32, bottleneck_hidden=16, n_down=2, n_up=2,
+                            msg_layers=2, node_layers=2, readout_hidden=64, readout_layers=3, act="silu"),
     "deepset": dict(pair_hidden=32, pair_layers=3, pair_out=16, readout_hidden=32,
                     readout_layers=2, act="silu"),
+    "deepset_big": dict(pair_hidden=64, pair_layers=4, pair_out=32, readout_hidden=64,
+                        readout_layers=3, act="silu"),
 }
+
+
+def _bf_kwargs(big: bool) -> dict:
+    if big:
+        return dict(msg_hidden=64, msg_layers=2, hidden=64, layers=3, act="silu",
+                    out_bound="tanh", bf_scale_init=0.05, zero_init_last=True)
+    return dict(msg_hidden=32, msg_layers=2, hidden=32, layers=2, act="silu",
+                out_bound="tanh", bf_scale_init=0.05, zero_init_last=True)
 
 
 def main() -> None:
@@ -72,6 +84,8 @@ def main() -> None:
     ap.add_argument("--sr-damping", type=float, default=1e-3)
     ap.add_argument("--seed", type=int, default=0)
     ap.add_argument("--outdir", type=str, default="")
+    ap.add_argument("--load", type=str, default="",
+                    help="analyse an existing checkpoint.pt (skip training; D1/D3/D6 only)")
     a = ap.parse_args()
 
     torch.manual_seed(a.seed); np.random.seed(a.seed)
@@ -81,17 +95,24 @@ def main() -> None:
         f"results/analysis/{date.today().isoformat()}_depth_N{a.N}_w{wtag}_{a.arch}{cusptag}")
     out.mkdir(parents=True, exist_ok=True)
 
-    akw = dict(ARCH_KWARGS[a.arch])
-    if a.arch == "ctnn_vcycle":
+    load_ck = torch.load(a.load, map_location="cpu") if a.load else None
+    arch_name = load_ck["arch"] if load_ck else a.arch
+    big = arch_name.endswith("_big")
+    arch_builder = arch_name[:-4] if big else arch_name
+    akw = dict(load_ck["arch_kwargs"]) if load_ck else dict(ARCH_KWARGS[a.arch])
+    if arch_builder == "ctnn_vcycle" and "use_analytic_cusp" not in akw:
         akw["use_analytic_cusp"] = not a.no_cusp
-    bf_kwargs = dict(msg_hidden=32, msg_layers=2, hidden=32, layers=2, act="silu",
-                     out_bound="tanh", bf_scale_init=0.05, zero_init_last=True)
-    sysm = System(N=a.N, omega=a.omega, d=2, arch=a.arch, arch_kwargs=akw,
-                  use_backflow=a.backflow, backflow_kwargs=bf_kwargs, seed=a.seed)
+    use_bf = (load_ck.get("backflow") is not None) if load_ck else a.backflow
+    sysm = System(N=a.N, omega=a.omega, d=2, arch=arch_builder, arch_kwargs=akw,
+                  use_backflow=use_bf, backflow_kwargs=_bf_kwargs(big), seed=a.seed)
+    if load_ck is not None:
+        sysm.f_net.load_state_dict(load_ck["f_net"])
+        if use_bf and load_ck.get("backflow") is not None:
+            sysm.backflow_net.load_state_dict(load_ck["backflow"])
     ref = config.get().E if np.isfinite(config.get().E) else None
     exact = TwoElectronExact(omega=a.omega) if a.N == 2 else None
-    print(f"[depth] N={a.N} omega={a.omega} arch={a.arch} cusp={not a.no_cusp} "
-          f"params={sysm.n_params():,} dev={sysm.device} -> {out}")
+    print(f"[depth] N={a.N} omega={a.omega} arch={arch_name} cusp={not a.no_cusp} "
+          f"params={sysm.n_params():,} dev={sysm.device} load={bool(load_ck)} -> {out}")
 
     # ---- train (single optimizer) with mid-flight checkpoints for D4/D5 ----
     ckpts = []  # list of (step, cpu state_dict)
@@ -99,14 +120,15 @@ def main() -> None:
     def snap(t):
         ckpts.append((t, {k: v.detach().cpu().clone() for k, v in sysm.f_net.state_dict().items()}))
 
-    sysm.train()
-    train_vmc_adam(sysm, steps=a.steps, lr=a.lr, batch=a.batch, lap_mode="exact",
-                   log_every=max(1, a.steps // 6), ckpt_every=a.ckpt_every, ckpt_fn=snap)
-    if a.sr_polish_steps > 0:
-        train_sr(sysm, steps=a.sr_polish_steps, batch=a.batch, lr=a.sr_lr,
-                 damping=a.sr_damping, damping_final=max(1e-4, a.sr_damping * 0.1),
-                 max_step=0.05, lap_mode="exact", log_every=max(1, a.sr_polish_steps // 6),
-                 ref_energy=ref)
+    if load_ck is None:
+        sysm.train()
+        train_vmc_adam(sysm, steps=a.steps, lr=a.lr, batch=a.batch, lap_mode="exact",
+                       log_every=max(1, a.steps // 6), ckpt_every=a.ckpt_every, ckpt_fn=snap)
+        if a.sr_polish_steps > 0:
+            train_sr(sysm, steps=a.sr_polish_steps, batch=a.batch, lr=a.sr_lr,
+                     damping=a.sr_damping, damping_final=max(1e-4, a.sr_damping * 0.1),
+                     max_step=0.05, lap_mode="exact", log_every=max(1, a.sr_polish_steps // 6),
+                     ref_energy=ref)
     sysm.eval()
 
     # ---- fixed probe sets from the final |Psi|^2 ----
@@ -134,7 +156,7 @@ def main() -> None:
 
     # ---- D2: cusp decomposition (CTNN with cusp only) ----
     cusp_dec = None
-    if a.arch == "ctnn_vcycle" and not a.no_cusp:
+    if arch_builder == "ctnn_vcycle" and getattr(sysm.f_net, "use_analytic_cusp", False):
         with torch.no_grad():
             J_tot = (sysm.log_psi(x_align) - sysm.log_slater(x_align)).cpu().double().numpy()
             u_cusp = sysm.f_net._compute_cusps(x_align, sysm.spin).squeeze(-1).cpu().double().numpy()
@@ -153,7 +175,7 @@ def main() -> None:
         steps_ck.append(t)
     sysm.f_net.load_state_dict({k: v.to(sysm.device) for k, v in final_state.items()})  # restore
     cka = rp.kernel_cka(O_list) if len(O_list) >= 2 else np.array([[1.0]])
-    cka_vs_final = cka[-1] if cka.ndim == 2 else np.array([1.0])
+    cka_vs_final = cka[-1] if len(O_list) >= 2 else np.array([])  # empty in --load mode
 
     # ---- D6: decode message (physical local quantities) ----
     msg = rp.decode_message(sysm, x_align[: a.eval_samples])

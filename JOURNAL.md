@@ -24,6 +24,28 @@ The model reads this to understand what has been tried, what worked, what failed
 
 ## Journal
 
+### [2026-06-15b] — CTNN vs FFNN at matched high accuracy: variance is the discriminator
+
+**Motivation:** Answer "why CTNN > FFNN" with both ansatze trained to the same (below-DMC) accuracy,
+so the comparison is fair.
+**Method:** DeepSet-big + backflow omega cascade (1->0.5->0.1->0.01), identical recipe to the CTNN-big
+cascade (Adam + annealed SR, warm-started). Compare energy error and var(E_L) vs omega.
+**Results:** Energies tied for omega>=0.1 (both below DMC within stderr): CTNN/DeepSet err =
+w1 -0.028/-0.018, w0.5 -0.001/-0.011, w0.1 -0.009/+0.005. **var(E_L) is consistently lower for CTNN:
+w1 1.09e-2 vs 2.51e-2 (2.3x), w0.5 4.6e-3 vs 1.0e-2 (2.2x), w0.1 5.6e-4 vs 1.1e-3 (2.0x), w0.01
+4.1e-6 vs 3.0e-5 (7.4x).** At omega=0.01 (Wigner) CTNN is also lower in energy (-0.131% vs +0.022%,
+~1.2e-3 Ha).
+**Interpretation:** At matched accuracy, total energy is a poor discriminator; var(E_L) is the real
+one. Since var(E_L)->0 only for an exact eigenstate, CTNN's 2-7x lower variance means a
+closer-to-eigenstate (smoother) wavefunction — consistent with the message-passing 'smoothing'
+(100%-kinetic) picture. The advantage is regime-dependent: ~2x at weak/intermediate correlation,
+growing to ~7x (plus an energy edge) in the strongly-correlated Wigner regime. So 'CTNN > FFNN' is
+about wavefunction *quality*, not (mostly) energy, and it strengthens with correlation.
+**Caveats:** Single seed; N=6 only; var ratios at w0.01 are on tiny absolute numbers; need seed
+repeats for error bars on the ratios.
+**Output reference:** results/analysis/2026-06-15_N6_w*_deepset_big_bf_casc/ vs ..._ctnn_big_*/.
+**Next question:** Do the variance ratios hold across seeds and grow further at N=12/N=20?
+
 ### [2026-06-15] — Accurate omega cascade (below DMC) + message-decode collapses at Wigner
 
 **Motivation:** The first DMC-quality N=6 runs sat at +0.05% with var(E_L)~0.03 — not accurate enough;

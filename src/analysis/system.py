@@ -178,3 +178,28 @@ class System:
 
 def make_log_psi_fn(system: System) -> Callable[[torch.Tensor], torch.Tensor]:
     return system.log_psi
+
+
+def _bf_kwargs(big: bool) -> dict:
+    if big:
+        return dict(msg_hidden=64, msg_layers=2, hidden=64, layers=3, act="silu",
+                    out_bound="tanh", bf_scale_init=0.05, zero_init_last=True)
+    return dict(msg_hidden=32, msg_layers=2, hidden=32, layers=2, act="silu",
+                out_bound="tanh", bf_scale_init=0.05, zero_init_last=True)
+
+
+def load_system(checkpoint_path: str, *, device: str | None = None, seed: int | None = 0) -> "System":
+    """Rebuild a System from a checkpoint.pt saved by run_phase_analysis (arch + weights)."""
+    ck = torch.load(checkpoint_path, map_location="cpu")
+    arch = ck["arch"]
+    big = arch.endswith("_big")
+    builder = arch[:-4] if big else arch
+    use_bf = ck.get("backflow") is not None
+    sysm = System(N=int(ck["N"]), omega=float(ck["omega"]), d=2, arch=builder,
+                  arch_kwargs=dict(ck["arch_kwargs"]), use_backflow=use_bf,
+                  backflow_kwargs=_bf_kwargs(big), device=device, seed=seed)
+    sysm.f_net.load_state_dict(ck["f_net"])
+    if use_bf and ck.get("backflow") is not None:
+        sysm.backflow_net.load_state_dict(ck["backflow"])
+    sysm.eval()
+    return sysm

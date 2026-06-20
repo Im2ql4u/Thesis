@@ -24,6 +24,16 @@ The model reads this to understand what has been tried, what worked, what failed
 
 ## Journal
 
+### [2026-06-20] — Decisive SR-vs-Adam mechanism (N=2, exact GT): NULL in the cusp-on regime
+
+**Motivation:** Settle the long-muddy question "is SR better than Adam, and what does it do to the gradients?" with a pre-registered, seeded, tuned experiment measured against the *exact* N=2 ground state — not single-seed energy noise. Pre-registered: (+) SR collapses the stiff (low-NTK-eigenvalue) error Adam stalls on; (0) SR ≈ Adam → advantage is regime-confined.
+**Method:** `scripts/exp_sr_mechanism.py`. Common short Adam warm-up, then branch into Adam-only vs SR-only from the *identical* checkpoint; 4 seeds. On a fixed probe set, log vs step: energy error, distance-to-exact ‖δ‖ (δ = log|Ψ_exact|−log|Ψ|, centred), and δ decomposed in a *fixed* NTK (S) eigenbasis (built once from the converged N=2 checkpoint; rank 124) split at the median eigenvalue into stiff (low-μ) / soft (high-μ) halves. SR: annealed lr 0.2→0.01, damping 1e-2→1e-4, trust-region 0.05→0.005, sample-space Woodbury solve.
+**Results:** Across 4 seeds the two optimizers **tie**: final energy err Adam +0.047% vs SR +0.056%; final ‖δ‖ both → 0.015. The mechanism prediction **fails**: SR does not preferentially shrink the stiff modes — Adam's stiff-mode error decreases more (3.4e-3 vs SR 5.0e-3). The earlier single-seed cusp×SR result (Adam +0.100% → SR −0.016%) does **not** survive seeds.
+**Interpretation:** With the **cusp prior**, the stiff high-frequency directions are already removed from the residual (consistent with the exact-alignment test, where the *plain* gradient was better aligned than SR), so there is no ill-conditioning left for SR's whitening to exploit — and Adam reaches the same floor. Conditioning lives in the *ansatz*, not the optimizer, in this regime. The "SR breaks the 0.1% wall" claim is retracted as single-seed noise.
+**Caveats:** N=2 is nodeless (no fermion sign); cusp-on only; SR run used 256 SR-samples / 300 steps (cheap, GPU-contended); step-0 diag values are walker-equilibration noise — the reliable signal is the converged trend (a tie). Says nothing yet about cusp-OFF, low-ω, or high-N where var(E_L) is large.
+**Output reference:** [results/analysis/2026-06-20_SRmech_N2/](results/analysis/2026-06-20_SRmech_N2/) (summary.json, fig_sr_mechanism.png, raw.json)
+**Next question:** Rerun the identical protocol **cusp-OFF** (stiff cusp mode must be learned): if SR then collapses the stiff-mode error while Adam stalls, we have localized *where* SR earns its keep; if not, the honest thesis statement is "with a physics-informed ansatz, optimizer choice is largely immaterial."
+
 ### [2026-06-15b] — CTNN vs FFNN at matched high accuracy: variance is the discriminator
 
 **Motivation:** Answer "why CTNN > FFNN" with both ansatze trained to the same (below-DMC) accuracy,

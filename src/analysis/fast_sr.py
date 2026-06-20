@@ -121,6 +121,8 @@ def train_sr(
     log_every: int = 20,
     log_fn=print,
     ref_energy: float | None = None,
+    diag_every: int = 0,
+    diag_fn=None,
 ) -> dict:
     """SR (natural-gradient) VMC training. Warm-start from an Adam result for a clean approach to
     the variational minimum (~DMC). Walkers persist; damping, learning rate, and the trust-region
@@ -170,4 +172,6 @@ def train_sr(
             err = "" if ref_energy is None else f" ({(e-ref_energy)/abs(ref_energy)*100:+.3f}%)"
             log_fn(f"[sr {t:04d}] E={e:.6f}{err} var={v:.3e} |dθ|={info['step_norm']:.2e} "
                    f"|g|={info['g_norm']:.2e} damp={damp:.1e} lr={lr_t:.2e}")
+        if diag_every and diag_fn is not None and ((t % diag_every == 0) or (t == steps - 1)):
+            system.eval(); diag_fn(t); system.train()
     return hist

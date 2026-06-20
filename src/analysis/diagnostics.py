@@ -209,6 +209,36 @@ def two_body_correlation(log_psi_fn, log_slater_fn, x: torch.Tensor) -> dict:
     return {"r12": r12, "J": J, "n_pairs": int(ii.numel())}
 
 
+def gradient_snr(O: torch.Tensor, E_L: torch.Tensor) -> dict:
+    """Signal-to-noise of the VMC energy gradient g = 2<(E_L-E) O>.
+
+    Adam preconditions by the *noise* (~Var of the per-sample gradient, which carries var(E_L));
+    SR preconditions by the *geometry* S. A low gradient SNR is exactly what floors Adam. Returns
+    ||g||, the gradient SNR, and var(E_L). Higher SNR / lower var(E_L) => easier under Adam.
+    """
+    Od = O.double()
+    r = (E_L.detach().double() - E_L.detach().double().mean()).to(Od.device)  # (B,)
+    B = Od.shape[0]
+    per = Od * r[:, None]                # (B,P) per-sample gradient contributions
+    g = per.mean(0)                      # (P,)
+    noise = per.std(0) / np.sqrt(B)      # (P,) stderr per component
+    snr = float(g.norm() / (noise.norm() + 1e-30))
+    return {"g_norm": float(g.norm()), "grad_snr": snr, "var_EL": float(r.var())}
+
+
+def bootstrap_ci(values: np.ndarray, stat=np.mean, *, n_boot: int = 400, ci: float = 0.95) -> dict:
+    """Bootstrap CI of a statistic over a sample of per-config values."""
+    v = np.asarray(values, dtype=np.float64)
+    v = v[np.isfinite(v)]
+    n = v.size
+    if n < 4:
+        return {"mean": float(stat(v)) if n else float("nan"), "lo": float("nan"), "hi": float("nan")}
+    rng = np.random.default_rng(0)
+    boot = np.array([stat(v[rng.integers(0, n, n)]) for _ in range(n_boot)])
+    lo, hi = np.quantile(boot, [(1 - ci) / 2, 1 - (1 - ci) / 2])
+    return {"mean": float(stat(v)), "lo": float(lo), "hi": float(hi), "se": float(boot.std())}
+
+
 def zero_variance_extrapolation(E: np.ndarray, var: np.ndarray, *, max_points: int = 6) -> dict:
     """Zero-variance extrapolation E(var->0).
 

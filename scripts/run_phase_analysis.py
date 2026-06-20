@@ -61,8 +61,25 @@ ARCH_KWARGS = {
                     readout_layers=2, act="silu"),
     "deepset_big": dict(pair_hidden=64, pair_layers=4, pair_out=32, readout_hidden=64,
                         readout_layers=3, act="silu"),
+    # FFNN-equivalence sweep (params: ~7k, ~34k, ~76k(matched to CTNN-big), ~151k)
+    "deepset_s": dict(pair_hidden=32, pair_layers=3, pair_out=16, readout_hidden=32,
+                      readout_layers=2, act="silu"),
+    "deepset_m": dict(pair_hidden=64, pair_layers=4, pair_out=32, readout_hidden=64,
+                      readout_layers=3, act="silu"),
+    "deepset_match": dict(pair_hidden=96, pair_layers=4, pair_out=48, readout_hidden=96,
+                          readout_layers=3, act="silu"),
+    "deepset_xl": dict(pair_hidden=128, pair_layers=5, pair_out=64, readout_hidden=128,
+                       readout_layers=3, act="silu"),
     "pinn": dict(hidden_dim=64, n_layers=2, act="silu"),
 }
+
+
+def _arch_builder(name: str) -> str:
+    if name.startswith("ctnn_vcycle"):
+        return "ctnn_vcycle"
+    if name.startswith("deepset"):
+        return "deepset"
+    return name
 
 
 def build_segments(total: int, n_seg: int) -> list[int]:
@@ -117,10 +134,10 @@ def main() -> None:
     out.mkdir(parents=True, exist_ok=True)
     print(f"[phase] N={a.N} omega={a.omega} arch={a.arch}  ->  {out}")
 
-    big = a.arch.endswith("_big")
-    arch_builder = a.arch[:-4] if big else a.arch
+    arch_builder = _arch_builder(a.arch)
+    # use the capable (big) backflow whenever backflow is on, so it is IDENTICAL across architectures
     bf_kwargs = (dict(msg_hidden=64, msg_layers=2, hidden=64, layers=3, act="silu",
-                      out_bound="tanh", bf_scale_init=0.05, zero_init_last=True) if big
+                      out_bound="tanh", bf_scale_init=0.05, zero_init_last=True) if a.backflow
                  else dict(msg_hidden=32, msg_layers=2, hidden=32, layers=2, act="silu",
                            out_bound="tanh", bf_scale_init=0.05, zero_init_last=True))
     sysm = System(N=a.N, omega=a.omega, d=2, arch=arch_builder,

@@ -72,9 +72,15 @@ def natural_orbital_occupations(system, x: torch.Tensor, *, grid_half: float | N
     rho = 0.5 * (rho + rho.t())
     evals = torch.linalg.eigvalsh(rho).cpu().double().numpy()[::-1]
     evals = np.clip(evals, 0, None)
+    # entanglement-like measures from the *normalised* spectrum shape (robust to absolute-scale bias)
+    p = evals / max(evals.sum(), 1e-12)
+    pnz = p[p > 1e-9]
+    vn = float(-(pnz * np.log(pnz)).sum())
+    renyi2 = float(-np.log((p**2).sum() + 1e-30))
+    participation = float(1.0 / ((p**2).sum() + 1e-30))  # effective # occupied natural orbitals
     return {"occupations": evals[: max(4, 2 * n_up)], "n_up": n_up, "trace": float(evals.sum()),
-            "leading_occ": float(evals[0]),
-            "occ_entropy": float(_entropy(evals[evals > 1e-6] / max(evals.sum(), 1e-12)))}
+            "leading_occ": float(evals[0]), "occ_entropy": vn,
+            "vn_entropy": vn, "renyi2_entropy": renyi2, "participation_ratio": participation}
 
 
 def _entropy(p):

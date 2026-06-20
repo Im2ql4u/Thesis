@@ -192,12 +192,17 @@ def load_system(checkpoint_path: str, *, device: str | None = None, seed: int | 
     """Rebuild a System from a checkpoint.pt saved by run_phase_analysis (arch + weights)."""
     ck = torch.load(checkpoint_path, map_location="cpu")
     arch = ck["arch"]
-    big = arch.endswith("_big")
-    builder = arch[:-4] if big else arch
+    if arch.startswith("ctnn_vcycle"):
+        builder = "ctnn_vcycle"
+    elif arch.startswith("deepset"):
+        builder = "deepset"
+    else:
+        builder = arch
     use_bf = ck.get("backflow") is not None
+    # backflow runs always used the big backflow (identical across architectures)
     sysm = System(N=int(ck["N"]), omega=float(ck["omega"]), d=2, arch=builder,
                   arch_kwargs=dict(ck["arch_kwargs"]), use_backflow=use_bf,
-                  backflow_kwargs=_bf_kwargs(big), device=device, seed=seed)
+                  backflow_kwargs=_bf_kwargs(use_bf), device=device, seed=seed)
     sysm.f_net.load_state_dict(ck["f_net"])
     if use_bf and ck.get("backflow") is not None:
         sysm.backflow_net.load_state_dict(ck["backflow"])

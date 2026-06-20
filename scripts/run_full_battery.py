@@ -105,8 +105,27 @@ def main() -> None:
     _try("order_params", lambda: pp.internal_order_params(sysm, x), res, errs)
 
     res["errors"] = errs
-    (out / "battery_summary.json").write_text(json.dumps(res, indent=2, default=float) + "\n")
-    print("[battery] summary:\n" + json.dumps(res, indent=2, default=float))
+    clean = _clean(res)
+    (out / "battery_summary.json").write_text(json.dumps(clean, indent=2) + "\n")
+    print("[battery] summary:\n" + json.dumps(clean, indent=2))
+
+
+def _clean(o):
+    """Recursively convert numpy arrays/scalars to JSON-serialisable types."""
+    if isinstance(o, dict):
+        return {k: _clean(v) for k, v in o.items()}
+    if isinstance(o, (list, tuple)):
+        return [_clean(v) for v in o]
+    if isinstance(o, np.ndarray):
+        return o.tolist()
+    if isinstance(o, (np.floating, np.integer)):
+        return float(o)
+    if isinstance(o, (float, int, str, bool)) or o is None:
+        return o
+    try:
+        return float(o)
+    except Exception:
+        return str(o)
 
 
 @torch.no_grad()

@@ -18,60 +18,63 @@ import torch
 # ----------------------------------------------------------------------
 @torch.no_grad()
 def natural_orbital_occupations(system, x: torch.Tensor, *, grid_half: float | None = None,
-                                n_grid: int = 18, chunk: int = 4096) -> dict:
-    """Spin-up 1-RDM via the displaced-particle estimator, diagonalised to NO occupations.
+                                n_grid: int = 22, chunk: int = 8192) -> dict:
+    """Spin-up natural-orbital occupations, 1-RDM projected onto the orthonormal HO basis.
 
-    rho(r,r') = N_up * < delta(r1-r) Psi(r',r2..)/Psi(r1,r2..) >_{|Psi|^2}.
-    Occupations (eigenvalues) sum to N_up; spread below the Hartree-Fock integer pattern measures
-    correlation. Grid is n_grid x n_grid over [-L,L]^2. Validate at N=2 (one up electron -> a single
-    dominant occupation ~ 1)."""
+    rho_pq = N_up < phi_p(r1) * integral phi_q(r') Psi(r',rest)/Psi(r1,rest) dr' >_{|Psi|^2},
+    with r1 a spin-up electron and {phi} the 2D HO Cartesian orbitals (orthonormal => eigenvalues
+    of rho are occupations, sum = N_up). Spread below the HF integer pattern measures correlation.
+    Validated at N=2 (one up electron -> leading occupation ~ 1)."""
+    from functions.Slater_Determinant import evaluate_basis_functions_torch_batch_2d
+
     B, N, d = x.shape
     dev = x.device
+    nx, ny = int(system.params["nx"]), int(system.params["ny"])
     ell = 1.0 / np.sqrt(system.omega)
-    L = grid_half if grid_half else 3.5 * ell
+    L = grid_half if grid_half else 4.0 * ell
     ax = torch.linspace(-L, L, n_grid, device=dev, dtype=x.dtype)
     gx, gy = torch.meshgrid(ax, ax, indexing="ij")
     grid = torch.stack([gx.reshape(-1), gy.reshape(-1)], dim=-1)  # (G,2)
     G = grid.shape[0]
+    dA = (2 * L / (n_grid - 1)) ** 2
     n_up = N // 2
 
-    log0 = system.log_psi(x).double()  # (B,)
-    r1 = x[:, 0, :]  # spin-up particle 0
-    # bin r1 to nearest grid point
-    d2 = ((r1[:, None, :] - grid[None, :, :]) ** 2).sum(-1)  # (B,G)
-    bin_idx = d2.argmin(dim=1)  # (B,)
+    # HO orbitals at grid and at the sampled r1 (spin-up electron 0)
+    phi_grid = evaluate_basis_functions_torch_batch_2d(
+        grid.view(1, G, 2), nx, ny, params=system.params)[0].double()  # (G, P)
+    P = phi_grid.shape[1]
+    log0 = system.log_psi(x).double()
+    r1 = x[:, 0, :]
+    phi_r1 = evaluate_basis_functions_torch_batch_2d(
+        r1.view(1, B, 2), nx, ny, params=system.params)[0].double()  # (B, P)
 
-    rho = torch.zeros(G, G, dtype=torch.float64, device=dev)
-    counts = torch.zeros(G, dtype=torch.float64, device=dev)
-    for b0 in range(0, B, 64):
-        xb = x[b0 : b0 + 64]
-        lb0 = log0[b0 : b0 + 64]
-        bb = bin_idx[b0 : b0 + 64]
-        kb = xb.shape[0]
-        # build configs with particle 0 -> each grid point: (kb, G, N, d)
+    rho = torch.zeros(P, P, dtype=torch.float64, device=dev)
+    for b0 in range(0, B, 32):
+        xb = x[b0 : b0 + 32]; kb = xb.shape[0]
+        lb0 = log0[b0 : b0 + 32]
         cfg = xb.unsqueeze(1).expand(kb, G, N, d).clone()
-        cfg[:, :, 0, :] = grid.unsqueeze(0).expand(kb, G, d)
+        cfg[:, :, 0, :] = grid.view(1, G, d).expand(kb, G, d)
         cfg = cfg.reshape(kb * G, N, d)
         logp = torch.empty(kb * G, device=dev, dtype=torch.float64)
         for s in range(0, cfg.shape[0], chunk):
             logp[s : s + chunk] = system.log_psi(cfg[s : s + chunk]).double()
-        ratio = torch.exp(logp.reshape(kb, G) - lb0[:, None])  # (kb,G) = Psi(r'=grid)/Psi(r1)
-        for i in range(kb):
-            rho[bb[i]] += ratio[i]
-            counts[bb[i]] += 1.0
-    nz = counts > 0
-    rho[nz] /= counts[nz].unsqueeze(1)
-    rho = 0.5 * (rho + rho.t())  # Hermitise
-    # weight by sampling density so trace -> n_up
-    w = counts / counts.sum()
-    rho = rho * (w.unsqueeze(1)) * n_up  # row-weight by occupancy fraction
+        ratio = torch.exp(logp.reshape(kb, G) - lb0[:, None])  # (kb,G)
+        A = (ratio @ phi_grid) * dA  # (kb, P)  = integral phi_q(r') ratio dr'
+        rho += phi_r1[b0 : b0 + 32].t() @ A  # (P,P)
+    rho = (n_up / B) * rho
+    rho = 0.5 * (rho + rho.t())
+    # correct finite-grid basis non-orthonormality: solve rho x = n S x  (S = grid overlap)
+    S = (phi_grid.t() @ phi_grid) * dA
+    es, Us = torch.linalg.eigh(S)
+    es = torch.clamp(es, min=float(es.max()) * 1e-6)
+    Sih = Us @ torch.diag(es.rsqrt()) @ Us.t()
+    rho = Sih @ rho @ Sih
     rho = 0.5 * (rho + rho.t())
     evals = torch.linalg.eigvalsh(rho).cpu().double().numpy()[::-1]
     evals = np.clip(evals, 0, None)
-    if evals.sum() > 0:
-        evals = evals / evals.sum() * n_up
-    return {"occupations": evals[: 4 * n_up], "n_up": n_up,
-            "leading_occ": float(evals[0]), "occ_entropy": float(_entropy(evals / n_up))}
+    return {"occupations": evals[: max(4, 2 * n_up)], "n_up": n_up, "trace": float(evals.sum()),
+            "leading_occ": float(evals[0]),
+            "occ_entropy": float(_entropy(evals[evals > 1e-6] / max(evals.sum(), 1e-12)))}
 
 
 def _entropy(p):

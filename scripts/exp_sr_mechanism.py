@@ -39,33 +39,24 @@ AKW = dict(node_hidden=16, edge_hidden=16, bottleneck_hidden=8, n_down=1, n_up=1
            msg_layers=1, node_layers=1, readout_hidden=32, readout_layers=2, act="silu")
 
 
-def make_diag(system, exact, x_fix, store, label, seed):
-    """Closure logging (step, energy_err, dist_exact, soft_err, stiff_err) on the fixed probe set."""
-    logex = torch.tensor(exact.log_psi(x_fix.detach().cpu().double().numpy()),
-                         device=x_fix.device, dtype=torch.float64)
+def make_diag(system, exact, x_fix, logex, Vfix, mu_supp_idx, store, label, seed):
+    """Cheap closure: log distance-to-exact and its soft/stiff NTK-mode split, using a FIXED
+    precomputed eigenbasis Vfix (one forward pass per call; no per-step O rebuild)."""
+    lo, hi = mu_supp_idx  # index ranges (low-mu stiff half, high-mu soft half) into Vfix columns
 
     @torch.no_grad()
-    def _energy():
-        x = system.sample(1024, steps=150, burn_in=300)
-        E = dg.local_energy(system.log_psi, x, system.omega, system.params, lap_mode="exact")
-        E = E[torch.isfinite(E)]
-        return float(E.mean())
-
     def diag(step):
-        e = _energy()
         logp = system.log_psi(x_fix).double()
         delta = logex - logp
         delta = delta - delta.mean()
-        O = dg.build_O(system.log_psi, x_fix, system.modules(), center=True).double()
-        K = O @ O.t()
-        mu, V = torch.linalg.eigh(K)
-        c = V.t() @ delta                       # delta in NTK eigenbasis (ascending mu)
-        nsupp = int((mu > float(mu.max()) * 1e-10).sum())
-        half = nsupp // 2
-        stiff = float((c[mu.shape[0] - nsupp: mu.shape[0] - nsupp + half] ** 2).sum().sqrt())  # low mu
-        soft = float((c[mu.shape[0] - half:] ** 2).sum().sqrt())                                # high mu
+        c = Vfix.t() @ delta                     # delta in the fixed NTK eigenbasis (ascending mu)
+        stiff = float((c[lo[0]:lo[1]] ** 2).sum().sqrt())
+        soft = float((c[hi[0]:hi[1]] ** 2).sum().sqrt())
+        x = system.sample(512, steps=100, burn_in=200)   # light variational energy
+        E = dg.local_energy(system.log_psi, x, system.omega, system.params, lap_mode="exact")
+        E = E[torch.isfinite(E)]
         store.append({"opt": label, "seed": seed, "step": step,
-                      "energy_err_pct": (e - exact.energy) / exact.energy * 100,
+                      "energy_err_pct": float((E.mean() - exact.energy) / exact.energy * 100),
                       "dist_exact": float(delta.norm() / np.sqrt(delta.numel())),
                       "soft_err": soft, "stiff_err": stiff})
     return diag
@@ -78,26 +69,35 @@ def main():
     ap.add_argument("--steps", type=int, default=500)
     ap.add_argument("--every", type=int, default=40)
     a = ap.parse_args()
+    from analysis.system import load_system
     exact = TwoElectronExact(omega=1.0)
+    # Fixed probe set + fixed NTK eigenbasis from the CONVERGED N=2 checkpoint (consistent reference)
+    ref = load_system("results/analysis/2026-06-15_N2_w1_ctnn_acc/checkpoint.pt")
+    x_fix = torch.randn(512, 2, 2, device=ref.device, dtype=ref.dtype)
+    logex = torch.tensor(exact.log_psi(x_fix.detach().cpu().double().numpy()),
+                         device=ref.device, dtype=torch.float64)
+    Oref = dg.build_O(ref.log_psi, x_fix, ref.modules(), center=True).double()
+    mu, Vfix = torch.linalg.eigh(Oref @ Oref.t())   # ascending mu; columns = NTK eigenfunctions
+    nsupp = int((mu > float(mu.max()) * 1e-10).sum())
+    P = mu.shape[0]
+    half = nsupp // 2
+    idx = ((P - nsupp, P - nsupp + half), (P - half, P))  # (stiff low-mu range, soft high-mu range)
+    print(f"[SRmech] fixed NTK basis: supported rank={nsupp}, stiff/soft split at median mu")
+
     store = []
     for seed in range(a.seeds):
         torch.manual_seed(seed); np.random.seed(seed)
         s = System(N=2, omega=1.0, arch="ctnn_vcycle", arch_kwargs=AKW, seed=seed)
-        # fixed probe set: broad Gaussian at the oscillator length (consistent across steps/opts)
-        x_fix = torch.randn(512, 2, 2, device=s.device, dtype=s.dtype)
-        # common Adam warm-up, then snapshot the identical starting checkpoint
-        train_vmc_adam(s, steps=a.warm, lr=5e-3, batch=2048, log_every=a.warm)
+        train_vmc_adam(s, steps=a.warm, lr=5e-3, batch=2048, log_every=a.warm)  # common warm-up
         init = {k: v.detach().cpu().clone() for k, v in s.f_net.state_dict().items()}
 
-        # Adam arm
-        diag = make_diag(s, exact, x_fix, store, "adam", seed)
+        diag = make_diag(s, exact, x_fix, logex, Vfix, idx, store, "adam", seed)
         train_vmc_adam(s, steps=a.steps, lr=5e-3, batch=2048, log_every=a.steps,
                        ckpt_every=a.every, ckpt_fn=diag)
-        # SR arm from the identical checkpoint
-        s.f_net.load_state_dict({k: v.to(s.device) for k, v in init.items()})
-        diag = make_diag(s, exact, x_fix, store, "sr", seed)
-        train_sr(s, steps=a.steps, batch=2048, lr=0.2, lr_final=0.01, damping=1e-2,
-                 damping_final=1e-4, max_step=0.05, max_step_final=0.005, sr_samples=1024,
+        s.f_net.load_state_dict({k: v.to(s.device) for k, v in init.items()})  # identical branch point
+        diag = make_diag(s, exact, x_fix, logex, Vfix, idx, store, "sr", seed)
+        train_sr(s, steps=a.steps, batch=1024, lr=0.2, lr_final=0.01, damping=1e-2,
+                 damping_final=1e-4, max_step=0.05, max_step_final=0.005, sr_samples=256,
                  log_every=a.steps, diag_every=a.every, diag_fn=diag, ref_energy=3.0)
         print(f"[seed {seed}] done")
 

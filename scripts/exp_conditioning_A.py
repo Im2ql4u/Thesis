@@ -66,13 +66,14 @@ def _mixture_sigma_fs(omega: float) -> tuple[float, ...]:
     return (0.8, 1.3, 2.0)
 
 
-def _sample_mixture(system, n: int) -> torch.Tensor:
-    """Draw n collocation points from the Gaussian mixture q (the measure the colloc trainer uses)."""
+def _sample_proposal(system, n: int, sigma_fs: tuple[float, ...]) -> torch.Tensor:
+    """Draw n points from an equal-weight Gaussian mixture with widths sigma_f/sqrt(omega).
+    A single-element sigma_fs is the simple-Gaussian baseline; the multi-width list is the smart
+    adaptive proposal the collocation trainer uses."""
     import math
-    sfs = _mixture_sigma_fs(float(system.omega))
-    nc = len(sfs)
+    nc = len(sigma_fs)
     xs = []
-    for i, sf in enumerate(sfs):
+    for i, sf in enumerate(sigma_fs):
         ni = n // nc if i < nc - 1 else n - (n // nc) * (nc - 1)
         s = sf / math.sqrt(float(system.omega))
         xs.append(torch.randn(ni, system.N, system.d, device=system.device, dtype=system.dtype) * s)
@@ -80,17 +81,25 @@ def _sample_mixture(system, n: int) -> torch.Tensor:
     return x[torch.randperm(x.shape[0], device=x.device)]
 
 
-def _mixture_logq(system, x: torch.Tensor) -> torch.Tensor:
-    """log q(x) of the Gaussian mixture (full mixture density, for importance weights)."""
+def _proposal_logq(system, x: torch.Tensor, sigma_fs: tuple[float, ...]) -> torch.Tensor:
+    """log q(x) of the equal-weight Gaussian mixture (for importance weights / ESS)."""
     import math
-    sfs = _mixture_sigma_fs(float(system.omega))
     Nd = system.N * system.d
     xf = x.reshape(x.shape[0], -1)
     comps = []
-    for sf in sfs:
+    for sf in sigma_fs:
         s = sf / math.sqrt(float(system.omega))
         comps.append(-0.5 * Nd * math.log(2 * math.pi * s**2) - xf.pow(2).sum(-1) / (2 * s**2))
-    return torch.logsumexp(torch.stack(comps, -1), -1) - math.log(len(sfs))
+    return torch.logsumexp(torch.stack(comps, -1), -1) - math.log(len(sigma_fs))
+
+
+def _sample_mixture(system, n: int) -> torch.Tensor:
+    """Smart adaptive mixture (the measure the collocation trainer uses)."""
+    return _sample_proposal(system, n, _mixture_sigma_fs(float(system.omega)))
+
+
+def _mixture_logq(system, x: torch.Tensor) -> torch.Tensor:
+    return _proposal_logq(system, x, _mixture_sigma_fs(float(system.omega)))
 
 
 @torch.no_grad()

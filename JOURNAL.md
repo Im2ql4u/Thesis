@@ -24,6 +24,45 @@ The model reads this to understand what has been tried, what worked, what failed
 
 ## Journal
 
+### [2026-06-21] — Collocation-conditioning Phase 0: the sampling measure is the dominant conditioning lever (not strong-vs-weak)
+
+**Motivation:** The VMC SR-null redirected the thesis "conditioning not depth" theory to the
+collocation picture, where the strong-form residual operator `A = J*J` (`J = ∂_θ R`) is supposed
+to be `κ~k⁴`-catastrophic (vs weak-form `k²`). Test it directly on converged checkpoints (load-time,
+no training). New probe: `diagnostics.residual_jacobian` (strong = `E_L`; weak = Rayleigh
+`½|∇logΨ|²+V`), spectrum via `kernel_spectrum`; driver `scripts/exp_conditioning_A.py` with
+`--measure {psi2, mixture}`.
+**Method:** N=2 ω=1 and the N=6 ω∈{1,0.5,0.1,0.01} CTNN+backflow cascade. Two sampling measures:
+`|Ψ|²` (VMC) and the collocation Gaussian mixture q (training-faithful; widths σ/√ω covering the
+tails/near-node regions). 128 then 320 samples. Metric: condition number over the resolved
+spectrum (rel_tol 1e-8, to avoid the 1e-12 float64 floor that pins every κ at ~1e12) + log-log
+power-law slope.
+**Results:** (i) Under **|Ψ|²**, the collocation operators are *mild* — N=6 ω=1: κ(S)=6.6e4,
+κ(A_weak)=4.7e4, κ(A_strong)=4.8e3 (strong even BETTER than weak). (ii) Under the **mixture**, they
+**explode**: same N=6 ω=1 gives κ(A_weak)≈5e4→**≳1e8**, κ(A_strong)≳1e8 (floor-exceeding at both 128
+and 320 samples), while κ(S) stays moderate (2e6, full rank 319/320, genuinely resolved). So the
+*same operator* gets a **≥2000× conditioning penalty purely from the sampling measure**.
+**Interpretation:** The dominant conditioning lever is **the sampling measure, not the strong/weak
+form**. `|Ψ|²`-sampling (VMC) is itself the preconditioner — it down-weights exactly the
+low-density tail/near-node points where the residual Jacobian blows up; covering configuration space
+(which collocation must do) is what wrecks conditioning. This explains the VMC SR-null (VMC already
+well-conditioned → SR has nothing to do) AND why collocation needs continuation chains + ESS +
+natural gradient (it fights a κ≳10⁸ operator). NOTE this **contradicts** `run_weak_form.py:8`'s
+claim that weak-form "eliminates the conditioning catastrophe" — weak-form is *also* κ≳10⁸ under q.
+**Caveats:** At 128–320 samples on an ~80k-param net the fine structure is not reliably resolved:
+exact κ for A is floor-limited (≳1e8, true value larger), the strong-vs-weak `k⁴/k²` law is NOT
+confirmed (ratios noisy 0.4–6.3; ranks/slopes threshold-dependent), and — importantly — the probe
+uses the **unweighted** operator over q, whereas the trainer uses the **importance-weighted**
+operator (`w=|Ψ|²/q`), which down-weights the bad tail points. So κ≳1e8 is an *upper bound*; the
+real training operator lies between the |Ψ|² value (~5e4) and this, and the ESS controllers exist to
+keep it usable. The robust, threshold-independent claim is the measure-driven ordering and the
+≥2000× gap, not precise exponents.
+**Output reference:** [results/analysis/2026-06-21_conditioning_A/](results/analysis/2026-06-21_conditioning_A/)
+(summary_psi2.json, summary_mixture.json, spectra_*.npz, fig_cond_*.png)
+**Next question:** Phase 1 — does natural-gradient actually beat Adam in *collocation training*
+across ω (positive, unlike the VMC null), and does the win track κ(A)/ESS? And add the
+importance-weighted operator to pin the true training-κ between the |Ψ|² and mixture bounds.
+
 ### [2026-06-20] — Decisive SR-vs-Adam mechanism (N=2, exact GT): NULL in the cusp-on regime
 
 **Motivation:** Settle the long-muddy question "is SR better than Adam, and what does it do to the gradients?" with a pre-registered, seeded, tuned experiment measured against the *exact* N=2 ground state — not single-seed energy noise. Pre-registered: (+) SR collapses the stiff (low-NTK-eigenvalue) error Adam stalls on; (0) SR ≈ Adam → advantage is regime-confined.

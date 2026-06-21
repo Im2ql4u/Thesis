@@ -24,6 +24,41 @@ The model reads this to understand what has been tried, what worked, what failed
 
 ## Journal
 
+### [2026-06-21b] — Smart proposal vs simple Gaussian: ESS is the conditioning lever, and the adaptive mixture is OFF the efficient frontier
+
+**Motivation:** If ESS/measure governs collocation conditioning (2026-06-21a), how much does the
+trainer's "smart" adaptive Gaussian mixture actually buy over a plain Gaussian? Quantify the
+coverage-vs-efficiency-vs-conditioning exchange-rate.
+**Method:** `scripts/exp_proposal_compare.py` on the N=6 cascade. Proposals: single Gaussian at
+sigma_f/sqrt(omega) for sigma_f in {1.0 narrow, 1.3 matched (= run_weak_form default), 2.5 broad}
+vs the adaptive multi-width mixture. Per (proposal, omega): ESS fraction (4096-draw), coalescence
+coverage (frac with min pair dist < 0.5 ell), tail reach (95th pct max radius / ell), and
+kappa(S)/kappa(A_strong) under that measure (omega in {1, 0.1}).
+**Results:** (i) **ESS controls conditioning directly**: every proposal with ESS >~1% has a
+*resolved* kappa(A)~1e5; every proposal with ESS <1% *floors* at kappa~1e8 (effective rank ~ ESS).
+(ii) **A single matched Gaussian (1.3) dominates the smart mixture on BOTH axes**: at omega=0.1,
+matched ESS=1.6% / kappa(A)=1.5e5 (resolved) vs mixture ESS=0.67% / kappa(A)=9.6e7 (floored) -- ~600x
+better conditioned and ~2x more efficient. (iii) **But matched wins by not covering the hard
+region**: its tail reach is fixed at 4 ell while the density needs 9.5 ell at omega=0.1 and 22 ell
+at omega=0.01; only the mixture's broad components reach there. Narrow (1.0) has the best
+coalescence coverage (60%) but the worst tail (3.1 ell).
+**Interpretation:** "Smart" sampling, as configured (adapt_sigma_fs tiers with very broad
+components), buys *negative* conditioning -- it pays ~600x in kappa and ~2x in ESS to gain tail
+coverage. The matched Gaussian's good conditioning is partly **coverage bias** (it never penalises
+the residual in the uncovered tails, so the solution can be wrong there). The real tradeoff is
+**conditioning vs unbiased coverage**, and the current mixture sits far off the efficient frontier:
+the broad components over-pay for reach. Actionable: the lever is the proposal; a matched core + a
+few targeted broad/coalescence components, or a learned flow (shellflow), should give the needed
+coverage at a fraction of the ESS/conditioning cost.
+**Caveats:** static adapt-tier widths (the trainer also *refits* the gmm / uses shellflow -- not
+tested here); coverage proxies are heuristic; kappa at 96 samples (resolved cases are trustworthy,
+floored cases are lower-bounded). Coverage "bias" is argued, not yet measured against exact tails.
+**Output reference:** [results/analysis/2026-06-21_proposal_compare/](results/analysis/2026-06-21_proposal_compare/)
+(compare.json, fig_proposal_compare.png)
+**Next question:** Does the matched Gaussian's better conditioning actually train to a *better or
+biased* solution vs the mixture (the conditioning-vs-coverage tradeoff, in real energy error)? And
+can a learned/shellflow proposal reach the efficient frontier (full coverage at matched-like ESS)?
+
 ### [2026-06-21] — Collocation-conditioning Phase 0: the sampling measure is the dominant conditioning lever (not strong-vs-weak)
 
 **Motivation:** The VMC SR-null redirected the thesis "conditioning not depth" theory to the

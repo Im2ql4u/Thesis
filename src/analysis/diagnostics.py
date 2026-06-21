@@ -71,6 +71,75 @@ def kernel_spectrum(O: torch.Tensor, *, rel_tol: float = 1e-12) -> dict:
 
 
 # ----------------------------------------------------------------------
+# Collocation conditioning: the strong/weak residual Gauss-Newton operator A = J^T J
+# ----------------------------------------------------------------------
+def _grad_logpsi(log_psi_fn, x: torch.Tensor):
+    """grad_x log|Psi| (B, N, d), kept differentiable wrt parameters."""
+    x = x.detach().requires_grad_(True)
+    lp = log_psi_fn(x)  # (B,)
+    g = torch.autograd.grad(lp.sum(), x, create_graph=True)[0]
+    return x, g
+
+
+def _laplacian_logpsi(x: torch.Tensor, g: torch.Tensor) -> torch.Tensor:
+    """Exact Laplacian sum_a d^2 log|Psi| / dx_a^2 (B,), keeping the parameter graph."""
+    B = x.shape[0]
+    flat = g.reshape(B, -1)
+    lap = torch.zeros(B, device=x.device, dtype=x.dtype)
+    for j in range(flat.shape[1]):
+        gj = torch.autograd.grad(flat[:, j].sum(), x, create_graph=True, retain_graph=True)[0]
+        lap = lap + gj.reshape(B, -1)[:, j]
+    return lap
+
+
+def residual_local_energy(system, x: torch.Tensor, *, form: str = "strong") -> torch.Tensor:
+    """Per-sample collocation residual, differentiable wrt parameters.
+
+      strong : R = E_L = -1/2 (lap logPsi + |grad logPsi|^2) + V   (De Ryck A=J^T J, the k^4 operator)
+      weak   : R = 1/2 |grad logPsi|^2 + V                         (Rayleigh; first derivatives only)
+
+    The least-squares loss E[(R - E)^2] is what the collocation trainer minimises; its Gauss-Newton
+    operator is A = J^T J with J[k,i] = dR(x_k)/dtheta_i (see residual_jacobian)."""
+    B = x.shape[0]
+    x, g = _grad_logpsi(system.log_psi, x)
+    trap = 0.5 * system.omega**2 * (x**2).sum(dim=(1, 2)).reshape(B)
+    V = trap + compute_coulomb_interaction(x, params=system.params).reshape(B)
+    g2 = (g**2).sum(dim=(1, 2)).reshape(B)
+    if form == "weak":
+        return 0.5 * g2 + V
+    if form == "strong":
+        lap = _laplacian_logpsi(x, g).reshape(B)
+        return -0.5 * (lap + g2) + V
+    raise ValueError(f"form must be 'strong' or 'weak', got {form!r}")
+
+
+def residual_jacobian(system, x: torch.Tensor, *, form: str = "strong",
+                      center: bool = False, chunk: int = 32) -> torch.Tensor:
+    """J (B, P) with J[k,i] = dR(x_k)/dtheta_i for the strong/weak collocation residual.
+
+    A = J^T J / B is the Gauss-Newton operator whose spectrum the conditioning theory predicts
+    (kappa(A) ~ k^4 strong, ~ k^2 weak). Pass J to kernel_spectrum to get its spectrum/kappa.
+    center=False keeps the raw Gauss-Newton operator (the learning operator); center=True gives the
+    covariance form. Per-sample autograd loop (the residual already carries up to 2nd x-derivatives)."""
+    params = [p for m in system.modules() for p in m.parameters()]
+    rows = []
+    for s in range(0, x.shape[0], chunk):
+        R = residual_local_energy(system, x[s : s + chunk], form=form)  # (b,)
+        b = R.shape[0]
+        for k in range(b):
+            g = torch.autograd.grad(R[k], params, retain_graph=(k < b - 1),
+                                    create_graph=False, allow_unused=True)
+            rows.append(torch.cat([
+                (gi if gi is not None else torch.zeros_like(p)).reshape(-1)
+                for gi, p in zip(g, params)
+            ]).detach())
+    J = torch.stack(rows, dim=0)
+    if center:
+        J = J - J.mean(dim=0, keepdim=True)
+    return J
+
+
+# ----------------------------------------------------------------------
 # Local energy and ground-state quality
 # ----------------------------------------------------------------------
 def local_energy(

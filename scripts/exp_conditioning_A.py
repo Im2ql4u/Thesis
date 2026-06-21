@@ -54,6 +54,32 @@ def _powerlaw_slope(lam: np.ndarray, rel_tol: float = 1e-8) -> float:
     return float(p[0])
 
 
+# Collocation proposal widths sigma_f / sqrt(omega) (mirrors run_weak_form.adapt_sigma_fs tiers):
+# the mixture deliberately covers low-density / tail / near-node regions the trainer evaluates on.
+def _mixture_sigma_fs(omega: float) -> tuple[float, ...]:
+    if omega <= 0.01:
+        return (0.2, 0.4, 0.6, 1.0, 1.5, 2.5, 4.0, 6.0, 10.0)
+    if omega <= 0.05:
+        return (0.3, 0.5, 0.8, 1.2, 2.0, 3.5, 6.0)
+    if omega <= 0.15:
+        return (0.4, 0.7, 1.0, 1.5, 2.5, 4.0)
+    return (0.8, 1.3, 2.0)
+
+
+def _sample_mixture(system, n: int) -> torch.Tensor:
+    """Draw n collocation points from the Gaussian mixture q (the measure the colloc trainer uses)."""
+    import math
+    sfs = _mixture_sigma_fs(float(system.omega))
+    nc = len(sfs)
+    xs = []
+    for i, sf in enumerate(sfs):
+        ni = n // nc if i < nc - 1 else n - (n // nc) * (nc - 1)
+        s = sf / math.sqrt(float(system.omega))
+        xs.append(torch.randn(ni, system.N, system.d, device=system.device, dtype=system.dtype) * s)
+    x = torch.cat(xs)
+    return x[torch.randperm(x.shape[0], device=x.device)]
+
+
 def _kappa(lam: np.ndarray, rel_tol: float = 1e-8) -> float:
     """Condition number over the RESOLVED spectrum (rel_tol above float64 noise, not the 1e-12
     machine floor that pins every kappa at ~1e12)."""
@@ -62,10 +88,13 @@ def _kappa(lam: np.ndarray, rel_tol: float = 1e-8) -> float:
     return float(supp[0] / supp[-1]) if supp.size else float("inf")
 
 
-def analyse(label: str, ckpt: str, n_samples: int, chunk: int, store: dict, out: Path) -> None:
+def analyse(label: str, ckpt: str, n_samples: int, chunk: int, measure: str, store: dict, out: Path) -> None:
     system = load_system(ckpt)
     system.eval()
-    x = system.sample(n_samples, steps=120, burn_in=400)
+    if measure == "mixture":
+        x = _sample_mixture(system, n_samples)        # collocation measure (training-faithful)
+    else:
+        x = system.sample(n_samples, steps=120, burn_in=400)  # |Psi|^2 (VMC control)
 
     O = dg.build_O(system.log_psi, x, system.modules(), center=True)
     Jw = dg.residual_jacobian(system, x, form="weak", chunk=chunk)
@@ -106,6 +135,7 @@ def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--samples", type=int, default=192)
     ap.add_argument("--chunk", type=int, default=24)
+    ap.add_argument("--measure", type=str, default="psi2", choices=["psi2", "mixture"])
     ap.add_argument("--only", type=str, default=None, help="comma-separated labels to run")
     a = ap.parse_args()
 
@@ -117,11 +147,12 @@ def main() -> None:
     out = Path(f"results/analysis/{date.today().isoformat()}_conditioning_A")
     out.mkdir(parents=True, exist_ok=True)
     store: dict = {}
+    print(f"[conditioning_A] measure={a.measure}")
     for label, ckpt in ckpts:
         if not Path(ckpt).exists():
             print(f"[{label}] MISSING {ckpt}"); continue
-        analyse(label, ckpt, a.samples, a.chunk, store, out)
-        (out / "summary.json").write_text(json.dumps(store, indent=2) + "\n")
+        analyse(f"{label}_{a.measure}", ckpt, a.samples, a.chunk, a.measure, store, out)
+        (out / f"summary_{a.measure}.json").write_text(json.dumps(store, indent=2) + "\n")
     print(f"[conditioning_A] wrote {out}")
 
 

@@ -57,11 +57,24 @@ operator (`w=|Ψ|²/q`), which down-weights the bad tail points. So κ≳1e8 is 
 real training operator lies between the |Ψ|² value (~5e4) and this, and the ESS controllers exist to
 keep it usable. The robust, threshold-independent claim is the measure-driven ordering and the
 ≥2000× gap, not precise exponents.
+**Decisive sharpening (same day) — the bottleneck is ESS collapse, a threshold-free number.**
+Adding the importance-weighted operator (`w=|Ψ|²/q`) made *every* operator (S, A_weak, A_strong)
+floor at ~1e8 — not conditioning but **ESS collapse** (effective rank ≈ ESS). Measuring ESS
+directly (`scripts/exp_ess_collapse.py`, 4096-draw, N=6 cascade): ESS fraction
+**3.0% (ω=1) → 2.3% (0.5) → 0.59% (0.1) → 0.11% (0.01)** — at ω=0.01 only ~5 of 4096 points
+carry the weight. Monotone, clean, unambiguous. This is the real collocation bottleneck: the broad
+mixture q (needed to cover space) mismatches the sharp |Ψ|², so the importance-weighted estimator
+runs on a handful of effective points. It unifies everything: VMC is easy (|Ψ|² sampling →
+weights=1 → ESS=N, well-conditioned operator); collocation faces a dilemma between an
+ill-conditioned *unweighted* operator (κ≳1e8) and an *ESS-collapsed* weighted one; and it
+quantitatively explains the known "Adam+ESS beats natural-gradient at low ω" (SR needs a stable
+Fisher → needs ESS) and the low-ω/large-N collocation failures.
 **Output reference:** [results/analysis/2026-06-21_conditioning_A/](results/analysis/2026-06-21_conditioning_A/)
-(summary_psi2.json, summary_mixture.json, spectra_*.npz, fig_cond_*.png)
-**Next question:** Phase 1 — does natural-gradient actually beat Adam in *collocation training*
-across ω (positive, unlike the VMC null), and does the win track κ(A)/ESS? And add the
-importance-weighted operator to pin the true training-κ between the |Ψ|² and mixture bounds.
+(summary_{psi2,mixture}.json, spectra_*.npz), [results/analysis/2026-06-21_ess_collapse/](results/analysis/2026-06-21_ess_collapse/)
+(ess.json, fig_ess_collapse.png)
+**Next question:** Phase 1/2 — does the load-time ESS *predict* the actual training failure (final
+energy error) across ω and N? If ESS is the causal lever, the fix is a better proposal/adaptive
+resampling (raise ESS), not a fancier optimizer — testable directly.
 
 ### [2026-06-20] — Decisive SR-vs-Adam mechanism (N=2, exact GT): NULL in the cusp-on regime
 

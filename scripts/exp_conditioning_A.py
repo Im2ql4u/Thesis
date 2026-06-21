@@ -80,6 +80,31 @@ def _sample_mixture(system, n: int) -> torch.Tensor:
     return x[torch.randperm(x.shape[0], device=x.device)]
 
 
+def _mixture_logq(system, x: torch.Tensor) -> torch.Tensor:
+    """log q(x) of the Gaussian mixture (full mixture density, for importance weights)."""
+    import math
+    sfs = _mixture_sigma_fs(float(system.omega))
+    Nd = system.N * system.d
+    xf = x.reshape(x.shape[0], -1)
+    comps = []
+    for sf in sfs:
+        s = sf / math.sqrt(float(system.omega))
+        comps.append(-0.5 * Nd * math.log(2 * math.pi * s**2) - xf.pow(2).sum(-1) / (2 * s**2))
+    return torch.logsumexp(torch.stack(comps, -1), -1) - math.log(len(sfs))
+
+
+@torch.no_grad()
+def _iw_sqrt_weights(system, x: torch.Tensor) -> torch.Tensor:
+    """sqrt of self-normalised importance weights w = |Psi|^2/q (the operator the trainer actually
+    sees: down-weights the low-density tail/near-node points). Row-scaling J by these gives the
+    weighted Gauss-Newton operator."""
+    logw = 2.0 * system.log_psi(x).double() - _mixture_logq(system, x).double()
+    logw = logw - logw.max()
+    w = torch.exp(logw)
+    w = w / w.sum()
+    return w.sqrt()
+
+
 def _kappa(lam: np.ndarray, rel_tol: float = 1e-8) -> float:
     """Condition number over the RESOLVED spectrum (rel_tol above float64 noise, not the 1e-12
     machine floor that pins every kappa at ~1e12)."""
@@ -91,14 +116,19 @@ def _kappa(lam: np.ndarray, rel_tol: float = 1e-8) -> float:
 def analyse(label: str, ckpt: str, n_samples: int, chunk: int, measure: str, store: dict, out: Path) -> None:
     system = load_system(ckpt)
     system.eval()
-    if measure == "mixture":
-        x = _sample_mixture(system, n_samples)        # collocation measure (training-faithful)
-    else:
+    if measure == "psi2":
         x = system.sample(n_samples, steps=120, burn_in=400)  # |Psi|^2 (VMC control)
+    else:
+        x = _sample_mixture(system, n_samples)                # collocation mixture q
+    # mixture_iw: scale rows by sqrt(importance weights) -> the weighted operator the trainer sees
+    sw = _iw_sqrt_weights(system, x) if measure == "mixture_iw" else None
 
     O = dg.build_O(system.log_psi, x, system.modules(), center=True)
     Jw = dg.residual_jacobian(system, x, form="weak", chunk=chunk)
     Js = dg.residual_jacobian(system, x, form="strong", chunk=chunk)
+    if sw is not None:
+        scale = (sw * np.sqrt(x.shape[0])).reshape(-1, 1).to(O)  # keep ~unit scale for readability
+        O, Jw, Js = O * scale, Jw * scale, Js * scale
 
     spectra, slopes, kap = {}, {}, {}
     for name, M in (("S", O), ("A_weak", Jw), ("A_strong", Js)):
@@ -135,7 +165,7 @@ def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--samples", type=int, default=192)
     ap.add_argument("--chunk", type=int, default=24)
-    ap.add_argument("--measure", type=str, default="psi2", choices=["psi2", "mixture"])
+    ap.add_argument("--measure", type=str, default="psi2", choices=["psi2", "mixture", "mixture_iw"])
     ap.add_argument("--only", type=str, default=None, help="comma-separated labels to run")
     a = ap.parse_args()
 

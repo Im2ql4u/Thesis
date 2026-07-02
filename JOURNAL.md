@@ -24,6 +24,52 @@ The model reads this to understand what has been tried, what worked, what failed
 
 ## Journal
 
+### [2026-07-02h] — Phase M0 (Grand Mechanism Program): message passing is worth ~10% energy 100% KINETIC, confound untangled — and the BACKFLOW's kinetic role VANISHES at Wigner (new)
+
+**Motivation:** New spine (DECISIONS 2026-07-02c): finish/explain the CTNN mechanism. Two no-training M0
+probes: (T1.1) the confound-free message ablation — what does the graph compute, and is my "energies
+tie" a backflow confound? (T1.5) is the V-cycle a scale separator (bottleneck=global, fine=local)?
+**Method:** `scripts/run_message_ablation.py` — on trained N=6 CTNN checkpoints (ω=1 acc, ω=0.1 casc,
+ω=0.01 ×3 seeds), zero the inter-particle rho_* maps (→ pairwise Jastrow) and/or disable the backflow;
+evaluate E=<T>+<V_trap>+<V_Coul> with weak-form kinetic T=½|∇logΨ|² (no Laplacian) on common samples
+from the full |Ψ|². 2×2 {msg on/off}×{bf on/off}. `scripts/run_scale_separation.py` — hook fine
+(node/edge_embed) vs coarse (node/edge_down bottleneck), linear-probe vs global/local observables.
+**Results — message ablation (decisive):**
+- **Removing all message passing costs +7–11% energy, 100% KINETIC** at every ω (ω=1 +10.4%, ω=0.1
+  +7.5%, ω=0.01 +11.4%; V_Coul change = 0 by construction — same samples). Reproduces the
+  DIAGNOSTIC_SUMMARY "100% kinetic" claim robustly (smaller magnitude: my no-MP baseline keeps the
+  pairwise Jastrow geometry).
+- **Confound untangled:** at ω=1, Jastrow messages (ΔT +0.78) and backflow (ΔT +1.13) both contribute,
+  ~additively (Jastrow-msg cost barely changes with bf on/off: 0.78 vs 0.95). So the earlier "CTNN ≈
+  DeepSet energy" was a from-scratch DeepSet COMPENSATING, not messages being worthless. In the trained
+  net, messages carry a real kinetic reduction.
+- **NEW — division-of-labor shift:** the backflow's kinetic contribution collapses with ω:
+  ΔT(bf) = +1.13 (ω=1) → +0.05 (ω=0.1) → **+0.00** (ω=0.01, all 3 seeds). At the Wigner crystal the
+  backflow does ZERO kinetic work; it repositions electrons to lattice sites (orbital/nodal correction),
+  not smoothing. Fresh mechanistic angle on the Fig-J force regime-switch: BF = kinetic-smoother at
+  weak coupling, non-kinetic lattice corrector at Wigner. The Jastrow messages remain the kinetic
+  workhorse across all ω.
+**Results — scale separation (honest negative):** the "V-cycle bottleneck = global, fine = local"
+hypothesis is NOT supported by read-out decoding. The fine edge feature is ~rank-1 = pair distance,
+which already determines the breathing coordinate (Σr_ij² = N·Σr_i² in COM), so there is no clean
+global/local split in the decode. Real bits: edge scalar identified as distance (confirms edge-rank
+~1.4); message passing builds local density into nodes (R² 0.70→0.17, DECAYING toward Wigner = the
+3-body collapse); bottleneck adds only modest extra shell structure. The decisive V-cycle test is
+ABLATION (energy/d_eff cost), deferred to M1 — decoding is confounded.
+**Interpretation:** The graph's benefit is a smoother (lower-curvature) wavefunction → lower kinetic →
+this IS the var(E_L) discriminator (symptom↔mechanism connected at last). The Jastrow messages and the
+backflow are complementary kinetic contributors at weak coupling; toward Wigner the backflow switches
+off (kinetically) and becomes a lattice corrector while messages keep smoothing. My prior "energies
+tie" is reconciled: ablation (can't compensate) vs from-scratch (can) measure different things.
+**Caveats:** trained-net ablation = mechanistic reliance, NOT from-scratch capacity (the clean 2×2
+from-scratch is M1). Magnitude is checkpoint-dependent (10% here vs 22–30% in DIAGNOSTIC_SUMMARY, older
+checkpoints/baseline). Weak-form kinetic (mean = true kinetic by parts). N=6 only.
+**Output reference:** [results/analysis/2026-07-02_message_ablation/](../results/analysis/2026-07-02_message_ablation/)
+(ablation.csv, summary.json, fig), [results/analysis/2026-07-02_scale_separation/](../results/analysis/2026-07-02_scale_separation/).
+**Next question (M0 cont.):** T1.2 feature-rank ↔ tangent-d_eff unification; T1.3 decode the edge scalar
+beyond distance (spin/environment modulation); T1.7 extend force-alignment/attribution/3-body to
+N=12,20 (does the backflow kinetic-switch move with N?). Then M1 ablations (bottleneck, from-scratch 2×2).
+
 ### [2026-07-02g] — Q3 dual-track (N=2 exact): VMC and weak-form collocation reach the SAME ground state (overlap² 0.9992), collocation at ~5× higher var(E_L)
 
 **Motivation:** The roadmap's dual-track (§7): does collocation reach a different WAVEFUNCTION than

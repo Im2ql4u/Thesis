@@ -22,6 +22,29 @@ Each entry answers: what was decided, what the alternatives were, why this was c
 
 ## Decisions
 
+### [2026-07-02] — The Q1 discriminator is the tangent-dim-vs-physical-mode-count RATIO, not raw effective dimension
+
+**Decision:** Report and interpret the effective tangent dimension `d_eff(S)` *relative to* the
+physical collective-mode count (natural-orbital participation ratio of the 1-RDM), not as an absolute
+"lower is better". The Q1 claim is that CTNN's `d_eff` TRACKS the physical mode count (ratio ~0.5–0.9,
+adaptive across ω) while DeepSet's is rigid (~3.3) and CROSSES the mode count — over-complete at weak
+coupling, under-complete at Wigner. The natural-orbital count is measured to be architecture-independent
+(a property of the state), which is what makes it a fair yardstick.
+**Alternatives considered:** Keep raw `d_eff` as the headline (the Phase-0/1/2 framing). Rejected
+because raw `d_eff` is ambiguous: CTNN's *rising* `d_eff` toward Wigner (1.2→5.2) and the ω=0.01
+"inversion" (DeepSet 3.24 < CTNN 5.21) read as CTNN *degrading* under the low-d_eff-is-good frame,
+when in fact CTNN is correctly matching the physics and DeepSet is the under-expressive one (higher
+var(E_L)). Also considered κ(S) (rejected earlier — not a clean discriminator).
+**Reasoning:** The response-projection (A4, exact N=2) shows the tangent directions ARE the physical
+collective modes (breathing / correlation-hole / relative excitation), so the mode count is the
+correct denominator. The ratio resolves the "CTNN scales horribly at low ω" paradox and turns the
+d_eff inversion from an embarrassment into the central result.
+**Constraints introduced:** Any Q1 d_eff comparison must be accompanied by the physical mode count on
+the SAME probe/grid (the absolute low-ω NO count is grid-sensitive, but the cross-architecture ratio is
+fair). Claims about DeepSet under-expressiveness must cite var(E_L) alongside the ratio.
+**Confidence:** high at N≤6 (mechanism triangulated by A2/A3/A4/A5); the N-scaling of the ratio is
+untested.
+
 ### [2026-06-22b] — Refine the spine: three co-equal questions (CTNN-vs-FFNN, SR-vs-Adam, Collocation-vs-VMC) with the kernel/dimension picture as shared lens (refines 2026-06-22a)
 
 **Decision:** Reverse the framing of the earlier same-day decision that made *effective dimension* the

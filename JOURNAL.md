@@ -24,6 +24,67 @@ The model reads this to understand what has been tried, what worked, what failed
 
 ## Journal
 
+### [2026-07-02] — Phase A (Gate A): the Q1 mechanism is CLOSED — DeepSet's tangent dimension is rigid and CROSSES the physical mode count; and the manifold is NAMED (breathing mode) at the exact N=2 anchor
+
+**Motivation:** Close the "why CTNN > FFNN / what are the manifolds / why can't FFNN find them"
+interpretation on existing checkpoints (no training), before spending Phase-B compute. Four closers on
+the N=6 cascade + the exact N=2 anchor: A2 physical mode count for BOTH arches; A3 cross-architecture
+tangent projection; A4 name the modes; A5 harden the crossover. (Also: consolidated + committed a
+week of in-flight Phase-0/1/2 work, wrote the thesis results chapter `Thesis/results_kernel.tex`,
+corrected the run_weak_form conditioning claim.)
+**Method:** `scripts/run_phaseA_closers.py` (A2/A3/A5) and `scripts/run_response_projection.py` (A4).
+A2: `physics_probes.natural_orbital_occupations` (1-RDM participation ratio) on CTNN AND DeepSet across
+ω, grid half-width scaled to the sampled density; paired with fair common-probe tangent d_eff. A3: on a
+common pooled probe, build O for both arches, form the NTK K=OOᵀ (same R^B function space), compare the
+top NTK eigenvectors by subspace/principal-angle overlap. A4: extended `analysis/reference.py` with a
+Coulomb strength λ and excited relative states; projected the N=2 net's Jastrow tangent modes onto the
+exact {∂_ω J\*, ∂_λ J\*, φ_n=u_n/u_0}. A5: `fair_dimension.dimension_convergence` at ω∈{1,0.01}.
+**Results:**
+- **A2 — the physical mode count is architecture-independent; only CTNN's tangent tracks it.** NO
+  participation ratio is ~equal for the two nets at each ω (ω=1: CTNN 2.10 / DeepSet 2.34; ω=0.01:
+  6.19 / 5.94) — it is a property of the *state*, rising ~2→6 toward Wigner. CTNN's tangent d_eff/NO
+  ratio ≈ 0.58, 0.57, 0.52, 0.84 (ω=1→0.01) — it allocates directions in step with the physics.
+  DeepSet's ratio = 1.45, 1.26, 1.08, 0.55 — **it crosses unity around ω=0.1**: over-complete
+  (redundant) at weak coupling, under-complete (can't reach the ~6 physical modes) at Wigner. This is
+  the mechanism: DeepSet is pinned near d_eff~3.3 regardless of the physics.
+- **A3 — at weak coupling both nets share the single leading collective coordinate; at Wigner they
+  diverge.** ω≥0.1: DeepSet top mode captures ≥0.98 of CTNN's leading mode and vice versa (k90=1) —
+  they agree on the dominant direction, differ only in DeepSet's redundant extras. ω=0.01: CTNN's
+  leading mode needs TWO DeepSet directions (top-1 captures only 0.10); DeepSet's leading mode never
+  reaches 90% even in CTNN's top-6 (0.69) — at strong correlation DeepSet's dominant variational
+  direction is no longer a physical collective mode.
+- **A4 — the manifold is NAMED.** At N=2 ω=1 (overlap²=1.00000, E=3.00000, solver validated; excited
+  E_rel = 2.0/3.85/5.75), the net's leading Jastrow tangent mode is captured by
+  span{∂_ω, ∂_λ, φ_1} to **1.000** (top-2 subspace 0.990). Least-squares naming: R²=1.000, dominated by
+  the **breathing** response (∂_ω coef −0.83) + first relative excitation (φ_1 −0.16); ∂_λ, φ_2 ≈ 0.
+  All four physical modes lie in the net's top-6 span (0.92–1.00); the other net directions are
+  tiny-eigenvalue numerical modes. So the ~1-D manifold at weak coupling *is the breathing mode*, and
+  the effective 2–3D tangent space is {breathing, correlation-hole, first relative excitation}.
+- **A5 — the crossover is not a sampling artifact.** DeepSet ω=0.01 d_eff is flat at 3.20/3.30/3.25/3.24
+  over n=256/512/1024/2048; CTNN plateaus ~4.99–5.75 (→5.21). The DeepSet pin at ~3.24 (≪ the 5.9
+  physical count) is real and sample-converged.
+**Interpretation:** Q1 is answered mechanistically. "Low-dimensional = good" was the wrong frame; the
+right one is "the tangent dimension should MATCH the physical collective-mode count." CTNN's does
+(adaptive, tracks the NO count, converging to it at Wigner); DeepSet's is rigid and crosses it, which
+is simultaneously its redundancy at weak coupling and its under-expressiveness (higher var(E_L)) at
+Wigner. A4 grounds the whole story physically: the dimensions are the low collective modes of H
+(breathing / correlation-hole / relative excitation). Also unifies with Q2: the leading mode is the
+smooth *breathing* (soft), the correlation-hole/cusp is the stiffer subdominant direction — precisely
+what SR's whitening should help with as correlation grows.
+**Caveats:** ω=0.01 NO count is on a grid-truncated 1-RDM (trace ~1.87 of 3) — absolute value
+uncertain, but the CTNN/DeepSet ratio is fair (shared grid). A4 naming is exact only at N=2; the N=6
+response-projection needs the finite-difference reference (pending). N=6 still single-seed (Phase B).
+A3's "DeepSet leading mode is non-physical at Wigner" is on the single low-ω checkpoint, whose GS
+quality is worse than CTNN's.
+**Output reference:** [results/analysis/2026-07-02_phaseA_closers/](../results/analysis/2026-07-02_phaseA_closers/)
+(modecount.csv, convergence.csv, summary.json, fig_phaseA_closers.png),
+[results/analysis/2026-07-02_response_projection/](../results/analysis/2026-07-02_response_projection/)
+(summary.json, fig_response_projection.png); write-up in
+[Thesis/results_kernel.tex](../Thesis/results_kernel.tex).
+**Next question:** Phase B — seed the ω-sweep (≥3 seeds at ω∈{1,0.1,0.01}, both arches) and retrain the
+DeepSet low-ω checkpoints to analysis grade, to firm the crossover with error bars; then the N=6
+response-projection (name the modes where it matters); then Q2 low-ω SR sweep and Q3 dual-track.
+
 ### [2026-06-27] — Phase 2 Q2 (low-ω onset): at N=2 ω=0.1 SR finally beats Adam — first statistically-resolved SR advantage; and the xfill completed the ω-sweep
 
 **Motivation:** Gate 1 concluded that the SR-vs-Adam advantage, null at ω=1 (cusp on *and* off),

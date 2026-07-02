@@ -1,5 +1,42 @@
 # Session Log
 
+Last session: [2026-07-02] — Results chapter + Phase A (Gate A): Q1 mechanism closed, manifold named
+
+## What was done this session
+1. **Consolidated + committed** a week of uncommitted in-flight work (three-questions rebalance,
+   Phase 0/1/2, the unjournalled Jun-27 low-ω SR win). Two commits (a582d56 code+results+docs,
+   c81e220 thesis chapter). Corrected the run_weak_form "eliminates the conditioning catastrophe"
+   doc claim; added .ipynb_checkpoints to .gitignore.
+2. **Wrote the thesis results chapter** `Thesis/results_kernel.tex` (Q1/Q2/Q3, tables+figures+
+   discussion+conclusions; 8 figures in results/figures/results/kernel/). Self-contained; to be
+   restructured/merged into results.tex.
+3. **Phase A closers (no training):**
+   - A2 (`run_phaseA_closers.py`): NO participation ratio for BOTH arches vs ω — architecture-
+     independent physical mode count; CTNN tangent tracks it, DeepSet rigid and crosses it.
+   - A3: cross-architecture tangent projection — shared leading mode at weak coupling, divergence at
+     Wigner.
+   - A4 (`run_response_projection.py`, extended `reference.py` with λ + excited states): NAMED the
+     N=2 manifold — leading mode = breathing, effective space = {breathing, correlation-hole,
+     rel. excitation}, R²=1.00.
+   - A5: crossover sample-converged (DeepSet ω=0.01 flat at 3.24).
+   - Journal 2026-07-02 (Gate A); tex updated with the both-arch mode-count table + naming subsection.
+
+## Debugging notes (for future runs)
+- Env: `source /etc/profile.d/lmod.sh; module load PyTorch/2.1.2-foss-2023a-CUDA-12.1.1`;
+  pin `CUDA_VISIBLE_DEVICES=0`. Checkpoints are gitignored (*.pt) but present on disk.
+- The natural-orbital 1-RDM grid truncates at low ω (trace<N_up even at grid_half~50, n_grid=26):
+  the Wigner density is too spread for a coarse grid. Ratios across arches are fair (shared grid);
+  absolute low-ω NO counts need a finer/adaptive grid.
+
+## Next session
+**Recommended starting point:** Phase B — seed the ω-sweep (≥3 seeds, ω∈{1,0.1,0.01}, both arches) +
+retrain DeepSet low-ω to analysis grade (firm the crossover with error bars). Then the N=6 response-
+projection, Q2 low-ω SR sweep, Q3 dual-track.
+**Context freshness:** current
+
+---
+Prior session below.
+
 Last session: [2026-06-22/23] — Three-questions roadmap + Phase 0/1 execution through Gate 1
 
 ## What was done this session

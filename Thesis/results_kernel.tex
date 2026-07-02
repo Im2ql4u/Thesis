@@ -67,6 +67,24 @@ $\Psi\propto e^{-(r_1^2+r_2^2)/2}(1+r_{12})$; cusp $\mathrm{d}J/\mathrm{d}r|_0=1
 % TODO cite Taut1993
 } All statistics below are single-seed unless a seed count is stated.
 
+\paragraph{Headline findings.} \textbf{(Q1)} A message-passing correlator compresses
+the ground state into $\sim\!2\times$ fewer effective tangent directions than a
+separable DeepSet at weak coupling ($1.40\pm0.17$ vs $3.25\pm0.03$ at $\omega=1$,
+$\sim\!11\sigma$, seeded); the gap \emph{closes} toward the Wigner crystal, where
+both reach $\sim\!3.7$ but occupy different tangent subspaces and CTNN's is the
+lower-variance one. The tangent directions are \emph{named} at the exact $N=2$
+anchor --- they are the physical collective modes of $H$ (breathing,
+correlation-hole, relative excitation) to $R^2=1.00$. A single-seed dimension
+``inversion'' at the crystal is reported and then \emph{retracted} under seeding
+(\S\ref{sec:kernel-q1-sweep}), as a worked cautionary result. \textbf{(Q2)}
+Stochastic reconfiguration whitens the tangent kernel (exact at $N=2$); its
+advantage over Adam is null in the easy regime and first resolves at low $\omega$.
+\textbf{(Q3)} The collocation--VMC difference is governed by the sampling
+\emph{measure}: $|\Psi|^2$ is self-preconditioning, the covering proposal drives a
+monotone ESS collapse, and the weak form discards the Laplacian's zero-variance.
+Throughout, the robust cross-cutting discriminator is $\Var(E_L)$ --- lower for CTNN
+at every $\omega$.
+
 % =====================================================================
 \section{Q1 --- Architecture: message passing compresses the correlator}
 \label{sec:kernel-q1}

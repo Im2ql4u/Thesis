@@ -679,7 +679,41 @@ must claw back stability with continuation, resampling, and ESS control. The
 practical claim in the literature (and in an earlier draft of our own method
 notes) that the weak form ``eliminates the conditioning catastrophe'' is
 \emph{contradicted} here --- under the covering measure the weak-form operator is
-just as ill-conditioned as the strong one. % TODO: correct run_weak_form.py header claim.
+just as ill-conditioned as the strong one. % (run_weak_form.py header claim corrected in commit a582d56)
+
+\subsection{Dual-track: the two paradigms reach the same state, at different quality}
+\label{sec:kernel-q3-dualtrack}
+
+Does collocation reach a different \emph{wavefunction} than VMC, or the same state by
+a noisier route? At the exact $N=2$ anchor we train the identical CTNN (same
+initialisation) two ways --- VMC ($|\Psi|^2$-MCMC, strong-form $E_L$) and weak-form
+collocation (a fixed Gaussian proposal, importance-reweighted Rayleigh energy, never
+sampling $|\Psi|^2$) --- and compare both to the exact state and to each other
+(Fig.~\ref{fig:dual-track}). Both converge to essentially the \emph{same}
+wavefunction: overlap$^2$ with exact is $0.99998$ (VMC) and $0.99920$ (collocation),
+and the two trained states overlap each other at $0.99918$; the learned pair
+correlation $u(r)$ overlays the exact curve for both. The paradigms do not find
+different states --- they find the same ground state. What differs is \emph{quality}:
+collocation's $\Var(E_L) = 5.1\times10^{-2}$ is nearly $5\times$ VMC's
+$1.1\times10^{-2}$ (a marginally worse eigenstate), and its weak-form energy read-out
+settled at $2.94$, below the exact $3.0$, \emph{even though the state itself was
+accurate}. That last point is the zero-variance principle made concrete: the weak
+estimator is unbiased in principle but noisy enough (here at a benign
+$\mathrm{ESS}\approx37\%$ for $N=2$) to mis-report the energy while the wavefunction
+is right. The effective dimension is the same for both ($\approx1.1$), as it must be
+for the same state. So the collocation--VMC distinction is not about \emph{which}
+state is found but about the variance at which it is resolved --- exactly the
+measure/Laplacian story of the preceding subsections.
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=0.62\textwidth]{dual_track}
+  \caption{Dual-track at $N=2$, $\omega=1$ (exact): the learned pair-correlation
+  $\log u(r)$ from VMC (blue) and weak-form collocation (red) both overlay the exact
+  curve (black). The two paradigms reach the same wavefunction (mutual overlap$^2$
+  $0.9992$); collocation reaches it at $\sim\!5\times$ higher $\Var(E_L)$.}
+  \label{fig:dual-track}
+\end{figure}
 
 % =====================================================================
 \section{Synthesis and discussion}
@@ -772,8 +806,12 @@ manifold.
   requires drives a monotone ESS collapse ($3.0\%\!\to\!0.11\%$) and a
   $\gtrsim\!2000\times$ conditioning penalty, and the weak form additionally
   discards the Laplacian's zero-variance property (a $10^2$--$10^4\times$ variance
-  premium). VMC with SR is the better-conditioned paradigm; collocation's value is
-  in coverage, at a quantified cost.
+  premium). VMC is the better-conditioned paradigm; collocation's value is in
+  coverage, at a quantified cost. Trained side by side on the same $N=2$ ansatz, the
+  two routes reach the \emph{same} ground state (mutual overlap$^2$ $0.9992$) ---
+  collocation simply at $\sim\!5\times$ higher $\Var(E_L)$, with a weak-form energy
+  read-out that mis-reports while the state is right. The paradigm choice is about
+  the variance of resolution, not the identity of the state.
 \end{enumerate}
 
 Together these make the low-dimensional, kinetic-dominated tangent space the

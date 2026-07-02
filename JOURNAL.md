@@ -24,6 +24,39 @@ The model reads this to understand what has been tried, what worked, what failed
 
 ## Journal
 
+### [2026-07-02g] — Q3 dual-track (N=2 exact): VMC and weak-form collocation reach the SAME ground state (overlap² 0.9992), collocation at ~5× higher var(E_L)
+
+**Motivation:** The roadmap's dual-track (§7): does collocation reach a different WAVEFUNCTION than
+VMC, or the same state by a noisier route? Answer it at the exact N=2 anchor (step 2 / Q3).
+**Method:** Added `train_collocation_weak` to `src/analysis/train.py` — weak-form (Rayleigh) collocation:
+fixed Gaussian proposal q, importance weights w=|Ψ|²/q (clamped), exact self-normalised IS gradient of
+the Rayleigh energy <½|∇logΨ|²+V>_w (direct term + REINFORCE score term); never samples |Ψ|².
+`scripts/run_dual_track_N2.py` trains the identical CTNN (same init) via train_vmc_adam and
+train_collocation_weak at N=2 ω=1 (900 steps each), compares overlap² vs exact and vs each other,
+var(E_L), d_eff, and the learned Jastrow u(r).
+**Results:**
+- **Same state, both routes:** overlap²(VMC,exact)=0.99998, overlap²(colloc,exact)=0.99920,
+  **overlap²(VMC,colloc)=0.99918**. Learned u(r) overlays exact for both. The paradigms do NOT find
+  different wavefunctions — they find the same GS.
+- **Quality differs:** var(E_L) VMC 1.1e-2 vs colloc 5.1e-2 (~5× higher — a marginally worse eigenstate).
+  d_eff same (1.06 vs 1.13, as expected for the same state).
+- **Weak-energy readout is unreliable:** collocation's weak-form E settled at 2.94 (below exact 3.0)
+  even though the state is accurate — the zero-variance point made concrete (weak estimator unbiased in
+  principle, noisy in practice; here ESS≈37%, benign at N=2).
+**Interpretation:** The collocation–VMC distinction is not about WHICH state is found but the VARIANCE
+at which it is resolved — closing the Q3 loop with the measure/Laplacian story: same manifold, same
+solution, different estimator quality. The new collocation trainer converged cleanly at N=2 ω=1
+(ESS ~37%), validating it against exact truth.
+**Caveats:** N=2 ω=1 only (benign ESS); the interesting low-ω/high-N regime (where ESS collapses to
+0.1%) would stress the two routes apart and is the natural extension. Single Gaussian proposal;
+overlap² via self-normalised IS (finite-sample). The weak trainer is validated at N=2 but not yet at
+scale.
+**Output reference:** [results/analysis/2026-07-02_dual_track_N2/](../results/analysis/2026-07-02_dual_track_N2/)
+(summary.json, fig_dual_track.png); `src/analysis/train.py::train_collocation_weak`,
+`scripts/run_dual_track_N2.py`. Added the dual-track subsection to results_kernel.tex.
+**Next question:** dual-track at low ω / N=6 (does ESS collapse pull the two states apart?); the honest
+cross-paradigm energy reckoning at N=6 with heavy-VMC eval.
+
 ### [2026-07-02f] — Q2 low-ω SR-vs-Adam trend (N=2, ω=0.05/0.03): the advantage is MODEST, not a growing decisive win; ω=0.01 diverges with the light recipe
 
 **Motivation:** Push the SR-vs-Adam onset (resolved at ω=0.1, ~1.5σ) to lower ω — does SR's advantage

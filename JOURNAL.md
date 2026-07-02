@@ -24,6 +24,38 @@ The model reads this to understand what has been tried, what worked, what failed
 
 ## Journal
 
+### [2026-07-02d] — N=6 mode-naming (operator decomposition): leading modes ARE physical collective modes; at Wigner DeepSet's leading mode goes NON-physical (seed-robust) — corroborates the cross-projection
+
+**Motivation:** The N=2 naming (2026-07-02) was exact. Extend "what are the manifolds" to N=6, where
+there is no analytic solution, by naming the tangent modes against a basis of physical operator
+generators (step 3 of the Q1 program).
+**Method:** `scripts/run_mode_naming_N6.py` — build the net's top NTK eigenfunctions on a probe, project
+onto {monopole Σr_i², quartic Σr_i⁴, quadrupole Σ(x²−y²)/Σ2xy, correlation-hole Σ_{i<j}exp(−r_ij²/2σ²)
+(σ=0.5,1.0 ℓ), pair-Coulomb Σ1/r_ij, pair-linear Σr_ij}, centered on the probe. Leading-mode R² and the
+dominant operator, for CTNN and DeepSet at ω=1 (acc/casc checkpoints) and ω=0.01 (seeded s0). Then
+seed-verified the ω=0.01 leading-mode R² across all 3 seeds per arch.
+**Results:**
+- **ω=1: both leading modes are physical.** CTNN leading mode R²=0.99 (top operators pair_linear 0.98,
+  hole 0.97, monopole 0.91); DeepSet R²=1.00 (hole 0.98, pair_linear 0.97, monopole 0.91). The N=2
+  breathing/correlation picture carries to N=6.
+- **ω=0.01: CTNN stays physical, DeepSet does NOT (seed-robust).** CTNN leading-mode R² = 0.95/0.92/0.92
+  (mean 0.93, dominated by pair/Coulomb/breathing); DeepSet leading-mode R² = 0.01/0.02/0.01 (mean 0.01)
+  — its leading tangent direction is essentially orthogonal to the physical-operator span, with the
+  physical content demoted to a subdominant mode (operator basis is adequate: it captures DeepSet's
+  mode-3 at 0.97).
+**Interpretation:** Independently corroborates the A3 cross-projection via a different method: at strong
+correlation the separable net's DOMINANT variational direction drifts off the physical collective modes,
+while message passing keeps its leading direction oriented to the physics. Names the N=6 modes
+(pair-correlation / breathing / correlation-hole) and completes "what are the manifolds" beyond N=2.
+**Caveats:** Operator basis is finite (8 generators) — "non-physical" means "outside this span" (but the
+basis demonstrably captures physical modes when present, so R²=0.01 is a genuine miss). Jastrow (f_net)
+tangent only; single checkpoint per arch at ω=1 (ω=0.01 is 3-seed).
+**Output reference:** [results/analysis/2026-07-02_mode_naming_N6/](../results/analysis/2026-07-02_mode_naming_N6/)
+(summary.json); `scripts/run_mode_naming_N6.py`.
+**Next question:** Q2 — the low-ω SR-vs-Adam test needs a hardened recipe (the ω=0.01 diagnostic run
+diverged: fixed-lr from-scratch training blows up at ω=0.01, var→1e35). Warm-start + anneal + clip, or
+run at ω=0.05/0.03 first. Then Q3 dual-track, Q1 N=12 scaling.
+
 ### [2026-07-02c] — Q1 anchor seeded (independent basins): the weak-coupling compression gap is CONFIRMED — CTNN 1.40±0.17 vs DeepSet 3.25±0.03 (~11σ)
 
 **Motivation:** After the ω=0.01 inversion was retracted (2026-07-02b), the last open Q1 claim was the

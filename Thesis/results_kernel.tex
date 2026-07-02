@@ -363,6 +363,23 @@ count. It also sets up Q2 --- the dominant, softest direction is the smooth
 breathing, while the short-range correlation-hole (the cusp physics) is a stiffer,
 subdominant direction, which is where the optimiser question turns.
 
+\paragraph{Naming at $N=6$ by operator decomposition.} There is no analytic $N=6$
+solution, so we name the tangent modes there against a basis of physical operator
+generators evaluated on the probe --- monopole/breathing $\sum_i r_i^2$, quadrupole
+$\sum_i(x_i^2-y_i^2)$, short-range correlation-hole
+$\sum_{i<j}e^{-r_{ij}^2/2\sigma^2}$, pair-Coulomb $\sum_{i<j}1/r_{ij}$, and
+pair-linear $\sum_{i<j}r_{ij}$. At $\omega=1$ the leading tangent mode of \emph{both}
+architectures is a named physical collective mode --- a pair-correlation/breathing
+combination ($R^2 = 0.99$ CTNN, $1.00$ DeepSet) --- so the $N=2$ picture carries to
+$N=6$. At the Wigner crystal a sharp, seed-robust difference appears (three seeds
+each): CTNN's leading mode stays physical ($R^2 = 0.93\pm0.02$, dominated by the
+pair/Coulomb/breathing operators), while \emph{DeepSet's leading mode is not physical
+at all} ($R^2 = 0.01\pm0.01$) --- its physical content is demoted to a subdominant
+direction. This independently corroborates the cross-projection
+(\S\ref{sec:kernel-q1-sweep}): at strong correlation the separable net's dominant
+variational direction drifts off the physical collective modes, whereas message
+passing keeps its leading direction oriented to the physics.
+
 \begin{figure}[htbp]
   \centering
   \includegraphics[width=0.95\textwidth]{response_projection}

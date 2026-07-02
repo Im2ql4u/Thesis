@@ -41,6 +41,19 @@ Last session: [2026-07-02] — Results chapter + Phase A (Gate A): Q1 mechanism 
   the Wigner density is too spread for a coarse grid. Ratios across arches are fair (shared grid);
   absolute low-ω NO counts need a finer/adaptive grid.
 
+## Continued this session — the four follow-up steps (all four addressed)
+6. **Q1 N-scaling (init):** `run_dinit_scaling.py` — CTNN-vs-DeepSet d_eff gap at initialisation GROWS
+   with N (1.7×→2.6× to N=20); trained-state N≥12 deferred (from-scratch diverges + Laplacian OOM).
+7. **N=6 mode-naming:** `run_mode_naming_N6.py` (operator decomposition) — leading modes are physical
+   collective modes; at Wigner DeepSet's leading mode goes non-physical (R²=0.01±0.01 vs CTNN 0.93,
+   seed-robust). JOURNAL 2026-07-02d.
+8. **Q2 low-ω SR trend:** ω=0.05/0.03 — SR's edge is MODEST (energy resolved only at ω=0.1; consistent
+   ~10–20% lower dist-to-exact). Honest publishable-null verdict. ω=0.01 diverges (light recipe).
+   JOURNAL 2026-07-02f.
+9. **Q3 dual-track:** added `train_collocation_weak`; `run_dual_track_N2.py` — VMC and collocation reach
+   the SAME state (overlap² 0.9992), collocation ~5× higher var(E_L). JOURNAL 2026-07-02g.
+   All folded into results_kernel.tex (subsections, tables, figures) with honest caveats.
+
 ## Next session
 **Recommended starting point:** the ω=0.01 crossover is now seeded (and the inversion retracted). Next:
 (1) seed the ω=1 anchor to confirm the weak-coupling compression gap (1.2 vs 3.4 — the remaining

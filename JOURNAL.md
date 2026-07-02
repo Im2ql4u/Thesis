@@ -43,13 +43,20 @@ high-rank per-particle correction).
 **Interpretation:** answers "are the intrinsic dimensions the same" — no; the readout coordinate is ~1D
 (collective), the tangent space is a few-D, the backflow is high-rank at weak coupling and collapses to
 rank-1 collective at Wigner. Unifies with the backflow kinetic-switch (2026-07-02h).
-**Caveats:** the backflow rank-1-at-Wigner CONTRADICTS the thesis backflow table (rank≈10 at ω=0.001,
-different checkpoints/route) — must verify across the 3 ω=0.01 seeds and against a thesis-route
-checkpoint before trusting; likely training-route-dependent. ID(Z) TwoNN on 512 pts. V-cycle arch (not
-the φ/ψ/g ScaledPINN of the thesis correlator-geom table).
+**Verification (same day):** the backflow rank-collapse at Wigner is ROBUST — all 3 ω=0.01 seeds AND
+the original cascade checkpoint give rank 1.00 (|Δx|/ℓ ≈ 0.045–0.057), vs rank ~10 at ω=1/0.1. So it is
+seed- and route-robust WITHIN my (VMC/SR-trained) analysis checkpoints.
+**NEW open thread (Q3 × mechanism):** this rank-1 (VMC/SR) contradicts the thesis backflow table
+(rank≈10 at ω=0.001), whose checkpoints are COLLOCATION-trained. So the two *paradigms* may produce
+different internal backflow structure at Wigner *at matched energy* — a much deeper collocation-vs-VMC
+result than the energy tie (mirrors the N=2 dual-track "same Ψ" but suggests DIFFERENT internal
+mechanism at N=6 Wigner). To nail: load an actual collocation checkpoint at ω=0.001 and measure its
+backflow rank; confounded by ω=0.01-vs-0.001, so also check VMC at ω=0.001.
+**Caveats:** ID(Z) TwoNN on 512 pts; V-cycle arch (not the φ/ψ/g ScaledPINN of the thesis
+correlator-geom table); the paradigm claim is a hypothesis until a collocation checkpoint is measured.
 **Output reference:** [results/analysis/2026-07-02_dim_unification/](../results/analysis/2026-07-02_dim_unification/).
-**Next question:** verify the backflow rank-collapse across seeds/routes; T1.3 decode the edge scalar
-beyond distance; then the decisive training ablations (M1) and SR-on-collocation (O).
+**Next question:** measure a collocation-trained checkpoint's backflow rank (the paradigm thread); T1.3
+decode the edge scalar beyond distance; then the decisive training ablations (M1) and SR-on-collocation (O).
 
 ### [2026-07-02h] — Phase M0 (Grand Mechanism Program): message passing is worth ~10% energy 100% KINETIC, confound untangled — and the BACKFLOW's kinetic role VANISHES at Wigner (new)
 

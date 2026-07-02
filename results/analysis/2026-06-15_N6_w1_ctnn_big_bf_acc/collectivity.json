@@ -1,0 +1,52 @@
+{
+  "base": {
+    "N": 6,
+    "omega": 1.0,
+    "is_ctnn": true,
+    "n_params": 79813
+  },
+  "kappa_S": {
+    "lam_max": 38.76350519505216,
+    "lam_min_supported": 1.1840833670913389e-06,
+    "effective_rank": 1.456153853996981,
+    "numerical_rank": 1023,
+    "condition_number": 32737141.887461364,
+    "n_params": 79813,
+    "n_samples": 1024
+  },
+  "spectral": {
+    "k_centroid": 1.0229745052585613,
+    "k95": 3.1088677301149064
+  },
+  "dirichlet": {
+    "dirichlet": {
+      "0_embed": 1.1970600112534384,
+      "1_pre_bottleneck": 0.8380356657185123,
+      "2_post_bottleneck": 1.0847336410923214
+    },
+    "node_var": {
+      "0_embed": 0.718236006752063,
+      "1_pre_bottleneck": 0.5028213994311075,
+      "2_post_bottleneck": 0.6508401846553928
+    },
+    "stages": [
+      "0_embed",
+      "1_pre_bottleneck",
+      "2_post_bottleneck"
+    ]
+  },
+  "non_separability": {
+    "self": 0.6863814482190965,
+    "cross": 0.24054623020078378,
+    "cross_self_ratio": 0.35045561156250854,
+    "self_ablated": 0.13875074081262673,
+    "cross_ablated": 0.0,
+    "cross_self_ratio_ablated": 0.0
+  },
+  "meanfield_alignment": {
+    "available": true,
+    "r2_local_field": 0.4213925168323036,
+    "r2_collective_field": 0.2857376861006081
+  },
+  "errors": {}
+}

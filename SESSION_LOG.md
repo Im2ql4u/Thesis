@@ -1,5 +1,72 @@
 # Session Log
 
+Last session: [2026-06-22/23] — Three-questions roadmap + Phase 0/1 execution through Gate 1
+
+## What was done this session
+1. **Rebalanced the program** to three co-equal questions (Q1 CTNN-vs-FFNN, Q2 SR-vs-Adam, Q3
+   collocation-vs-VMC) with the kernel/dimension picture as shared lens (DECISIONS 2026-06-22b);
+   roadmap `plans/2026-06-22_dimension-program-and-roadmap.md`, status report.
+2. **Phase 0 (Gate 0):** consolidated the un-journalled 2026-06-15 runs — CTNN eff-rank ~1.5 vs
+   DeepSet ~3.8 (architectural, present at init); SR≈Adam null extends to N=6. (no training)
+3. **Phase 1 (Gate 1), all three questions at the anchor:**
+   - Q1: built the fair common-probe wrapper (`src/analysis/fair_dimension.py` +
+     `scripts/run_fair_dimension.py`); gap SURVIVES — CTNN 1.2–1.7 vs DeepSet 2.9–3.7, measure-robust.
+   - Q2: built `--no-cusp` into `exp_sr_mechanism.py`; ran the cusp-OFF 2×2 (4 seeds). Cusp prior is a
+     stiff-mode preconditioner (removing it ~2–3×'s the stiff error, flips ranking toward SR), but
+     SR≥Adam is within seed noise at ω=1 → decisive SR test moves to low ω.
+   - Q3: `scripts/run_estimator_variance.py` — weak form loses zero-variance 400–11000×; means agree.
+   - Journals 2026-06-22c, 2026-06-23; GATE1.md in 2026-06-23_SRmech_N2_nocusp/.
+
+## Debugging notes (for future runs)
+- Detached long jobs with `setsid bash -c '... > /tmp/log 2>&1' &` to survive session teardown (a
+  harness-tracked bg job died overnight). Pin GPU with `CUDA_VISIBLE_DEVICES=0` to avoid the
+  cuda:0/cuda:1 device-split crash when ref and per-seed Systems pick different "best" GPUs.
+- Output dirs are named by `date.today()` — a run relaunched on a later date lands in a different
+  dated folder (don't grep the old date).
+
+## Next session
+**Recommended starting point:** Phase 2 — ω-sweep {1, 0.5, 0.28, 0.1, 0.01} for all three questions
+(needs re-training analysis-grade low-ω GS for CTNN + DeepSet; cascade allowed). Predictions: d_eff
+gap grows toward Wigner (Q1); SR finally beats Adam where var(E_L) explodes (Q2); var(e_w) and the
+collocation-vs-VMC gap track ω (Q3).
+**Context freshness:** current
+
+---
+Prior session below.
+
+Last session: [2026-06-22] — Strategic review, consolidation + audit, effective-dimension spine
+
+## What was done this session
+1. **Strategic review.** Diagnosed the "standing still" pattern: single-seed promotion → retraction
+   → re-planning (e.g. cusp×SR wall-break → Jun-20 null; kernel plan → collocation plan after one
+   null). Saved as a memory (feedback-consolidate-dont-thrash). Reframed the "nihilistic" findings:
+   SR=NTK-whitening is exact-validated and the Jun-20 null only tested the cusp-ON quadrant where SR
+   is *predicted* not to help; CTNN var(E_L) advantage is real; ESS-collapse (3.0%→0.11%) is a clean
+   positive.
+2. **Audit.** Graded every kernel-plan question by status. Found untracked `2026-06-15_{2x2,eq}_*`
+   dirs holding a never-journalled, ≥2-seed CTNN-vs-DeepSet kernel comparison at N=6 ω=1:
+   **eff-rank(S) ≈ 1.5 (CTNN) vs 3.4–4.8 (DeepSet)**, var(E_L) 0.026 vs 0.033–0.097 (DeepSet short
+   even at 2× params). This answers X2/D6/B3 — unwritten until now.
+3. **Fairness check** of the dimension measurement (`build_O`/`kernel_spectrum`): formula/tol/
+   centering/sample-count identical (fair); eff-rank resolved (≪768 samples); confound = each net
+   sampled from its own |Ψ|² (needs a common probe set); rank can become sample-limited at higher N.
+4. **Wrote:** [STATUS_REPORT_2026-06-22.md](STATUS_REPORT_2026-06-22.md) (state of work, the surfaced
+   result, what the dimensions are + how to map to H), the long-term roadmap
+   [plans/2026-06-22_dimension-program-and-roadmap.md](plans/2026-06-22_dimension-program-and-roadmap.md),
+   plus JOURNAL + DECISIONS entries.
+
+## Next session
+**Recommended starting point:** Phase 0/1 of the new roadmap — finish collating the 2026-06-15 dirs
+(incl. trajectory CSVs for lazy-vs-rich), then re-measure d_eff at N=6 ω=1 under the fair protocol
+(common probe set, sample-convergence, matched-params + matched-accuracy, ≥3 seeds). Gate 1: does the
+~1.5-vs-3.5 gap survive?
+**Open questions:** Does d_eff drop / the CTNN gap grow toward Wigner? Does it grow sub-linearly in N?
+Can each dimension be named as a physical response/excitation mode of H?
+**Context freshness:** current
+
+---
+Prior session below.
+
 Last session: [2026-06-14] — Kernel-analysis program Phase A (N=2, omega=1.0)
 
 ## What was done this session

@@ -24,6 +24,226 @@ The model reads this to understand what has been tried, what worked, what failed
 
 ## Journal
 
+### [2026-06-27] — Phase 2 Q2 (low-ω onset): at N=2 ω=0.1 SR finally beats Adam — first statistically-resolved SR advantage; and the xfill completed the ω-sweep
+
+**Motivation:** Gate 1 concluded that the SR-vs-Adam advantage, null at ω=1 (cusp on *and* off),
+should switch on as ω drops and κ(S)/var(E_L) grow. Test the first low-ω point at the exact N=2
+anchor. (This entry back-fills two runs done Jun 23–27 that were never journalled.)
+**Method:** `scripts/exp_sr_mechanism.py` at N=2 ω=0.1, cusp-on, 4 seeds; identical protocol to
+Jun-20/23 (common Adam warm-up → branch into Adam-only vs SR-only from the same checkpoint; measure
+energy error, distance-to-exact, and the stiff/soft split in the FIXED ω=1 NTK eigenbasis). Separately,
+the `2026-06-23_N6_w{028,005,003}_xfill` runs filled the intermediate ω of the Phase-2 sweep.
+**Results:**
+- **SR beats Adam at ω=0.1 (first resolved advantage).** Energy error: Adam **+0.163%** [+0.058,+0.268]
+  vs SR **−0.028%** [−0.108,+0.052] — the ±1 s.d. seed bands are nearly disjoint (Adam-lo +0.058 >
+  SR-hi +0.052), a ~1.5σ separation. Distance-to-exact: Adam 0.039 vs SR 0.030. SR also has tighter
+  seed bands. This is the first regime where SR's advantage is *resolved*, not merely descriptive.
+- **But not via the pre-registered stiff-mode channel:** stiff-mode error ties (Adam 1.66e-2 vs SR
+  1.67e-2); SR's gain is in the SOFT modes (0.882 vs 0.673) and overall. Caveat: the stiff/soft basis
+  is the ω=1 frame, so its decomposition is only loosely meaningful at ω=0.1 — the robust signal is the
+  energy/dist advantage.
+- **ω-sweep completed** (xfill ω=0.28,0.05,0.03): CTNN eff-rank rises more smoothly than the original
+  4-point version suggested — 1.21, 1.27, 1.24, 1.80, 1.79, 2.56, 5.21 (ω=1→0.01) — but still jumps
+  ~2× over the last factor-3 in ω. DeepSet stays ~3.2–4.3 (non-monotone; 4.31 at ω=0.05, 3.24 at 0.01).
+**Interpretation:** Consistent with the Q2 thesis: with a physics-informed ansatz SR is immaterial at
+weak coupling and earns its keep toward Wigner, where whitening bites. The mechanism is broader than
+"collapse the cusp mode" — at low ω the *whole* tangent space is ill-conditioned. The onset is caught;
+it must now be pushed to lower ω and N=6 to see whether the ~1.5σ becomes decisive.
+**Caveats:** N=2, single ω=0.1, 4 seeds, cusp-on; SR at 256 samples/500 steps. The ω-sweep is still
+single-seed per (arch,ω) and the DeepSet ω=0.01 point may be under-converged (Phase B firms it).
+**Output reference:** [results/analysis/2026-06-27_SRmech_N2_w0p1/](../results/analysis/2026-06-27_SRmech_N2_w0p1/)
+(summary.json, raw.json, fig_sr_mechanism.png); sweep xfill in `results/analysis/2026-06-23_N6_w*_xfill/`.
+**Next question:** Phase 2 proper — the low-ω SR-vs-Adam sweep at N=2 and N=6 (does the advantage grow
+and become significant?), and Phase A closure of Q1 (name the modes; DeepSet mode count).
+
+### [2026-06-23b] — Phase 2 (no-training half): the CTNN-vs-DeepSet effective-dimension relation INVERTS across the Wigner crossover — CTNN's d_eff is adaptive, DeepSet's is rigid
+
+**Motivation:** Phase-2 test of the headline Wigner predictions, on existing N=6 backflow-cascade
+checkpoints (no training): Q1 does the CTNN/DeepSet eff-rank gap grow toward Wigner; Q3 does
+var(weak)/var(strong) track ω.
+**Method:** `scripts/run_phase2_omega_sweep.py` over the cascade {ω=1,0.5,0.1,0.01} × {CTNN,DeepSet}
+(configs identical across ω: ctnn_vcycle_big 66498 / deepset_big 34354 f_net params). Q1: fair eff-rank
+on a common pooled probe per ω. Q3: var(E_L) (chunked detached Laplacian) and var(e_w) per arch.
+**Results:**
+- **Q1 — the gap inverts (prediction was WRONG, truth is richer).** eff-rank(S): CTNN
+  **1.21 → 1.27 → 1.80 → 5.21** (ω = 1 → 0.5 → 0.1 → 0.01); DeepSet **flat ~3.3** (3.38, 3.38, 3.62,
+  3.24). The DeepSet/CTNN gap goes 2.78× → 2.66× → 2.02× → **0.62×** (CTNN overtakes at ω=0.01).
+  So CTNN's effective dimension is **adaptive** — minimal at weak correlation (compresses to ~1
+  collective coordinate), rising to ~5 toward the Wigner crystal — while DeepSet's is **rigid** (~3.3
+  regardless of ω). CTNN wins by *compression* at weak coupling, by *adaptive expressivity* at strong.
+- **Q3 — var(E_L) drops cleanly toward Wigner** (CTNN 2.0e-2→7.7e-3→7.9e-4→8.5e-6; DeepSet ~2–4×
+  higher at every ω: CTNN is the lower-variance wavefunction throughout). var(e_w)/var(E_L) stays
+  30–6500× (weak form always catastrophic) but is too heavy-tailed for a clean ω-trend.
+**Validation (prompted by the "is ω=0.01 an outlier?" challenge):** the ω=0.01 CTNN checkpoint is a
+genuine GS — E=0.68935 (−0.146% vs ref), var(E_L)≈1e-5, message-ablation dE=0.066 / var×138. The
+eff-rank ~5.25 is independently reproduced (Jun-15 battery `effective_rank`=5.255; my sweep 5.21;
+convergence plateau ~5.0 over n=512→4096). **Physics corroboration:** the same battery's
+natural-orbital participation ratio = **5.77** at ω=0.01 ⇒ the 1-RDM spreads over ~5–6 orbitals at the
+Wigner crystal, and **d_eff(tangent) ≈ natural-orbital count** — a direct preview of the Phase-4
+"d_eff = physical collective-mode count" claim.
+**Interpretation:** The ω=1 anchor told a misleading "CTNN = low-dim" story; the sweep reveals
+"CTNN = *adaptive*-dim, tracking the physical collective-mode count, while DeepSet is rigid." This is
+more physical and unifies Q1 with the natural-orbital structure.
+**Caveats:** single-seed per (arch,ω); the ω=0.1→0.01 jump (1.80→5.21) is abrupt vs the smooth rise
+below — could be a genuine sharp Wigner crossover OR the ω=0.1 point under-resolved; needs the
+intermediate ω (0.28, 0.05) and a seed before anchoring. var(e_w) heavy-tailed.
+**Output reference:** [results/analysis/2026-06-23_phase2_omega_sweep/](../results/analysis/2026-06-23_phase2_omega_sweep/)
+(omega_sweep.{csv,json}, fig_phase2_omega_sweep.png).
+**Next question:** fill the crossover (ω=0.28, 0.05) to resolve smooth-vs-sharp and confirm the
+inversion; then Phase-2 training half (Q2 low-ω SR-vs-Adam — does SR finally beat Adam where var(E_L)
+and κ explode?).
+
+### [2026-06-23] — Phase 1 Q2 (cusp-OFF 2×2) + Gate 1: the cusp prior is a stiff-mode preconditioner; SR≥Adam cusp-off but within seed noise at ω=1 → decisive SR test moves to low ω
+
+**Motivation:** Complete the {cusp ON/OFF}×{Adam/SR} grid (D2): the Jun-20 null tested only cusp-ON
+(the quadrant where SR is predicted not to help). Run cusp-OFF — where the stiff cusp mode must now be
+*learned* — and consolidate all three questions at the anchor (Gate 1).
+**Method:** `scripts/exp_sr_mechanism.py --no-cusp --seeds 4` (added a `--no-cusp` flag setting
+`use_analytic_cusp=False`; pinned all per-seed Systems + the fixed NTK basis to one device via
+`CUDA_VISIBLE_DEVICES=0` after a cuda:0/cuda:1 device-split crash). Same protocol as Jun-20: common
+Adam warm-up, branch into Adam-only vs SR-only from an identical checkpoint, log energy error,
+distance-to-exact, and the stiff/soft split in a FIXED NTK eigenbasis. (Run note: a first launch died
+overnight to a session teardown after seeds 0–2; relaunched fully detached via `setsid`.)
+**Results (4 seeds, mean ± seed-std):**
+- **Cusp removal inflates the stiff-mode error ~2–3×** (cusp-ON ~3–5e-3 → cusp-OFF ~1.1e-2) for both
+  optimizers — direct confirmation that the fixed cusp removes the stiffest direction from the
+  *learning* problem (D2 core claim).
+- **The optimizer ranking flips:** cusp-ON Adam ≥ SR on stiff modes (3.4e-3 vs 5.0e-3, energy tie);
+  cusp-OFF SR ≤ Adam on *every* metric — stiff 1.06e-2 [0.94,1.19] vs 1.13e-2 [1.05,1.21], energy
+  −0.216% [−0.24,−0.19] vs −0.277% [−0.35,−0.20], dist 5.65e-3 vs 7.32e-3 — and SR is markedly more
+  reproducible (energy seed-std ≈0.025% vs Adam ≈0.074%).
+- **But the SR-vs-Adam gap is within seed noise** (bands overlap on every metric). SR is consistently
+  but not significantly better cusp-off at ω=1.
+**Interpretation:** The cusp prior is a function-space preconditioner doing part of SR's job; removing
+it flips the optimizer ranking toward SR (mechanism direction = D2's prediction) but the advantage is
+not significant in the easy regime. Honest statement: *with a physics-informed ansatz the optimizer is
+largely immaterial at ω=1 even cusp-off; SR's edge (and its lower seed variance) is real but small.*
+The decisive "SR collapses the stiff mode while Adam stalls" must be tested where κ(S)/var(E_L) explode
+— **low ω** (Phase 2).
+**Gate 1 (all three questions at the anchor):** Q1 fair d_eff gap survives (CTNN 1.2–1.7 vs DeepSet
+2.9–3.7, measure-robust); Q2 as above; Q3 weak form loses zero-variance 400–11000× (means agree).
+Common thread: the easy regime under-resolves the effects → all three point to the ω→Wigner sweep.
+**Caveats:** N=2 ω=1 only; 4 seeds; stiff/soft basis is the cusp-ON converged reference (a fixed
+frame); SR used 256 samples/500 steps. var-ratio (Q3) heavy-tailed (order-of-magnitude only).
+**Output reference:** [results/analysis/2026-06-23_SRmech_N2_nocusp/](../results/analysis/2026-06-23_SRmech_N2_nocusp/)
+(summary.json, raw.json, fig_sr_mechanism.png, GATE1.md).
+**Next question:** Phase 2 — ω-sweep {1, 0.5, 0.28, 0.1, 0.01} for all three: does the d_eff gap grow
+toward Wigner (Q1), does SR finally beat Adam where var(E_L) explodes (Q2), does var(e_w) and the
+collocation-vs-VMC gap track ω (Q3)?
+
+### [2026-06-22c] — Phase 1 (no-training half): Q1 fair-dimension gap survives the common-probe protocol; Q3 the weak form sacrifices zero-variance by 400–11000×
+
+**Motivation:** Execute the no-training half of Phase 1 on existing checkpoints: (Q1) re-measure the
+CTNN-vs-DeepSet effective-dimension gap *fairly* (common probe set, not each net's own |Ψ|²; sample-
+convergence; measure sensitivity); (Q3) demonstrate the Laplacian / zero-variance anatomy
+(var(strong)→0 vs var(weak)) and the integration-by-parts mean-equality.
+**Method:** New sanctioned code `src/analysis/fair_dimension.py` (common-probe eff-rank wrapper over
+`build_O`/`kernel_spectrum`, f_net tangent space only — backflow is identical ~13.3k params across
+arches) + `scripts/run_fair_dimension.py`; `scripts/run_estimator_variance.py` (strong via the chunked
+detached `local_energy`, weak via chunked `residual_local_energy`). Pipeline validated: reproduces the
+stored own-density eff-rank (CTNN 1.64 vs 1.60; DeepSet 3.29 vs 3.35). N=6 ω=1 checkpoints (3 CTNN
+seeds, DeepSet ladder 20k→164k); pooled probe = mixture of CTNN+DeepSet |Ψ|² (3072 pts).
+**Results:**
+- **Q1 — the gap survives fair measurement (Gate-1 PASS).** Under the common pooled probe set,
+  eff-rank(S): **CTNN 1.20–1.66 (3 seeds) vs DeepSet 2.94–3.65** (sizes 20k–164k). For *every* model
+  the value is within ±0.04 whether probed on CTNN-density, DeepSet-density, or pooled points ⇒ the
+  ~2× gap is **not an own-density artifact**, it is architectural. DeepSet stays ~3 independent of size
+  (xl 150k → 2.94); CTNN stays ~1.4. Outputs: `results/analysis/2026-06-22_fair_dimension_N6w1/`.
+- **Q3 — zero-variance is the Laplacian's gift; the weak form throws it away.** var(weak)/var(strong)
+  = **2071× (N=2 exact), 10957× (N=6 CTNN), 403× (N=6 DeepSet)**. At the near-exact N=2 GS
+  var(E_L)=1.4e-3 (≈0) while var(e_w)=2.9. Mean-gaps (+0.05 to +0.50) are ~1–1.5 SE of the (very
+  noisy) weak estimator → consistent with the integration-by-parts identity ⟨E_L⟩=⟨e_w⟩, but the weak
+  form is too noisy to confirm it tightly — which *is* the point: the weak form is unbiased in the mean
+  yet a catastrophic estimator. Outputs: `results/analysis/2026-06-22_estimator_variance/`.
+**Interpretation:** Q1's central claim ("CTNN compresses the correlator into a ~2× lower-dimensional
+tangent space") is now fair, seeded, and measure-robust at N=6 ω=1. Q3 makes the
+collocation/Laplacian story concrete and quantitative: "training still works without the Laplacian"
+(integration by parts preserves the mean) but at a 400–11000× variance cost (zero-variance lost) —
+explaining why the winning recipe keeps the forward-only E_L reward and β small.
+**Caveats:** N=6 ω=1 only (ω-sweep is Phase 2); var(e_w) is heavy-tailed and poorly estimated at 2048
+samples — the cross-model var(e_w) ordering (CTNN>DeepSet) is NOT robust, only the
+orders-of-magnitude gap is. Q1 DeepSet sizes are single-seed (CTNN has 3 seeds).
+**Output reference:** [results/analysis/2026-06-22_fair_dimension_N6w1/](../results/analysis/2026-06-22_fair_dimension_N6w1/)
+(fair_table.csv, convergence.csv, fig_fair_dimension.png),
+[results/analysis/2026-06-22_estimator_variance/](../results/analysis/2026-06-22_estimator_variance/).
+**Next question:** Phase 1's training half — Q2 cusp-OFF 2×2 at N=2 (the unrun decisive SR test). Then
+Phase 2: sweep ω→Wigner for all three questions (does the d_eff gap grow? does var(e_w) and the
+SR-advantage track ω?).
+
+### [2026-06-22b] — Phase 0 (Gate 0): consolidated the un-journalled N=6 ω=1 runs — CTNN tangent space is ~1.5-dim vs DeepSet ~3.8 (architectural, present at init); SR≈Adam null extends to N=6
+
+**Motivation:** First execution step of the three-questions roadmap: collate the finished-but-
+unwritten `2026-06-15_{2x2,eq}_*` runs into a per-question picture before any new training.
+**Method:** No training. Extracted all `summary.json` (12 runs: the {CTNN,DeepSet}×{Adam,SR} 2×2, the
+DeepSet equivalence ladder s/m/match/xl, 2 CTNN seeds, N=2 anchor) into
+`results/analysis/2026-06-22_phase0_consolidation/consolidation_table.csv`, and recovered the per-step
+`data_alignment_trajectory.csv` series (cos_sr, cos_plain, κ(S), eff-rank(S) vs step).
+**Results:**
+- **Q1 (CTNN vs FFNN):** CTNN eff-rank(S) = **1.49 [1.39–1.60]** (4 replicates) vs DeepSet **3.78
+  [3.24–4.76]** (sizes 20k–164k). The gap **does not shrink with DeepSet capacity** and is **present
+  at initialization** (CTNN ≈1.1, DeepSet ≈3.9 at step 25) ⇒ architectural inductive bias, not learned.
+  var(E_L) ~0.026 (CTNN) vs 0.030–0.097 (DeepSet; xl at 2× params reaches 0.033, still short).
+- **Q2 (SR vs Adam):** 2×2 shows **SR ≈ Adam for both arches at N=6 ω=1** (CTNN err 0.029% both;
+  DeepSet 0.071/0.078; var tied) — the cusp-on null extends from N=2 to N=6. New dynamic: κ(S)
+  *decreases* over training for CTNN (2e9→8e7) but *increases* for DeepSet (1.4e9→2e10); cos_plain
+  stays ~0.06–0.17 (plain grad misaligned, but Adam's diagonal precond reaches SR's endpoint here).
+  Descriptive SR=whitening holds; prescriptive SR>Adam does not at ω=1. X2 inconclusive at ω=1.
+- **Q3:** not advanced (all runs are VMC). Stands at the Jun-21 ESS-collapse state; dual-track is Phase 1+.
+- **D4 (lazy vs rich, recovered):** low dimensionality is baked in at init (both arches lazy in
+  *dimension*); the evolving quantity is conditioning (κ), oppositely for the two.
+**Interpretation:** Q1 has a real, seeded, architectural result ready to harden; Q2's easy-regime null
+is consolidated and the cusp-OFF/low-ω test is the correct next decisive move; Q3 must be carried as a
+first-class Phase-1 target, not dropped.
+**Caveats:** eff-rank on each net's own |Ψ|², 768 samples (fairness confound → Phase-1 common probe
+set); DeepSet not matched-accuracy (var comparison needs the control); trajectory eff-rank mixes
+num_rank 383/767; zv extrapolation unreliable for DeepSet; N=6 ω=1 only, DeepSet sizes unseeded.
+**Output reference:** [results/analysis/2026-06-22_phase0_consolidation/](../results/analysis/2026-06-22_phase0_consolidation/)
+(GATE0.md, consolidation_table.csv).
+**Next question:** Phase 1 — does the eff-rank gap survive the fair common-probe protocol with seeds,
+and does the cusp-OFF 2×2 at N=2 show SR collapsing the stiff-mode error while Adam stalls?
+
+### [2026-06-22] — Consolidation + audit: CTNN's low-dimensional tangent space is the (unwritten) answer to "why CTNN > FFNN"; program rebalanced to three co-equal questions under one kernel lens
+
+**Motivation:** After a strategic review (the program had drifted into single-seed promotion →
+retraction → re-planning), audit what we have actually answered vs glossed/missed against the
+2026-06-13 kernel plan, and decide a stable spine. The user flagged the core need: measure the
+*dimension* of CTNN vs DeepSet fairly, scale it to Wigner and higher N, and figure out what the
+dimensions physically are.
+**Method:** No new training. (1) Graded every plan question (T1–T6, D1–D6, A/B/C/X) by status.
+(2) Audited untracked `results/analysis/2026-06-15_{2x2,eq}_*` dirs never entered in the journal.
+(3) Read the eff-rank measurement path (`diagnostics.build_O` / `kernel_spectrum`,
+`scripts/run_depth_analysis.py`) to check cross-architecture fairness.
+**Results:**
+- **Unconsolidated finding surfaced (N=6 ω=1, SR-trained, ≥2 CTNN seeds):** CTNN-vcycle (80k params)
+  reaches the GS in an effective tangent space of **eff-rank(S) ≈ 1.5** with var(E_L) ≈ 0.026; DeepSet
+  needs **eff-rank 3.4–4.8** and, even at 2× params (xl, 164k), var(E_L) 0.033 — never matching CTNN.
+  cos_plain ≈ 0.07–0.16 (NTK-whitening / gradient-misalignment holds at N=6, both arches). This
+  answers X2 (trainability), D6 (expressivity) and B3 (FFNN-equivalence: >2× params and still short)
+  in one table. **κ(S) is NOT a clean discriminator** across DeepSet sizes (xl has lower κ than match);
+  eff-rank and var(E_L) are.
+- **Fairness audit:** the participation-ratio formula, rel_tol, centering and sample count (768) are
+  identical across arches, and eff-rank (1.5–4.8) ≪ 768 ⇒ resolved (numerical_rank=767 is sample-
+  capped and must NOT be reported as the dimension). One confound: each net's O is built on samples
+  from its *own* |Ψ|² — a clean comparison needs a common probe set. At higher N the rank can become
+  sample-limited ⇒ must report eff-rank vs n_samples.
+**Interpretation:** All three angles plus the collocation/Laplacian thread are faces of one object —
+the **low-dimensional, cusp/kinetic-dominated tangent space**. CTNN wins by compressing the state into
+fewer collective directions (lower κ AND lower var(E_L) at fewer params). The program is organised
+around **three co-equal questions** — Q1 (CTNN vs FFNN), Q2 (SR vs Adam), Q3 (collocation vs VMC) —
+each pursued through this shared kernel lens; the low-dimensional tangent space is the synthesis they
+converge on, not the organizing axis (rebalanced from an initial dimension-centric framing; see
+DECISIONS 2026-06-22b). The "nulls" (SR≈Adam cusp-on; k⁴/k² unconfirmed) are boundary conditions of
+this, not refutations.
+**Caveats:** the headline eff-rank values are single-/two-seed, own-density-sampled, 768 points,
+ω=1 only — they motivate the program, they are not yet the fair measurement. κ comparisons are noisy.
+The dimension's *physical identity* is conjectured (collective modes), not yet measured.
+**Output reference:** [STATUS_REPORT_2026-06-22.md](STATUS_REPORT_2026-06-22.md),
+[plans/2026-06-22_dimension-program-and-roadmap.md](plans/2026-06-22_dimension-program-and-roadmap.md);
+source dirs `results/analysis/2026-06-15_{2x2,eq}_N6w1_*`.
+**Next question:** Does the ~1.5-vs-3.5 gap survive the fair common-probe-set protocol with seeds
+(Phase 1)? Then: does d_eff drop / the gap grow toward Wigner (Phase 2), grow sub-linearly in N
+(Phase 3), and can each dimension be named as a physical response/excitation mode of H (Phase 4)?
+
 ### [2026-06-21b] — Smart proposal vs simple Gaussian: ESS is the conditioning lever, and the adaptive mixture is OFF the efficient frontier
 
 **Motivation:** If ESS/measure governs collocation conditioning (2026-06-21a), how much does the

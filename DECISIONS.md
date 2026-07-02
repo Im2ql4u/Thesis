@@ -22,6 +22,53 @@ Each entry answers: what was decided, what the alternatives were, why this was c
 
 ## Decisions
 
+### [2026-06-22b] — Refine the spine: three co-equal questions (CTNN-vs-FFNN, SR-vs-Adam, Collocation-vs-VMC) with the kernel/dimension picture as shared lens (refines 2026-06-22a)
+
+**Decision:** Reverse the framing of the earlier same-day decision that made *effective dimension* the
+thesis spine. The thesis answers **three co-equal questions** — Q1 architecture (CTNN vs FFNN), Q2
+optimizer (SR vs Adam), Q3 paradigm (collocation vs VMC) — each pursued to full mechanistic depth. The
+tangent-kernel / dimension picture (O, S, K, d_eff, var(E_L), ESS, zero-variance) is the **shared
+lens** serving all three, and the low-dimensional cusp-dominated tangent space is the expected
+*synthesis* the three converge on, not the organizing axis. Execution is phased by **system size**
+(N=2→6→12→20, ω=1→Wigner) with **all three questions run at every phase**, so none is starved. Roadmap
+rewritten accordingly: `plans/2026-06-22_dimension-program-and-roadmap.md`.
+**Alternatives considered:** Keep dimension as the spine with the optimizer/paradigm questions as a
+cross-cutting note and a late phase (the 2026-06-22a draft); serialise the three questions
+(would starve two while one is pursued).
+**Reasoning:** Dimension was the user's *illustration of the desired depth*, not the intended axis;
+collapsing the program onto it subordinated SR-vs-Adam and collocation-vs-VMC. Phasing by system size
+with all three per phase preserves depth-before-breadth while keeping the three balanced, and the fair-
+measurement protocol + GS-gate apply to all three (not only dimension).
+**Constraints introduced:** Every phase's consolidation gate must report progress on all three
+questions; no question may be deferred to "later" as a structural matter. The fair protocol and seed/
+GS discipline bind all three. The 2026-06-22a common-probe protocol stands (it now serves all three).
+**Confidence:** high — directly reflects the stated thesis aims.
+
+### [2026-06-22a] — Adopt effective tangent-space dimension as the thesis spine; require a fair common-probe protocol for cross-architecture dimension claims
+
+**Decision:** Reorganise the analysis program around one object — the effective dimension of the
+variational tangent space `d_eff = eff-rank(S)` and the physical identity of its directions — and
+make any cross-architecture or cross-(N,ω) `d_eff` comparison conform to a fixed fairness protocol:
+(a) evaluate every architecture's `O` on a **common probe set** from a fixed reference measure (not
+each net's own |Ψ|²); (b) report `d_eff` vs `n_samples` and accept only the converged plateau (never
+report sample-capped `numerical_rank` as the dimension); (c) identical participation-ratio estimator /
+rel_tol / centering; (d) report both **matched-params** and **matched-accuracy** axes; (e) ≥3 seeds +
+GS-gate; (f) triangulate with latent intrinsic dimension and message rank. Roadmap:
+`plans/2026-06-22_dimension-program-and-roadmap.md`.
+**Alternatives considered:** Keep the three angles as separate sub-projects; keep measuring κ(S) as
+the conditioning/advantage metric; keep the own-density QGT as the comparison measure; spin up a new
+plan per result (the recurring re-planning habit).
+**Reasoning:** The CTNN-advantage, the SR conditioning story, the "what is learned" question and the
+collocation/Laplacian (zero-variance) thread are all faces of the low-dimensional tangent space — one
+spine is more defensible and stops the narrative thrashing. κ(S) was found NOT to discriminate cleanly
+across DeepSet sizes (eff-rank and var(E_L) do). The own-density QGT confounds "geometry of the
+ansatz" with "where it puts mass", so cross-architecture dimension claims need a common probe set.
+**Constraints introduced:** No `d_eff` comparison is reportable unless it meets the protocol;
+single-seed / own-density / sample-capped numbers are motivating-only. New plans must extend this
+spine rather than replace it (finish the consolidation gate before changing the spine).
+**Confidence:** medium-high — the spine unifies the evidence; the headline gap still must survive the
+fair protocol (Phase 1) before it is load-bearing.
+
 ### [2026-04-15] — Refit ShellFlow from weighted raw candidates and skip refits under catastrophic collapse
 
 **Decision:** When using ShellFlow as an adaptive proposal, refit it from the raw candidate cloud with effective resampling weights, not from the already-resampled collocation batch; additionally, skip ShellFlow refits when ESS or resampling-mass diagnostics indicate catastrophic collapse.

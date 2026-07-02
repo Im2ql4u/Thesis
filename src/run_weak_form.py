@@ -19,8 +19,18 @@ With logΨ representation and importance sampling from q(x):
 
 This requires ONLY first derivatives of Ψ w.r.t. x — no Laplacian.
 Parameter gradients are at most second-order (vs fourth-order in
-the strong-form approach). This eliminates the conditioning catastrophe
-that destabilized backflow training.
+the strong-form approach), which removes the *parameter-gradient*
+4th-order blow-up that destabilized backflow training.
+
+CORRECTION (2026-07-02): this does NOT "eliminate the conditioning
+catastrophe" in general. The Phase-0 conditioning study
+(results/analysis/2026-06-21_conditioning_A / _ess_collapse) showed the
+dominant conditioning lever is the sampling MEASURE, not the strong/weak
+form: under the covering proposal q both weak- and strong-form residual
+operators floor at κ≳1e8, and the true bottleneck is importance-weight
+ESS collapse (3.0%→0.11% across ω). |Ψ|²-sampling (VMC) is what is
+self-preconditioning. Weak-form only fixes the 4th-order backward graph
+above; it does not address the measure-driven ill-conditioning.
 
 Supports three wavefunction types:
   1. BF + Jastrow (Slater × Jastrow, backflow shifts coordinates)

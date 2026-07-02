@@ -162,3 +162,77 @@ def train_collocation_weak(
             hist["step"].append(t); hist["E"].append(float(E)); hist["ess"].append(ess)
             log_fn(f"[colloc {t:05d}] E_weak={float(E):.6f} ESS={ess:.3f} n={int(finite.sum())}")
     return hist
+
+
+def train_collocation_sr(
+    system,
+    *,
+    steps: int = 400,
+    batch: int = 1024,
+    sigma_q: float = 1.3,
+    clip_w: float = 20.0,
+    clip_mad: float = 8.0,
+    lr: float = 0.1,
+    damping: float = 1e-3,
+    max_step: float = 0.05,
+    log_every: int = 50,
+    log_fn=print,
+) -> dict:
+    """Collocation with a NATURAL-GRADIENT (SR) preconditioner -- the missing {collocation}x{SR}
+    quadrant. Same weak-form importance-sampled Rayleigh gradient as train_collocation_weak, but the
+    parameter gradient g is preconditioned by the (importance-weighted) quantum geometric tensor
+    S = O^T diag(w) O via a sample-space Woodbury solve:  delta = (S + lambda I)^{-1} g.
+    Tests whether whitening helps collocation (ill-conditioned measure) more than VMC (self-precond).
+
+    WIP (2026-07-02): the N=2 smoke did NOT descend (E_weak stuck ~3.4 vs exact 3.0, stepping at the
+    trust-region clip) -- the weighted natural-gradient step needs debugging (sign/scale/metric).
+    Excluded from the overnight campaign until it validates. TODO: verify against N=2 exact overlap."""
+    from .diagnostics import residual_local_energy, build_O
+
+    params = [p for m in system.modules() for p in m.parameters()]
+    from torch.nn.utils import parameters_to_vector, vector_to_parameters
+    ell = 1.0 / math.sqrt(system.omega)
+    sq = sigma_q * ell
+    log_zq = system.N * system.d * math.log(sq * math.sqrt(2 * math.pi))
+    hist = {"step": [], "E": [], "ess": []}
+    for t in range(steps):
+        x = torch.randn(batch, system.N, system.d, device=system.device, dtype=system.dtype) * sq
+        with torch.no_grad():
+            logq = -0.5 * (x ** 2).sum(dim=(1, 2)) / sq ** 2 - log_zq
+            logw = 2.0 * system.log_psi(x) - logq
+            logw = logw - logw.max()
+            w = torch.clamp(torch.exp(logw), max=clip_w * (torch.exp(logw).median() + 1e-30))
+            ess = float((w.sum() ** 2) / (w ** 2).sum()) / batch
+        e_w = residual_local_energy(system, x, form="weak")
+        finite = torch.isfinite(e_w) & (w > 0)
+        if int(finite.sum()) < 16:
+            continue
+        xf = x[finite]; ew = e_w[finite]; wn = (w[finite] / w[finite].sum()).detach()
+        med = ew.detach().median(); mad = (ew.detach() - med).abs().median() + 1e-30
+        ew_cl = ew.clamp(med - clip_mad * mad, med + clip_mad * mad)
+        E = (wn * ew_cl.detach()).sum()
+        logpsi = system.log_psi(xf)
+        loss = (wn * ew_cl).sum() + 2.0 * (wn * (ew_cl.detach() - E) * logpsi).sum()
+        for p in params:
+            p.grad = None
+        loss.backward()
+        g = parameters_to_vector([p.grad for p in params]).double()  # collocation gradient (P,)
+        # weighted score matrix and natural-gradient (Woodbury) solve: delta = (S+lam I)^{-1} g
+        O = build_O(system.log_psi, xf, system.modules(), center=True).double()  # (B,P)
+        Bn = O.shape[0]
+        sw = (wn.double() * Bn).sqrt().unsqueeze(1)  # row weights so O_w^T O_w = sum_k w_k O_k O_k^T
+        Ow = O * sw
+        G = (Ow @ Ow.t()) / Bn
+        G.diagonal().add_(damping)
+        Og = (Ow @ g) / math.sqrt(Bn)
+        y = torch.linalg.solve(G, Og)
+        delta = (g - (Ow.t() @ y) / math.sqrt(Bn)) / damping
+        n = float(delta.norm())
+        if n > max_step:
+            delta = delta * (max_step / (n + 1e-30))
+        theta = parameters_to_vector(params).double()
+        vector_to_parameters((theta - lr * delta).to(theta.dtype), params)
+        if (t % log_every == 0) or (t == steps - 1):
+            hist["step"].append(t); hist["E"].append(float(E)); hist["ess"].append(ess)
+            log_fn(f"[colloc-sr {t:05d}] E_weak={float(E):.6f} ESS={ess:.3f} |dθ|={min(n,max_step)*lr:.2e}")
+    return hist

@@ -35,7 +35,7 @@ from functions.Stochastic_Reconfiguration import train_model_sr_energy  # noqa: 
 from analysis import diagnostics as dg  # noqa: E402
 from analysis.reference import TwoElectronExact  # noqa: E402
 from analysis.system import System  # noqa: E402
-from analysis.train import train_vmc_adam  # noqa: E402
+from analysis.train import train_vmc_adam, train_collocation_weak, train_collocation_sr  # noqa: E402
 from analysis.fast_sr import train_sr  # noqa: E402
 
 import matplotlib  # noqa: E402
@@ -100,6 +100,9 @@ def main() -> None:
     ap.add_argument("--init", type=str, default="",
                     help="warm-start from a previous checkpoint.pt (cascade across omega)")
     ap.add_argument("--optimizer", type=str, default="adam", choices=["adam", "sr"])
+    ap.add_argument("--paradigm", type=str, default="vmc", choices=["vmc", "colloc"],
+                    help="vmc = |Psi|^2-MCMC energy minimisation; colloc = weak-form importance-sampled")
+    ap.add_argument("--sigma-q", type=float, default=1.3, help="collocation Gaussian proposal width (units of ell)")
     ap.add_argument("--steps", type=int, default=2500, help="total training steps")
     ap.add_argument("--polish-steps", type=int, default=500,
                     help="final low-lr Adam settle (one optimizer call) for a clean endpoint")
@@ -165,7 +168,14 @@ def main() -> None:
     t0 = time.time()
     for si, seg in enumerate(segs):
         sysm.train()
-        if a.optimizer == "adam":
+        if a.paradigm == "colloc":
+            if a.optimizer == "sr":
+                train_collocation_sr(sysm, steps=seg, batch=min(a.batch, 1024), sigma_q=a.sigma_q,
+                                     lr=0.1, damping=1e-3, max_step=0.05, log_every=max(1, seg // 2))
+            else:
+                train_collocation_weak(sysm, steps=seg, lr=a.lr, batch=a.batch, sigma_q=a.sigma_q,
+                                       log_every=max(1, seg // 2))
+        elif a.optimizer == "adam":
             train_vmc_adam(
                 sysm, steps=seg, lr=a.lr, batch=a.batch,
                 sampler_steps=a.sampler_steps, sampler_sigma=a.sampler_sigma,
@@ -185,7 +195,7 @@ def main() -> None:
         done += seg
         sysm.eval()
         x = sysm.sample(a.eval_samples, steps=200, burn_in=400)
-        E_L = dg.local_energy(sysm.log_psi, x, a.omega, sysm.params, lap_mode="exact")
+        E_L = dg.local_energy(sysm.log_psi, x, a.omega, sysm.params, lap_mode="exact", chunk=256)
         finite = torch.isfinite(E_L)
         x, E_L = x[finite], E_L[finite]
         q = dg.gs_quality(E_L, ref_energy=ref_energy)
@@ -211,15 +221,26 @@ def main() -> None:
     # (driver-only; the trainer is unchanged. A single call => no per-segment momentum resets.)
     if a.polish_steps > 0:
         sysm.train()
-        train_vmc_adam(
-            sysm, steps=a.polish_steps, lr=a.lr * 0.2, batch=max(a.batch, 4096),
-            sampler_steps=a.sampler_steps, sampler_sigma=a.sampler_sigma,
-            lap_mode="exact", log_every=max(1, a.polish_steps // 4),
-        )
+        if a.paradigm == "colloc":
+            if a.optimizer == "sr":
+                train_collocation_sr(sysm, steps=a.polish_steps, batch=min(a.batch, 1024),
+                                     sigma_q=a.sigma_q, lr=0.05, damping=5e-4, max_step=0.02,
+                                     log_every=max(1, a.polish_steps // 4))
+            else:
+                train_collocation_weak(sysm, steps=a.polish_steps, lr=a.lr * 0.3,
+                                       batch=max(a.batch, 2048), sigma_q=a.sigma_q,
+                                       log_every=max(1, a.polish_steps // 4))
+        else:
+            train_vmc_adam(
+                sysm, steps=a.polish_steps, lr=a.lr * 0.2, batch=max(a.batch, 4096),
+                sampler_steps=a.sampler_steps, sampler_sigma=a.sampler_sigma,
+                lap_mode="exact", log_every=max(1, a.polish_steps // 4),
+            )
         done += a.polish_steps
 
     # ---- SR (natural-gradient) polish: the last approach to ~DMC (Adam plateaus above it) ----
-    if a.sr_polish_steps > 0:
+    # (VMC-only; a collocation run stays pure collocation -- no VMC/SR polish.)
+    if a.sr_polish_steps > 0 and a.paradigm != "colloc":
         sysm.train()
         train_sr(sysm, steps=a.sr_polish_steps, batch=a.batch, lr=a.sr_lr,
                  lr_final=a.sr_lr * 0.05, damping=a.sr_damping,
@@ -232,7 +253,7 @@ def main() -> None:
     # ---- final verification on a large sample ----
     sysm.eval()
     xf = sysm.sample(a.final_samples, steps=400, burn_in=800)
-    E_Lf = dg.local_energy(sysm.log_psi, xf, a.omega, sysm.params, lap_mode="exact")
+    E_Lf = dg.local_energy(sysm.log_psi, xf, a.omega, sysm.params, lap_mode="exact", chunk=256)
     finite = torch.isfinite(E_Lf)
     xf, E_Lf = xf[finite], E_Lf[finite]
     qf = dg.gs_quality(E_Lf, ref_energy=ref_energy)

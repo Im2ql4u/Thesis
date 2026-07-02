@@ -405,6 +405,55 @@ passing keeps its leading direction oriented to the physics.
   \label{fig:phaseA-closers}
 \end{figure}
 
+\subsection{Scaling in $N$ (at initialisation)}
+\label{sec:kernel-q1-scaling}
+
+Does the compression advantage grow with system size? The trained-state answer at
+$N\geq12$ is blocked by training instability and exact-Laplacian memory (a separate
+infrastructure task), but the \emph{architectural inductive bias} can be probed
+directly and cheaply, because it is already present at initialisation (the $N=6$ gap
+appears in the untrained tangent space). Building the untrained $f$-net tangent space
+on a common Gaussian probe --- first derivatives only, no Laplacian --- gives the
+effective dimension of the architecture's raw parametrisation (Table~\ref{tab:scaling},
+three random inits each). CTNN's init dimension \emph{falls} with $N$
+($2.1\to1.6\to1.4$ for $N=6,12,20$) while DeepSet's stays rigid ($\sim\!3.5$--$3.7$),
+so the gap \emph{grows} with system size ($1.7\times\to2.6\times$;
+Fig.~\ref{fig:dinit-scaling}). Message passing
+compresses harder the more particles there are to correlate; a separable pairwise sum
+does not. This is the inductive-bias dimension, not the trained-solution dimension
+(the seed scatter at init is large, and init $\neq$ solution --- e.g.\ trained CTNN at
+$N=6$, $\omega=1$ sits at $1.4$, below its init $2.1$); the trained-state $N$-scaling
+remains for the deferred large-$N$ training campaign.
+
+\begin{table}[htbp]
+\centering
+\caption{Architectural inductive-bias dimension vs $N$ at $\omega=1$: fair
+$d_{\mathrm{eff}}$ of the \emph{untrained} $f$-net tangent space on a common Gaussian
+probe (mean\,$\pm$\,s.d.\ over three inits). CTNN compresses further with $N$;
+DeepSet is rigid; the gap grows.}
+\label{tab:scaling}
+\small
+\setlength{\tabcolsep}{10pt}
+\begin{tabular}{r ccc}
+\toprule
+$N$ & CTNN & DeepSet & gap \\
+\midrule
+6  & $2.09\pm0.77$ & $3.60\pm0.79$ & $1.7\times$ \\
+12 & $1.63\pm0.47$ & $3.49\pm0.61$ & $2.1\times$ \\
+20 & $1.44\pm0.24$ & $3.69\pm0.97$ & $2.6\times$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=0.62\textwidth]{dinit_scaling}
+  \caption{Architectural inductive-bias dimension vs $N$ ($\omega=1$, at
+  initialisation). CTNN's effective tangent dimension falls with $N$ while DeepSet's
+  is $N$-independent, so the compression gap widens toward larger systems.}
+  \label{fig:dinit-scaling}
+\end{figure}
+
 % =====================================================================
 \section{Q2 --- Optimiser: what SR does, and where it earns its keep}
 \label{sec:kernel-q2}
@@ -656,11 +705,13 @@ at weak coupling, orthogonal at the crystal), and the exact $N=2$ naming of the 
 (\S\ref{sec:kernel-naming}). Remaining limits: the $\omega=0.01$ natural-orbital count
 is on a grid-truncated
 1-RDM (trace $\approx1.9$ of $3$), so its absolute value is uncertain (the
-cross-architecture comparison is fair, as the grid is shared); the response-projection
-naming is exact only at $N=2$ (the $N=6$ version needs the finite-difference reference
-and is pending); and the scaling of the weak-coupling gap in $N$ is untested. The
-weak-form variance is heavy-tailed, so only the order of magnitude of the
-zero-variance ratio is robust.
+cross-architecture comparison is fair, as the grid is shared); the mode-naming is
+\emph{exact} only at $N=2$ --- at $N=6$ it is by operator decomposition
+(\S\ref{sec:kernel-naming}), which names the leading mode but not a full basis; and
+the $N$-scaling is measured only at \emph{initialisation} (Table~\ref{tab:scaling}:
+the gap grows $1.7\times\to2.6\times$ to $N=20$), with the trained-state $N$-scaling
+deferred behind the large-$N$ training infrastructure. The weak-form variance is
+heavy-tailed, so only the order of magnitude of the zero-variance ratio is robust.
 
 % =====================================================================
 \section{Conclusions}

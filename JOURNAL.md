@@ -24,6 +24,34 @@ The model reads this to understand what has been tried, what worked, what failed
 
 ## Journal
 
+### [2026-07-02e] — Q1 N-scaling (at init): the CTNN-vs-DeepSet compression gap GROWS with N (1.7×→2.6× to N=20); trained-state N≥12 blocked by training/memory (deferred)
+
+**Motivation:** Does the compression advantage grow with system size (step 4)? The trained-state d_eff
+at N≥12 is blocked — from-scratch N=12 training diverges (E→1e21, rank collapse) and the exact Laplacian
+OOMs even at batch 512. But the Phase-0 finding was that the architectural gap is present at
+INITIALISATION, and d_eff at init needs only first derivatives (no Laplacian, no training) — so the
+inductive-bias scaling is cheaply measurable.
+**Method:** `scripts/run_dinit_scaling.py` — build the UNTRAINED f_net tangent space (ctnn_vcycle_big,
+deepset_big + backflow) on a common Gaussian probe at oscillator scale, fair d_eff via build_O (CPU
+SVD), N∈{6,12,20}, ω=1, 3 random inits each.
+**Results:**
+- **CTNN d_eff(init) falls with N:** 2.09±0.77 (N=6) → 1.63±0.47 (N=12) → 1.44±0.24 (N=20).
+- **DeepSet d_eff(init) is rigid:** 3.60±0.79 → 3.49±0.61 → 3.69±0.97 (N-independent).
+- **Gap GROWS:** 1.7× → 2.1× → 2.6×. Message passing compresses harder the more particles there are;
+  the separable pairwise sum does not.
+**Interpretation:** The architectural inductive-bias dimension scales the right way — CTNN's compression
+advantage widens with N, supporting the thesis prediction that message passing wins more at scale. This
+is the INIT bias, not the trained solution (init≠solution: trained CTNN N=6 ω=1 is ~1.4, below its init
+2.1), so it probes the architecture's raw parametrisation, which is exactly the "present at init"
+inductive bias.
+**Caveats:** Initialisation only (trained-state N-scaling deferred behind the large-N training
+infrastructure: stable warm-started recipe + Laplacian chunking). Seed scatter at init is large (±0.5–1.0,
+untrained nets vary) but the gap and monotone trend are clear. Gaussian probe (not |Ψ|²); ω=1 only.
+**Output reference:** [results/analysis/2026-07-02_dinit_scaling/](../results/analysis/2026-07-02_dinit_scaling/)
+(dinit.csv, summary.json, fig_dinit_scaling.png); `scripts/run_dinit_scaling.py`.
+**Next question:** The deferred trained-state N=12 scaling (needs a stable N=12 recipe + Laplacian
+memory fix). Q2 low-ω trend (ω=0.05/0.03 running) and Q3 dual-track still open.
+
 ### [2026-07-02d] — N=6 mode-naming (operator decomposition): leading modes ARE physical collective modes; at Wigner DeepSet's leading mode goes NON-physical (seed-robust) — corroborates the cross-projection
 
 **Motivation:** The N=2 naming (2026-07-02) was exact. Extend "what are the manifolds" to N=6, where

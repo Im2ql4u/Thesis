@@ -22,6 +22,26 @@ Each entry answers: what was decided, what the alternatives were, why this was c
 
 ## Decisions
 
+### [2026-07-02c] — New spine: the Grand Mechanism Program (what the CTNN computes and why it wins); dimension is now one probe among many
+
+**Decision:** Refocus the thesis analysis from the tangent-dimension diagnostic onto the **mechanism**:
+what the message-passing graph computes that a separable net cannot, why it lowers the kinetic energy,
+how it changes across the quantum→Wigner crossover and with N, and which optimizer/paradigm resolves it.
+Plan: `plans/2026-07-02_grand-mechanism-program.md` (Threads T1 architecture internals, T2
+optimizer×paradigm, T3 low-ω physics, T4 scaling). Supersedes the dimension-centric
+`2026-06-22_dimension-program-and-roadmap.md`; the tangent d_eff work is folded into Thread 1.
+**Alternatives considered:** keep polishing the d_eff story (rejected — it is narrow and walks past the
+existing rich mechanism in DIAGNOSTIC_SUMMARY: +22–30% kinetic from messages, random=zero, edge-rank
+1.4, 3-body 2–3×, backflow force-switch, two orthogonal feature spaces).
+**Reasoning:** the user's core interest is the architecture mechanism and low-ω physics, most of which
+was measured once (single-seed, N=6, old checkpoints) and never finished, unified, or scaled. The
+d_eff result also had a backflow confound (both arms shared message-passing backflow) that must be
+untangled.
+**Constraints introduced:** every CTNN-vs-FFNN claim must state exactly what is ablated (no hidden
+shared message passing); ≥3 seeds/inits before any thesis claim; connect symptom (var(E_L)) to
+mechanism (kinetic). Execution phased M0→M1→O→P→S with a gate after each.
+**Confidence:** high (directly reflects the stated thesis heart).
+
 ### [2026-07-02b] — Retract the Wigner d_eff "inversion"; single-seed d_eff at ω=0.01 is not diagnostic (flat landscape)
 
 **Decision:** Withdraw the single-seed Phase-A claim that CTNN's effective dimension INVERTS past

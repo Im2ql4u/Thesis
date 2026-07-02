@@ -24,6 +24,33 @@ The model reads this to understand what has been tried, what worked, what failed
 
 ## Journal
 
+### [2026-07-02i] — Phase M0 (T1.2): feature-rank ≠ tangent-d_eff (two distinct low-dims); backflow rank collapses 10→1 at Wigner (route-dependent, to verify)
+
+**Motivation:** Are the correlator FEATURE rank (thesis r_eff≤3), the tangent d_eff (my work), and the
+intrinsic dim the same low-dimensional object? And quantify the low-rank-correlator / high-rank-backflow
+"two feature spaces" in one place.
+**Method:** `scripts/run_dim_unification.py` — on the V-cycle CTNN across ω, capture the readout (f_head)
+input feature Z; report r_eff(Z) (linear), TwoNN intrinsic dim ID(Z), tangent d_eff (QGT), and the
+backflow displacement rank.
+**Results:** r_eff(Z) ≈ 1.07 at every ω (nearly rank-1 — one collective readout coordinate; flatter
+than the thesis's φ/ψ/g r_eff≤3, a DIFFERENT architecture); ID(Z) ≈ 6–8 (nonlinear — Z is a wiggly ~1D
+curve); tangent d_eff = 1.21→1.81→3.71 (rises toward Wigner). So **feature-rank (~1) and tangent-d_eff
+(1.2–3.7) are NOT the same object**: the correlator reads out along ~1 direction while the parameters
+can move the state along more — two distinct low-dimensionalities. Backflow rank = 10/12 (ω=1,0.1) but
+**1/12 at ω=0.01** — collapses to a rank-1 collective displacement at Wigner, coherent with the
+message-ablation (backflow does zero kinetic work at Wigner → a rank-1 lattice-repositioning, not a
+high-rank per-particle correction).
+**Interpretation:** answers "are the intrinsic dimensions the same" — no; the readout coordinate is ~1D
+(collective), the tangent space is a few-D, the backflow is high-rank at weak coupling and collapses to
+rank-1 collective at Wigner. Unifies with the backflow kinetic-switch (2026-07-02h).
+**Caveats:** the backflow rank-1-at-Wigner CONTRADICTS the thesis backflow table (rank≈10 at ω=0.001,
+different checkpoints/route) — must verify across the 3 ω=0.01 seeds and against a thesis-route
+checkpoint before trusting; likely training-route-dependent. ID(Z) TwoNN on 512 pts. V-cycle arch (not
+the φ/ψ/g ScaledPINN of the thesis correlator-geom table).
+**Output reference:** [results/analysis/2026-07-02_dim_unification/](../results/analysis/2026-07-02_dim_unification/).
+**Next question:** verify the backflow rank-collapse across seeds/routes; T1.3 decode the edge scalar
+beyond distance; then the decisive training ablations (M1) and SR-on-collocation (O).
+
 ### [2026-07-02h] — Phase M0 (Grand Mechanism Program): message passing is worth ~10% energy 100% KINETIC, confound untangled — and the BACKFLOW's kinetic role VANISHES at Wigner (new)
 
 **Motivation:** New spine (DECISIONS 2026-07-02c): finish/explain the CTNN mechanism. Two no-training M0

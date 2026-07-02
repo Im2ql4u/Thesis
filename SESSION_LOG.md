@@ -28,6 +28,11 @@ Last session: [2026-07-02] — Results chapter + Phase A (Gate A): Q1 mechanism 
    orthogonal at the crystal), N=2 naming. Corrected results_kernel.tex throughout (dagger'd the
    retracted row, added seeded-correction table+figure, fixed interpretation/synthesis/conclusions/
    caveats); JOURNAL 2026-07-02b; DECISIONS 2026-07-02b (retraction). The seeding discipline working.
+5. **Q1 anchor seeded (independent basins) — the last open Q1 claim, LOCKED.** No new training: reused
+   the existing independent ω=1 runs (5 CTNN-big + 3 DeepSet-big) via `run_phaseB_seeded_analysis.py
+   anchor`. Compression gap CONFIRMED: **CTNN 1.40±0.17 vs DeepSet 3.25±0.03 (~11σ)**. Full seeded Q1:
+   strong compression at ω=1 → converges at Wigner. Expanded the seeded table to both regimes; JOURNAL
+   2026-07-02c.
 
 ## Debugging notes (for future runs)
 - Env: `source /etc/profile.d/lmod.sh; module load PyTorch/2.1.2-foss-2023a-CUDA-12.1.1`;

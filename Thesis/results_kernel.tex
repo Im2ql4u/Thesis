@@ -206,21 +206,26 @@ cross-projection below shows, a \emph{different} tangent subspace.
 
 \begin{table}[htbp]
 \centering
-\caption{Seeded correction at the $\omega=0.01$ crossover ($N=6$, three seeds per
-architecture, all matched analysis-grade ground states; mean\,$\pm$\,seed s.d.). The
-single-seed inversion of Table~\ref{tab:omega-sweep} does not survive: the effective
-dimensions converge, and CTNN's advantage at the crystal is variance/quality, not
-dimension. (Seeds share the $\omega=0.1$ warm-start, so the bands are measurement +
-optimisation variance around the crossover, not fully independent training basins.)}
+\caption{Seeded Q1: the compression gap at weak coupling and its closure at the
+crystal ($N=6$, fair common-probe $d_{\mathrm{eff}}$; mean\,$\pm$\,seed s.d., $n$ in
+parentheses). At $\omega=1$, five CTNN and three DeepSet \emph{independent} runs give
+a $2.3\times$ gap separated by $\sim\!11\sigma$ --- the weak-coupling compression is
+robust. At $\omega=0.01$ the dimensions \emph{converge}: the single-seed inversion of
+Table~\ref{tab:omega-sweep} does not survive (here the three seeds share an
+$\omega=0.1$ warm-start, so the bands are measurement/optimisation variance, not
+independent basins). CTNN's $\Var(E_L)$ is lower in both regimes.}
 \label{tab:crossover-seeded}
 \small
 \setlength{\tabcolsep}{9pt}
-\begin{tabular}{l cccc}
+\begin{tabular}{ll cccc}
 \toprule
-arch & $d_{\mathrm{eff}}(S)$ & $\Var(E_L)$ & energy error & NO count \\
+$\omega$ & arch & $d_{\mathrm{eff}}(S)$ & $\Var(E_L)$ & energy error & NO count \\
 \midrule
-CTNN    & $3.70\pm0.04$ & $1.8\times10^{-5}$ & $-0.030\%$ & $6.13$ \\
-DeepSet & $3.84\pm0.08$ & $3.3\times10^{-5}$ & $+0.072\%$ & $6.14$ \\
+$1$      & CTNN    & $1.40\pm0.17$ (5) & $2.2\times10^{-2}$ & $+0.016\%$ & $2.21$ \\
+         & DeepSet & $3.25\pm0.03$ (3) & $7.1\times10^{-2}$ & $+0.046\%$ & $2.11$ \\
+\midrule
+$0.01$   & CTNN    & $3.70\pm0.04$ (3) & $1.8\times10^{-5}$ & $-0.030\%$ & $6.13$ \\
+         & DeepSet & $3.84\pm0.08$ (3) & $3.3\times10^{-5}$ & $+0.072\%$ & $6.14$ \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -603,18 +608,18 @@ $S$ is both cheaper for SR to whiten and the reason plain gradients misalign).
 \paragraph{Caveats.} The single-seed $\omega$-sweep (Table~\ref{tab:omega-sweep})
 suggested a dramatic dimension \emph{inversion} at the crystal; seeded, matched-grade
 retraining overturned it (Table~\ref{tab:crossover-seeded}: the dimensions converge,
-$3.70\pm0.04$ vs $3.84\pm0.08$). This is the single-seed-promotion failure mode
-caught before publication, and it leaves two consequences. First, the
-\emph{weak-coupling} compression gap ($1.2$ vs $3.4$ at $\omega=1$) is itself still
-single-seed and must be seeded before it is load-bearing, although it is a much
-larger gap than seed noise would plausibly close. Second, the seeds of
-Table~\ref{tab:crossover-seeded} share an $\omega=0.1$ warm-start, so their bands are
-measurement + optimisation variance around the crossover, not fully independent
-training basins from $\omega=1$ (the full seeded cascade is deferred). What is
-robust: the $\Var(E_L)$ discriminator (CTNN lower at every $\omega$, seeded at the
-crystal), the cross-projection (leading modes shared at weak coupling, orthogonal at
-the crystal), and the exact $N=2$ naming of the modes (\S\ref{sec:kernel-naming}).
-Remaining limits: the $\omega=0.01$ natural-orbital count is on a grid-truncated
+$3.70\pm0.04$ vs $3.84\pm0.08$) --- the single-seed-promotion failure mode caught
+before publication. The two seeded anchors are now solid: the weak-coupling gap is
+confirmed from \emph{independent} runs (five CTNN, three DeepSet at $\omega=1$:
+$1.40\pm0.17$ vs $3.25\pm0.03$, $\sim\!11\sigma$), and the crystal convergence from
+three seeds each (these share an $\omega=0.1$ warm-start, so their bands are
+measurement/optimisation variance, not independent basins from $\omega=1$ --- the
+full seeded cascade is deferred). What is robust: the compression gap at weak
+coupling, its closure at the crystal, the $\Var(E_L)$ discriminator (CTNN lower at
+every $\omega$, seeded in both regimes), the cross-projection (leading modes shared
+at weak coupling, orthogonal at the crystal), and the exact $N=2$ naming of the modes
+(\S\ref{sec:kernel-naming}). Remaining limits: the $\omega=0.01$ natural-orbital count
+is on a grid-truncated
 1-RDM (trace $\approx1.9$ of $3$), so its absolute value is uncertain (the
 cross-architecture comparison is fair, as the grid is shared); the response-projection
 naming is exact only at $N=2$ (the $N=6$ version needs the finite-difference reference

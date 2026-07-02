@@ -24,6 +24,36 @@ The model reads this to understand what has been tried, what worked, what failed
 
 ## Journal
 
+### [2026-07-02c] — Q1 anchor seeded (independent basins): the weak-coupling compression gap is CONFIRMED — CTNN 1.40±0.17 vs DeepSet 3.25±0.03 (~11σ)
+
+**Motivation:** After the ω=0.01 inversion was retracted (2026-07-02b), the last open Q1 claim was the
+weak-coupling compression gap itself (CTNN d_eff ~1.2 vs DeepSet ~3.4 at ω=1), still single-seed. Seed
+it — and do so with INDEPENDENT basins (stronger than the crossover's shared warm-start).
+**Method:** No new training. The Phase-0/1 data already holds independent ω=1 runs: 5 CTNN-big
+(eq_seed1, eq_seed2, 2x2_adam, 2x2_sr, acc) and 3 DeepSet-big (2x2_adam, 2x2_sr, casc) — genuinely
+separate training runs. Generalised the seeded analyser (`scripts/run_phaseB_seeded_analysis.py
+anchor`) to measure fair common-probe d_eff + var(E_L) + NO-PR on all 8, mean±s.d. per arch.
+(Fixed a GPU-OOM by moving the SVD to CPU and freeing O per iteration — 8 nets on a shared GPU.)
+**Results:**
+- **Compression gap confirmed, independent-basin:** CTNN d_eff **1.40 ± 0.17** (5 runs, range
+  1.18–1.62) vs DeepSet **3.25 ± 0.03** (3 runs, range 3.23–3.30). Gap 2.3×, separation ~11σ —
+  overwhelmingly robust. DeepSet-big's d_eff is remarkably tight across independent runs (±0.03).
+- **NO count architecture-independent:** both ~2.1–2.2 at ω=1 (trace ~3.06, well-resolved, unlike the
+  grid-truncated ω=0.01). CTNN ratio 0.63, DeepSet 1.54 → DeepSet over-complete, CTNN compressed.
+- **var(E_L):** CTNN ~2.2e-2 vs DeepSet ~7.1e-2 (~3×) — CTNN lower, consistent with everywhere.
+**Interpretation:** Q1's dimensional story is now fully seeded end-to-end: a strong compression gap at
+weak coupling (1.40 vs 3.25, ~11σ, independent basins) that CLOSES toward the Wigner crystal (3.70 vs
+3.84, converged). Combined with the surviving var(E_L) discriminator, the cross-projection (orthogonal
+subspaces at the crystal), and the exact N=2 naming, the architecture question is robustly answered:
+CTNN compresses the correlator at weak coupling and finds a better (lower-variance, different-subspace)
+state at strong coupling; it never simply "has more/fewer dimensions" in a way that inverts.
+**Caveats:** ω=1 and ω=0.01 seeded; intermediate ω still single-seed (sweep). ω=0.01 NO grid-truncated.
+The 5 CTNN runs mix adam/sr/eq configs (same ctnn_vcycle_big arch) — independent but not identical recipe.
+**Output reference:** [results/analysis/2026-07-02_phaseB_anchor/](../results/analysis/2026-07-02_phaseB_anchor/)
+(seeded.csv, summary.json); analyser `scripts/run_phaseB_seeded_analysis.py`.
+**Next question:** Q1 is locked; move to the N=6 mode-naming (extend the reference solver to N≥6), the
+Q2 low-ω SR sweep, and the Q3 dual-track.
+
 ### [2026-07-02b] — Phase B (Gate B): the Wigner d_eff INVERSION does not survive seeding — CTNN and DeepSet CONVERGE to ~3.7 at ω=0.01; CTNN's crystal advantage is variance, not dimension
 
 **Motivation:** The Phase-A headline (single-seed) was a dramatic d_eff "inversion" at the Wigner

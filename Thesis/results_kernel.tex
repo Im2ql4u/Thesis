@@ -544,14 +544,39 @@ pre-registered stiff-mode channel (stiff errors tie); it appears in the soft mod
 and the overall state, consistent with the interpretation that at low $\omega$ the
 whole tangent space becomes ill-conditioned, not just a single cusp direction.
 
-\paragraph{Interpretation.} SR earns its keep exactly where the ansatz and the
-measure leave conditioning behind. With a physics-informed ansatz at weak
-coupling, the residual ill-conditioning is small and Adam's diagonal
-preconditioner reaches the same floor; as $\omega\to$ Wigner, $\kappa(S)$ and
-$\Var(E_L)$ climb and whitening begins to bite. The earlier single-seed claim that
-SR ``breaks the accuracy wall'' at $\omega=1$ does not survive seeding and is
-withdrawn; the defensible statement is that SR's advantage is \emph{regime-confined
-to strong correlation}, where this sweep has now caught its onset.
+\paragraph{But the advantage does not grow into a decisive win.} Extending the sweep
+to $\omega=0.05$ and $0.03$ (Fig.~\ref{fig:sr-adam-trend}) makes the picture more
+sober. SR's \emph{energy} edge is clearly resolved only at $\omega=0.1$; at
+$\omega=0.05$ the four-seed bands overlap ($-0.00\%$ vs Adam $+0.10\%$, but the
+$\pm1$~s.d.\ bands cross) and at $\omega=0.03$ the energies tie ($+0.064\%$ vs
+$+0.063\%$). What \emph{is} consistent across the whole low-$\omega$ range is the
+distance-to-exact: SR is $\sim\!10$--$20\%$ lower than Adam at every $\omega$ (the
+less noisy signal). SR therefore helps, but modestly --- a slightly closer state
+everywhere and a resolved energy edge around $\omega=0.1$, without a decisive,
+monotonically growing advantage in the range tested. (The $\omega=0.01$ point is not
+shown: the lightweight from-scratch diagnostic recipe diverges there; a genuine
+SR-vs-Adam test at the crystal needs the warm-started, annealed cascade, left to
+future work.)
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=0.95\textwidth]{sr_vs_adam_trend}
+  \caption{SR versus Adam across $\omega$ at $N=2$ (four seeds, $\pm1$~s.d.). Left:
+  energy error --- SR's edge is resolved only near $\omega=0.1$; the bands overlap at
+  $\omega=0.05$ and tie at $0.03$. Right: distance-to-exact --- SR is consistently
+  $\sim\!10$--$20\%$ lower at every $\omega$. SR helps modestly, not decisively.}
+  \label{fig:sr-adam-trend}
+\end{figure}
+
+\paragraph{Interpretation.} SR earns its keep where the ansatz and the measure leave
+conditioning behind --- but with a physics-informed ansatz that residual is small,
+and Adam's diagonal preconditioner reaches essentially the same floor. The honest,
+seeded verdict is a \emph{modest, publishable} advantage: SR is consistently a little
+closer to the exact state, with a resolved energy edge around $\omega=0.1$, rather
+than a decisive win. The earlier single-seed claim that SR ``breaks the accuracy
+wall'' at $\omega=1$ does not survive seeding and is withdrawn. In this ansatz the
+optimiser is largely immaterial; the conditioning lives in the ansatz (cusp prior,
+backflow) and the measure ($|\Psi|^2$) --- the through-line to Q1 and Q3.
 
 % =====================================================================
 \section{Q3 --- Paradigm: the sampling measure sets conditioning and variance}
@@ -734,11 +759,14 @@ manifold.
   tangent direction is the breathing response ($\partial_\omega$) and the effective
   tangent space is $\{$breathing, correlation-hole, first relative excitation$\}$ to
   $R^2=1.00$ --- the dimensions are the low collective modes of $H$.
-  \item \textbf{SR whitens the tangent kernel, and its advantage is
-  regime-confined.} The whitening picture is exact at $N=2$; the prescriptive
-  advantage over Adam is null in the easy regime (with or without the cusp, which
-  itself acts as a preconditioner) and first becomes statistically resolved at low
-  $\omega$, where conditioning degrades.
+  \item \textbf{SR whitens the tangent kernel, but its prescriptive advantage is
+  modest.} The whitening picture is exact at $N=2$; the advantage over Adam is null
+  in the easy regime (with or without the cusp, which itself acts as a preconditioner)
+  and becomes statistically resolved only around $\omega=0.1$, then washes back into
+  the seed noise on energy at $\omega=0.05$--$0.03$ (SR stays consistently
+  $\sim\!10$--$20\%$ closer to the exact state throughout). With a physics-informed
+  ansatz the optimiser is largely immaterial --- conditioning lives in the ansatz and
+  the measure, not the optimiser.
   \item \textbf{The sampling measure, not the residual form, governs collocation.}
   $|\Psi|^2$ sampling is self-preconditioning; the covering proposal collocation
   requires drives a monotone ESS collapse ($3.0\%\!\to\!0.11\%$) and a

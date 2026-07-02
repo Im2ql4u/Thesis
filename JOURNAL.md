@@ -24,6 +24,33 @@ The model reads this to understand what has been tried, what worked, what failed
 
 ## Journal
 
+### [2026-07-02f] — Q2 low-ω SR-vs-Adam trend (N=2, ω=0.05/0.03): the advantage is MODEST, not a growing decisive win; ω=0.01 diverges with the light recipe
+
+**Motivation:** Push the SR-vs-Adam onset (resolved at ω=0.1, ~1.5σ) to lower ω — does SR's advantage
+grow decisively toward Wigner (the pre-registered Q2 prediction)?
+**Method:** `scripts/exp_sr_mechanism.py --omega {0.05,0.03} --seeds 4` (N=2, cusp-on; common warm-up →
+Adam-only vs SR-only branch from the same checkpoint; measured vs exact). ω=0.01 attempted but the
+from-scratch lightweight recipe DIVERGES (E→−2e18, var→1e35) — needs the warm-started annealed cascade.
+**Results (final-step energy err %, 4 seeds, ±1 s.d.; dist-to-exact):**
+- ω=1:    Adam −0.004 [−0.11,+0.11] | SR +0.056 [+0.01,+0.11]   (tie); dist 0.0084 vs 0.0066
+- ω=0.1:  Adam +0.163 [+0.06,+0.27] | SR −0.028 [−0.11,+0.05]   (SR wins ~1.5σ); dist 0.0390 vs 0.0298
+- ω=0.05: Adam +0.102 [+0.03,+0.18] | SR −0.000 [−0.12,+0.12]   (bands OVERLAP); dist 0.0715 vs 0.0655
+- ω=0.03: Adam +0.063 [+0.01,+0.11] | SR +0.064 [−0.05,+0.18]   (TIE); dist 0.0983 vs 0.0882
+- **Energy edge is resolved only at ω=0.1**; at 0.05/0.03 the 4-seed energy bands overlap/tie.
+- **Distance-to-exact: SR consistently ~10–20% lower at EVERY ω** (the less noisy signal).
+**Interpretation:** The pre-registered "SR advantage grows decisively toward Wigner" is NOT supported in
+the tested range. SR helps modestly and consistently (a slightly closer state everywhere, a resolved
+energy edge at ω≈0.1) but not decisively. Honest verdict: with a physics-informed ansatz the optimiser
+is largely immaterial — conditioning lives in the ansatz (cusp, backflow) and the measure (|Ψ|²), not
+the optimiser. This is the publishable-null character the roadmap pre-registered for Q2.
+**Caveats:** 4 seeds (energy bands wide); ω=0.01 (the true Wigner point) untested — the diagnostic
+recipe diverges there, and a proper test needs the warm-started cascade. dist-to-exact advantage is
+consistent but I did not compute its seed bands. N=2 only.
+**Output reference:** [results/analysis/2026-07-02_SRmech_N2_w0p05/](../results/analysis/2026-07-02_SRmech_N2_w0p05/),
+[results/analysis/2026-07-02_SRmech_N2_w0p03/](../results/analysis/2026-07-02_SRmech_N2_w0p03/);
+trend figure results/figures/results/kernel/sr_vs_adam_trend.png. Updated Q2 section of results_kernel.tex.
+**Next question:** ω=0.01 SR test with the hardened cascade recipe; N=6 SR-vs-Adam; Q3 dual-track.
+
 ### [2026-07-02e] — Q1 N-scaling (at init): the CTNN-vs-DeepSet compression gap GROWS with N (1.7×→2.6× to N=20); trained-state N≥12 blocked by training/memory (deferred)
 
 **Motivation:** Does the compression advantage grow with system size (step 4)? The trained-state d_eff

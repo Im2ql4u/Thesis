@@ -24,6 +24,47 @@ The model reads this to understand what has been tried, what worked, what failed
 
 ## Journal
 
+### [2026-07-02b] — Phase B (Gate B): the Wigner d_eff INVERSION does not survive seeding — CTNN and DeepSet CONVERGE to ~3.7 at ω=0.01; CTNN's crystal advantage is variance, not dimension
+
+**Motivation:** The Phase-A headline (single-seed) was a dramatic d_eff "inversion" at the Wigner
+crystal — CTNN 5.21 overtaking DeepSet 3.24. That is exactly the kind of single-seed claim the
+feedback discipline says to seed BEFORE promoting. Phase B (crossover-first): retrain 3 seeds ×
+{CTNN, DeepSet} at ω=0.01 to matched analysis grade and put error bars on it, and confirm the DeepSet
+low value isn't an under-converged-checkpoint artifact.
+**Method:** `scripts/launch_phaseB_crossover.sh` — 6 runs on GPUs 1–6, each warm-started from its
+arch's ω=0.1 cascade checkpoint (steps 400 / polish 120 / SR-polish 200), then
+`scripts/run_phaseB_crossover_analysis.py` measures energy error, var(E_L), fair common-probe d_eff,
+and NO participation ratio per seed → mean±s.d. Also re-ran the A3 cross-projection on the matched-grade
+checkpoints. (Seeds share the ω=0.1 warm-start → measurement + optimisation variance around the
+crossover, not independent basins from ω=1.)
+**Results:**
+- **The inversion is OVERTURNED.** All 6 are genuine GS (CTNN err −0.012/−0.044/−0.033%, DeepSet
+  +0.082/+0.059/+0.075%). Seeded d_eff: **CTNN 3.70 ± 0.04 vs DeepSet 3.84 ± 0.08** — equal within
+  error, NOT an inversion. The single-seed 5.21 vs 3.24 was a checkpoint/optimisation-path artifact:
+  at ω=0.01 the landscape is flat enough that d_eff depends on which GS a run settles into.
+- **var(E_L) discriminator SURVIVES (seeded):** CTNN 1.8e-5 vs DeepSet 3.3e-5 (1.8×), and better
+  energy. At the crystal the two nets reach the SAME dimension but CTNN finds a lower-variance state.
+- **A3 cross-projection SURVIVES / strengthens (matched checkpoints):** at ω=0.01 the leading modes are
+  nearly orthogonal (mutual top-1 capture ~0.01); CTNN's leading mode needs 3 DeepSet directions,
+  DeepSet's needs all 6 of CTNN's; top-3 subspace overlap 0.42. Same dimension, DIFFERENT subspaces.
+- **NO count** ~equal (both ~6.1, grid-truncated trace ~1.85) — architecture-independent, as before.
+**Interpretation:** The honest, seeded Q1 picture is a weak-to-strong CONVERGENCE, not an inversion:
+CTNN compresses hard at weak coupling (d_eff 1.2 vs 3.4 at ω=1) and that gap CLOSES toward Wigner,
+where both reach ~3.7–3.8 and CTNN's remaining edge is variance/quality plus a different (better)
+tangent subspace. This is cleaner and more defensible than the fragile inversion, and it keeps the
+through-line intact (the var(E_L) discriminator — a genuine positive — survives everywhere). The
+retraction is the seeding discipline working: caught before the thesis, not after.
+**Caveats:** The ω=1 compression gap (1.2 vs 3.4) is itself still single-seed — needs the same seeding
+(though it's a large gap). Seeds share the ω=0.1 warm-start (not independent ω=1 basins). ω=0.01 NO
+count grid-truncated. Updated results_kernel.tex throughout (sweep table dagger + seeded-correction
+table `tab:crossover-seeded` + figure; interpretation, synthesis, conclusions, caveats all corrected).
+**Output reference:** [results/analysis/2026-07-02_phaseB_crossover/](../results/analysis/2026-07-02_phaseB_crossover/)
+(crossover.csv, summary.json, fig_phaseB_crossover.png); checkpoints in
+`results/analysis/2026-07-02_N6_w001_{ctnn,deepset}_s{0,1,2}/`.
+**Next question:** Seed the ω=1 anchor (confirm the 1.2-vs-3.4 compression gap) and the full ω-sweep
+with independent basins (cascade ×3 from ω=1); the N=6 response-projection (name the modes at N=6);
+then Q2 low-ω SR sweep and Q3 dual-track.
+
 ### [2026-07-02] — Phase A (Gate A): the Q1 mechanism is CLOSED — DeepSet's tangent dimension is rigid and CROSSES the physical mode count; and the manifold is NAMED (breathing mode) at the exact N=2 anchor
 
 **Motivation:** Close the "why CTNN > FFNN / what are the manifolds / why can't FFNN find them"

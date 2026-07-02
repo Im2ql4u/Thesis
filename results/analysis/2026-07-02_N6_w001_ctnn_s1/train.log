@@ -1,0 +1,79 @@
+0
+[phase] N=6 omega=0.01 arch=ctnn_vcycle_big  ->  results/analysis/2026-07-02_N6_w001_ctnn_s1
+0
+[phase] warm-started from results/analysis/2026-06-15_N6_w01_ctnn_big_bf_casc/checkpoint.pt (omega 0.1 -> 0.01)
+[phase] params=79,813 device=cuda:0 ref_energy=0.69036
+[adam 00000] E=1.112578 var=1.5477e-02 sig=1.599 acc~0.5 n=2048
+[adam 00012] E=0.693539 var=1.3164e-04 sig=2.000 acc~0.5 n=2048
+[adam 00024] E=0.691163 var=5.9446e-05 sig=2.000 acc~0.5 n=2048
+[seg 1/4] step=25 E_raw=7.75079 (+1022.717%) var=4.372e+01 kappa(S)=6.55e+11 rank=1023 cos_sr=0.999 cos_plain=0.952
+[adam 00000] E=7.228078 var=4.0352e+01 sig=0.823 acc~0.5 n=2048
+[adam 00019] E=0.707810 var=1.1785e-03 sig=2.000 acc~0.5 n=2048
+[adam 00037] E=0.692951 var=1.2764e-04 sig=2.000 acc~0.5 n=2048
+[seg 2/4] step=63 E_raw=0.69280 (+0.352%) var=1.331e-04 kappa(S)=1.39e+09 rank=1023 cos_sr=1.000 cos_plain=0.105
+[adam 00000] E=0.692609 var=1.1951e-04 sig=2.000 acc~0.5 n=2048
+[adam 00048] E=0.690820 var=3.6572e-05 sig=2.000 acc~0.5 n=2048
+[adam 00095] E=0.690629 var=2.8047e-05 sig=2.000 acc~0.5 n=2048
+[seg 3/4] step=159 E_raw=0.69098 (+0.092%) var=3.122e-05 kappa(S)=1.29e+10 rank=1023 cos_sr=0.999 cos_plain=0.086
+[adam 00000] E=0.690654 var=2.8379e-05 sig=2.000 acc~0.5 n=2048
+[adam 00120] E=0.690473 var=2.9860e-05 sig=2.000 acc~0.5 n=2048
+[adam 00240] E=0.690046 var=2.0446e-05 sig=2.000 acc~0.5 n=2048
+[seg 4/4] step=400 E_raw=0.68985 (-0.073%) var=1.975e-05 kappa(S)=4.05e+08 rank=1023 cos_sr=1.000 cos_plain=0.100
+[phase] training done in 17.7 min
+[adam 00000] E=0.690261 var=2.0458e-05 sig=2.000 acc~0.5 n=4096
+[adam 00030] E=0.690045 var=1.9227e-05 sig=2.000 acc~0.5 n=4096
+[adam 00060] E=0.690052 var=1.7774e-05 sig=2.000 acc~0.5 n=4096
+[adam 00090] E=0.690027 var=1.8384e-05 sig=2.000 acc~0.5 n=4096
+[adam 00119] E=0.690018 var=1.5954e-05 sig=2.000 acc~0.5 n=4096
+[sr 0000] E=0.689956 (-0.059%) var=2.053e-05 |dθ|=1.00e-02 |g|=3.97e-03 damp=1.0e-03 lr=2.00e-01
+[sr 0020] E=0.689953 (-0.059%) var=1.779e-05 |dθ|=5.87e-03 |g|=3.91e-03 damp=7.9e-04 lr=1.48e-01
+[sr 0040] E=0.689863 (-0.072%) var=1.818e-05 |dθ|=3.45e-03 |g|=3.74e-03 damp=6.3e-04 lr=1.10e-01
+[sr 0060] E=0.690022 (-0.049%) var=1.732e-05 |dθ|=2.02e-03 |g|=2.66e-03 damp=5.0e-04 lr=8.11e-02
+[sr 0080] E=0.689862 (-0.072%) var=1.729e-05 |dθ|=1.19e-03 |g|=6.03e-03 damp=4.0e-04 lr=6.00e-02
+[sr 0100] E=0.689795 (-0.082%) var=1.565e-05 |dθ|=6.98e-04 |g|=4.86e-03 damp=3.1e-04 lr=4.44e-02
+[sr 0120] E=0.690033 (-0.047%) var=1.831e-05 |dθ|=4.10e-04 |g|=4.04e-03 damp=2.5e-04 lr=3.28e-02
+[sr 0140] E=0.689957 (-0.058%) var=1.689e-05 |dθ|=2.41e-04 |g|=4.60e-03 damp=2.0e-04 lr=2.43e-02
+[sr 0160] E=0.690040 (-0.046%) var=1.504e-05 |dθ|=1.41e-04 |g|=5.92e-03 damp=1.6e-04 lr=1.80e-02
+[sr 0180] E=0.689924 (-0.063%) var=1.710e-05 |dθ|=8.29e-05 |g|=3.62e-03 damp=1.2e-04 lr=1.33e-02
+[sr 0199] E=0.689932 (-0.062%) var=1.688e-05 |dθ|=5.00e-05 |g|=6.97e-03 damp=1.0e-04 lr=1.00e-02
+[phase] summary:
+{
+  "N": 6,
+  "omega": 0.01,
+  "arch": "ctnn_vcycle_big",
+  "n_params": 79813,
+  "final": {
+    "E_mean": 0.6899813047169753,
+    "E_mean_raw": 0.6899597512915279,
+    "E_stderr": 5.413637770415271e-05,
+    "var_EL": 1.6321709173043845e-05,
+    "n_samples": 8192,
+    "frac_clipped": 0.0150146484375,
+    "ref_energy": 0.69036,
+    "error_pct": -0.05485475447950333,
+    "error_sigma": -6.995209119720069
+  },
+  "energy_raw": 0.6899597512915279,
+  "error_pct_raw": -0.05797681042819779,
+  "energy_zv": 0.6908896862336871,
+  "error_pct_zv": 0.07672608982083245,
+  "zv_n_points": 5,
+  "spectrum": {
+    "lam_max": 714.9059484928404,
+    "lam_min_supported": 9.928522522649103e-08,
+    "effective_rank": 3.594997669726635,
+    "numerical_rank": 2047,
+    "condition_number": 7200527035.739564,
+    "n_params": 79813,
+    "n_samples": 2048
+  },
+  "alignment": {
+    "cos_sr": 1.0,
+    "cos_plain": 0.0399610226870979,
+    "rep_fraction": 1.0,
+    "ntk_condition": 7200526844.9251585,
+    "ntk_eff_rank": 3.5949976697252097,
+    "ntk_numerical_rank": 2047
+  },
+  "n_align_samples": 2048
+}

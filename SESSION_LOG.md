@@ -20,6 +20,14 @@ Last session: [2026-07-02] — Results chapter + Phase A (Gate A): Q1 mechanism 
      rel. excitation}, R²=1.00.
    - A5: crossover sample-converged (DeepSet ω=0.01 flat at 3.24).
    - Journal 2026-07-02 (Gate A); tex updated with the both-arch mode-count table + naming subsection.
+4. **Phase B (Gate B) — seeded the crossover, and it OVERTURNED the Phase-A headline.** Trained 3
+   seeds × {CTNN, DeepSet} at ω=0.01 to matched analysis grade (`launch_phaseB_crossover.sh`, 6 runs
+   on GPUs 1–6) + `run_phaseB_crossover_analysis.py`. The single-seed d_eff "inversion" (CTNN 5.21 vs
+   DeepSet 3.24) does NOT survive: seeded, **CTNN 3.70±0.04 vs DeepSet 3.84±0.08 — they converge**.
+   What survives: var(E_L) discriminator (CTNN 1.8× lower, seeded), cross-projection (leading modes
+   orthogonal at the crystal), N=2 naming. Corrected results_kernel.tex throughout (dagger'd the
+   retracted row, added seeded-correction table+figure, fixed interpretation/synthesis/conclusions/
+   caveats); JOURNAL 2026-07-02b; DECISIONS 2026-07-02b (retraction). The seeding discipline working.
 
 ## Debugging notes (for future runs)
 - Env: `source /etc/profile.d/lmod.sh; module load PyTorch/2.1.2-foss-2023a-CUDA-12.1.1`;
@@ -29,9 +37,12 @@ Last session: [2026-07-02] — Results chapter + Phase A (Gate A): Q1 mechanism 
   absolute low-ω NO counts need a finer/adaptive grid.
 
 ## Next session
-**Recommended starting point:** Phase B — seed the ω-sweep (≥3 seeds, ω∈{1,0.1,0.01}, both arches) +
-retrain DeepSet low-ω to analysis grade (firm the crossover with error bars). Then the N=6 response-
-projection, Q2 low-ω SR sweep, Q3 dual-track.
+**Recommended starting point:** the ω=0.01 crossover is now seeded (and the inversion retracted). Next:
+(1) seed the ω=1 anchor to confirm the weak-coupling compression gap (1.2 vs 3.4 — the remaining
+single-seed Q1 claim, though large); optionally the full independent-basin cascade ×3 from ω=1.
+(2) N=6 response-projection (name the modes at N=6 — needs the finite-difference reference extended to
+N≥6). (3) Q2 low-ω SR sweep (does the ω=0.1 SR>Adam edge become decisive at ω=0.01 / N=6). (4) Q3
+dual-track (VMC+SR vs collocation, same ansatz).
 **Context freshness:** current
 
 ---

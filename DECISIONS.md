@@ -22,6 +22,28 @@ Each entry answers: what was decided, what the alternatives were, why this was c
 
 ## Decisions
 
+### [2026-07-02b] — Retract the Wigner d_eff "inversion"; single-seed d_eff at ω=0.01 is not diagnostic (flat landscape)
+
+**Decision:** Withdraw the single-seed Phase-A claim that CTNN's effective dimension INVERTS past
+DeepSet's at ω=0.01 (5.21 vs 3.24). Seeded, matched-analysis-grade retraining (3 seeds each) gives
+CTNN 3.70±0.04 vs DeepSet 3.84±0.08 — the dimensions CONVERGE. The corrected Q1 statement: CTNN's
+dimensional compression is a WEAK-COUPLING effect (1.2 vs 3.4 at ω=1) that CLOSES toward Wigner; at
+the crystal both nets reach ~3.7–3.8 but occupy different tangent subspaces, and CTNN's carries lower
+var(E_L). Do not report single-seed d_eff at ω≤0.01 as an architectural quantity — the low-ω landscape
+is flat enough that d_eff depends on the specific GS a run lands in.
+**Alternatives considered:** Keep the inversion with a caveat (rejected — it is the headline, and it is
+wrong); attribute the DeepSet 3.24 solely to its worse checkpoint (partly true, but the CTNN 5.21 was
+equally path-dependent — both endpoints moved). Refines the 2026-07-02 ratio decision, which STANDS
+(the ratio framing is what made the convergence legible); only the specific single-seed ω=0.01 values
+in that entry are superseded.
+**Reasoning:** This is the single-seed-promotion → retraction pattern the feedback discipline exists to
+prevent; seeding caught it before the thesis. The var(E_L) discriminator and the cross-projection
+(shared leading mode at weak coupling → orthogonal at the crystal) both survive seeding and carry the
+Q1 result without the inversion.
+**Constraints introduced:** Any low-ω d_eff comparison requires ≥3 seeds at matched GS quality before
+promotion; the weak-coupling gap (ω=1, still single-seed) is now the outstanding item to seed.
+**Confidence:** high (seeded, 6 matched-grade GS).
+
 ### [2026-07-02] — The Q1 discriminator is the tangent-dim-vs-physical-mode-count RATIO, not raw effective dimension
 
 **Decision:** Report and interpret the effective tangent dimension `d_eff(S)` *relative to* the

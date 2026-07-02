@@ -133,26 +133,30 @@ $\omega=1$; Table~\ref{tab:omega-sweep}), i.e.\ the CTNN's wavefunction is close
 to a true eigenstate. This is the honest form of ``CTNN beats FFNN'': not in
 energy, but in the \emph{quality} and \emph{compactness} of the represented state.
 
-\subsection{Across $\omega$: the CTNN dimension is adaptive, the DeepSet's is rigid}
+\subsection{Across $\omega$: CTNN's compression advantage is a weak-coupling effect}
 \label{sec:kernel-q1-sweep}
 
 The weak-correlation anchor tells only half the story. Sweeping $\omega$ from the
 shell regime ($\omega=1$) toward the Wigner crystal ($\omega=0.01$) at $N=6$
-(Table~\ref{tab:omega-sweep}, Fig.~\ref{fig:omega-sweep}) reveals that the CTNN's
-effective dimension is not simply small --- it is \emph{adaptive}. It rises from
-$1.2$ at $\omega=1$ to $5.2$ at $\omega=0.01$, tracking the growth of physical
-correlation. The DeepSet's, by contrast, stays \emph{rigid} at
-$\approx 3.2$--$4.3$ across the entire sweep. The consequence is a striking
-crossover: the DeepSet is the higher-dimensional ansatz at weak coupling
-($3.4$ vs $1.2$) but the \emph{lower}-dimensional one at the crystal ($3.2$ vs
-$5.2$).
+(Table~\ref{tab:omega-sweep}, Fig.~\ref{fig:omega-sweep}) shows the CTNN's effective
+dimension rising with correlation ($1.2$ at $\omega=1$ toward $\sim\!3.7$ near the
+crystal) while the DeepSet's stays near $3.3$--$4.3$ throughout. The single-seed
+sweep appears to cross over --- CTNN's dimension overtaking DeepSet's at
+$\omega=0.01$ --- but, as we show next, that dramatic endpoint is a single-seed
+artifact: seeded, the two dimensions \emph{converge} rather than invert. The robust
+statement is milder and cleaner: CTNN compresses far below DeepSet at weak coupling
+($1.2$ vs $3.4$), and that gap \emph{closes} toward the crystal.
 
 \begin{table}[htbp]
 \centering
-\caption{$\omega$-sweep at $N=6$ (common probe, $f$-net tangent space; single seed
-per point). CTNN's effective dimension is adaptive ($1.2\!\to\!5.2$); DeepSet's is
-rigid ($\sim\!3.3$). CTNN's $\Var(E_L)$ is lower at every $\omega$. $r$ is the
-ratio DeepSet/CTNN.}
+\caption{$\omega$-sweep at $N=6$ (common probe, $f$-net tangent space; \emph{single
+seed per point --- exploratory}). The single-seed trend suggests CTNN's effective
+dimension rises toward Wigner while DeepSet's stays near $3.3$--$4.3$. The dramatic
+$\omega=0.01$ endpoint (marked $\dagger$) does \textbf{not} survive seeding: with
+three seeds at matched analysis-grade quality it becomes CTNN $3.70$ vs DeepSet
+$3.84$ --- convergence, not inversion (Table~\ref{tab:crossover-seeded}). What
+\emph{does} survive is CTNN's lower $\Var(E_L)$ at every $\omega$. $r$ is the ratio
+DeepSet/CTNN.}
 \label{tab:omega-sweep}
 \small
 \setlength{\tabcolsep}{6pt}
@@ -168,7 +172,7 @@ $\omega$ & CTNN & DeepSet & $r$ & CTNN & DeepSet & $r$ \\
 0.10 & 1.80 & 3.62 & 2.0 & $7.86\times10^{-4}$ & $1.31\times10^{-3}$ & 1.7 \\
 0.05 & 1.79 & 4.31 & 2.4 & $3.70\times10^{-4}$ & $6.02\times10^{-4}$ & 1.6 \\
 0.03 & 2.56 & 4.21 & 1.6 & $1.63\times10^{-4}$ & $2.30\times10^{-4}$ & 1.4 \\
-0.01 & \textbf{5.21} & \textbf{3.24} & \textbf{0.6} & $8.50\times10^{-6}$ & $3.29\times10^{-5}$ & 3.9 \\
+0.01$^\dagger$ & 5.21 & 3.24 & 0.6 & $8.50\times10^{-6}$ & $3.29\times10^{-5}$ & 3.9 \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -184,16 +188,61 @@ $\omega$ & CTNN & DeepSet & $r$ & CTNN & DeepSet & $r$ \\
   \label{fig:omega-sweep}
 \end{figure}
 
-Read naively --- ``lower dimension is better'' --- this crossover is paradoxical:
-it would make the DeepSet the superior ansatz at the crystal. The variance column
-settles it. At $\omega=0.01$ the CTNN, \emph{despite} its higher effective
-dimension, has $\Var(E_L)$ nearly $4\times$ \emph{lower} than the DeepSet. The
-resolution is that dimension is good only when it \emph{matches the physics}. The
-right benchmark is the number of physical collective modes the state actually
-requires, for which the natural-orbital (one-body-density-matrix) participation
-ratio is a proxy --- and it is nearly architecture-independent (a property of the
-state, not the ansatz). Table~\ref{tab:modecount} pairs it with the tangent
-dimension for \emph{both} architectures.
+The single-seed sweep suggests an \emph{inversion} at the crystal --- CTNN's
+dimension overtaking DeepSet's --- but this is exactly the kind of dramatic
+single-seed claim that must be checked before it is believed. Retraining three
+seeds per architecture at $\omega=0.01$ to matched analysis-grade quality
+(Table~\ref{tab:crossover-seeded}, Fig.~\ref{fig:crossover-seeded}) \textbf{overturns
+it}: the effective dimensions \emph{converge} to $3.70\pm0.04$ (CTNN) and
+$3.84\pm0.08$ (DeepSet) --- equal within error. The single-seed $5.21$ vs $3.24$ was
+a checkpoint/optimisation-path artifact: at $\omega=0.01$ the landscape is flat
+enough that $d_{\mathrm{eff}}$ depends on which ground state a run settles into, so a
+single seed is not diagnostic there. What is robust and seeded is the
+\emph{variance}: CTNN's $\Var(E_L) = 1.8\times10^{-5}$ vs DeepSet's
+$3.3\times10^{-5}$ ($1.8\times$ lower), with a better energy ($-0.030\%$ vs
+$+0.072\%$). So at the Wigner crystal the two architectures reach the \emph{same}
+effective dimension, but CTNN finds a lower-variance state within it --- and, as the
+cross-projection below shows, a \emph{different} tangent subspace.
+
+\begin{table}[htbp]
+\centering
+\caption{Seeded correction at the $\omega=0.01$ crossover ($N=6$, three seeds per
+architecture, all matched analysis-grade ground states; mean\,$\pm$\,seed s.d.). The
+single-seed inversion of Table~\ref{tab:omega-sweep} does not survive: the effective
+dimensions converge, and CTNN's advantage at the crystal is variance/quality, not
+dimension. (Seeds share the $\omega=0.1$ warm-start, so the bands are measurement +
+optimisation variance around the crossover, not fully independent training basins.)}
+\label{tab:crossover-seeded}
+\small
+\setlength{\tabcolsep}{9pt}
+\begin{tabular}{l cccc}
+\toprule
+arch & $d_{\mathrm{eff}}(S)$ & $\Var(E_L)$ & energy error & NO count \\
+\midrule
+CTNN    & $3.70\pm0.04$ & $1.8\times10^{-5}$ & $-0.030\%$ & $6.13$ \\
+DeepSet & $3.84\pm0.08$ & $3.3\times10^{-5}$ & $+0.072\%$ & $6.14$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=0.8\textwidth]{phaseB_crossover}
+  \caption{Seeded $\omega=0.01$ crossover ($N=6$, three seeds each). Left: effective
+  tangent dimension --- CTNN and DeepSet converge ($3.70\pm0.04$ vs $3.84\pm0.08$),
+  overturning the single-seed inversion. Right: local-energy variance --- CTNN
+  remains $\sim\!1.8\times$ lower. At the crystal the architectures reach equal
+  dimension; CTNN's edge is quality.}
+  \label{fig:crossover-seeded}
+\end{figure}
+
+The sweep is therefore best read not as an inversion but as a weak-to-strong
+\emph{convergence}: CTNN's large compression advantage at weak coupling shrinks as
+correlation grows, until at the crystal both architectures need the same effective
+dimension. To see what that dimension is spent on --- and why the architectures
+differ at weak coupling --- we compare it against the physical collective-mode count
+(the natural-orbital participation ratio of the 1-RDM), which is nearly
+architecture-independent. Table~\ref{tab:modecount} pairs the two.
 
 \begin{table}[htbp]
 \centering
@@ -201,10 +250,13 @@ dimension for \emph{both} architectures.
 participation ratio of the 1-RDM), $N=6$, both architectures on a common probe. The
 NO count is nearly the same for the two nets at each $\omega$ (it is set by the
 represented state), rising $\sim\!2\to6$ toward the crystal. CTNN's tangent
-dimension \emph{tracks} it (ratio $0.5$--$0.8$); DeepSet's is rigid, so its ratio
-\emph{crosses unity} --- over-complete at weak coupling, under-complete at Wigner.
-(The $\omega=0.01$ NO count is on a grid-truncated 1-RDM, trace $\approx1.9$ of $3$;
-the ratio ordering is robust because both nets share the same grid.)}
+dimension stays a roughly constant fraction of it (ratio $\approx0.5$--$0.6$);
+DeepSet's is rigid, so its ratio \emph{crosses unity} --- over-complete at weak
+coupling, converging to CTNN's fraction at the crystal. Rows for $\omega\geq0.1$ are
+single-seed; the $\omega=0.01$ row ($\ddagger$) is the three-seed matched-grade value
+(Table~\ref{tab:crossover-seeded}). (The $\omega=0.01$ NO count is on a grid-truncated
+1-RDM, trace $\approx1.9$ of $3$, so its absolute value is uncertain; the
+cross-architecture comparison is fair because both nets share the grid.)}
 \label{tab:modecount}
 \small
 \setlength{\tabcolsep}{6pt}
@@ -217,7 +269,7 @@ $\omega$ & $d_{\mathrm{eff}}$ & NO & ratio & & $d_{\mathrm{eff}}$ & NO & ratio \
 1.00 & 1.21 & 2.10 & 0.58 & & 3.38 & 2.34 & 1.45 \\
 0.50 & 1.27 & 2.25 & 0.57 & & 3.38 & 2.68 & 1.26 \\
 0.10 & 1.80 & 3.44 & 0.52 & & 3.62 & 3.36 & 1.08 \\
-0.01 & 5.21 & 6.19 & 0.84 & & 3.24 & 5.94 & 0.55 \\
+0.01$^\ddagger$ & 3.70 & 6.13 & 0.60 & & 3.84 & 6.14 & 0.63 \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -225,36 +277,37 @@ $\omega$ & $d_{\mathrm{eff}}$ & NO & ratio & & $d_{\mathrm{eff}}$ & NO & ratio \
 \paragraph{Interpretation.} The physical mode count is the same for both nets at
 each $\omega$ (Table~\ref{tab:modecount}): it is set by the state and rises from
 $\sim\!2$ to $\sim\!6$ toward the crystal. What differs is whether the \emph{tangent}
-dimension follows it. CTNN's does (ratio $0.5$--$0.8$, tightening toward unity at
-Wigner): it allocates variational directions in step with the physics. DeepSet's
-does not --- pinned at $\sim\!3.3$, its ratio crosses unity around $\omega=0.1$, so
-it is \emph{over-complete} at weak coupling (three tangent directions for a
-$\sim\!2$-mode state, redundant) and \emph{under-complete} at Wigner (three where
-the physics demands $\sim\!6$), which is exactly why its variance degrades there.
-The rigidity is not a measurement artifact: the DeepSet $\omega=0.01$ value is flat
-at $3.2$--$3.3$ across $n=256$--$2048$ probe points (sample-converged), while CTNN's
-plateaus near $5.0$--$5.2$.
+dimension follows it. CTNN's does, at a roughly constant fraction (ratio
+$\approx0.5$--$0.6$): it allocates variational directions in step with the physics as
+the mode count grows. DeepSet's does not --- pinned near $3.3$--$3.8$, its ratio
+\emph{crosses unity} around $\omega=0.1$: over-complete at weak coupling (three
+tangent directions for a $\sim\!2$-mode state, redundant), and converging to CTNN's
+dimension only at the crystal. The architectural difference is therefore a
+\emph{weak-coupling} one --- CTNN compresses where DeepSet is redundant --- and it
+closes toward Wigner, where both reach $\sim\!3.7$--$3.8$ (seeded,
+Table~\ref{tab:crossover-seeded}) and CTNN's remaining advantage is variance.
 
 \paragraph{Whose collective coordinate?} A cross-architecture projection on the
-common probe --- both nets' NTK eigenfunctions live in the same space of functions
-on the probe points --- sharpens the mechanism (Fig.~\ref{fig:phaseA-closers},
-right). At weak-to-moderate coupling ($\omega\geq0.1$) the two architectures share
-the \emph{same single leading collective coordinate}: DeepSet's top direction
-captures $\geq0.98$ of CTNN's and vice versa ($k_{90}=1$). They agree on the
-dominant mode and differ only in the \emph{redundant} directions DeepSet carries on
-top. At the crystal they diverge: CTNN's leading mode now needs \emph{two} DeepSet
-directions to represent (the DeepSet top mode captures only $0.10$ of it), and
-DeepSet's own leading direction never reaches $90\%$ even inside CTNN's top six ---
-it has fallen outside the span of the physical collective modes. The separable net
-does not merely carry fewer modes at strong correlation; its dominant variational
-direction is no longer a physical one. The message-passing correlator wins at both
-ends of the sweep for the same structural reason: a global collective coordinate is
-a coordinated deformation across all particles, which iterated message passing (and
-the V-cycle's coarse-graining) carries in one coherent direction, whereas a sum of
-pairwise features must approximate it piecewise. This reframes the earlier
+common probe --- both nets' NTK eigenfunctions live in the same space of functions on
+the probe points --- shows the two architectures differ not only in \emph{how many}
+directions they carry but in \emph{which}. At weak-to-moderate coupling
+($\omega\geq0.1$) they share the \emph{same single leading collective coordinate}:
+DeepSet's top direction captures $\geq0.98$ of CTNN's and vice versa ($k_{90}=1$),
+differing only in the redundant directions DeepSet carries on top. At the crystal (on
+the matched-grade seeded checkpoints) their leading modes become nearly
+\emph{orthogonal} (mutual top-1 capture $\approx0.01$): CTNN's leading mode needs
+three DeepSet directions to represent, DeepSet's needs all six of CTNN's, and the
+top-3 subspaces overlap only $0.42$. So at Wigner the nets reach the \emph{same}
+effective dimension but span \emph{different} tangent subspaces --- and CTNN's is the
+lower-variance one. The message-passing advantage thus changes character across the
+sweep: dimensional \emph{compression} at weak coupling (a global collective
+coordinate is a coordinated deformation across all particles, which iterated message
+passing and the V-cycle's coarse-graining carry in one coherent direction, whereas a
+sum of pairwise features must approximate it piecewise), and a better \emph{choice} of
+subspace at the crystal, where the dimension is common. This reframes the earlier
 feature-space observation (\S\ref{sec:repr-geom}): the correlator does not merely
-\emph{live} on a low-dimensional manifold, it \emph{sizes} that manifold to the
-physics.
+\emph{live} on a low-dimensional manifold, it \emph{sizes} and \emph{orients} that
+manifold to the physics.
 
 \subsection{Naming the manifold}
 \label{sec:kernel-naming}
@@ -301,12 +354,14 @@ subdominant direction, which is where the optimiser question turns.
 \begin{figure}[htbp]
   \centering
   \includegraphics[width=0.98\textwidth]{phaseA_closers}
-  \caption{Phase-A closers ($N=6$, no training). Left: tangent $d_{\mathrm{eff}}$
-  (solid) and the physical natural-orbital count (dashed) vs $\omega$ for both
-  architectures. Middle: their ratio; CTNN stays near-constant and below unity,
-  DeepSet crosses unity (over- then under-complete). Right: fraction of CTNN's
+  \caption{Phase-A closers ($N=6$, no training; the $\omega=0.01$ points here are
+  single-seed and superseded by the seeded values of Table~\ref{tab:crossover-seeded}).
+  Left: tangent $d_{\mathrm{eff}}$ (solid) and the physical natural-orbital count
+  (dashed) vs $\omega$ for both architectures. Middle: their ratio; CTNN stays
+  near-constant and below unity, DeepSet crosses unity. Right: fraction of CTNN's
   leading collective coordinate captured by DeepSet's top $k$ NTK directions --- one
-  suffices at weak coupling, two are needed at the crystal.}
+  suffices at weak coupling; at the crystal the leading modes diverge (three DeepSet
+  directions needed on the matched-grade seeded checkpoints).}
   \label{fig:phaseA-closers}
 \end{figure}
 
@@ -522,13 +577,13 @@ optimiser, and paradigm are each about how faithfully they resolve it.
 
 \begin{itemize}
   \item \textbf{Architecture (Q1)} sets \emph{how many} collective directions the
-  ansatz can excite and whether that number tracks the physics. Message passing
-  makes the tangent dimension \emph{adaptive} --- it matches the natural-orbital
-  count, compressing at weak coupling and expanding toward the crystal --- while a
-  separable DeepSet is stuck at a fixed $\sim\!3$, over-spent at $\omega=1$ and
-  under-spent at Wigner. The CTNN advantage is therefore in wavefunction quality
-  ($\Var(E_L)$, lower at every $\omega$) and representational fit, not in energy at
-  weak coupling.
+  ansatz spends and \emph{which}. Message passing compresses hard at weak coupling
+  (tangent $d_{\mathrm{eff}}\approx1.2$ vs DeepSet's $\approx3.4$, a $\sim\!2$-mode
+  state); toward the Wigner crystal the two dimensions \emph{converge}
+  ($\approx3.7$--$3.8$, seeded) as the physical mode count grows, but they occupy
+  \emph{different} tangent subspaces and CTNN's is the lower-variance one. So the
+  CTNN advantage is dimensional compression at weak coupling and, everywhere,
+  wavefunction quality ($\Var(E_L)$ lower at every $\omega$) --- not energy.
   \item \textbf{Optimiser (Q2)} sets whether that space is \emph{navigable}. SR
   whitens the QGT (exactly validated); it is immaterial where the ansatz already
   removes the stiff directions (weak coupling, cusp on) and earns its keep where
@@ -545,25 +600,26 @@ discriminates the architectures is the quantity the Laplacian drives to zero), a
 the low-rank, ill-conditioned tangent space links Q1 and Q2 (a lower-dimensional
 $S$ is both cheaper for SR to whiten and the reason plain gradients misalign).
 
-\paragraph{Caveats.} The $\omega$-sweep (Table~\ref{tab:omega-sweep},
-Fig.~\ref{fig:omega-sweep}) --- and with it the adaptive-versus-rigid crossover,
-the headline Q1 result --- is single-seed per $(\text{arch},\omega)$. The
-\emph{measurement} at the crossover is now hardened: the DeepSet $\omega=0.01$
-value is sample-converged (flat $3.2$--$3.3$ over $n=256$--$2048$), so the low value
-is not a sampling artifact; but the DeepSet low-$\omega$ \emph{checkpoint} is a
-worse ground state (higher $\Var(E_L)$), so seeded, analysis-grade retraining is
-still needed to firm the exact crossover location. The mode-count comparison
-(Table~\ref{tab:modecount}) is now measured for \emph{both} architectures, and the
-mechanism is no longer only argued: the cross-architecture projection and the exact
-$N=2$ response-projection (\S\ref{sec:kernel-naming}) directly show the leading
-collective coordinate and name it. Two limits remain: the $\omega=0.01$
-natural-orbital count is on a grid-truncated 1-RDM (trace $\approx1.9$ of $3$), so
-its absolute value is uncertain (the cross-architecture ratio is not, as the grid
-is shared), and a comparison against an exact/DMC 1-RDM at $N=6$ is not yet done;
-and the response-projection naming is exact only at $N=2$ --- at $N=6$ the physical
-responses require the finite-difference reference solver and are pending. All
-$N=6$ results are single-seed; the scaling of the dimension gap in $N$ is untested.
-The weak-form variance is heavy-tailed, so only the order of magnitude of the
+\paragraph{Caveats.} The single-seed $\omega$-sweep (Table~\ref{tab:omega-sweep})
+suggested a dramatic dimension \emph{inversion} at the crystal; seeded, matched-grade
+retraining overturned it (Table~\ref{tab:crossover-seeded}: the dimensions converge,
+$3.70\pm0.04$ vs $3.84\pm0.08$). This is the single-seed-promotion failure mode
+caught before publication, and it leaves two consequences. First, the
+\emph{weak-coupling} compression gap ($1.2$ vs $3.4$ at $\omega=1$) is itself still
+single-seed and must be seeded before it is load-bearing, although it is a much
+larger gap than seed noise would plausibly close. Second, the seeds of
+Table~\ref{tab:crossover-seeded} share an $\omega=0.1$ warm-start, so their bands are
+measurement + optimisation variance around the crossover, not fully independent
+training basins from $\omega=1$ (the full seeded cascade is deferred). What is
+robust: the $\Var(E_L)$ discriminator (CTNN lower at every $\omega$, seeded at the
+crystal), the cross-projection (leading modes shared at weak coupling, orthogonal at
+the crystal), and the exact $N=2$ naming of the modes (\S\ref{sec:kernel-naming}).
+Remaining limits: the $\omega=0.01$ natural-orbital count is on a grid-truncated
+1-RDM (trace $\approx1.9$ of $3$), so its absolute value is uncertain (the
+cross-architecture comparison is fair, as the grid is shared); the response-projection
+naming is exact only at $N=2$ (the $N=6$ version needs the finite-difference reference
+and is pending); and the scaling of the weak-coupling gap in $N$ is untested. The
+weak-form variance is heavy-tailed, so only the order of magnitude of the
 zero-variance ratio is robust.
 
 % =====================================================================
@@ -575,19 +631,18 @@ resolve into complementary statements about one low-dimensional variational
 manifold.
 
 \begin{enumerate}
-  \item \textbf{A message-passing correlator wins by adaptive compression, and
-  energy hides it.} At weak correlation, CTNN and DeepSet tie in energy, but the
-  CTNN reaches the state in half the effective tangent dimension
-  ($\sim\!1.5$ vs $\sim\!3.3$, fair and capacity-independent) and with lower
-  local-energy variance. Across $\omega$, the CTNN dimension is adaptive
-  ($1.2\!\to\!5.2$) and tracks the physical natural-orbital count (the same for both
-  nets), while the DeepSet's is rigid and \emph{crosses} that count --- redundant at
-  weak coupling, under-complete at Wigner, where its dominant variational direction
-  is no longer even a physical mode. And the manifold is \emph{named}: at the exact
-  $N=2$ anchor the leading tangent direction is the breathing response
-  ($\partial_\omega$) and the effective tangent space is
-  $\{$breathing, correlation-hole, first relative excitation$\}$ to $R^2=1.00$ ---
-  the dimensions are the low collective modes of $H$.
+  \item \textbf{A message-passing correlator compresses at weak coupling and finds a
+  better state at the crystal; energy hides both.} At weak correlation, CTNN and
+  DeepSet tie in energy, but CTNN reaches the state in half the effective tangent
+  dimension ($\sim\!1.5$ vs $\sim\!3.3$, fair and capacity-independent) and with
+  lower local-energy variance. Toward the Wigner crystal the compression gap
+  \emph{closes} --- seeded, the two dimensions converge ($3.70\pm0.04$ vs
+  $3.84\pm0.08$; the single-seed ``inversion'' did not survive) --- but the nets
+  occupy \emph{different} tangent subspaces and CTNN's carries $1.8\times$ lower
+  $\Var(E_L)$. And the manifold is \emph{named}: at the exact $N=2$ anchor the leading
+  tangent direction is the breathing response ($\partial_\omega$) and the effective
+  tangent space is $\{$breathing, correlation-hole, first relative excitation$\}$ to
+  $R^2=1.00$ --- the dimensions are the low collective modes of $H$.
   \item \textbf{SR whitens the tangent kernel, and its advantage is
   regime-confined.} The whitening picture is exact at $N=2$; the prescriptive
   advantage over Adam is null in the easy regime (with or without the cusp, which

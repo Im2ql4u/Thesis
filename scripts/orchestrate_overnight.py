@@ -43,11 +43,13 @@ def build_jobs(include_collocsr: bool, include_n12: bool) -> list[dict]:
         jobs.append(dict(tag=tag, paradigm=paradigm, optimizer=optimizer, arch=arch,
                          backflow=backflow, seed=seed, recipe=recipe, N=N, cascade=cascade))
 
-    # Group A: architecture ablation (VMC, adam+SR-polish recipe), 2 seeds
+    # Group A: architecture ablation (VMC). optimizer=adam => segments train with Adam (warm), and the
+    # VMC recipe's sr_polish_steps applies the annealed SR polish afterward. (optimizer="sr" would make
+    # the SEGMENTS use from-scratch CG-SR, which diverges -- caught by the orchestrator smoke.)
     for arch, ashort in (("ctnn_vcycle_big", "ctnn"), ("deepset_big", "deepset")):
         for bf, bshort in ((True, "bf"), (False, "nobf")):
             for seed in (0, 1):
-                add(f"A_{ashort}_{bshort}", "vmc", "sr", arch, bf, seed, VMC)
+                add(f"A_{ashort}_{bshort}", "vmc", "adam", arch, bf, seed, VMC)
     # Group B: paradigm = collocation, ctnn+bf, 2 seeds
     for seed in (0, 1):
         add("B_ctnn_bf_colloc", "colloc", "adam", "ctnn_vcycle_big", True, seed, COL)
@@ -102,6 +104,7 @@ def main():
     ap.add_argument("--gpus", default="0-7")
     ap.add_argument("--include-collocsr", action="store_true")
     ap.add_argument("--include-n12", action="store_true")
+    ap.add_argument("--smoke", action="store_true", help="tiny recipes + 2 jobs, to test the mechanics")
     a = ap.parse_args()
     if "-" in a.gpus:
         lo, hi = a.gpus.split("-"); gpus = list(range(int(lo), int(hi) + 1))
@@ -110,6 +113,14 @@ def main():
 
     OUT.mkdir(parents=True, exist_ok=True)
     jobs = build_jobs(a.include_collocsr, a.include_n12)
+    if a.smoke:  # test the mechanics: 1 VMC + 1 colloc chain, 2-omega cascade (tests --init), tiny steps
+        vmc_j = next(j for j in jobs if j["tag"] == "A_ctnn_bf" and j["seed"] == 0)
+        col_j = next(j for j in jobs if j["tag"] == "B_ctnn_bf_colloc" and j["seed"] == 0)
+        jobs = [vmc_j, col_j]
+        for j in jobs:
+            j["recipe"] = dict(steps=30, n_seg=2, polish=20, srpolish=20)
+            j["cascade"] = ["1.0", "0.1"]
+        gpus = gpus[:2]
     q: "queue.Queue[dict]" = queue.Queue()
     for j in jobs:
         q.put(j)

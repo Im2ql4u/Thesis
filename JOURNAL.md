@@ -24,6 +24,47 @@ The model reads this to understand what has been tried, what worked, what failed
 
 ## Journal
 
+### [2026-07-03] — Overnight campaign: arch ablation (Group A) is clean; collocation UNDER-CONVERGED (paradigm/N-scaling confounded); and the paradigm-backflow thread is RESOLVED — it's ARCHITECTURE, not paradigm
+
+**Motivation:** First big overnight run (13 chains, GPUs 1-6): Group A architecture ablation (VMC,
+{ctnn,deepset}×{bf,nobf}×2 seeds), Group B paradigm=collocation, Group C optimizer, Group D N=12
+scaling. Then settle the headline paradigm-backflow thread by loading a thesis checkpoint.
+**Method:** `scripts/orchestrate_overnight.py` (fixed a Group-A optimizer=sr divergence bug via the
+smoke), `scripts/analyze_overnight.py` -> master.csv (energy/var/d_eff/backflow-rank/message-kinetic
+per checkpoint). Then reconstructed + loaded the thesis N=6 ω=0.001 checkpoint.
+**Results — Group A (VMC, converged, TRUSTWORTHY):**
+- CTNN compression gap holds matched-recipe: d_eff ctnn 1.2-2.5 vs deepset 3.0-4.3 (~2.5× at ω=1).
+- var ordering ctnn-bf < ctnn-nobf < deepset-bf < deepset-nobf (MP and backflow both improve quality).
+- Message ablation (CTNN): zeroing messages costs +0.67-0.81 kinetic at ω=1 (consistent with M0).
+- Backflow rank collapses at low ω for BOTH arches (6-8 → 1).
+- SURPRISE: the no-backflow arms reach near-DMC ENERGY at N=6 (ctnn-nobf ω=0.01 = -0.015%) — so the
+  backflow's ENERGY contribution at N=6 is small; its role is variance/quality + Wigner lattice work,
+  NOT energy. Softens the earlier "backflow needed for nodes" claim at N=6.
+**Results — collocation (Groups B, D) DID NOT CONVERGE:** ctnn+bf collocation reached only +1.1%/+1.6%
+at ω=1/0.1 and DIVERGED at ω=0.01 (err 5e5%, var 3e7) — the ESS-collapse (Q3) biting the TRAINING with
+a single fixed Gaussian proposal. So the paradigm-internal-structure and N-scaling comparisons from this
+run are NOT trustworthy (under-converged).
+**Results — the paradigm-backflow thread RESOLVED (architecture, not paradigm):** loaded the thesis
+N=6 ω=0.001 checkpoint -> f_net class='PINN' (φ/ψ/g ScaledPINN), backflow class='BackflowNet'
+(CONVENTIONAL per-particle) -- a DIFFERENT architecture from my CTNN-V-cycle + message-passing backflow.
+Loaded the conventional BackflowNet (clean load, 0 missing): its displacement rank = 6.23 at ω=0.001 and
+11.26 at ω=1 -- HIGH at both, never collapsing. So "rank-10 (thesis) vs rank-1 (mine)" was
+conventional-vs-message-passing backflow, NOT VMC-vs-collocation. The paradigm hypothesis is FALSE.
+**Interpretation (the better finding):** the rank-1 collapse at Wigner is a MESSAGE-PASSING signature:
+at the crystal the message-passing backflow discovers the optimal correction is a single coordinated
+COLLECTIVE mode (rank-1) -- repositioning all electrons together -- while a conventional backflow,
+lacking inter-particle communication, applies independent per-particle corrections (rank ~6). This fits
+the "message passing = collective coordination" theme and is cleaner than the paradigm claim.
+**Caveats:** conventional backflow rank measured on Gaussian samples (not its own |Ψ|²), so 6.23 is
+approximate -- but clearly HIGH (not 1), which is the point; ω=1 rank 11.26 matches the thesis table.
+Collocation non-convergence blocks the paradigm/N-scaling threads until the proposal is fixed. N=12
+energy% in master.csv uses the wrong (N=6) reference -- ignore.
+**Output reference:** [results/analysis/2026-07-02_overnight/](../results/analysis/2026-07-02_overnight/)
+(master.csv, orchestrator.log, 34 checkpoints); thesis checkpoint results/models-Copy1/6p/w_00/.
+**Next question:** fix the collocation recipe (adaptive/mixture proposal + continuation) to unblock the
+Q3 collocation-vs-VMC and N-scaling threads; converged N=12 (warm-start VMC from collocation, or fixed
+proposal) + N=12 references; debug collocation+SR (WIP).
+
 ### [2026-07-02i] — Phase M0 (T1.2): feature-rank ≠ tangent-d_eff (two distinct low-dims); backflow rank collapses 10→1 at Wigner (route-dependent, to verify)
 
 **Motivation:** Are the correlator FEATURE rank (thesis r_eff≤3), the tangent d_eff (my work), and the

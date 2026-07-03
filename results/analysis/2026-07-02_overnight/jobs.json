@@ -1,0 +1,260 @@
+[
+  {
+    "tag": "A_ctnn_bf",
+    "paradigm": "vmc",
+    "optimizer": "adam",
+    "arch": "ctnn_vcycle_big",
+    "backflow": true,
+    "seed": 0,
+    "recipe": {
+      "steps": 500,
+      "n_seg": 4,
+      "polish": 120,
+      "srpolish": 200
+    },
+    "N": 6,
+    "cascade": [
+      "1.0",
+      "0.1",
+      "0.01"
+    ]
+  },
+  {
+    "tag": "A_ctnn_bf",
+    "paradigm": "vmc",
+    "optimizer": "adam",
+    "arch": "ctnn_vcycle_big",
+    "backflow": true,
+    "seed": 1,
+    "recipe": {
+      "steps": 500,
+      "n_seg": 4,
+      "polish": 120,
+      "srpolish": 200
+    },
+    "N": 6,
+    "cascade": [
+      "1.0",
+      "0.1",
+      "0.01"
+    ]
+  },
+  {
+    "tag": "A_ctnn_nobf",
+    "paradigm": "vmc",
+    "optimizer": "adam",
+    "arch": "ctnn_vcycle_big",
+    "backflow": false,
+    "seed": 0,
+    "recipe": {
+      "steps": 500,
+      "n_seg": 4,
+      "polish": 120,
+      "srpolish": 200
+    },
+    "N": 6,
+    "cascade": [
+      "1.0",
+      "0.1",
+      "0.01"
+    ]
+  },
+  {
+    "tag": "A_ctnn_nobf",
+    "paradigm": "vmc",
+    "optimizer": "adam",
+    "arch": "ctnn_vcycle_big",
+    "backflow": false,
+    "seed": 1,
+    "recipe": {
+      "steps": 500,
+      "n_seg": 4,
+      "polish": 120,
+      "srpolish": 200
+    },
+    "N": 6,
+    "cascade": [
+      "1.0",
+      "0.1",
+      "0.01"
+    ]
+  },
+  {
+    "tag": "A_deepset_bf",
+    "paradigm": "vmc",
+    "optimizer": "adam",
+    "arch": "deepset_big",
+    "backflow": true,
+    "seed": 0,
+    "recipe": {
+      "steps": 500,
+      "n_seg": 4,
+      "polish": 120,
+      "srpolish": 200
+    },
+    "N": 6,
+    "cascade": [
+      "1.0",
+      "0.1",
+      "0.01"
+    ]
+  },
+  {
+    "tag": "A_deepset_bf",
+    "paradigm": "vmc",
+    "optimizer": "adam",
+    "arch": "deepset_big",
+    "backflow": true,
+    "seed": 1,
+    "recipe": {
+      "steps": 500,
+      "n_seg": 4,
+      "polish": 120,
+      "srpolish": 200
+    },
+    "N": 6,
+    "cascade": [
+      "1.0",
+      "0.1",
+      "0.01"
+    ]
+  },
+  {
+    "tag": "A_deepset_nobf",
+    "paradigm": "vmc",
+    "optimizer": "adam",
+    "arch": "deepset_big",
+    "backflow": false,
+    "seed": 0,
+    "recipe": {
+      "steps": 500,
+      "n_seg": 4,
+      "polish": 120,
+      "srpolish": 200
+    },
+    "N": 6,
+    "cascade": [
+      "1.0",
+      "0.1",
+      "0.01"
+    ]
+  },
+  {
+    "tag": "A_deepset_nobf",
+    "paradigm": "vmc",
+    "optimizer": "adam",
+    "arch": "deepset_big",
+    "backflow": false,
+    "seed": 1,
+    "recipe": {
+      "steps": 500,
+      "n_seg": 4,
+      "polish": 120,
+      "srpolish": 200
+    },
+    "N": 6,
+    "cascade": [
+      "1.0",
+      "0.1",
+      "0.01"
+    ]
+  },
+  {
+    "tag": "B_ctnn_bf_colloc",
+    "paradigm": "colloc",
+    "optimizer": "adam",
+    "arch": "ctnn_vcycle_big",
+    "backflow": true,
+    "seed": 0,
+    "recipe": {
+      "steps": 1400,
+      "n_seg": 4,
+      "polish": 300,
+      "srpolish": 0
+    },
+    "N": 6,
+    "cascade": [
+      "1.0",
+      "0.1",
+      "0.01"
+    ]
+  },
+  {
+    "tag": "B_ctnn_bf_colloc",
+    "paradigm": "colloc",
+    "optimizer": "adam",
+    "arch": "ctnn_vcycle_big",
+    "backflow": true,
+    "seed": 1,
+    "recipe": {
+      "steps": 1400,
+      "n_seg": 4,
+      "polish": 300,
+      "srpolish": 0
+    },
+    "N": 6,
+    "cascade": [
+      "1.0",
+      "0.1",
+      "0.01"
+    ]
+  },
+  {
+    "tag": "C_ctnn_bf_vmcadam",
+    "paradigm": "vmc",
+    "optimizer": "adam",
+    "arch": "ctnn_vcycle_big",
+    "backflow": true,
+    "seed": 0,
+    "recipe": {
+      "steps": 700,
+      "n_seg": 4,
+      "polish": 200,
+      "srpolish": 0
+    },
+    "N": 6,
+    "cascade": [
+      "1.0",
+      "0.1",
+      "0.01"
+    ]
+  },
+  {
+    "tag": "D_N12_ctnn_bf_colloc",
+    "paradigm": "colloc",
+    "optimizer": "adam",
+    "arch": "ctnn_vcycle_big",
+    "backflow": true,
+    "seed": 0,
+    "recipe": {
+      "steps": 1400,
+      "n_seg": 4,
+      "polish": 300,
+      "srpolish": 0
+    },
+    "N": 12,
+    "cascade": [
+      "1.0",
+      "0.1"
+    ]
+  },
+  {
+    "tag": "D_N12_deepset_bf_colloc",
+    "paradigm": "colloc",
+    "optimizer": "adam",
+    "arch": "deepset_big",
+    "backflow": true,
+    "seed": 0,
+    "recipe": {
+      "steps": 1400,
+      "n_seg": 4,
+      "polish": 300,
+      "srpolish": 0
+    },
+    "N": 12,
+    "cascade": [
+      "1.0",
+      "0.1"
+    ]
+  }
+]

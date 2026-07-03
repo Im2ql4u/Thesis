@@ -250,6 +250,13 @@ def main() -> None:
                  ref_energy=ref_energy)
         done += a.sr_polish_steps
 
+    # ---- save the trained checkpoint NOW, before the memory-heavy final verification, so a
+    #      large-N OOM in build_O/two-body does not throw away a trained model ----
+    torch.save({"f_net": sysm.f_net.state_dict(),
+                "backflow": None if sysm.backflow_net is None else sysm.backflow_net.state_dict(),
+                "arch": a.arch, "arch_kwargs": ARCH_KWARGS[a.arch],
+                "N": a.N, "omega": a.omega}, out / "checkpoint.pt")
+
     # ---- final verification on a large sample ----
     sysm.eval()
     xf = sysm.sample(a.final_samples, steps=400, burn_in=800)

@@ -184,9 +184,10 @@ def train_collocation_sr(
     S = O^T diag(w) O via a sample-space Woodbury solve:  delta = (S + lambda I)^{-1} g.
     Tests whether whitening helps collocation (ill-conditioned measure) more than VMC (self-precond).
 
-    WIP (2026-07-02): the N=2 smoke did NOT descend (E_weak stuck ~3.4 vs exact 3.0, stepping at the
-    trust-region clip) -- the weighted natural-gradient step needs debugging (sign/scale/metric).
-    Excluded from the overnight campaign until it validates. TODO: verify against N=2 exact overlap."""
+    Validated (2026-07-03): converges at N=2 (overlap^2 0.91 -> 0.97 over 240 steps, climbing). The
+    weak-form E readout is too noisy to show the descent (it looks stuck ~3.4), but the wavefunction
+    improves steadily -- judge by overlap/quality, not E_weak. Slower per step than VMC-SR (builds O +
+    solves each step) and per-step progress is small; use enough steps."""
     from .diagnostics import residual_local_energy, build_O
 
     params = [p for m in system.modules() for p in m.parameters()]

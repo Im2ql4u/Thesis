@@ -28,7 +28,7 @@ from functions.Neural_Networks import _make_closed_shell_spin, psi_fn
 from functions.Slater_Determinant import slater_determinant_closed_shell
 from functions.Stochastic_Reconfiguration import _persistent_rw
 from jastrow_architectures import CTNNJastrow, CTNNJastrowVCycle, DeepSetJastrow
-from PINN import BackflowNet, PINN
+from PINN import BackflowNet, CTNNBackflowNet, PINN
 
 
 def _closed_shell_occupation(n_occ: int, nx: int, ny: int, dtype, device) -> torch.Tensor:
@@ -64,6 +64,7 @@ class System:
     arch_kwargs: dict = field(default_factory=dict)
     use_backflow: bool = False
     backflow_kwargs: dict = field(default_factory=dict)
+    backflow_arch: str = "conv"  # "conv" = BackflowNet; "ctnn" = message-passing CTNNBackflowNet
     device: str | None = None
     dtype: torch.dtype = torch.float64
     seed: int | None = None
@@ -105,10 +106,16 @@ class System:
             .to(self.dtype)
         )
         if self.use_backflow:
-            # BackflowNet takes d (+ optional kwargs); it infers N at forward time.
-            self.backflow_net = (
-                BackflowNet(self.d, **self.backflow_kwargs).to(dev).to(self.dtype)
-            )
+            # BackflowNet / CTNNBackflowNet take d (+ kwargs); they infer N at forward time.
+            if self.backflow_arch == "ctnn":
+                self.backflow_net = (
+                    CTNNBackflowNet(self.d, omega=self.omega, **self.backflow_kwargs)
+                    .to(dev).to(self.dtype)
+                )
+            else:
+                self.backflow_net = (
+                    BackflowNet(self.d, **self.backflow_kwargs).to(dev).to(self.dtype)
+                )
 
         p = config.get().as_dict()
         p.update(device=dev, torch_dtype=self.dtype, E=config.get().E)
@@ -199,10 +206,11 @@ def load_system(checkpoint_path: str, *, device: str | None = None, seed: int | 
     else:
         builder = arch
     use_bf = ck.get("backflow") is not None
-    # backflow runs always used the big backflow (identical across architectures)
+    bf_arch = ck.get("backflow_arch", "conv")
+    bf_kwargs = dict(ck["backflow_kwargs"]) if ck.get("backflow_kwargs") else _bf_kwargs(use_bf)
     sysm = System(N=int(ck["N"]), omega=float(ck["omega"]), d=2, arch=builder,
                   arch_kwargs=dict(ck["arch_kwargs"]), use_backflow=use_bf,
-                  backflow_kwargs=_bf_kwargs(use_bf), device=device, seed=seed)
+                  backflow_kwargs=bf_kwargs, backflow_arch=bf_arch, device=device, seed=seed)
     sysm.f_net.load_state_dict(ck["f_net"])
     if use_bf and ck.get("backflow") is not None:
         sysm.backflow_net.load_state_dict(ck["backflow"])

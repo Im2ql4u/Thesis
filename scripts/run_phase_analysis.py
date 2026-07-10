@@ -70,7 +70,7 @@ ARCH_KWARGS = {
                           readout_layers=3, act="silu"),
     "deepset_xl": dict(pair_hidden=128, pair_layers=5, pair_out=64, readout_hidden=128,
                        readout_layers=3, act="silu"),
-    "pinn": dict(hidden_dim=64, n_layers=2, act="silu"),
+    "pinn": dict(dL=5, hidden_dim=128, n_layers=2, act="gelu"),
 }
 
 
@@ -96,7 +96,9 @@ def main() -> None:
     ap.add_argument("--omega", type=float, default=1.0)
     ap.add_argument("--arch", type=str, default="ctnn_vcycle", choices=list(ARCH_KWARGS))
     ap.add_argument("--backflow", action="store_true",
-                    help="add CTNN/MLP coordinate backflow (needed for nodes at N>=6)")
+                    help="add coordinate backflow (needed for nodes at N>=6)")
+    ap.add_argument("--backflow-arch", type=str, default="conv", choices=["conv", "ctnn"],
+                    help="conv = per-particle BackflowNet; ctnn = message-passing CTNNBackflowNet (thesis ansatz)")
     ap.add_argument("--init", type=str, default="",
                     help="warm-start from a previous checkpoint.pt (cascade across omega)")
     ap.add_argument("--optimizer", type=str, default="adam", choices=["adam", "sr"])
@@ -145,7 +147,7 @@ def main() -> None:
                            out_bound="tanh", bf_scale_init=0.05, zero_init_last=True))
     sysm = System(N=a.N, omega=a.omega, d=2, arch=arch_builder,
                   arch_kwargs=ARCH_KWARGS[a.arch], use_backflow=a.backflow,
-                  backflow_kwargs=bf_kwargs, seed=a.seed)
+                  backflow_kwargs=bf_kwargs, backflow_arch=a.backflow_arch, seed=a.seed)
     if a.init:
         ck = torch.load(a.init, map_location=sysm.device)
         sysm.f_net.load_state_dict(ck["f_net"])
@@ -255,6 +257,7 @@ def main() -> None:
     torch.save({"f_net": sysm.f_net.state_dict(),
                 "backflow": None if sysm.backflow_net is None else sysm.backflow_net.state_dict(),
                 "arch": a.arch, "arch_kwargs": ARCH_KWARGS[a.arch],
+                "backflow_arch": a.backflow_arch, "backflow_kwargs": bf_kwargs,
                 "N": a.N, "omega": a.omega}, out / "checkpoint.pt")
 
     # ---- final verification on a large sample ----
@@ -314,6 +317,7 @@ def main() -> None:
     torch.save({"f_net": sysm.f_net.state_dict(),
                 "backflow": None if sysm.backflow_net is None else sysm.backflow_net.state_dict(),
                 "arch": a.arch, "arch_kwargs": ARCH_KWARGS[a.arch],
+                "backflow_arch": a.backflow_arch, "backflow_kwargs": bf_kwargs,
                 "N": a.N, "omega": a.omega}, out / "checkpoint.pt")
 
     _make_figures(out, a, pd_)

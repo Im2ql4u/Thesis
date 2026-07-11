@@ -57,6 +57,21 @@ def no_bf_messages(system):
             lin.weight.data.copy_(w)
 
 
+@contextlib.contextmanager
+def no_backflow(system):
+    """Remove the backflow entirely (Delta_x = 0) — how much energy does it actually buy?
+
+    |dx| alone cannot answer this: a small displacement may still be doing essential work, and a
+    large one may be redundant with the Jastrow. The energy cost of deleting it is the honest test.
+    """
+    bf = system.backflow_net
+    system.backflow_net = None
+    try:
+        yield
+    finally:
+        system.backflow_net = bf
+
+
 def _effrank(M):
     X = M - M.mean(0, keepdims=True); s = np.linalg.svd(X, compute_uv=False); l = s ** 2
     return float((l.sum() ** 2) / (l ** 2).sum()) if l.sum() > 0 else 0.0
@@ -84,9 +99,15 @@ def analyze(ckpt, bfarch, seed, omega, dev):
     if bfarch == "ctnn" and alive:
         with no_bf_messages(s):
             dT_msg = kinetic(s, x) - T_full
+    # What does the backflow actually BUY? Energy on the SAME configs with Delta_x deleted.
+    with no_backflow(s):
+        E_nobf = dg.local_energy(s.log_psi, x, s.omega, s.params, chunk=256)
+        q_nobf = dg.gs_quality(E_nobf, ref_energy=REF_E.get(round(omega, 4)))
+    dE_bf = float(q_nobf["E_mean"]) - float(q["E_mean"])   # >0 => the backflow lowers the energy
     return dict(bfarch=bfarch, seed=seed, omega=omega, error_pct=float(q.get("error_pct") or float("nan")),
                 var_EL=float(q["var_EL"]), deff=deff, dx_mag=dx_mag, alive=bool(alive),
-                bf_rank=bf_rank, T_full=T_full, dT_msg=dT_msg)
+                bf_rank=bf_rank, T_full=T_full, dT_msg=dT_msg,
+                dE_backflow=dE_bf, err_pct_nobf=float(q_nobf.get("error_pct") or float("nan")))
 
 
 def main():
@@ -106,9 +127,10 @@ def main():
         try:
             r = analyze(d / "checkpoint.pt", bfarch, seed, wtag, dev); rows.append(r)
             flag = "" if r["alive"] else "   <<< DEAD BACKFLOW — rank/ablation NOT reported"
-            print(f"  PINN+{bfarch}-bf s{seed} w{wtag:5}  err={r['error_pct']:+.3f}% var={r['var_EL']:.2e} "
-                  f"d_eff={r['deff']:.2f} |dx|={r['dx_mag']:.4f} BFrank={r['bf_rank']:.1f} "
-                  f"dT_msg={r['dT_msg']:+.3f}{flag}")
+            print(f"  PINN+{bfarch}-bf s{seed} w{wtag:5}  err={r['error_pct']:+.3f}% "
+                  f"(no-bf {r['err_pct_nobf']:+.3f}%, backflow buys {r['dE_backflow']:+.4f}) "
+                  f"var={r['var_EL']:.2e} d_eff={r['deff']:.2f} |dx|={r['dx_mag']:.4f} "
+                  f"BFrank={r['bf_rank']:.1f} dT_msg={r['dT_msg']:+.3f}{flag}")
         except Exception as e:
             print(f"  {d.name}: ERR {e!r}")
     if not rows:

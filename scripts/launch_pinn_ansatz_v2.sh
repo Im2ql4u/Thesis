@@ -13,8 +13,9 @@ cd "$(dirname "$0")/.."
 source /etc/profile.d/lmod.sh 2>/dev/null
 module load PyTorch/2.1.2-foss-2023a-CUDA-12.1.1 2>/dev/null
 STAMP=2026-07-11_pinn_ansatz_v2
-STEPS=3000; NSEG=4; POLISH=600; SRPOLISH=600   # lr is 6x lower than v1 -> more steps to converge
+STEPS=2500; NSEG=4; POLISH=500; SRPOLISH=500   # lr is 6x lower than v1 -> more steps to converge
 OMEGAS="1.0 0.1 0.01"
+# Only GPUs 1,2 are free (another user holds 0,3-7), so the 4 chains share them 2-up.
 
 run_chain() {  # gpu bfarch seed
   local gpu=$1 bfarch=$2 seed=$3 init=""
@@ -32,8 +33,8 @@ run_chain() {  # gpu bfarch seed
 }
 
 run_chain 1 ctnn 0 &
+run_chain 1 conv 0 &
 run_chain 2 ctnn 1 &
-run_chain 3 conv 0 &
-run_chain 4 conv 1 &
+run_chain 2 conv 1 &
 wait
 echo "=== PINN-ANSATZ v2 CAMPAIGN DONE $(date +%H:%M:%S) ==="

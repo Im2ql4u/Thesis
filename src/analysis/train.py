@@ -58,20 +58,31 @@ def _param_groups(system, lr: float) -> tuple[list, list[dict]]:
 
 @torch.no_grad()
 def backflow_health(system, x: torch.Tensor) -> str:
-    """|Delta_x|/ell and the tanh saturation fraction — a dead backflow reads |dx|~0, sat~1."""
+    """Backflow liveness: |Delta_x|/ell and the fraction the COM projection destroys.
+
+    The death mode is specific: tanh saturates, every particle pins to the SAME +-1, and the
+    zero-mean (COM) projection cancels identical values to exactly zero -> tanh'=0 -> no gradient
+    ever returns. Saturation alone is harmless (mixed signs survive the projection); what kills is
+    *uniform* saturation. com_kill = 1 - |dx_after| / |dx_before| measures exactly that: it rides
+    to 1.00 as the output becomes a pure centre-of-mass shift, which is the annihilated state.
+    """
     bf = system.backflow_net
     if bf is None:
         return ""
     dx = bf(x, spin=system.spin)
     mag = float(dx.norm(dim=-1).mean()) * math.sqrt(system.omega)
-    sat = float("nan")
-    if getattr(bf, "out_bound", "") == "tanh":
-        pre = {}
-        h = bf.dx_head.register_forward_hook(lambda m, i, o: pre.__setitem__("v", o.detach()))
-        bf(x, spin=system.spin)
-        h.remove()
-        sat = float((pre["v"].abs() > 2.5).to(torch.float64).mean())  # |tanh'| < 0.03 beyond 2.5
-    return f" |dx|/ell={mag:.4f} tanh_sat={sat:.2f}"
+    # |dx| alone detects death for ANY backflow; sat/com_kill need the CTNN head (BackflowNet has none).
+    if getattr(bf, "out_bound", "") != "tanh" or not hasattr(bf, "dx_head"):
+        return f" |dx|/ell={mag:.4f}"
+    pre = {}
+    h = bf.dx_head.register_forward_hook(lambda m, i, o: pre.__setitem__("v", o.detach()))
+    bf(x, spin=system.spin)
+    h.remove()
+    v = torch.tanh(pre["v"])                       # bounded output, before the COM projection
+    before = float(v.norm(dim=-1).mean()) + 1e-30
+    after = float((v - v.mean(dim=1, keepdim=True)).norm(dim=-1).mean())
+    sat = float((pre["v"].abs() > 2.5).to(torch.float64).mean())
+    return f" |dx|/ell={mag:.4f} sat={sat:.2f} com_kill={1.0 - after / before:.2f}"
 
 
 def train_vmc_adam(

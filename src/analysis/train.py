@@ -268,9 +268,12 @@ def train_staged_backflow(
                                     train_only="jastrow", log_fn=log_fn)
     system.backflow_net = bf_saved
     if system.backflow_net is not None:
-        log_fn("\n=== stage 2/4: cusp pre-train (prime the Pauli hole) ===")
-        out["cusp_mse"] = pretrain_backflow_cusp(system, steps=cusp_steps, strength=cusp_strength,
-                                                 repulsive=cusp_repulsive, log_fn=log_fn)
+        if cusp_steps > 0:
+            log_fn("\n=== stage 2/4: cusp pre-train (prime the Pauli hole) ===")
+            out["cusp_mse"] = pretrain_backflow_cusp(system, steps=cusp_steps, strength=cusp_strength,
+                                                     repulsive=cusp_repulsive, log_fn=log_fn)
+        else:
+            log_fn("\n=== stage 2/4: cusp pre-train SKIPPED (thesis 'bf_then_joint' variant) ===")
         log_fn("\n=== stage 3/4: backflow only (Jastrow frozen) ===")
         out["backflow"] = train_vmc_adam(system, steps=backflow_steps, lr=lr, batch=batch,
                                          train_only="backflow", log_fn=log_fn)

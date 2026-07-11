@@ -109,6 +109,10 @@ def main() -> None:
                     help="thesis PINN+backflow runs used 0.7 (run_weak_form's default is 0.05)")
     ap.add_argument("--bf-zero-init-last", type=int, default=1, choices=[0, 1],
                     help="0 = dx_head starts non-zero (thesis PINN+backflow used zero_init_last=False)")
+    ap.add_argument("--cusp-steps", type=int, default=300,
+                    help="0 skips the cusp pre-train (the thesis 'bf_only'/'bf_then_joint' variants do). "
+                         "It MSE-fits Delta_x to a target of magnitude ~0.02 while the backflow lives at "
+                         "~0.3, so it can shrink the displacement instead of priming it.")
     ap.add_argument("--cusp-attractive", action="store_true",
                     help="flip the cusp target to point TOWARD same-spin neighbours (the sign the "
                          "original snippet's index convention implies); default is the repulsive "
@@ -189,7 +193,7 @@ def main() -> None:
         # Thesis curriculum. Budget split: Jastrow 30% / backflow 30% / joint 40% of --steps.
         sysm.train()
         train_staged_backflow(
-            sysm, jastrow_steps=int(0.3 * a.steps), cusp_steps=300,
+            sysm, jastrow_steps=int(0.3 * a.steps), cusp_steps=a.cusp_steps,
             backflow_steps=int(0.3 * a.steps), joint_steps=int(0.4 * a.steps),
             lr=a.lr, batch=a.batch, cusp_repulsive=not a.cusp_attractive,
         )

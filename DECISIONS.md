@@ -283,3 +283,35 @@ fair protocol (Phase 1) before it is load-bearing.
 **Reasoning:** CG-SR's per-step cost is dominated by `_score_rows` building the per-sample score matrix (a Python loop of `total_rows` backprops); for the heavily over-parameterised small-N CTNN (9,842 params at N=2) this is minutes per step and the stable step-size window is narrow (kappa(S) ~ 1e12). Adam-VMC reached overlap^2 = 0.999984 with the exact N=2 ground state in 600 fast steps. The thesis scope explicitly includes Adam-trained wavefunctions; SR vs plain-gradient is a diagnostic comparison computed post-hoc on converged states, so training need not use SR. The legacy `official_models` lack saved hyperparameters, making reconstruction brittle; training our own guarantees verified, reproducible ground states.
 **Constraints introduced:** Final reported energies must use the unclipped mean / variance extrapolation (the MAD-clipped training estimator biases E low by removing coalescence spikes); the clipped value is for stability only. Any wavefunction analysed must still pass the GS-quality gate (energy + overlap where exact is available).
 **Confidence:** high
+
+---
+
+### [2026-07-11] Analysis trainer adopts the thesis optimiser settings (split LR groups + grad_clip=1.0), and every backflow run carries a liveness guard
+
+**Decision:** `src/analysis/train.py` now builds TWO Adam param groups — backflow at `lr`, Jastrow at
+`lr * 0.1` — and clips gradients at 1.0, mirroring `src/run_weak_form.py` (`--lr 5e-4`, `--lr-jas 5e-5`,
+`--grad-clip 1.0`). Backflow sizing matches the thesis (`msg_hidden=hidden=128`, `layers=3`). Every Adam
+and SR log line calls `backflow_health()`, printing `|dx|/ell` and `com_kill`.
+
+**Alternatives considered:** (a) keep the single param group at lr=3e-3 and instead re-architect
+`CTNNBackflowNet` (LayerNorm on node features, or `out_bound="identity"`); (b) abandon the analysis
+trainer and drive everything through `run_weak_form.py`.
+
+**Reasoning:** `CTNNBackflowNet` computes `dx = tanh(dx_head(h_v))` and then subtracts the per-particle
+mean to conserve the centre of mass (PINN.py:650,669). Those two steps compose into a trap: if the
+pre-activation saturates tanh, every particle pins to the SAME +-1, and the zero-mean projection cancels
+identical values to EXACTLY zero. tanh' is then 0, so no gradient returns and the backflow is dead
+permanently. At lr=3e-3 with one param group this happened within 100 steps (|dx|/ell 0.0058 -> 0.0000,
+sat 0.00 -> 1.00) and silently invalidated a whole campaign, because the weights still LOOK trained.
+Rejected (a): a fresh net has |h| ~ 0.047, i.e. features are bounded at init and the blow-up is purely
+training-induced — so the architecture is sound and re-architecting would fork from the thesis ansatz
+for no reason. Rejected (b): the analysis trainer is what the kernel diagnostics are built around;
+importing the thesis's optimiser settings is the minimal change that makes it faithful.
+
+**Constraints introduced:** (1) The Jastrow now trains 10x slower than the backflow, so step budgets must
+grow accordingly (v2 uses 2500 + 500 polish + 500 SR, vs v1's 1000). (2) `backflow_health` is
+architecture-agnostic on `|dx|` but only reports `sat`/`com_kill` for heads named `dx_head`
+(the conventional `BackflowNet` has none). (3) Any future backflow result is invalid unless its log
+shows |dx| > 0 — `com_kill -> 1.00` means the COM projection has annihilated the displacement.
+
+**Confidence:** high (A/B measured directly: dead vs alive under identical seeds and architecture)

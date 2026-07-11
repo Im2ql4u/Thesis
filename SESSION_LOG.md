@@ -207,3 +207,37 @@ need seed sweeps; N=20 reduced architecture confounds cross-N claims.
 **Context freshness:** current
 
 See ARCHIVE.md for full history.
+
+---
+
+## [2026-07-11] The CTNN backflow was dead — tanh saturation x COM projection; two findings retracted
+
+**Done:** Diagnosed why `CTNNBackflowNet` produced |dx| = 0.00000 with fully-trained weights. Cause:
+`dx = tanh(dx_head(h_v))` followed by a zero-mean (centre-of-mass) projection. My trainer's lr=3e-3
+single-group Adam blew the node features up ~400x (|h| 0.047 at init -> std ~20 trained), driving the
+dx_head pre-activation to ~148. tanh saturates there, every particle gets the identical +-1, and the
+zero-mean projection cancels it to exactly zero -> tanh' = 0 -> gradient dies -> backflow is
+unrecoverable. Reproduced live: it dies in under 100 steps. Fixed by adopting the thesis optimiser
+(split LR groups 10:1, grad_clip=1.0, bf hidden 128); A/B under identical seeds: old |dx|=0.0000 /
+sat=1.00 (dead), fixed |dx|=0.038 / sat=0.00 / com_kill=0.05 (alive, stable). Added `backflow_health()`
+to every Adam and SR log line. Launched the v2 campaign (4 chains, GPUs 1-2).
+
+**Retracted:** (1) "The rank-1 collapse at Wigner is a message-passing signature" — `backflow_arch`
+defaulted to "conv" and the ctnn option did not exist before 2026-07-04, so EVERY earlier campaign used
+the conventional per-particle `BackflowNet`. There was no message passing in the thing I measured.
+(2) The v1 PINN campaign (`results/analysis/2026-07-04_pinn_ansatz`) is invalid — its CTNN arm had
+Delta_x identically zero, so it compared a backflow-less ansatz against a real one (which is also why
+"conv beat ctnn").
+
+**Verified unaffected:** `Thesis/results_kernel.tex`. Its Q1 comparison holds the backflow identical and
+fixed across the CTNN-Jastrow and DeepSet-Jastrow arms (conventional in both) and describes it as such —
+a valid controlled experiment. The compression gap, mode-naming and message-ablation results are all
+Jastrow-side and correctly labeled. Only backflow-side claims are retracted.
+
+**Open / next:** v2 campaign running -> then the FIRST valid CTNN-vs-conventional *backflow* contrast.
+Still open: whether v2 reaches thesis accuracy (0.01-0.08%); my VMC trainer has never been shown to
+match the thesis's weak-form + residual-pretraining pipeline on energy, and if it cannot, the mechanism
+analysis should move onto `run_weak_form.py`-trained states instead.
+
+**Lesson (kept):** a network can be fully trained, have healthy weight norms, and still output
+identically zero. Never infer liveness from weight norms — measure the OUTPUT.

@@ -13,6 +13,7 @@ from __future__ import annotations
 import contextlib
 import csv
 import json
+import math
 import re
 import sys
 from pathlib import Path
@@ -26,10 +27,14 @@ from analysis.system import load_system  # noqa: E402
 from analysis import diagnostics as dg  # noqa: E402
 
 ROOT = Path(__file__).resolve().parent.parent
-CAMP = ROOT / "results/analysis/2026-07-04_pinn_ansatz"
+DEFAULT_CAMP = ROOT / "results/analysis/2026-07-11_pinn_ansatz_v3"
 REF_E = {1.0: 20.15932, 0.1: 3.55164, 0.01: 0.69036}
 RHO = ["rho_v_to_e", "rho_e_to_v"]  # CTNNBackflowNet inter-particle maps
 SAMPLE_KW = dict(steps=400, burn_in=800)
+# A backflow whose |dx| ~ 0 contributes nothing: any rank/ablation number read off it is meaningless.
+# v1 (2026-07-04) died exactly this way (tanh saturation x COM projection), so the analyzer now
+# refuses to report on a dead backflow rather than printing a confident number about nothing.
+DEAD_DX = 1e-4
 
 
 @contextlib.contextmanager
@@ -71,17 +76,24 @@ def analyze(ckpt, bfarch, seed, omega, dev):
     deff = float(dg.kernel_spectrum(O.cpu())["effective_rank"])
     with torch.no_grad():
         dx = s.backflow_net(x, spin=s.spin)
-    bf_rank = _effrank(dx.reshape(x.shape[0], -1).cpu().double().numpy())
+    dx_mag = float(dx.norm(dim=-1).mean()) * math.sqrt(s.omega)    # |dx| in oscillator lengths
+    alive = dx_mag > DEAD_DX
+    bf_rank = _effrank(dx.reshape(x.shape[0], -1).cpu().double().numpy()) if alive else float("nan")
     T_full = kinetic(s, x)
     dT_msg = float("nan")
-    if bfarch == "ctnn":
+    if bfarch == "ctnn" and alive:
         with no_bf_messages(s):
             dT_msg = kinetic(s, x) - T_full
     return dict(bfarch=bfarch, seed=seed, omega=omega, error_pct=float(q.get("error_pct") or float("nan")),
-                var_EL=float(q["var_EL"]), deff=deff, bf_rank=bf_rank, T_full=T_full, dT_msg=dT_msg)
+                var_EL=float(q["var_EL"]), deff=deff, dx_mag=dx_mag, alive=bool(alive),
+                bf_rank=bf_rank, T_full=T_full, dT_msg=dT_msg)
 
 
 def main():
+    import argparse
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--camp", type=Path, default=DEFAULT_CAMP, help="campaign dir of checkpoints")
+    CAMP = ap.parse_args().camp
     dev = "cuda" if torch.cuda.is_available() else "cpu"
     rows = []
     for d in sorted(CAMP.glob("pinn_*bf_s*_w*")):
@@ -93,8 +105,10 @@ def main():
         bfarch, seed, wtag = m.group(1), int(m.group(2)), float(m.group(3).replace("p", "."))
         try:
             r = analyze(d / "checkpoint.pt", bfarch, seed, wtag, dev); rows.append(r)
+            flag = "" if r["alive"] else "   <<< DEAD BACKFLOW — rank/ablation NOT reported"
             print(f"  PINN+{bfarch}-bf s{seed} w{wtag:5}  err={r['error_pct']:+.3f}% var={r['var_EL']:.2e} "
-                  f"d_eff={r['deff']:.2f} BFrank={r['bf_rank']:.1f} dT_msg={r['dT_msg']:+.3f}")
+                  f"d_eff={r['deff']:.2f} |dx|={r['dx_mag']:.4f} BFrank={r['bf_rank']:.1f} "
+                  f"dT_msg={r['dT_msg']:+.3f}{flag}")
         except Exception as e:
             print(f"  {d.name}: ERR {e!r}")
     if not rows:

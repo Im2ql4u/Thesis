@@ -170,8 +170,10 @@ def train_sr(
             e = float(E_cl.mean()); v = float(E_cl.var())
             hist["step"].append(t); hist["E"].append(e); hist["var"].append(v)
             err = "" if ref_energy is None else f" ({(e-ref_energy)/abs(ref_energy)*100:+.3f}%)"
+            from .train import backflow_health
             log_fn(f"[sr {t:04d}] E={e:.6f}{err} var={v:.3e} |dθ|={info['step_norm']:.2e} "
-                   f"|g|={info['g_norm']:.2e} damp={damp:.1e} lr={lr_t:.2e}")
+                   f"|g|={info['g_norm']:.2e} damp={damp:.1e} lr={lr_t:.2e}"
+                   + backflow_health(system, xb[:256]))
         if diag_every and diag_fn is not None and ((t % diag_every == 0) or (t == steps - 1)):
             system.eval(); diag_fn(t); system.train()
     return hist

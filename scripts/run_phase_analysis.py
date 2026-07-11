@@ -112,7 +112,8 @@ def main() -> None:
                     help="natural-gradient (SR) polish after Adam, for near-DMC accuracy")
     ap.add_argument("--sr-lr", type=float, default=0.2)
     ap.add_argument("--sr-damping", type=float, default=1e-3)
-    ap.add_argument("--lr", type=float, default=3e-3, help="Adam learning rate")
+    ap.add_argument("--lr", type=float, default=5e-4,
+                    help="Adam lr for the backflow; the Jastrow group trains at lr*0.1 (thesis split)")
     ap.add_argument("--batch", type=int, default=2048, help="VMC batch (Adam)")
     ap.add_argument("--n-seg", type=int, default=12, help="diagnostic checkpoints")
     ap.add_argument("--eval-samples", type=int, default=1024)
@@ -140,8 +141,8 @@ def main() -> None:
     print(f"[phase] N={a.N} omega={a.omega} arch={a.arch}  ->  {out}")
 
     arch_builder = _arch_builder(a.arch)
-    # use the capable (big) backflow whenever backflow is on, so it is IDENTICAL across architectures
-    bf_kwargs = (dict(msg_hidden=64, msg_layers=2, hidden=64, layers=3, act="silu",
+    # thesis backflow sizing (run_weak_form.py: --bf-hidden 128, --bf-layers 3, msg_hidden=bf_hidden)
+    bf_kwargs = (dict(msg_hidden=128, msg_layers=2, hidden=128, layers=3, act="silu",
                       out_bound="tanh", bf_scale_init=0.05, zero_init_last=True) if a.backflow
                  else dict(msg_hidden=32, msg_layers=2, hidden=32, layers=2, act="silu",
                            out_bound="tanh", bf_scale_init=0.05, zero_init_last=True))

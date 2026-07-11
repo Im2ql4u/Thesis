@@ -36,11 +36,49 @@ def _heal_walkers(x: torch.Tensor, ell: float) -> torch.Tensor:
     return x
 
 
+GRAD_CLIP = 1.0      # run_weak_form.py --grad-clip default
+LR_JAS_FRAC = 0.1    # run_weak_form.py: --lr-jas 5e-5 vs --lr 5e-4 (Jastrow trains 10x slower)
+
+
+def _param_groups(system, lr: float) -> tuple[list, list[dict]]:
+    """Split Jastrow / backflow into the two learning-rate groups the thesis pipeline uses.
+
+    The backflow's dx_head feeds tanh and then a zero-mean (COM) projection: if its
+    pre-activation saturates, every particle's tanh output pins to the same +-1 and the
+    projection annihilates Delta_x *exactly*, killing the gradient permanently. A slower
+    Jastrow lr plus tight clipping is what keeps that pre-activation in the linear region.
+    """
+    jas = list(system.f_net.parameters())
+    bf = list(system.backflow_net.parameters()) if system.backflow_net is not None else []
+    groups = [{"params": jas, "lr": lr * LR_JAS_FRAC}]
+    if bf:
+        groups.append({"params": bf, "lr": lr})
+    return jas + bf, groups
+
+
+@torch.no_grad()
+def backflow_health(system, x: torch.Tensor) -> str:
+    """|Delta_x|/ell and the tanh saturation fraction — a dead backflow reads |dx|~0, sat~1."""
+    bf = system.backflow_net
+    if bf is None:
+        return ""
+    dx = bf(x, spin=system.spin)
+    mag = float(dx.norm(dim=-1).mean()) * math.sqrt(system.omega)
+    sat = float("nan")
+    if getattr(bf, "out_bound", "") == "tanh":
+        pre = {}
+        h = bf.dx_head.register_forward_hook(lambda m, i, o: pre.__setitem__("v", o.detach()))
+        bf(x, spin=system.spin)
+        h.remove()
+        sat = float((pre["v"].abs() > 2.5).to(torch.float64).mean())  # |tanh'| < 0.03 beyond 2.5
+    return f" |dx|/ell={mag:.4f} tanh_sat={sat:.2f}"
+
+
 def train_vmc_adam(
     system,
     *,
     steps: int = 2000,
-    lr: float = 3e-3,
+    lr: float = 5e-4,
     batch: int = 2048,
     sampler_steps: int = 20,
     sampler_sigma: float = 0.4,
@@ -59,8 +97,8 @@ def train_vmc_adam(
     """
     from functions.Stochastic_Reconfiguration import _persistent_rw
 
-    params = [p for m in system.modules() for p in m.parameters()]
-    opt = torch.optim.Adam(params, lr=lr)
+    params, groups = _param_groups(system, lr)
+    opt = torch.optim.Adam(groups, lr=lr)
     ell = 1.0 / math.sqrt(system.omega)
     sig = sampler_sigma * ell
     x = (
@@ -89,14 +127,15 @@ def train_vmc_adam(
         loss = 2.0 * ((E_cl - R).detach() * logpsi).mean()
         opt.zero_grad(set_to_none=True)
         loss.backward()
-        torch.nn.utils.clip_grad_norm_(params, 5.0)
+        torch.nn.utils.clip_grad_norm_(params, GRAD_CLIP)
         opt.step()
 
         if (t % log_every == 0) or (t == steps - 1):
             e = float(R)
             v = float(E_cl.var())
             hist["step"].append(t); hist["E"].append(e); hist["var"].append(v)
-            log_fn(f"[adam {t:05d}] E={e:.6f} var={v:.4e} sig={sig:.3f} acc~0.5 n={xb.shape[0]}")
+            log_fn(f"[adam {t:05d}] E={e:.6f} var={v:.4e} sig={sig:.3f} acc~0.5 n={xb.shape[0]}"
+                   + backflow_health(system, xb[:256]))
         if ckpt_every and ckpt_fn is not None and ((t % ckpt_every == 0) or (t == steps - 1)):
             ckpt_fn(t)
     return hist
@@ -106,7 +145,7 @@ def train_collocation_weak(
     system,
     *,
     steps: int = 2000,
-    lr: float = 3e-3,
+    lr: float = 5e-4,
     batch: int = 2048,
     sigma_q: float = 1.3,
     clip_w: float = 20.0,
@@ -126,8 +165,8 @@ def train_collocation_weak(
     """
     from .diagnostics import residual_local_energy
 
-    params = [p for m in system.modules() for p in m.parameters()]
-    opt = torch.optim.Adam(params, lr=lr)
+    params, groups = _param_groups(system, lr)
+    opt = torch.optim.Adam(groups, lr=lr)
     ell = 1.0 / math.sqrt(system.omega)
     sq = sigma_q * ell
     log_zq = system.N * system.d * math.log(sq * math.sqrt(2 * math.pi))
@@ -156,7 +195,7 @@ def train_collocation_weak(
         loss = (wn * ew_cl).sum() + 2.0 * (wn * (ew_cl.detach() - E) * logpsi).sum()
         opt.zero_grad(set_to_none=True)
         loss.backward()
-        torch.nn.utils.clip_grad_norm_(params, 5.0)
+        torch.nn.utils.clip_grad_norm_(params, GRAD_CLIP)
         opt.step()
         if (t % log_every == 0) or (t == steps - 1):
             hist["step"].append(t); hist["E"].append(float(E)); hist["ess"].append(ess)

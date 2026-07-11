@@ -24,6 +24,107 @@ The model reads this to understand what has been tried, what worked, what failed
 
 ## Journal
 
+### [2026-07-06b] — Convergence probe: collocation floors at var(E_L)≈0.30 UNDER THREE OPTIMIZERS (Adam, diag-Fisher, CG-SR); my honest heavy-VMC (+0.21–0.31%) is ~7–10× the thesis honest-final (+0.031%) — the wavefunctions are NOT converged, and the gap is not an optimizer-tuning problem
+
+**Motivation:** The user challenged the +0.4% repro: "not good enough — if that's what we replicate we'd
+declare the method unstable; are we sure the wavefunctions are fully converged?" Test convergence directly.
+**Method:** Resumed the N=6 ω=1 from-scratch checkpoint (var(E_L)=0.30, +0.39%) and continued three ways,
+each with LR annealing + rolling-best + heavy 30k-VMC eval: (A) Adam +REINFORCE 3000 ep; (B) diagonal
+natural-gradient 1500 ep; (C) FULL CG-SR polish 500 ep (`--sr-mode cg`, the thesis's actual endgame
+optimiser). Watched whether var(E_L) breaks the ≈0.30 level toward a converged eigenstate (~0.02).
+**Results:**
+- **The initial run was under-converged (still descending), BUT continuing reveals a hard floor.** All
+  three optimisers PLATEAU at var(E_L)≈0.28–0.38 with energy BOUNCING at +0.1–0.4% (heavy-VMC): Adam
+  early-stopped ep 645 (+0.311%); diag-Fisher bounced (~+0.2–0.4%); CG-SR bounced +0.14→+0.83% and
+  early-stopped ep 394 (+0.212%). var(E_L) never approached the ~0.02 of a tight eigenstate.
+- **best-probe vs honest gap reproduced:** each run's rolling-best (lucky) probe read +0.12–0.14% while
+  the honest 30k heavy-VMC read +0.21–0.31%. Confirms best_probe over-selects on a high-variance state.
+- **I did NOT reproduce the thesis honest number:** thesis `long_n6w1` FINAL (heavy VMC) = +0.031%; my
+  best honest = +0.212% (CG-SR) — ~7× worse. So the thesis reached a genuinely tighter state than mine.
+**Interpretation — two things established, one fork open:**
+- **(established) var(E_L)≈0.30 is optimiser-invariant** → the plateau is NOT a wrong-optimiser or
+  under-training artifact. Ruled out: architecture (this vcycle IS the faithful `bf_ctnn_vcycle` stack,
+  not the drifted PINN); optimiser (3 tried).
+- **(established) the +0.002% headline is best_probe selection bias** on a var≈0.3 state (my best-probe
+  0.12–0.14% vs honest 0.21–0.31% is the same mechanism, milder because fewer probes). The honest thesis
+  metric is +0.031%, and I'm ~7× above even that.
+- **(fork) the remaining gap to +0.031% is EITHER the collocation MEASURE (fixed-proposal importance
+  sampling can't resolve var below ~0.3 — same class of net reaches var~0.02 under |Ψ|²-VMC in the
+  2026-06-15 analysis runs, strong circumstantial evidence for measure) OR PATH-DEPENDENCE (the thesis
+  +0.031% came from a multi-stage continuation chain `bf_ctnn_vcycle→bf_joint_reinf_v3→bf_resume_lr_v1
+  →bf_hardfocus_v1b` from a canonical init now LOST in the Jun-13 rewrite; a single from-scratch lineage
+  may simply not reach the same basin).** These are not exclusive — likely both.
+**So, honest answer to "are the wavefunctions converged": NO.** Not in variance (var 15× a tight
+eigenstate), not reproducibly in energy (my honest +0.21% vs thesis +0.031%). This is a real
+reproducibility + convergence concern for the collocation Q3 claims, surfaced before the thesis leans on
+them further. It does NOT by itself prove the method is fundamentally unstable — one from-scratch lineage
+flooring at 0.3 is not the same as the method being incapable — but it means the good numbers are
+path/selection-dependent and not currently reproducible on the working tree.
+**Decisive next tests (not yet run — a direction fork for the user):**
+1. **Measure vs capacity (gold standard):** VMC-SR (`train_model_sr_energy`, |Ψ|²-Metropolis, SAME E_L
+   reward) on the IDENTICAL net+checkpoint. If var 0.3→~0.02 → the collocation MEASURE is the limiter
+   (clean Q3 result: collocation cannot resolve the eigenstate as tightly as VMC, ~15× var floor). If it
+   also floors at 0.3 → ansatz capacity. (Needs a ~40-line driver reusing run_weak_form.setup + the
+   builders; feasible, some debug risk.)
+2. **Path-dependence:** reconstruct a continuation chain (staged ω-anneal / LR-stage resumes) and see if
+   staged annealing breaks var 0.3 where single-lineage didn't.
+**Caveats:** single seed per lineage; N=6 ω=1 only; the CG-SR polish used lr 2e-2 / diagonal-damping 1e-3
+(not swept — a different CG-SR schedule might do better, but the point is 3 optimisers all plateau at the
+SAME var, not that each is perfectly tuned); "same-class net reaches var~0.02 under VMC" is the analysis
+ctnn_vcycle_big (80k) not the identical 25k net — test 1 removes this confound.
+**Output reference:** [results/analysis/2026-07-06_colloc_repro/](../results/analysis/2026-07-06_colloc_repro/)
+(contAdam_n6w1.log, natdiag_n6w1.log, cgsr_n6w1.log); checkpoints results/arch_colloc/{contAdam,natdiag,
+cgsr}_n6w1{,_best}.pt.
+**Next question:** run test 1 (measure vs capacity) to convert this from "not converged" into the
+mechanism — is it the sampling measure or the ansatz — then decide whether collocation Q3 claims need
+re-scoping around the honest (+0.03% at best, path-dependent) numbers.
+
+### [2026-07-06] — Reproduce the thesis collocation trainer on today's code: N=6 ω=1 reaches +0.4% (recipe is SOUND); the "awfully far" energies are a NEW-trainer regression, not a broken paradigm
+
+**Motivation:** The overnight collocation (new minimal `src/analysis/train.py::train_collocation_weak`)
+was +1.0–1.7% at ω≥0.1 and DIVERGED at ω=0.01 — "awfully far" from the historically-reported
++0.002–0.19%. Before proposing fixes, settle the prior question: does the ACTUAL thesis trainer
+(`src/run_weak_form.py`) still reach the reported range on today's code+env?
+**Method:** Got `run_weak_form.py` running (env: `source /etc/profile.d/z00_lmod.sh; module load
+PyTorch/2.1.2-foss-2023a-CUDA-12.1.1` — the debug-note `lmod.sh` path is stale; and `module load`
+must NOT be piped or the eval'd env is lost to the subshell). Two faithful N=6 ω=1 runs, 800 epochs,
+standard REINFORCE + ESS-adaptive resampling (n-coll 4096, oversample 10→24 on ESS floor 0.1,
+clip-el 5, direct-weight 0.1, lr 5e-4/5e-5, warmup 20), heavy 30k-sample exact-VMC final eval:
+(a) from scratch; (b) thesis backflow warm-started (`--init-bf` from `official_models/6p/w_10/
+backflowCTNN.pt`, wrapped as bf_state).
+**Results:**
+- **From scratch: E=20.2381±0.0036, err=+0.391%.** BF-warm: E=20.2472±0.0036, err=+0.436%.
+  var(E_L)≈0.30–0.35, ESS≈62%, k̂≈0.46–0.74 (healthy). Correct energy SCALE (≈20.24 vs DMC
+  20.15932), sub-1%, no divergence.
+- Reported thesis range is +0.002% (best_probe) to +0.03% (long from-scratch) — so today's quick
+  recipe is ~10–15× worse than the headline but the SAME order and physically correct. BF warm-start
+  gave no gain (its displacements were tuned to the thesis PINN Jastrow, not our from-scratch 25k one).
+- Online training probe read +0.26% at the last epoch but heavy VMC gave +0.39–0.44% — the known
+  probe-optimism gap (DECISIONS 2026-03-14: heavy VMC is authoritative).
+**Interpretation:** The collocation paradigm is NOT broken and the trainer is sound — it lands at the
+right energy from scratch. The overnight "awfully far" (+1% → divergence) is specifically the NEW
+minimal `train_collocation_weak` (fixed single Gaussian, no resampling, weak-Rayleigh-only, no ESS
+adaptation, no continuation), which costs ~2–3× at ω=1 and stability at ω=0.01 vs the real recipe.
+This empirically confirms the 2026-07-06 diagnosis: a recipe regression, not a paradigm failure. The
+remaining gap to the +0.002% headline is carried by the ingredients now MISSING from the working tree:
+the canonical pretrained init `results/arch_colloc/bf_ctnn_vcycle.pt` (wiped in the Jun-13 origin
+force-rewrite; `*.pt` gitignored), continuation chains, best-probe selection, and natural-gradient
+CG-SR polish.
+**Caveats:** A bit-exact reproduction is impossible now: (1) the canonical init is gone; (2) the
+Jun-13 re-sync also DRIFTED the Jastrow arch — `build_jastrow_model()` builds a 25,562-param net,
+but the thesis `f_netCTNN.pt` is a 53,933-param `PINN` (φ/ψ/g ScaledPINN), so the Jastrow can't be
+warm-started from the thesis checkpoints (only the 182,403-param `CTNNBackflowNet` backflow matches
+exactly). Runs are single-seed; no continuation cascade yet; ω=0.1/0.01 not yet run (need the ω=1
+checkpoint as warm-start).
+**Output reference:** [results/analysis/2026-07-06_colloc_repro/](../results/analysis/2026-07-06_colloc_repro/)
+(repro_n6w1_scratch.log, repro_n6w1_bfwarm.log); checkpoints results/arch_colloc/repro_n6w1_{scratch,
+bfwarm}.pt; plan [plans/2026-07-06_collocation-conditioning-diagnosis.md](../plans/2026-07-06_collocation-conditioning-diagnosis.md).
+**Next question:** (1) push one run harder (natural-grad CG-SR polish + longer + best-probe) to see if
+it closes to +0.03%; (2) cascade ω=1→0.1→0.01 to confirm the low-ω range and whether ω=0.01 stays
+stable under the real recipe (it should — the divergence was the minimal trainer); (3) then port the
+winning ingredients (resampling + ESS adaptation + strong-form/zero-var reward) back into the analysis
+trainer so the Q3 dual-track is a fair fight.
+
 ### [2026-07-03] — Overnight campaign: arch ablation (Group A) is clean; collocation UNDER-CONVERGED (paradigm/N-scaling confounded); and the paradigm-backflow thread is RESOLVED — it's ARCHITECTURE, not paradigm
 
 **Motivation:** First big overnight run (13 chains, GPUs 1-6): Group A architecture ablation (VMC,
@@ -65,7 +166,49 @@ energy% in master.csv uses the wrong (N=6) reference -- ignore.
 Q3 collocation-vs-VMC and N-scaling threads; converged N=12 (warm-start VMC from collocation, or fixed
 proposal) + N=12 references; debug collocation+SR (WIP).
 
-### [2026-07-02i] — Phase M0 (T1.2): feature-rank ≠ tangent-d_eff (two distinct low-dims); backflow rank collapses 10→1 at Wigner (route-dependent, to verify)
+### [2026-07-11] — RETRACTION: the "message-passing backflow" findings were never message passing; the CTNN backflow was DEAD (tanh saturation x COM projection)
+
+**Two independent errors, both now fixed. The entries below marked [RETRACTED] are false.**
+
+**Error 1 — mislabeling.** `backflow_arch` defaulted to `"conv"` and the `ctnn` option did not exist
+until 2026-07-04. So EVERY campaign before that (Group A, the overnight run, the whole
+"paradigm-backflow" thread) used the CONVENTIONAL `BackflowNet`. My headline reading —
+"the rank-1 collapse at Wigner is a MESSAGE-PASSING signature ... the message-passing backflow
+discovers a single coordinated COLLECTIVE mode" (entries 2026-07-02i and the paradigm entry above) —
+was measured on a conventional per-particle backflow. There was no message passing in it.
+**RETRACTED.** The rank-1-vs-rank-6/11 contrast is my-training-vs-thesis-training, not architecture.
+
+**Error 2 — the CTNN backflow was dead the moment I did wire it up.** `CTNNBackflowNet.forward`
+does `dx = tanh(dx_head(h_v))` (PINN.py:650) and then subtracts the per-particle mean to conserve
+the centre of mass (PINN.py:669). My analysis trainer ran Adam at lr=3e-3, ONE param group, clip=5.
+That drives the dx_head pre-activation to ~148; tanh saturates; every particle then gets the
+*identical* +-1; and the zero-mean projection cancels identical values to EXACTLY zero. tanh' is
+then 0, so no gradient ever returns: the backflow is dead and cannot recover. Measured live:
+
+    [adam 00000] |dx|/ell=0.0058  tanh_sat=0.00   <- alive
+    [adam 00100] |dx|/ell=0.0000  tanh_sat=1.00   <- fully saturated, dead
+
+It dies in under 100 steps. The v1 PINN campaign (`results/analysis/2026-07-04_pinn_ansatz`) is
+therefore INVALID: its CTNN arm had Delta_x identically zero, so "PINN+CTNN-bf vs PINN+conv-bf"
+compared a backflow-less ansatz against a real one. That is also why conv appeared to *beat* ctnn.
+
+**Root cause is my trainer, not the architecture.** The thesis pipeline (`run_weak_form.py`) never
+hits this trap: lr 5e-4 on the backflow, 5e-5 on the Jastrow (separate param groups), grad_clip=1.0.
+Those numbers keep the pre-activation inside tanh's linear region. Adopted verbatim; backflow sizing
+also corrected to the thesis's msg_hidden/hidden=128 (I had 64). `backflow_health()` now prints
+|dx|/ell and tanh_sat on every Adam and SR log line, so this failure can never again survive a run.
+
+**What SURVIVES.** `Thesis/results_kernel.tex` is unaffected: its Q1 comparison holds the backflow
+*identical and fixed* across the CTNN-Jastrow and DeepSet-Jastrow arms (a conventional backflow in
+both), which is a valid controlled experiment and is described as such. The CTNN-Jastrow vs DeepSet
+compression gap, the mode-naming, and the message-ablation results are all Jastrow-side and correctly
+labeled. Only the *backflow*-side claims are retracted.
+
+**Next:** rerun the PINN ansatz with the fixed trainer (`scripts/launch_pinn_ansatz_v2.sh`, into
+`results/analysis/2026-07-11_pinn_ansatz_v2`; v1 is kept, not overwritten), then redo the CTNN-vs-
+conventional *backflow* contrast on an ansatz whose backflow is actually alive.
+
+### [2026-07-02i] [RETRACTED 2026-07-11 — conventional backflow, mislabeled as message-passing] — Phase M0 (T1.2): feature-rank ≠ tangent-d_eff (two distinct low-dims); backflow rank collapses 10→1 at Wigner (route-dependent, to verify)
 
 **Motivation:** Are the correlator FEATURE rank (thesis r_eff≤3), the tangent d_eff (my work), and the
 intrinsic dim the same low-dimensional object? And quantify the low-rank-correlator / high-rank-backflow

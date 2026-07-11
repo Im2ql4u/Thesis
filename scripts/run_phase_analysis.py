@@ -35,7 +35,9 @@ from functions.Stochastic_Reconfiguration import train_model_sr_energy  # noqa: 
 from analysis import diagnostics as dg  # noqa: E402
 from analysis.reference import TwoElectronExact  # noqa: E402
 from analysis.system import System  # noqa: E402
-from analysis.train import train_vmc_adam, train_collocation_weak, train_collocation_sr  # noqa: E402
+from analysis.train import (  # noqa: E402
+    train_vmc_adam, train_collocation_weak, train_collocation_sr, train_staged_backflow,
+)
 from analysis.fast_sr import train_sr  # noqa: E402
 
 import matplotlib  # noqa: E402
@@ -99,6 +101,18 @@ def main() -> None:
                     help="add coordinate backflow (needed for nodes at N>=6)")
     ap.add_argument("--backflow-arch", type=str, default="conv", choices=["conv", "ctnn"],
                     help="conv = per-particle BackflowNet; ctnn = message-passing CTNNBackflowNet (thesis ansatz)")
+    ap.add_argument("--staged", action="store_true",
+                    help="thesis curriculum (run_6e_bf_extend 'cusp+bf+joint'): Jastrow -> cusp "
+                         "pre-train -> backflow with Jastrow frozen -> joint. Without this the "
+                         "Jastrow wins the race and the backflow stays near-trivial (rank ~1).")
+    ap.add_argument("--bf-scale-init", type=float, default=0.05,
+                    help="thesis PINN+backflow runs used 0.7 (run_weak_form's default is 0.05)")
+    ap.add_argument("--bf-zero-init-last", type=int, default=1, choices=[0, 1],
+                    help="0 = dx_head starts non-zero (thesis PINN+backflow used zero_init_last=False)")
+    ap.add_argument("--cusp-attractive", action="store_true",
+                    help="flip the cusp target to point TOWARD same-spin neighbours (the sign the "
+                         "original snippet's index convention implies); default is the repulsive "
+                         "Pauli-hole sign its comment describes")
     ap.add_argument("--init", type=str, default="",
                     help="warm-start from a previous checkpoint.pt (cascade across omega)")
     ap.add_argument("--optimizer", type=str, default="adam", choices=["adam", "sr"])
@@ -143,9 +157,11 @@ def main() -> None:
     arch_builder = _arch_builder(a.arch)
     # thesis backflow sizing (run_weak_form.py: --bf-hidden 128, --bf-layers 3, msg_hidden=bf_hidden)
     bf_kwargs = (dict(msg_hidden=128, msg_layers=2, hidden=128, layers=3, act="silu",
-                      out_bound="tanh", bf_scale_init=0.05, zero_init_last=True) if a.backflow
+                      out_bound="tanh", bf_scale_init=a.bf_scale_init,
+                      zero_init_last=bool(a.bf_zero_init_last)) if a.backflow
                  else dict(msg_hidden=32, msg_layers=2, hidden=32, layers=2, act="silu",
-                           out_bound="tanh", bf_scale_init=0.05, zero_init_last=True))
+                           out_bound="tanh", bf_scale_init=a.bf_scale_init,
+                           zero_init_last=bool(a.bf_zero_init_last)))
     sysm = System(N=a.N, omega=a.omega, d=2, arch=arch_builder,
                   arch_kwargs=ARCH_KWARGS[a.arch], use_backflow=a.backflow,
                   backflow_kwargs=bf_kwargs, backflow_arch=a.backflow_arch, seed=a.seed)
@@ -166,9 +182,18 @@ def main() -> None:
     # ---- train in segments, diagnosing the kernel along the way ----
     traj = {"step": [], "E": [], "E_raw": [], "se": [], "var": [], "cond_S": [], "eff_rank_S": [],
             "num_rank_S": [], "cos_sr": [], "cos_plain": [], "ntk_cond": []}
-    segs = build_segments(a.steps, a.n_seg)
+    segs = [] if a.staged else build_segments(a.steps, a.n_seg)
     done = 0
     t0 = time.time()
+    if a.staged:
+        # Thesis curriculum. Budget split: Jastrow 30% / backflow 30% / joint 40% of --steps.
+        sysm.train()
+        train_staged_backflow(
+            sysm, jastrow_steps=int(0.3 * a.steps), cusp_steps=300,
+            backflow_steps=int(0.3 * a.steps), joint_steps=int(0.4 * a.steps),
+            lr=a.lr, batch=a.batch, cusp_repulsive=not a.cusp_attractive,
+        )
+        done = a.steps
     for si, seg in enumerate(segs):
         sysm.train()
         if a.paradigm == "colloc":

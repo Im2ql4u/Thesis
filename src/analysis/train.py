@@ -40,20 +40,99 @@ GRAD_CLIP = 1.0      # run_weak_form.py --grad-clip default
 LR_JAS_FRAC = 0.1    # run_weak_form.py: --lr-jas 5e-5 vs --lr 5e-4 (Jastrow trains 10x slower)
 
 
-def _param_groups(system, lr: float) -> tuple[list, list[dict]]:
+def _param_groups(system, lr: float, train_only: str = "all") -> tuple[list, list[dict]]:
     """Split Jastrow / backflow into the two learning-rate groups the thesis pipeline uses.
 
     The backflow's dx_head feeds tanh and then a zero-mean (COM) projection: if its
     pre-activation saturates, every particle's tanh output pins to the same +-1 and the
     projection annihilates Delta_x *exactly*, killing the gradient permanently. A slower
     Jastrow lr plus tight clipping is what keeps that pre-activation in the linear region.
+
+    train_only: "all" | "backflow" (freeze the Jastrow) | "jastrow" (no backflow yet) — the
+    stages of the thesis curriculum (run_6e_bf_extend.py: Jastrow -> cusp -> bf -> joint).
     """
     jas = list(system.f_net.parameters())
     bf = list(system.backflow_net.parameters()) if system.backflow_net is not None else []
-    groups = [{"params": jas, "lr": lr * LR_JAS_FRAC}]
-    if bf:
+    groups: list[dict] = []
+    if train_only in ("all", "jastrow"):
+        groups.append({"params": jas, "lr": lr * LR_JAS_FRAC})
+    if bf and train_only in ("all", "backflow"):
         groups.append({"params": bf, "lr": lr})
-    return jas + bf, groups
+    params = [p for g in groups for p in g["params"]]
+    for p in jas:
+        p.requires_grad_(train_only in ("all", "jastrow"))
+    for p in bf:
+        p.requires_grad_(train_only in ("all", "backflow"))
+    return params, groups
+
+
+def pretrain_backflow_cusp(
+    system,
+    *,
+    steps: int = 300,
+    lr: float = 1e-3,
+    batch: int = 4096,
+    strength: float = 0.15,
+    sigma_ell: float = 0.5,
+    repulsive: bool = True,
+    log_every: int = 100,
+    log_fn=print,
+) -> float:
+    """Prime the backflow on the Pauli hole before any VMC (thesis: run_6e_bf_extend.pretrain_cusp).
+
+    Fits Delta_x by MSE to an analytic target: each electron is displaced along the unit vectors to
+    its SAME-SPIN neighbours, weighted by a Gaussian envelope exp(-r^2/2 sigma^2) so only close pairs
+    contribute, then made zero-mean (the backflow's own COM constraint).
+
+    Without this the backflow has no reason to exist: trained jointly from scratch the Jastrow
+    absorbs the correlation first and the displacement stays near-trivial (rank ~1). Priming it on
+    the same-spin hole is what gives the thesis backflow real structure.
+
+    repulsive=True displaces AWAY from same-spin neighbours (the Pauli hole — what the thesis
+    comment "push same-spin apart" describes). NOTE: the original snippet's index convention
+    (r_ij = x[j] - x[i], summed over j) actually points TOWARD the neighbour; the sign is exposed
+    here so the two can be compared rather than silently assumed.
+    """
+    bf = system.backflow_net
+    if bf is None:
+        raise ValueError("pretrain_backflow_cusp requires a backflow")
+    N, d, dev, dt = system.N, system.d, system.device, system.dtype
+    ell = 1.0 / math.sqrt(system.omega)
+    sig = sigma_ell * ell
+    spin = system.spin
+    same = (spin.view(N, 1) == spin.view(1, N)).to(dt)
+    mask = (same * (1.0 - torch.eye(N, device=dev, dtype=dt))).view(1, N, N, 1)
+    sgn = -1.0 if repulsive else 1.0            # -1: displace away from same-spin neighbours
+    opt = torch.optim.Adam(bf.parameters(), lr=lr)
+    for p in bf.parameters():                   # a prior stage may have frozen these
+        p.requires_grad_(True)
+    for p in system.f_net.parameters():
+        p.requires_grad_(False)
+
+    loss_val = float("nan")
+    for t in range(steps):
+        x = torch.randn(batch, N, d, device=dev, dtype=dt) * (1.3 * ell)
+        with torch.no_grad():
+            r = x.unsqueeze(1) - x.unsqueeze(2)             # r[b,i,j] = x_j - x_i
+            r2 = (r ** 2).sum(-1, keepdim=True)
+            r_hat = r / (torch.sqrt(r2 + 1e-12) + 1e-8)
+            env = torch.exp(-r2 / (2.0 * sig ** 2))
+            tgt = sgn * strength * (r_hat * env * mask).sum(dim=2)
+            tgt = tgt - tgt.mean(dim=1, keepdim=True)       # match the backflow's COM projection
+        loss = torch.nn.functional.mse_loss(bf(x, spin=spin), tgt)
+        opt.zero_grad(set_to_none=True)
+        loss.backward()
+        torch.nn.utils.clip_grad_norm_(bf.parameters(), 1.0)
+        opt.step()
+        loss_val = float(loss)
+        if (t % log_every == 0) or (t == steps - 1):
+            with torch.no_grad():
+                pred = bf(x, spin=spin).norm(dim=-1).mean()
+            log_fn(f"[cusp {t:04d}] mse={loss_val:.6f} |pred|={float(pred):.4f} "
+                   f"|tgt|={float(tgt.norm(dim=-1).mean()):.4f}")
+    for p in system.f_net.parameters():
+        p.requires_grad_(True)
+    return loss_val
 
 
 @torch.no_grad()
@@ -95,6 +174,7 @@ def train_vmc_adam(
     sampler_sigma: float = 0.4,
     clip_mad: float = 5.0,
     lap_mode: str = "exact",
+    train_only: str = "all",
     log_every: int = 100,
     log_fn=print,
     ckpt_every: int = 0,
@@ -105,10 +185,11 @@ def train_vmc_adam(
     Returns a history dict {step, E, var}. Walkers and the optimiser persist across the call
     (a single call => no momentum resets). If ckpt_every>0 and ckpt_fn is given, calls
     ckpt_fn(step) every ckpt_every steps (for lazy-vs-rich / training-dynamics analysis).
+    train_only ("all"|"backflow"|"jastrow") selects the curriculum stage.
     """
     from functions.Stochastic_Reconfiguration import _persistent_rw
 
-    params, groups = _param_groups(system, lr)
+    params, groups = _param_groups(system, lr, train_only)
     opt = torch.optim.Adam(groups, lr=lr)
     ell = 1.0 / math.sqrt(system.omega)
     sig = sampler_sigma * ell
@@ -150,6 +231,53 @@ def train_vmc_adam(
         if ckpt_every and ckpt_fn is not None and ((t % ckpt_every == 0) or (t == steps - 1)):
             ckpt_fn(t)
     return hist
+
+
+def train_staged_backflow(
+    system,
+    *,
+    jastrow_steps: int = 1200,
+    cusp_steps: int = 300,
+    backflow_steps: int = 1000,
+    joint_steps: int = 1200,
+    lr: float = 5e-4,
+    batch: int = 2048,
+    cusp_strength: float = 0.15,
+    cusp_repulsive: bool = True,
+    log_fn=print,
+) -> dict:
+    """The thesis curriculum (run_6e_bf_extend.py 'cusp+bf+joint'), generalised to any N/omega.
+
+      1. Jastrow alone            — converge the correlator with no backflow in the way
+      2. cusp pre-train           — prime Delta_x on the same-spin (Pauli) hole
+      3. backflow, Jastrow frozen — force the displacement to carry real structure
+      4. joint                    — release both (the Jastrow at lr*0.1)
+
+    Training all of it jointly from scratch is what produced my near-trivial rank-1 backflow: the
+    Jastrow is a strictly easier route to the same correlation energy, so it wins the race and the
+    displacement never develops. Staging removes that shortcut. Returns the per-stage histories.
+    """
+    out: dict = {}
+    # Stage 1 must run with NO backflow in the ansatz at all. With zero_init_last=False the untrained
+    # backflow emits a large random displacement (|dx|/ell ~ 0.26), which would corrupt the Jastrow
+    # it is supposed to converge. The thesis trains the PINN first and *adds* the backflow after.
+    bf_saved = system.backflow_net
+    system.backflow_net = None
+    log_fn("\n=== stage 1/4: Jastrow alone (backflow detached) ===")
+    out["jastrow"] = train_vmc_adam(system, steps=jastrow_steps, lr=lr, batch=batch,
+                                    train_only="jastrow", log_fn=log_fn)
+    system.backflow_net = bf_saved
+    if system.backflow_net is not None:
+        log_fn("\n=== stage 2/4: cusp pre-train (prime the Pauli hole) ===")
+        out["cusp_mse"] = pretrain_backflow_cusp(system, steps=cusp_steps, strength=cusp_strength,
+                                                 repulsive=cusp_repulsive, log_fn=log_fn)
+        log_fn("\n=== stage 3/4: backflow only (Jastrow frozen) ===")
+        out["backflow"] = train_vmc_adam(system, steps=backflow_steps, lr=lr, batch=batch,
+                                         train_only="backflow", log_fn=log_fn)
+    log_fn("\n=== stage 4/4: joint (Jastrow released at lr*0.1) ===")
+    out["joint"] = train_vmc_adam(system, steps=joint_steps, lr=lr, batch=batch,
+                                  train_only="all", log_fn=log_fn)
+    return out
 
 
 def train_collocation_weak(

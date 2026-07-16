@@ -1214,3 +1214,32 @@ Campaign is running in tmux session `cgsr_camp`. Full results pending.
 ### Key design decisions reflected in code
 
 *(To be filled in.)*
+
+### [2026-07-11b] — Staged recipe reaches thesis accuracy; and the Jastrow/backflow split is a SOFT (path-influenced) direction, not a fixed physical quantity
+
+**Setup:** N=6, omega=1. Five arms trained to full SR polish with the thesis staged curriculum
+(Jastrow -> [cusp] -> frozen-Jastrow backflow -> joint), bf_scale_init=0.7, zero_init_last=False:
+PINN+CTNN-bf (seeds 0,1), PINN+conv-bf (seeds 0,1), and a no-cusp CTNN arm.
+
+**Result 1 — accuracy (the training fix works).** Final SR energies vs ref 20.15932:
+  ctnn s0  +0.012% | ctnn s1  -0.034% | no-cusp ctnn -0.005% | conv s0 +0.028% | conv s1 +0.001%.
+All five within |0.034%| — thesis quality (the thesis reports ~0.008-0.08%). The small negatives are
+the known MAD-clip bias (report unclipped; the variational principle forbids a true undershoot). This
+is the payoff of the two training fixes: the tanh/COM annihilation and the joint-from-scratch starvation.
+
+**Result 2 — the substitution finding (replaces the retracted rank story).** Final |dx|/ell:
+  ctnn 0.119, 0.123 | no-cusp ctnn 0.149 | conv 0.068, 0.076.
+The no-cusp CTNN arm ENTERED stage 3 at |dx|=0.344 (5x the cusp arm's 0.03) and CONVERGED to 0.149 at
+the same energy as the cusp arm (0.119). So the equilibrium displacement is set by the optimisation,
+not the initialisation: the correlation split between Jastrow and backflow is a soft, path-influenced
+direction of the loss, not a fixed property of the ground state. This is WHY every earlier backflow-rank
+/ |dx| claim reversed under a change of training protocol — those quantities are gauge-like. It also
+explains the thesis checkpoint's |dx|=0.364 vs my ~0.12 at equal energy: different training path, same
+state. A real, measured mechanism result, and a more honest one than the rank story it replaces.
+
+**Architecture signature that DOES survive:** at matched energy the CTNN backflow settles ~1.7x larger
+(0.12) than the conventional per-particle backflow (0.07). Measured on live, thesis-quality states, not
+a starved or dead one. To be confirmed by the dE_backflow ablation (energy with Delta_x deleted) once
+the low-omega tiers finish.
+
+**Still running:** ctnn omega=0.1 (2 chains). Cascade omega=0.01 already done.

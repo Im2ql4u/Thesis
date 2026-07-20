@@ -1332,3 +1332,16 @@ A larger-n rerun is needed before quoting the omega=1 split.
 **Status:** N-scaling campaign (N=6/12/20 x thesis omega grid x both backflows x 2 seeds) running on
 all 8 GPUs, 0 failures. Open question it addresses: does the conventional backflow's collapse persist
 and does the CTNN advantage keep growing with N?
+
+**[2026-07-20 caveat] N=12 batch mismatch introduced by the OOM retry.** The CTNN backflow builds
+B x N x N x 128 edge tensors, so at N=12 it used 10.8 of 11.3 GB and OOM'd; the orchestrator retried
+at half size and it now runs healthily at batch 512 (5.6 GB). The conventional arm never OOM'd and
+still runs at batch 1024. So the N=12 CTNN-vs-conv comparison is NOT batch-matched.
+Direction of the bias: the smaller batch is a HANDICAP for CTNN (noisier gradients), so if CTNN still
+wins at N=12 the conclusion is conservative and safe to report. If conv wins or ties, the result is
+confounded and a batch-matched conv rerun (batch 512) is REQUIRED before any claim. Both arms get the
+same step count and the same SR polish, and the final energy is a variational upper bound either way,
+so the energy comparison remains meaningful — but the caveat must travel with the number.
+Note also that the memory asymmetry is itself a finding worth stating in the thesis: the
+message-passing backflow costs ~2x the memory of the per-particle one at N=12 (10.8 vs 5.6 GB),
+which is the price of the N^2 edge construction.

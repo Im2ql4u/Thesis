@@ -101,6 +101,10 @@ def run_stage(N, arch, seed, w, init, staged, cfg, gpu, log) -> Path | None:
         # expandable_segments keeps fragmentation from turning a fit into an OOM on long runs
         env["PYTORCH_CUDA_ALLOC_CONF"] = "expandable_segments:True"
         logfile = out / "train.log"
+        if attempt > 0 and logfile.exists():
+            # Keep the failed log: opening "w" on a retry destroys the traceback that says WHY it
+            # failed, which is the only evidence of where the memory actually went.
+            logfile.replace(out / f"train.attempt{attempt}.log")
         cmd = build_cmd(N, arch, seed, w, init, staged, cfg, shrink=attempt)
         with open(logfile, "w") as fh:
             proc = subprocess.Popen(cmd, stdout=fh, stderr=subprocess.STDOUT, env=env, cwd=str(ROOT))

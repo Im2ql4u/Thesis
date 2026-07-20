@@ -1243,3 +1243,47 @@ a starved or dead one. To be confirmed by the dE_backflow ablation (energy with 
 the low-omega tiers finish.
 
 **Still running:** ctnn omega=0.1 (2 chains). Cascade omega=0.01 already done.
+
+### [2026-07-16] — THE INVERSION: it is the CONVENTIONAL backflow that collapses at Wigner, not the message-passing one
+
+**Setup:** N=6, thesis ansatz (PINN Jastrow x backflow), thesis omega grid, 2 seeds, both backflow
+architectures trained with an identical staged recipe to thesis accuracy. Analyzer on live states.
+
+| omega | err% ctnn/conv | d_eff ctnn/conv | BFrank ctnn/conv | dT_msg |
+|-------|----------------|-----------------|------------------|--------|
+| 1.0   | -0.02 / +0.07  |  4.2 /  6.4     |  9.1 / 10.5      | +0.60  |
+| 0.1   | +0.02 / +0.29  |  7.8 / 10.2     |  7.6 / 10.1      | +0.07  |
+| 0.01  | -0.03 / +0.58  |  9.8 /  1.1     |  9.9 /  1.0      | +0.007 |
+
+**The finding:** at Wigner the CONVENTIONAL per-particle backflow collapses — displacement rank
+10.5 -> 1.0 and the whole tangent space d_eff 6.4 -> 1.1 — while the message-passing CTNN backflow
+HOLDS rank ~10 and d_eff ~10. Its energy error correspondingly balloons to +0.58% while CTNN stays
+at ~0.03%. Both seeds agree at every omega.
+
+**This inverts the retracted 2026-07-02i claim.** I had reported "the message-passing backflow
+collapses to rank-1 at Wigner" — measured on a backflow that was actually the CONVENTIONAL one
+(backflow_arch silently defaulted to "conv"), and additionally starved by joint-from-scratch training.
+The observation of a rank-1 collapse at Wigner was REAL; the attribution was exactly backwards. This
+is the rare case where a retraction returns as its own mirror image, now measured on correctly
+labelled, thesis-quality states.
+
+**Resolves the kinetic paradox (Aleksander's objection):** "messages buy kinetic energy" and "CTNN
+helps most at low omega, where Coulomb dominates" cannot both be the same mechanism. Measured:
+dT_msg = 0.60, 0.068, 0.007 at omega = 1, 0.1, 0.01 — i.e. CONSTANT at ~0.6-0.7 in units of omega,
+but a SHRINKING share of the total energy (3.0% -> 1.9% -> 1.0%). So they are two different
+mechanisms: messages buy KINETIC energy at high omega, and at Wigner they buy EXPRESSIVITY —
+they prevent the tangent-space collapse that destroys the conventional backflow. The advantage at
+low omega is structural, not kinetic. Aleksander's objection was correct and productive.
+
+**Scale check (not a relative-error artifact):** in absolute energy the conv error is 0.0056 (w=1)
+and 0.0038 (w=0.01) — comparable. In units of omega it goes 0.006 -> 0.38 (68x worse) vs CTNN
+0.002 -> 0.03 (12x worse). Both degrade toward Wigner; the conventional backflow degrades far faster.
+
+**Caveat, now fixed:** the first ablation pass evaluated the ablated wavefunction on samples drawn
+from the UN-ablated |Psi|^2, giving no-backflow energies BELOW the exact ground state (-1.6%), which
+is variationally impossible. Ablations now resample from their own distribution, and are decomposed
+into kinetic and Coulomb parts. The dT_msg trend above is a fixed-configuration probe and is
+unaffected; the dE numbers are being recomputed.
+
+**Next:** multi-day N-scaling campaign (N=6/12/20 x thesis omega grid x both backflows x 2 seeds) to
+test whether the collapse persists and how the gap scales with N.

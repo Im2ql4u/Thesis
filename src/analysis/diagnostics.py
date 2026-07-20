@@ -44,15 +44,24 @@ def build_O(
     return O
 
 
-def kernel_spectrum(O: torch.Tensor, *, rel_tol: float = 1e-12) -> dict:
+def kernel_spectrum(O: torch.Tensor, *, rel_tol: float = 1e-12, gram_chunk: int = 8192) -> dict:
     """Spectrum of the quantum geometric tensor S = O^T O / B (== NTK / B spectrum).
 
     Returns eigenvalues (descending), effective rank (participation ratio),
     numerical rank, and condition number over the supported spectrum.
     """
-    B = O.shape[0]
-    s = torch.linalg.svdvals(O.double())  # singular values of O
-    lam = (s**2 / B).cpu().numpy()  # eigenvalues of S
+    B, P = O.shape
+    if B <= P:
+        # Gram trick: O^T O and O O^T share their non-zero spectrum, and O O^T is only B x B.
+        # svdvals(O) needs a workspace on the order of O itself (B x P) and OOM'd at N=6 already;
+        # accumulating the Gram in parameter blocks keeps the peak allocation tiny.
+        G = torch.zeros(B, B, dtype=torch.float64, device=O.device)
+        for j in range(0, P, gram_chunk):
+            blk = O[:, j : j + gram_chunk].double()
+            G += blk @ blk.T
+        lam = torch.linalg.eigvalsh(G).clamp_min(0.0).cpu().numpy() / B
+    else:
+        lam = (torch.linalg.svdvals(O.double()) ** 2 / B).cpu().numpy()
     lam = np.sort(lam)[::-1]
     lam_max = float(lam[0]) if lam.size else 0.0
     supp = lam[lam > lam_max * rel_tol]

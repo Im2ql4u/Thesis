@@ -1287,3 +1287,48 @@ unaffected; the dE numbers are being recomputed.
 
 **Next:** multi-day N-scaling campaign (N=6/12/20 x thesis omega grid x both backflows x 2 seeds) to
 test whether the collapse persists and how the gap scales with N.
+
+### [2026-07-20] — CORRECTED ablation: what the backflow BUYS, and the kinetic -> Coulomb crossover
+
+All ablations resampled from their own |Psi|^2 (the earlier pass reused un-ablated samples and gave
+variationally impossible energies). N=6, thesis omega grid, 2 seeds, both architectures.
+
+**dE = E(ablated) - E(full), i.e. what the backflow is worth. In units of omega:**
+
+| omega | CTNN (s0/s1)   | conventional (s0/s1) |
+|-------|----------------|----------------------|
+| 1.0   | 0.05w / 0.07w  | 0.07w / 0.09w        |
+| 0.1   | 0.30w / 0.40w  | 0.18w / 0.24w        |
+| 0.01  | **1.16w/1.10w**| **0.02w / 0.11w**    |
+
+**Finding 1 — the CTNN backflow becomes ~19x more valuable (in natural units) toward Wigner**
+(0.06w -> 1.13w) while the conventional one does not grow. In ABSOLUTE energy at omega=0.01 the
+conventional backflow buys +0.0002 and +0.0011 — it is worth essentially NOTHING, so that ansatz has
+degenerated to a bare PINN Jastrow. That is the mechanism behind its +0.58% error, and it is the same
+fact as its rank collapse (BFrank 1.0, d_eff 1.1): a backflow that buys nothing has no structure.
+
+**Finding 2 — the mechanism CROSSES OVER from kinetic to Coulomb** (this is the resolution of
+Aleksander's objection, and his physical intuition was correct):
+  - omega=1: conv dT = +0.61/+0.67 with dVc NEGATIVE (-0.05/-0.14). The backflow buys KINETIC energy
+    and slightly costs Coulomb.
+  - omega=0.1: dT and dVc both positive and comparable.
+  - omega=0.01: dT = -0.001/+0.0003 (zero), dVc = +0.0167/+0.0156. PURELY Coulomb; the backflow even
+    costs a little kinetic energy.
+So "message passing buys kinetic energy" is a HIGH-omega statement only. At Wigner the gain is
+correlation energy, which is exactly what a per-particle backflow cannot supply.
+
+**Finding 3 — at Wigner the messages ARE the backflow.** ctnn omega=0.01: backflow buys +0.0116,
+messages buy +0.0116 (s0) and +0.0127 vs +0.0110 (s1). Zeroing the inter-particle maps is as damaging
+as deleting the entire backflow. Without communication a backflow has nothing to offer when
+correlation dominates.
+
+**CAVEAT (do not over-read the T/V split at omega=1).** dT and dVc are differences of two independent
+MCMC estimates. At omega=1, var(E_L) ~ 0.1 and the seeds disagree sharply for CTNN (dT = -0.277 vs
++0.205) even though dE agrees (+0.051 vs +0.073). So the high-omega T/V decomposition is NOT resolved
+at n=1024; only the conventional arm's kinetic dominance (+0.61/+0.67, consistent) is trustworthy
+there. At omega=0.01 var(E_L) ~ 1.8e-5 and both seeds agree closely, so the Wigner conclusion is solid.
+A larger-n rerun is needed before quoting the omega=1 split.
+
+**Status:** N-scaling campaign (N=6/12/20 x thesis omega grid x both backflows x 2 seeds) running on
+all 8 GPUs, 0 failures. Open question it addresses: does the conventional backflow's collapse persist
+and does the CTNN advantage keep growing with N?

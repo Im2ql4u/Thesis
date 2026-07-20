@@ -30,7 +30,9 @@ ROOT = Path(__file__).resolve().parent.parent
 STAMP = "2026-07-16_scaling"
 OUTROOT = ROOT / "results/analysis" / STAMP
 
-STALL_SECONDS = 45 * 60      # no log write for this long => the chain is wedged
+# Generous on purpose: the segment loop logs only every steps//(2*n_seg) steps (375 at N=20), and a
+# large-N step is slow, so a tight threshold would kill healthy chains. This catches true hangs only.
+STALL_SECONDS = 90 * 60      # no log write for this long => the chain is wedged
 POLL_SECONDS = 120
 MAX_ATTEMPTS = 3             # attempt 2 halves the batch, attempt 3 halves again
 
@@ -174,6 +176,19 @@ def main():
         t.start()
     for t in threads:
         t.join()
+    log("=== TRAINING COMPLETE — running the mechanism analysis ===")
+    # Analyse automatically: the campaign runs unattended for days, so it should finish with results
+    # rather than a pile of checkpoints. Errors here must not mask a successful training run.
+    try:
+        env = dict(os.environ, CUDA_VISIBLE_DEVICES="0",
+                   PYTORCH_CUDA_ALLOC_CONF="expandable_segments:True")
+        with open(OUTROOT / "ANALYSIS.log", "w") as fh:
+            subprocess.run(["python3", "-u", str(ROOT / "scripts/analyze_pinn_ansatz.py"),
+                            "--camp", str(OUTROOT)],
+                           stdout=fh, stderr=subprocess.STDOUT, env=env, cwd=str(ROOT), timeout=6 * 3600)
+        log(f"analysis written to {OUTROOT/'ANALYSIS.log'} and master.csv")
+    except Exception as e:
+        log(f"analysis FAILED ({e!r}) — checkpoints are intact, rerun analyze_pinn_ansatz.py --camp {OUTROOT}")
     log("=== SCALING CAMPAIGN COMPLETE ===")
 
 

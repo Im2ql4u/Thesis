@@ -241,3 +241,43 @@ analysis should move onto `run_weak_form.py`-trained states instead.
 
 **Lesson (kept):** a network can be fully trained, have healthy weight norms, and still output
 identically zero. Never infer liveness from weight norms — measure the OUTPUT.
+
+---
+
+## [2026-07-20] The Wigner collapse is the CONVENTIONAL backflow; multi-day N-scaling campaign launched
+
+**Resolved (Aleksander's objection drove this).** He objected that "message passing buys kinetic
+energy" cannot also explain "CTNN only helps at low omega, where there is basically no kinetic
+energy". He was right, and the corrected measurement shows they are two different mechanisms:
+  - dT_msg = 0.60 / 0.068 / 0.007 at omega = 1 / 0.1 / 0.01 — constant in units of omega (0.60, 0.68,
+    0.70) but a SHRINKING share of total energy (3.0% -> 1.9% -> 1.0%). Kinetic is the HIGH-omega story.
+  - At omega=0.01 the backflow buys dE=+0.0116, of which Coulomb +0.0167 and kinetic -0.0010. At
+    Wigner the gain is entirely correlation/Coulomb; the backflow even COSTS a little kinetic energy.
+  - Messages buy +0.0116 of the backflow's +0.0116: at Wigner, deleting the messages is as damaging as
+    deleting the whole backflow. A backflow without inter-particle messages is worthless there.
+
+**The inversion.** On correctly-labelled, thesis-quality states (N=6, thesis omega grid, 2 seeds,
+identical training), it is the CONVENTIONAL per-particle backflow that collapses at Wigner —
+BFrank 10.5 -> 1.0, d_eff 6.4 -> 1.1, error +0.58% — while the CTNN backflow holds rank ~10 and stays
+at ~0.03%. The retracted 2026-07-02i claim said the opposite because backflow_arch silently defaulted
+to "conv". The phenomenon was real; the attribution was inverted.
+
+**Analysis bugs fixed before trusting any of it:**
+  - ablations now RESAMPLE from their own |Psi|^2. Evaluating an ablated ansatz on un-ablated samples
+    reported no-backflow energies BELOW the exact ground state (-1.62%); the corrected value is
+    +1.627% — same magnitude, wrong sign. Every ablation energy before this fix was invalid.
+  - ablations decomposed into kinetic and Coulomb, which is what separated the two mechanisms.
+  - kernel_spectrum now uses the Gram trick (O O^T, B x B) instead of svdvals(O) (B x P workspace) —
+    that SVD OOM'd the final diagnostics at N=6 and would have died at N=12/20.
+  - reference energies looked up per-N from config.DMC_ENERGIES instead of hardcoded N=6 values.
+
+**Launched (runs unattended for days):** scripts/orchestrate_scaling.py — N=6/12/20 x the THESIS omega
+grid {1.0, 0.5, 0.28, 0.1, 0.01, 0.001} x {ctnn, conv} x 2 seeds = 12 chains / 60 stages, one chain per
+GPU. Omegas restricted to the thesis's own grid because config._snap_omega RAISES beyond 50% from a
+reference and silently SNAPS nearer values (0.3 -> 0.28), which would score a run against the wrong
+reference. Resilience: OOM retry with halved sizes, 90-min stall detection on log mtime, per-chain
+isolation, resume-on-restart, and an automatic analysis pass at the end.
+
+**Open:** whether the collapse persists at N=12/20 and how the gap scales; results_kernel.tex still
+describes the CTNN *Jastrow* (CTNNJastrowVCycle vs DeepSet), not the thesis ansatz — valid work, wrong
+subject, NOT to be merged as-is (Aleksander asked me to hold off).

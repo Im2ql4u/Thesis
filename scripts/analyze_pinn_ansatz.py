@@ -164,15 +164,17 @@ def main():
     for d in sorted(CAMP.glob("*bf_s*_w*")):
         if not (d / "checkpoint.pt").exists():
             continue
-        # accepts both layouts: pinn_ctnnbf_s0_w1p0 (v3) and N6_ctnnbf_s0_w1 (scaling campaign)
-        m = re.match(r"(?:pinn|N\d+)_(ctnn|conv)bf_s(\d+)_w([0-9p.]+)$", d.name)
+        # accepts both layouts: pinn_ctnnbf_s0_w1p0 (v3, N=6) and N12_ctnnbf_s0_w1 (scaling campaign)
+        m = re.match(r"(?:pinn_|N(\d+)_)(ctnn|conv)bf_s(\d+)_w([0-9p.]+)$", d.name)
         if not m:
             continue
-        bfarch, seed, wtag = m.group(1), int(m.group(2)), float(m.group(3).replace("p", "."))
+        Nval = int(m.group(1)) if m.group(1) else 6  # 'pinn_' layout is the N=6 v3 campaign
+        bfarch, seed, wtag = m.group(2), int(m.group(3)), float(m.group(4).replace("p", "."))
         try:
-            r = analyze(d / "checkpoint.pt", bfarch, seed, wtag, dev); rows.append(r)
+            r = analyze(d / "checkpoint.pt", bfarch, seed, wtag, dev)
+            r["N"] = Nval; rows.append(r)
             flag = "" if r["alive"] else "   <<< DEAD BACKFLOW — rank/ablation NOT reported"
-            print(f"  PINN+{bfarch}-bf s{seed} w{wtag:<5} err={r['error_pct_raw']:+.3f}% "
+            print(f"  N{Nval} {bfarch}-bf s{seed} w{wtag:<5} err={r['error_pct_raw']:+.3f}% "
                   f"| bf buys dE={r['dE_backflow']:+.4f} (dT={r['dT_backflow']:+.4f} "
                   f"dVc={r['dVc_backflow']:+.4f}, {r['dE_bf_over_w']:+.2f}w) "
                   f"| msg dE={r['dE_msg']:+.4f} (dT={r['dT_msg']:+.4f} dVc={r['dVc_msg']:+.4f}) "
@@ -184,24 +186,21 @@ def main():
     with open(CAMP / "master.csv", "w", newline="") as fh:
         w = csv.DictWriter(fh, fieldnames=list(rows[0].keys())); w.writeheader(); w.writerows(rows)
     json.dump(rows, open(CAMP / "master.json", "w"), indent=2)
-    # contrast: CTNN vs conv backflow, seed-averaged, by omega
-    print("\n[contrast] PINN + CTNN-backflow vs PINN + conventional-backflow (seed-avg):")
-    print(f"{'w':>6} | {'err% ctnn/conv':>16} | {'d_eff ctnn/conv':>16} | {'BFrank ctnn/conv':>16} "
-          f"| {'msg dE/dT/dVc (ctnn)':>24}")
-    _ = None
+    # contrast: CTNN vs conv backflow, seed-averaged, PER N then omega (the collapse is the story)
     import collections
     by = collections.defaultdict(list)
     for r in rows:
-        by[(r['bfarch'], r['omega'])].append(r)
-    def m(bfarch, w, k):
-        rs = by.get((bfarch, w), [])
-        vs = [x[k] for x in rs if x[k] == x[k]]
+        by[(r['N'], r['bfarch'], r['omega'])].append(r)
+    def m(N, bfarch, w, k):
+        vs = [x[k] for x in by.get((N, bfarch, w), []) if x[k] == x[k]]
         return sum(vs) / len(vs) if vs else float('nan')
-    for w in sorted({r['omega'] for r in rows}, reverse=True):
-        print(f"{w:>6} | {m('ctnn',w,'error_pct_raw'):+.3f}/{m('conv',w,'error_pct_raw'):+.3f} "
-              f"| {m('ctnn',w,'deff'):.2f}/{m('conv',w,'deff'):.2f} "
-              f"| {m('ctnn',w,'bf_rank'):.1f}/{m('conv',w,'bf_rank'):.1f} "
-              f"| {m('ctnn',w,'dE_msg'):+.4f}/{m('ctnn',w,'dT_msg'):+.4f}/{m('ctnn',w,'dVc_msg'):+.4f}")
+    for N in sorted({r['N'] for r in rows}):
+        print(f"\n[contrast N={N}] CTNN vs conventional backflow (seed-avg):")
+        print(f"{'w':>6} | {'err% ctnn/conv':>16} | {'d_eff ctnn/conv':>14} | {'BFrank ctnn/conv':>16}")
+        for w in sorted({r['omega'] for r in rows if r['N'] == N}, reverse=True):
+            print(f"{w:>6} | {m(N,'ctnn',w,'error_pct_raw'):+.3f}/{m(N,'conv',w,'error_pct_raw'):+.3f} "
+                  f"| {m(N,'ctnn',w,'deff'):5.2f}/{m(N,'conv',w,'deff'):5.2f} "
+                  f"| {m(N,'ctnn',w,'bf_rank'):5.1f}/{m(N,'conv',w,'bf_rank'):5.1f}")
     print(f"-> {CAMP}/master.csv")
 
 

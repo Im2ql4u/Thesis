@@ -44,9 +44,15 @@ MAX_ATTEMPTS = 3             # attempt 2 halves the batch, attempt 3 halves agai
 N_CFG = {
     6:  dict(omegas=[1.0, 0.5, 0.28, 0.1, 0.01, 0.001], steps=3000, batch=2048,
              eval_samples=1024, final_samples=8192, align=2048),
-    12: dict(omegas=[1.0, 0.5, 0.28, 0.1, 0.01], steps=3000, batch=1024,
+    # batch 512 (was 1024): benchmarked 6.3 s/step vs 12.4 at N=12 CTNN with the exact Laplacian, so
+    # 512 halves wall-clock (~1.4 days for a CTNN seed) at 4.2 GB. Mismatched vs the completed conv@1024,
+    # but the smaller batch HANDICAPS CTNN, so a CTNN win stays conservative, and BFrank (the rank-collapse
+    # headline) is a property of the converged displacement, not of batch size.
+    12: dict(omegas=[1.0, 0.5, 0.28, 0.1, 0.01], steps=3000, batch=512,
              eval_samples=512, final_samples=4096, align=1024),
-    20: dict(omegas=[1.0, 0.5, 0.28, 0.1], steps=2500, batch=512,
+    # batch 256 (was 512): the backflow's B x N^2 edge tensors scale ~2.8x from N=12, so keep peak low;
+    # the OOM-retry halves further if needed.
+    20: dict(omegas=[1.0, 0.5, 0.28, 0.1], steps=2500, batch=256,
              eval_samples=256, final_samples=2048, align=512),
 }
 SEEDS = [0, 1]
@@ -153,9 +159,26 @@ def main():
     chains = ([(6, a, s) for a in ARCHS for s in SEEDS]
               + [(12, a, s) for a in ARCHS for s in SEEDS]
               + [(20, a, s) for a in ARCHS for s in SEEDS])
-    n_gpu = int(subprocess.run(["nvidia-smi", "-L"], capture_output=True, text=True).stdout.count("GPU "))
-    n_gpu = max(1, n_gpu)
-    log(f"{len(chains)} chains over {n_gpu} GPUs (one chain per GPU at a time)")
+    # Use only FREE GPUs. Co-tenancy is what OOM'd chains before (a neighbour's 5 GB left too little
+    # for the exact Laplacian), so a busy GPU must never be scheduled onto. "Free" = < 1 GB in use.
+    def free_gpus() -> list[int]:
+        # Both memory AND utilisation must be low. A compute-bound neighbour (e.g. Amber MD) can hold
+        # a GPU at 94% util on only ~500 MB, so a memory-only test would wrongly call it free and we
+        # would co-tenant onto a saturated GPU.
+        out = subprocess.run(["nvidia-smi", "--query-gpu=index,memory.used,utilization.gpu",
+                              "--format=csv,noheader,nounits"], capture_output=True, text=True).stdout
+        free = []
+        for line in out.strip().splitlines():
+            idx, used, util = (p.strip() for p in line.split(","))
+            if int(used) < 1000 and int(util) < 20:
+                free.append(int(idx))
+        return free
+    gpus = free_gpus()
+    if not gpus:
+        log("NO free GPUs (all in use by other users). Exiting; rerun when GPUs free up (resume skips "
+            "completed stages).")
+        return
+    log(f"{len(chains)} chains over {len(gpus)} FREE GPUs {gpus} (one chain per GPU; busy GPUs skipped)")
 
     work = queue.Queue()
     for c in chains:
@@ -175,7 +198,7 @@ def main():
             finally:
                 work.task_done()
 
-    threads = [threading.Thread(target=worker, args=(g,), daemon=True) for g in range(n_gpu)]
+    threads = [threading.Thread(target=worker, args=(g,), daemon=True) for g in gpus]
     for t in threads:
         t.start()
     for t in threads:

@@ -1345,3 +1345,36 @@ so the energy comparison remains meaningful — but the caveat must travel with 
 Note also that the memory asymmetry is itself a finding worth stating in the thesis: the
 message-passing backflow costs ~2x the memory of the per-particle one at N=12 (10.8 vs 5.6 GB),
 which is the price of the N^2 edge construction.
+
+### [2026-07-27] — SCALING CONFIRMED at N=12: CTNN holds full rank at Wigner, conventional collapses to 1
+
+The N=12 CTNN cascade (which OOM'd in the first run) completed after the exact-Laplacian chunking fix.
+Both backflows, both seeds, N=12, full omega grid, thesis-quality energies.
+
+**Energies (CTNN, all within |0.04%|):** w=1 +0.007/-0.039%, w=0.5 -0.005/-0.017%, w=0.28 -0.027/-0.015%,
+w=0.1 +0.008/-0.014%, w=0.01 +0.002/-0.018%. Versus conventional at w=0.01: +0.557/+0.572%. So the
+~30x CTNN accuracy advantage at Wigner PERSISTS at N=12 (it was ~19x at N=6).
+
+**Rank (BFrank = participation ratio of the backflow displacement):**
+| omega | N=6 ctnn/conv | N=12 ctnn/conv |
+|-------|---------------|----------------|
+| 1.0   | 10.4 / 10.4   | 20.6 / 21.7    |
+| 0.1   | 10.3 / 10.3   | 18.5 / 21.4    |
+| 0.01  | ~10 / **1.0** | 20.5 / **1.0** |
+
+At high omega both backflows use ~N independent displacement modes. At Wigner the CONVENTIONAL backflow
+collapses to a single collective mode (BFrank -> 1.0 at BOTH N), while the CTNN backflow HOLDS full rank
+(~10 at N=6, ~20 at N=12). The collapse is sharper at larger N (21x drop vs 10x). Tangent d_eff tells the
+same story from the other side: toward Wigner CTNN's GROWS (3.9 -> 10.4 at N=12) while conv's collapses
+(3.8 -> 1.1). This is the mechanism behind the energy gap, now established on two system sizes x two seeds.
+
+**Interpretation for the thesis:** the per-particle backflow can only express a rank-1 collective shift
+once correlations dominate — it has no channel to place electrons relative to each other. The
+message-passing backflow keeps a full-rank, per-particle-differentiated displacement because its
+inter-particle messages carry exactly that relational information (consistent with the earlier ablation:
+at Wigner the messages account for the backflow's ENTIRE energy contribution). Kinetic at high omega,
+relational/Coulomb at Wigner.
+
+**Status:** N=6 and N=12 complete (both arch, both seeds). N=20 was OOMing in the SR exact Laplacian even
+at reduced batch; fixed by lowering the Laplacian chunk 256->64 (isolated test: N=20 Laplacian peak
+4.4 -> 1.1 GB). N=20 restarted; watching the first SR polish to confirm it clears.

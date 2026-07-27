@@ -207,7 +207,7 @@ def _lap_log_hvp_hutch(psi_log_fn, x, probes=16):
     return acc / float(max(1, int(probes)))
 
 
-def _lap_log_exact(psi_log_fn, x, chunk: int = 256):
+def _lap_log_exact(psi_log_fn, x, chunk: int = 64):
     """Exact Laplacian of log|psi|, summed per walker.
 
     The autograd graph held across the N*d second-derivative passes scales with the batch, and for a

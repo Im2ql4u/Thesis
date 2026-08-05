@@ -32,7 +32,9 @@ OUTROOT = ROOT / "results/analysis" / STAMP
 
 # Generous on purpose: the segment loop logs only every steps//(2*n_seg) steps (375 at N=20), and a
 # large-N step is slow, so a tight threshold would kill healthy chains. This catches true hangs only.
-STALL_SECONDS = 90 * 60      # no log write for this long => the chain is wedged
+STALL_SECONDS = 180 * 60     # no log write for this long => the chain is wedged. N=20 with the exact
+                             # Laplacian is genuinely slow (log_every=100 steps can exceed an hour), so
+                             # a 90-min threshold false-killed healthy conv chains mid-step.
 POLL_SECONDS = 120
 MAX_ATTEMPTS = 3             # attempt 2 halves the batch, attempt 3 halves again
 

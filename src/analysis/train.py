@@ -244,6 +244,7 @@ def train_staged_backflow(
     batch: int = 2048,
     cusp_strength: float = 0.15,
     cusp_repulsive: bool = True,
+    stop_after_stage: int = 4,
     log_fn=print,
 ) -> dict:
     """The thesis curriculum (run_6e_bf_extend.py 'cusp+bf+joint'), generalised to any N/omega.
@@ -252,6 +253,10 @@ def train_staged_backflow(
       2. cusp pre-train           — prime Delta_x on the same-spin (Pauli) hole
       3. backflow, Jastrow frozen — force the displacement to carry real structure
       4. joint                    — release both (the Jastrow at lr*0.1)
+
+    stop_after_stage=3 returns a COMMON BASE (backflow alive, joint not yet done) so several final
+    optimizers/paradigms can be compared from an identical starting point (the Q2/Q3 2x2). All
+    params are left trainable on exit so the caller's joint phase can co-adapt them.
 
     Training all of it jointly from scratch is what produced my near-trivial rank-1 backflow: the
     Jastrow is a strictly easier route to the same correlation energy, so it wins the race and the
@@ -277,6 +282,16 @@ def train_staged_backflow(
         log_fn("\n=== stage 3/4: backflow only (Jastrow frozen) ===")
         out["backflow"] = train_vmc_adam(system, steps=backflow_steps, lr=lr, batch=batch,
                                          train_only="backflow", log_fn=log_fn)
+    if stop_after_stage <= 3:
+        # Common base for the Q2/Q3 2x2: leave everything trainable so the caller's joint phase
+        # (Adam/SR x VMC/colloc) starts from an identical, un-jointly-converged state.
+        for p in system.f_net.parameters():
+            p.requires_grad_(True)
+        if system.backflow_net is not None:
+            for p in system.backflow_net.parameters():
+                p.requires_grad_(True)
+        log_fn("\n=== stopping after stage 3 (common base built; joint left to the caller) ===")
+        return out
     log_fn("\n=== stage 4/4: joint (Jastrow released at lr*0.1) ===")
     out["joint"] = train_vmc_adam(system, steps=joint_steps, lr=lr, batch=batch,
                                   train_only="all", log_fn=log_fn)

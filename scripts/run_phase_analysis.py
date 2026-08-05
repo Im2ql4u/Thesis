@@ -101,6 +101,11 @@ def main() -> None:
                     help="add coordinate backflow (needed for nodes at N>=6)")
     ap.add_argument("--backflow-arch", type=str, default="conv", choices=["conv", "ctnn"],
                     help="conv = per-particle BackflowNet; ctnn = message-passing CTNNBackflowNet (thesis ansatz)")
+    ap.add_argument("--build-base-only", action="store_true",
+                    help="run the staged curriculum through stage 3 (backflow alive, joint NOT done), "
+                         "save the checkpoint and stop. This is the common base the Q2/Q3 2x2 cells "
+                         "({adam,sr} x {vmc,colloc}) each warm-start from, so they differ only in the "
+                         "final optimizer/paradigm, not the starting point.")
     ap.add_argument("--staged", action="store_true",
                     help="thesis curriculum (run_6e_bf_extend 'cusp+bf+joint'): Jastrow -> cusp "
                          "pre-train -> backflow with Jastrow frozen -> joint. Without this the "
@@ -196,8 +201,20 @@ def main() -> None:
             sysm, jastrow_steps=int(0.3 * a.steps), cusp_steps=a.cusp_steps,
             backflow_steps=int(0.3 * a.steps), joint_steps=int(0.4 * a.steps),
             lr=a.lr, batch=a.batch, cusp_repulsive=not a.cusp_attractive,
+            stop_after_stage=(3 if a.build_base_only else 4),
         )
         done = a.steps
+        if a.build_base_only:
+            # Save the common base (backflow alive, joint not done) for the Q2/Q3 2x2 and STOP:
+            # each cell warm-starts from this identical state and runs its own joint+polish.
+            base = out / "checkpoint.pt"
+            torch.save({"f_net": sysm.f_net.state_dict(),
+                        "backflow": (sysm.backflow_net.state_dict() if sysm.backflow_net else None),
+                        "backflow_arch": a.backflow_arch, "backflow_kwargs": bf_kwargs,
+                        "arch": a.arch, "arch_kwargs": ARCH_KWARGS[a.arch],
+                        "N": a.N, "omega": a.omega}, base)
+            print(f"[phase] common base saved (stage-3) -> {base}")
+            return
     for si, seg in enumerate(segs):
         sysm.train()
         if a.paradigm == "colloc":

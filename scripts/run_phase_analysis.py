@@ -268,10 +268,12 @@ def main() -> None:
 
     # ---- final polish: one settled, lower-lr, larger-batch run for a clean endpoint ----
     # (driver-only; the trainer is unchanged. A single call => no per-segment momentum resets.)
-    # Cap the polish batch by N: the CTNN backflow's (B, N, N, 3*edge_hidden) forward is ~5 GB at
-    # N=20, B=4096, which OOM'd every N=20 CTNN chain. The 4096/2048 inflation is a clean-endpoint
-    # nicety, not a correctness requirement, so drop it once N^2 makes it too large to fit.
-    polish_cap = max(512, 600_000 // (a.N * a.N))   # N=6:16667->4096, N=12:4166->2048+, N=20:1500
+    # Cap the polish batch by N: the CTNN backflow's (B, N, N, 3*edge_hidden) forward OOM'd every N=20
+    # CTNN chain at the polish (run_phase_analysis:~287), even at cap 1500 — the joint stage succeeds at
+    # batch 128 but the polish's larger batch does not. The inflation is a clean-endpoint nicety, not a
+    # correctness requirement, so at N>=20 do NOT inflate at all: polish at the batch the joint just
+    # survived. Smaller N keeps the 4096/2048 inflation.
+    polish_cap = a.batch if a.N >= 20 else max(512, 600_000 // (a.N * a.N))
     if a.polish_steps > 0:
         sysm.train()
         if a.paradigm == "colloc":

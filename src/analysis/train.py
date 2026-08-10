@@ -413,7 +413,12 @@ def train_collocation_sr(
         for p in params:
             p.grad = None
         loss.backward()
-        g = parameters_to_vector([p.grad for p in params]).double()  # collocation gradient (P,)
+        # A param that received no gradient from the weak-form loss (grad is None) contributes nothing
+        # to the natural gradient; treat it as an explicit zero rather than passing None to
+        # parameters_to_vector (which dereferences .device and crashes). Warm-started cells can hit this.
+        g = parameters_to_vector(
+            [p.grad if p.grad is not None else torch.zeros_like(p) for p in params]
+        ).double()  # collocation gradient (P,)
         # weighted score matrix and natural-gradient (Woodbury) solve: delta = (S+lam I)^{-1} g
         O = build_O(system.log_psi, xf, system.modules(), center=True).double()  # (B,P)
         Bn = O.shape[0]

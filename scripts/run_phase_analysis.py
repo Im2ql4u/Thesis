@@ -231,16 +231,13 @@ def main() -> None:
                 lap_mode="exact", log_every=max(1, seg // 2),
             )
         else:
-            train_model_sr_energy(
-                sysm.f_net, sysm.C_occ, psi_fn=psi_fn,
-                compute_coulomb_interaction=compute_coulomb_interaction,
-                backflow_net=sysm.backflow_net, spin=sysm.spin, params=sysm.params,
-                n_sr_steps=seg, log_every=max(1, seg // 2),
-                micro_batch=a.micro_batch, total_rows=a.total_rows,
-                sampler_steps=a.sampler_steps, sampler_step_sigma=a.sampler_sigma,
-                sampler_sigma_bounds=(0.05, 1.5), lap_mode="exact",
-                step_size=a.step_size, max_param_step=a.step_size, damping=a.damping,
-            )
+            # VMC + SR uses the modern natural-gradient trainer (vmap-built score matrix, chunked),
+            # NOT the legacy CG-SR train_model_sr_energy: DECISIONS.md records that one as memory/time
+            # heavy (it OOM'd even at N=2 here, building the full per-sample score matrix eagerly).
+            # This is the same fast_sr.train_sr used for the polish, so VMC-SR and the polish agree.
+            train_sr(sysm, steps=seg, batch=min(a.batch, 1024), sr_samples=min(a.batch, 1024),
+                     lr=a.sr_lr, damping=a.sr_damping, max_step=a.step_size,
+                     log_every=max(1, seg // 2))
         done += seg
         sysm.eval()
         x = sysm.sample(a.eval_samples, steps=200, burn_in=400)

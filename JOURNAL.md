@@ -1402,3 +1402,21 @@ N=2. The same-state overlap^2(vmc,colloc) is computing (the real Q3 test).
 
 **Status:** N=20 6/16 (conv through w0.28 both seeds; ctnn building). Q2/Q3 18/48 cells, all N=2 s0
 groups complete. Both healthy on all 8 GPUs.
+
+### [2026-08-11b] — Q3 answered at N=2: VMC and collocation reach the SAME state (overlap^2 > 0.997)
+
+The same-state overlap^2(vmc, colloc) at N=2, both optimizers, both seeds:
+  w1:   adam 0.99945 / sr 0.99859    w0.1: adam 0.99899 / sr 0.99834
+  w0.01: adam 0.99863 / sr 0.99745   (s1: adam 0.9986-0.9990; s1 sr cells still running)
+
+overlap^2 > 0.997 EVERYWHERE. So at N=2 the training paradigm is EFFICIENCY-ONLY, not state-shaping:
+VMC and collocation converge to the same wavefunction; collocation just pays ~5x variance to get there
+(and, from the training logs, its E_weak readout is biased low so it must be judged by overlap, not by
+E_weak). This extends the earlier single-point N=2 result (0.9992) across the full omega grid and both
+optimizers, and kills for good the retracted "paradigm shapes internal structure" claim at N=2.
+
+Subtle signal to watch: overlap^2 drifts DOWN toward Wigner (0.9994 -> 0.9986 at w=0.01). The paradigms
+diverge slightly more as correlation strengthens. If that trend grows at N=6 (where collocation's ESS
+may actually collapse at low omega), it becomes a real domain-of-validity finding for Q3.
+
+**Progress:** N=20 8/16 (halfway); Q2/Q3 22/48. Both healthy.

@@ -1378,3 +1378,27 @@ relational/Coulomb at Wigner.
 **Status:** N=6 and N=12 complete (both arch, both seeds). N=20 was OOMing in the SR exact Laplacian even
 at reduced batch; fixed by lowering the Laplacian chunk 256->64 (isolated test: N=20 Laplacian peak
 4.4 -> 1.1 GB). N=20 restarted; watching the first SR polish to confirm it clears.
+
+### [2026-08-11] — Q2/Q3 campaign live; first N=2 signal (both campaigns running post GPU-restore)
+
+The GPU driver was restored (580.178.04). Two campaigns now run in parallel: N=20 scaling (GPUs 4-7)
+and the Q2/Q3 2x2 (GPUs 0-3). Three bugs were caught by smoke-testing before the multi-day launch and
+fixed: N=20 CTNN polish-batch OOM (no inflation at N>=20), colloc_sr None-grad crash (zero-fill missing
+grads), and the VMC-SR cell wrongly using the legacy CG-SR trainer (swapped to fast_sr.train_sr, which
+then hit the EXACT N=2 energies).
+
+**Q2 (SR vs Adam), first read at N=2 (VMC energies, ref w1=3.0 / w0.1=0.44079 / w0.01=0.073839):**
+  w1:   adam 3.000078  sr 2.999967     w0.1: adam 0.440815  sr 0.440841
+  w0.01: adam 0.073836 sr 0.073837
+At N=2 SR and Adam are INDISTINGUISHABLE — both reach the exact ground state (var ~1e-9 at Wigner).
+There is no room for an optimizer to separate on a 2-electron problem; Q2's discriminating regime is
+larger N. Consistent with the earlier "SR's edge washes into seed noise" observation. The N=6 cells
+(running) are where Q2 is actually decided.
+
+**Q3 (colloc vs VMC), N=2:** the E_weak readout is the biased importance-sampled energy (misleading —
+judge by overlap, not E_weak). Fixed-proposal collocation ESS stays healthy (~0.32-0.42) across all
+omega at N=2, INCLUDING w=0.01 — so the ESS collapse is an N-and-low-omega effect expected at N=6, not
+N=2. The same-state overlap^2(vmc,colloc) is computing (the real Q3 test).
+
+**Status:** N=20 6/16 (conv through w0.28 both seeds; ctnn building). Q2/Q3 18/48 cells, all N=2 s0
+groups complete. Both healthy on all 8 GPUs.

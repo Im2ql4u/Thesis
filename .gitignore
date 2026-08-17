@@ -44,3 +44,10 @@ results/arch_colloc/diagnostics/
 
 # ML-Agents installer backups
 .agentic-backup/
+
+# Reproducible analysis binaries (checkpoints already ignored via *.pt) — keep only text records
+results/analysis/**/*.npz
+results/analysis/**/*.npy
+results/analysis/**/*.png
+results/analysis/**/*.zip
+results/analysis/**/plot_data.npz

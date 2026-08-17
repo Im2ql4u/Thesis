@@ -1,0 +1,156 @@
+% =====================================================================
+% Results: the message-passing backflow, its mechanism, and the
+% optimizer/paradigm choices around it.
+%
+% Re-centred on the ACTUAL thesis ansatz (Slater x PINN Jastrow x
+% backflow), replacing results_kernel.tex, which described a CTNN
+% *Jastrow* (vs DeepSet) -- correct numbers, wrong object. Everything
+% below is measured on the correct architecture, at thesis-quality
+% energies, with >=2 seeds.
+% =====================================================================
+
+\chapter{What the message-passing backflow learns}
+\label{ch:backflow}
+
+\section{Setup and the questions}
+
+We study $N$ electrons in a two-dimensional parabolic trap of frequency
+$\omega$ with Coulomb repulsion. The trial wavefunction is a closed-shell
+Slater determinant times a PINN Jastrow times a coordinate \emph{backflow}
+$\Delta\mathbf{x}$, which displaces each electron's effective coordinate as a
+function of the whole configuration. We compare two backflow architectures,
+identical in every other respect: a \textbf{conventional} per-particle backflow
+(each $\Delta\mathbf{x}_i$ from particle $i$'s neighbourhood), and a
+\textbf{message-passing (CTNN)} backflow, in which particles exchange learned
+messages on a graph before their displacements are read out. The trap frequency
+tunes the physics: at large $\omega$ kinetic energy dominates; as
+$\omega\!\to\!0$ (the \emph{Wigner} regime) Coulomb dominates and the electrons
+localise. We ask: \textbf{Q1 (architecture)} what does message passing let the
+backflow learn that a per-particle backflow cannot? \textbf{Q2 (optimizer)} does
+stochastic reconfiguration (SR, natural gradient) beat Adam? \textbf{Q3
+(paradigm)} does weak-form collocation reach the same state as $|\Psi|^2$-VMC?
+A tangent-kernel picture (score matrix $O_{ki}=\partial_{\theta_i}\log|\Psi(x_k)|$,
+quantum geometric tensor $S=O^\top O/B$, effective dimension
+$d_{\mathrm{eff}}=(\sum\lambda)^2/\sum\lambda^2$) is the common language.
+
+\section{Q1: the conventional backflow collapses; message passing does not}
+\label{sec:q1}
+
+\subsection{Energies}
+Both architectures reach reference quality at $\omega=1$ but diverge as the trap
+weakens (Table~\ref{tab:bf_energies}): the CTNN backflow holds $\sim\!0.02\%$
+error across all $N,\omega$, while the conventional backflow degrades to $+0.5\%$
+at $N=6,\omega=0.01$ and $\sim\!10\times$ the CTNN error already at $N=20,
+\omega=0.1$.
+
+\begin{table}[htbp]\centering
+\caption{Relative energy error (\%), seed-averaged. ($N=20$ run only to
+$\omega=0.1$.)}
+\label{tab:bf_energies}
+\begin{tabular}{l|cc|cc|cc}
+\hline
+ & \multicolumn{2}{c|}{$N=6$} & \multicolumn{2}{c|}{$N=12$} & \multicolumn{2}{c}{$N=20$}\\
+$\omega$ & CTNN & conv & CTNN & conv & CTNN & conv \\
+\hline
+1.0  & $-0.03$ & $+0.06$ & $-0.02$ & $+0.06$ & $+0.03$ & $+0.05$ \\
+0.1  & $-0.04$ & $+0.19$ & $+0.01$ & $+0.16$ & $+0.00$ & $+0.18$ \\
+0.01 & $-0.04$ & $+0.56$ & $-0.00$ & $+0.54$ & \multicolumn{2}{c}{---}\\
+\hline
+\end{tabular}
+\end{table}
+
+\subsection{The rank collapse}
+Let the \emph{backflow rank} be the participation ratio of the displacement field
+$\Delta\mathbf{x}$ (how many independent directions the backflow moves electrons
+along). At large $\omega$ both use $\sim\!N$ modes. Toward Wigner the
+\emph{conventional} backflow \textbf{collapses to a single collective mode}
+(rank $\to 1$) while the CTNN backflow \textbf{retains full rank $\sim\!N$}
+(Table~\ref{tab:bf_rank}); the collapse sharpens with size ($10\!\to\!1$ at $N=6$
+becomes $22\!\to\!1$ at $N=12$). The tangent dimension confirms it: toward Wigner
+$d_{\mathrm{eff}}$ grows for CTNN ($\sim\!4\!\to\!10$) and collapses for conv
+($\sim\!6\!\to\!1$). At $N=20$ (run only to $\omega=0.1$) both hold rank $\sim\!36$,
+i.e.\ the collapse $\omega$ was not reached---consistent with $N=6,12$, where conv
+rank is intact at $\omega=0.1$ and collapses only at $\omega=0.01$.
+
+\begin{table}[htbp]\centering
+\caption{Backflow displacement rank (participation ratio), seed-averaged.}
+\label{tab:bf_rank}
+\begin{tabular}{l|cc|cc}
+\hline
+ & \multicolumn{2}{c|}{$N=6$} & \multicolumn{2}{c}{$N=12$}\\
+$\omega$ & CTNN & conv & CTNN & conv \\
+\hline
+1.0  & $8.8$ & $10.4$ & $20.8$ & $22.2$ \\
+0.1  & $7.7$ & $10.4$ & $18.2$ & $21.7$ \\
+0.01 & $9.6$ & $\mathbf{1.0}$ & $20.6$ & $\mathbf{1.0}$ \\
+\hline
+\end{tabular}
+\end{table}
+
+\subsection{Why: what the backflow and the messages buy}
+Ablating the backflow ($\Delta\mathbf{x}\!=\!0$, sampler re-optimised) and
+splitting the recovered energy into kinetic and Coulomb parts gives two
+seed-stable facts. (i) \textbf{A kinetic$\to$Coulomb crossover:} at $\omega=1$ the
+backflow buys kinetic energy; at $\omega=0.01$ the gain is entirely Coulomb
+($\Delta V_{\mathrm{Coul}}\!\approx\!+0.017$, $\Delta T\!\approx\!0$). ``Message
+passing buys kinetic energy'' is a high-$\omega$ statement only. (ii) \textbf{At
+Wigner the messages \emph{are} the backflow:} zeroing the inter-particle maps
+($\rho_{v\to e},\rho_{e\to v}$) costs as much as deleting the whole displacement.
+A per-particle backflow has no channel for relative positioning---exactly what the
+crystal needs---so it collapses to rank~1; the messages supply that channel.
+
+\section{Q2: SR helps exactly when the optimisation is ill-conditioned}
+\label{sec:q2}
+
+Varying only the optimiser from a common stage-3 base:
+\textbf{for VMC, SR and Adam are indistinguishable} (exact at $N=2$, var
+$\sim\!10^{-9}$; energy gap $\lesssim 0.002$ at $N=6$, both seeds)---the VMC metric
+is well enough conditioned that Adam suffices. \textbf{For collocation, SR is
+essential:} $E_{\mathrm{Adam}}-E_{\mathrm{SR}}$ is large and positive (e.g.\ $+2.9$
+at $N=6,\omega=1$), because the importance weights make the objective badly
+conditioned. The verdict is \textbf{SR matters precisely when the tangent metric is
+ill-conditioned}---a function of $\kappa(S)$, not of the optimiser.
+
+\section{Q3: paradigms agree for small systems, diverge as they grow}
+\label{sec:q3}
+
+We test whether collocation and VMC reach the same \emph{state} via the symmetric
+overlap $\mathcal{S}^2=\langle\Psi_B/\Psi_A\rangle_{|\Psi_A|^2}
+\langle\Psi_A/\Psi_B\rangle_{|\Psi_B|^2}$.
+\textbf{$N=2$: identical states} ($\mathcal{S}^2>0.997$, every $\omega$, both
+optimisers, both seeds)---the paradigm is efficiency-only, collocation paying
+$\sim\!5\times$ the variance. \textbf{$N=6$: they diverge}---with Adam
+$\mathcal{S}^2$ falls $0.85\to0.77\to\approx0$ from $\omega=1$ to $0.01$ (both
+seeds), because the fixed proposal's ESS collapses to $0.11$ at $\omega=0.01$;
+a degenerate estimator, not undertraining. SR partially rescues it
+($\mathcal{S}^2\!\approx\!0.95$) but does not close the gap. Weak-form collocation
+thus has a \textbf{domain of validity}: equivalent to VMC when small/weakly
+correlated, degrading as $N$ and $1/\omega$ grow. This couples Q3 to Q2---the
+paradigm that needs SR (collocation) is the one that breaks down at scale---and
+motivates an adaptive proposal (future work).
+
+\section{Synthesis: one tangent kernel, and a gauge caveat}
+\label{sec:synthesis}
+
+All three answers are statements about the tangent kernel: Q1 is a rank collapse
+of the backflow's contribution to $O$; Q2 is the conditioning $\kappa(S)$ of the
+metric the optimiser inverts; Q3 is whether two measures induce the same
+$O$-column space. A caveat is itself a result: \textbf{component-level quantities}
+(backflow rank, $|\Delta\mathbf{x}|$, per-component $d_{\mathrm{eff}}$) are
+\textbf{gauge-like}---the Jastrow and backflow are substitutes, so how correlation
+is split between them is a nearly-flat, path-dependent direction of the loss, and
+those quantities depend on the training route, not the state. Every claim that
+reversed during this project was of that kind. The invariant measures---ablate and
+price in energy, or compare converged states by overlap---are stable, and are what
+the conclusions rest on.
+
+\section*{Conclusions}
+The message-passing backflow's advantage is specific and mechanistic, not a uniform
+``better network.'' At weak confinement the per-particle backflow can only express
+a rigid collective shift (rank~1), lacking any channel for relative positioning,
+and its energy degrades; the graph's messages supply that channel, keep the
+displacement full-rank, and do so by capturing Coulomb (not kinetic) correlation,
+the regime where it matters. The optimiser and paradigm choices are governed by the
+same tangent-kernel conditioning: SR is needed only for the ill-conditioned
+collocation objective, and collocation equals VMC only until its importance
+sampling loses the target at scale.

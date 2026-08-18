@@ -1447,3 +1447,29 @@ a correctly-placed ring proposal should pull it in.
 
 Next: fit the ring params to |Psi|^2 samples (simplest adaptive form), add the (0,6) hexagon channel,
 maximise ESS, then collocation-train N=6 at omega=0.001 with the ring proposal (cascade from 0.01).
+
+### [2026-08-18b] — Q3 Wigner-ring: quick-test series, and the angular-order wall
+
+Ran a series of fast tests probing whether a Wigner-ring proposal breaks the collocation wall at N=6.
+Findings (ESS out of 4096; concept = radial Gaussian x angle for the ring electrons + centre Gaussian):
+1. VALIDATED on trusted states: ring lifts ESS 15-32x over the origin-Gaussian (origin=1.5; ring
+   hand-tuned=22.5; ring fitted to |Psi|^2=47.5) at omega=0.01. Origin-Gaussian is already collapsed
+   (ESS=1.5) at omega=0.01. Fitting the ring to the data doubles ESS.
+2. (0,6) hexagon mixture HURTS at N=6 -- the state is (1,5), so mixing in (0,6) dilutes proposal mass.
+   Pure (1,5) is correct for N=6; multi-shell mixtures are for N=12/20.
+3. Direct cross-omega warm-start (omega=0.01 params -> omega=0.001 System) = +306% (networks
+   extrapolated 4-5x outside their training scale); ESS collapses to 1 even with the ring, because the
+   proposal targets the ground state, not the (garbage) current state. DEAD END for a direct jump.
+4. ESS-maximising pretrain (minimise Var[2log|Psi|-log q] on ring samples, no MCMC) from that +306%
+   start PLATEAUS at Var(logw)~85, ESS never climbs past ~7. The global density reshaping is stuck in a
+   bad basin.
+5. Refine from the +25% omega=0.001 VMC state (RIGHT (1,5) structure, ring over-expanded to 6.8 ell)
+   with the ring fitted to its own density: ESS STILL = 1.0. This is the key negative -- fitting the
+   radial ring is not enough at omega=0.001.
+
+**Hypothesis under test:** at deep Wigner the molecule CRYSTALLISES angularly (electrons ~equally spaced,
+72 deg for the pentagon), so an independent-uniform-ANGLE ring proposal almost never hits the correlated
+configuration -> ESS collapse. At omega=0.01 the molecule is still a "ring liquid" (uniform angle OK,
+ESS=47); at omega=0.001 it is a crystal (needs angular correlation). If confirmed, the proposal needs
+angular order (rotated+jittered pentagon), whose symmetrised density is expensive -- OR use the ring as
+a cheap MCMC INITIALISER (physics-informed start -> fast mixing), an MCMC-light rather than MCMC-free route.

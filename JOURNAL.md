@@ -1420,3 +1420,30 @@ diverge slightly more as correlation strengthens. If that trend grows at N=6 (wh
 may actually collapse at low omega), it becomes a real domain-of-validity finding for Q3.
 
 **Progress:** N=20 8/16 (halfway); Q2/Q3 22/48. Both healthy.
+
+### [2026-08-18] — Q3 frontier: the Wigner-ring proposal (concept validated, 15x ESS lift)
+
+The thesis's collocation wall (N=12 at omega<=0.01 fails, ESS->1; N=20 stuck at +1.45%) is set entirely
+by the PROPOSAL: run_weak_form.py:310 samples every collocation point from ORIGIN-centered Gaussians
+(torch.randn * s, widths sigma_f in {0.8,1.3,2.0} * ell). But at low omega the electrons crystallise
+into a Wigner molecule on a SHELL far from the origin, so |Psi|^2 has no mass where the proposal puts
+it. Confirmed: no non-origin proposal was ever tried; the one attempt to fix coverage (Langevin
+refinement) FAILED because short non-equilibrium dynamics bias the REINFORCE gradient.
+
+Classical N=6 Wigner molecule: (1,5) -- one centre + five on a ring at 1.334*omega^{-2/3}. In oscillator
+units the ring sits at 1.96 ell (omega=0.1), 2.87 ell (0.01), 4.22 ell (0.001) -- it moves OUT as omega
+falls, past the reach of a width-2 origin Gaussian.
+
+**Proposal: a Wigner-ring proposal** -- radial Gaussian x uniform angle for the ring electrons (+ a
+centre Gaussian for the (1,5) channel), which is rotationally symmetric by construction (matches the
+"rotating Wigner molecule": radially pinned, angularly nearly free). ESS test against the TRUSTED
+N=6 omega=0.01 state (energy -0.06%, density confirmed (1,5) with ring at 2.8 ell = classical 2.87):
+  origin-Gaussian mixture (thesis) : ESS = 1.5 / 4096  (collapsed)
+  Wigner ring (1,5)                : ESS = 22.5 / 4096  (15x better)
+So the ring proposal covers |Psi|^2 ~15x better than the origin mixture, on a real state, with no
+training -- the concept is validated cheaply. The bad +25% omega=0.001 VMC state has the right STRUCTURE
+((1,5)) but the wrong SCALE (ring at 6.5 ell vs classical 4.2) -- VMC failed on scale, not geometry, so
+a correctly-placed ring proposal should pull it in.
+
+Next: fit the ring params to |Psi|^2 samples (simplest adaptive form), add the (0,6) hexagon channel,
+maximise ESS, then collocation-train N=6 at omega=0.001 with the ring proposal (cascade from 0.01).

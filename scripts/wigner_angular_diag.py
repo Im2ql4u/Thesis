@@ -21,5 +21,5 @@ def angular_order(ck, tag):
     gaps = torch.cat(gaps).cpu().numpy() * 180/math.pi
     print(f"  [{tag}] omega={W}: gap mean={gaps.mean():.1f} std={gaps.std():.1f} "
           f"frac<20deg={np.mean(gaps<20):.2f}  (72=pentagon; std->0 crystal, large=liquid)", flush=True)
-for w,t in [("w1p0","1.0 "),("w0p1","0.1 "),("w0p01","0.01"),("w0p001","0.001+25%")]:
+for w,t in [("w1","1.0 "),("w0p1","0.1 "),("w0p01","0.01"),("w0p001","0.001+25%")]:
     angular_order(f"results/analysis/2026-07-16_scaling/N6_ctnnbf_s0_{w}/checkpoint.pt", t)

@@ -1473,3 +1473,29 @@ configuration -> ESS collapse. At omega=0.01 the molecule is still a "ring liqui
 ESS=47); at omega=0.001 it is a crystal (needs angular correlation). If confirmed, the proposal needs
 angular order (rotated+jittered pentagon), whose symmetrised density is expensive -- OR use the ring as
 a cheap MCMC INITIALISER (physics-informed start -> fast mixing), an MCMC-light rather than MCMC-free route.
+
+### [2026-08-18c] — Q3 Wigner: the deep-Wigner wall is angular crystallisation + high-D correlation
+
+CONFIRMED (well-converged states, N=6): the ring angular order tightens monotonically as the trap
+weakens -- nearest-neighbour gap std = 40.8 / 33.3 / 25.5 / 6.7 deg at omega = 1 / 0.1 / 0.01 / 0.001.
+The molecule goes from a "ring liquid" (uniform angle) to an angular CRYSTAL (electrons pinned at 72 deg,
+frac of gaps <20deg = 0.00). This EXPLAINS the collocation wall the thesis only described: at deep
+Wigner a uniform-angle ring almost never lands on the crystalline configuration -> ESS collapse. It also
+explains WHY the ring worked at omega=0.01 (still 25 deg liquid) but not 0.001 (6.7 deg crystal).
+
+Attempted fix -- an angularly-correlated (rotated jittered pentagon) proposal -- gave only ESS ~5
+(from 1.3), BUT that number is UNRELIABLE: the quick test's density (independent Gaussian on sorted
+wrap-gaps) is inconsistent with its sampler (phi + 72k + jitter, gaps constrained to sum to 2pi). So the
+crystalline test is inconclusive; a correct symmetrised density (marginalise phi and the 5! assignments)
+is needed to actually measure it.
+
+**Honest assessment.** Solid win: the (uniform) ring proposal lifts ESS 15-47x over origin-Gaussians at
+MODERATE Wigner (omega=0.01-0.1), extending collocation's reach where the thesis proposal already
+collapses. Solid diagnosis: the deep-Wigner (omega=0.001) target is a highly-correlated ~12-DOF
+distribution (radial pinning x angular crystal x e-e correlation), which factorised analytic proposals
+struggle to cover -- the fundamental curse of importance sampling in high dimensions. Open question:
+whether a CORRELATED proposal with a correct tractable density can reach omega=0.001 MCMC-free. Candidate
+routes: (a) autoregressive/sequential proposal (sample electrons conditionally -> captures correlation,
+tractable product-of-conditionals density); (b) learned normalising-flow proposal; (c) MCMC-LIGHT
+hybrid -- the physics-informed ring as a fast-mixing MCMC initialiser (unlike the thesis's origin-started
+Langevin, which failed because it started far from |Psi|^2).

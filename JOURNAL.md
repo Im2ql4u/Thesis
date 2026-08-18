@@ -1499,3 +1499,24 @@ routes: (a) autoregressive/sequential proposal (sample electrons conditionally -
 tractable product-of-conditionals density); (b) learned normalising-flow proposal; (c) MCMC-LIGHT
 hybrid -- the physics-informed ring as a fast-mixing MCMC initialiser (unlike the thesis's origin-started
 Langevin, which failed because it started far from |Psi|^2).
+
+### [2026-08-18d] — Q3 Wigner cascade: MCMC-free method works to omega=0.005; deep rungs need gentle steps
+
+Assembled the proper MCMC-free method: Wigner-ring proposal (radial Gaussian x Dirichlet angular gaps) +
+oversampling + CONTINUOUS adaptive re-fit (weighted moment-match every 10 steps, no MCMC) + omega-cascade,
+seeded from the good omega=0.01 state. Key mechanism found: continuous re-fit keeps ESS healthy (60-230
+/8192) WHILE the energy descends -- a static or every-200-step re-fit collapsed ESS to ~3 (the state moves
+away from a stale proposal). This is the fix that lets an analytic proposal track a moving wavefunction.
+
+Result: omega=0.005 CONVERGED (Ew=0.43, matching the Wigner-scaling estimate E(0.005)~E(0.01)*0.5^(2/3)),
+ESS healthy throughout -- a good state trained MCMC-free with the ring proposal, past where the origin
+proposal collapses (ESS~1). BUT the omega=0.005->0.002 step (factor 2.5) BROKE: the warm-start was
+under-expanded (0.91 ell vs classical 3.75 ell), the energy stuck (Ew 0.77 vs expected ~0.24), ESS
+declining. Diagnosis: a proposal fit to the CURRENT state is LOCAL -- it only samples where |Psi|^2 already
+is, so collocation is blind to the lower-energy region at larger radius and cannot discover a 4x
+expansion. omega=0.005 worked because its required expansion was small enough for the local proposal to
+bridge.
+
+Fix: gentle cascade -- many SMALL omega steps (factor ~1.3) so each rung stays within the adaptive
+proposal's local reach, more steps/rung, checkpoint each rung. (Alternative: broaden sigma_r for
+exploration.) Relaunching as a long run. The MCMC-free-to-omega=0.005 result already extends the frontier.

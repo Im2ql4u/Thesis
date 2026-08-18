@@ -1,822 +1,308 @@
 % =====================================================================
-%  Results chapter: the tangent-kernel picture
-%  (architecture vs optimiser vs paradigm, one lens)
+%  Results chapter: architecture, optimiser, and paradigm through the
+%  tangent kernel. UNIFIED draft.
 %
-%  Self-contained draft to be restructured/merged into results.tex later.
-%  Figures live in results/figures/results/kernel/ ; the line below lets
-%  this file compile whether \input standalone or from within results.tex.
+%  Supersedes the split between the earlier kernel draft (message
+%  passing in the JASTROW) and results_backflow.tex (message passing in
+%  the BACKFLOW): both are the same relational-channel idea seen through
+%  the tangent kernel, and are merged here. All numbers are on the
+%  thesis ansatz at DMC-quality energies; seed counts are stated.
 % =====================================================================
 \graphicspath{{../results/figures/results/}{../results/figures/results/kernel/}}
 
 \chapter{Architecture, optimiser, and paradigm through the tangent kernel}
 \label{ch:kernel}
 
-The preceding chapter established that our ansatz --- a Slater determinant dressed
-by a message-passing (CTNN) Jastrow and coordinate backflow --- reaches
-diffusion-Monte-Carlo (DMC) quality across the $(N,\omega)$ grid, and that its
-internal feature space is low-dimensional and reorganises with the physical
-regime (\S\ref{sec:repr-analysis}). This chapter asks \emph{why}, and does so
-by comparing the three design axes of a neural quantum state against each other
-through a single lens.
+Our ansatz is a closed-shell Slater determinant dressed by two learnable
+objects: a \emph{Jastrow} correlator $f$ and a coordinate \emph{backflow}
+$\Delta\mathbf{x}$. Both can be built as a separable, per-particle network or as a
+\emph{message-passing} (CTNN) network in which particles exchange learned messages
+on a graph before a quantity is read out. The previous chapter established that the
+message-passing ansatz reaches diffusion-Monte-Carlo (DMC) quality across the
+$(N,\omega)$ grid. This chapter asks \emph{why} message passing helps, and answers
+it for both objects through a single lens, then extends the same lens to the
+optimiser and the training paradigm.
 
-\paragraph{Three questions.} We treat three choices as co-equal, first-class
-questions:
-\begin{itemize}
-  \item[\textbf{Q1}] \textbf{Architecture.} When and why does a message-passing
-  correlator (CTNN) beat a separable, pairwise one (a permutation-invariant
-  DeepSet)?
-  \item[\textbf{Q2}] \textbf{Optimiser.} What does stochastic reconfiguration
-  (SR, natural gradient) actually do to the update, and where does it beat Adam?
-  \item[\textbf{Q3}] \textbf{Paradigm.} What changes between $|\Psi|^2$-sampled
-  variational Monte Carlo (VMC) and importance-sampled collocation --- in
-  conditioning, variance, and the learned state?
-\end{itemize}
-
-\paragraph{One lens.} Each question is asked through the geometry of the
-per-sample log-derivative (score) matrix
+\paragraph{One idea, one lens.} The thesis of this chapter is that message passing
+buys one thing---a \textbf{relational channel}, a way to condition each particle's
+contribution on where the others are---and that this single mechanism explains
+three superficially separate design choices. We read all three through the geometry
+of the per-sample log-derivative (score) matrix
 \begin{equation}
   O_{ki} \;=\; \frac{\partial \log|\Psi_{\btheta}(\bx_k)|}{\partial \theta_i},
   \qquad k=1,\dots,B,\;\; i=1,\dots,P,
   \label{eq:kernel-O}
 \end{equation}
-whose two Gram matrices are the quantum geometric tensor (QGT / Fisher metric)
-$S = O^{\!\top}O / B$ and the neural tangent kernel (NTK) $K = OO^{\!\top}$.
-The central diagnostic is the \emph{effective dimension} of the variational
-tangent space, the participation ratio of the QGT spectrum $\{\lambda_a\}$,
+whose Gram matrices are the quantum geometric tensor (QGT / Fisher metric)
+$S = O^{\!\top}O / B$ and the neural tangent kernel $K = OO^{\!\top}$. The central
+diagnostic is the \emph{effective dimension} of the variational tangent space, the
+participation ratio of the QGT spectrum $\{\lambda_a\}$,
 \begin{equation}
   d_{\mathrm{eff}}(S) \;=\; \frac{\left(\sum_a \lambda_a\right)^2}{\sum_a \lambda_a^2},
   \label{eq:deff}
 \end{equation}
 which counts how many independent tangent directions carry Fisher weight at the
-solution, regardless of the parameter count $P$. We read it alongside the local-energy
-variance $\Var(E_L)$ (zero only for an exact eigenstate, hence a measure of
-wavefunction quality), the sampling efficiency (effective sample size, ESS), and
-the condition number $\kappa(S)$.
+solution, regardless of the parameter count $P$. We read it alongside the
+local-energy variance $\Var(E_L)$ (zero only for an exact eigenstate, hence a
+measure of wavefunction quality), the sampling efficiency (effective sample size
+ESS), and the condition number $\kappa(S)$.
 
-\paragraph{Discipline.} Every cross-architecture $d_{\mathrm{eff}}$ comparison
-uses a \emph{common probe set}: all models are scored on the \emph{same}
-configurations drawn from a fixed reference measure, not on each model's own
-$|\Psi|^2$. We report $d_{\mathrm{eff}}$ only
-where it has converged in the sample count $B$ (the participation ratio, not the
-sample-capped numerical rank), and we anchor the tooling on the analytic
-two-electron ground state, for which the CTNN ansatz reproduces
-$E = 3.000127$~Ha ($+0.004\%$) with squared overlap
-$|\langle\Psi_{\btheta}|\Psi_{\mathrm{exact}}\rangle|^2 = 1.000000$.%
-\footnote{Analytic $N=2$ solution at $\omega=1$: $E=3\,\hbar\omega$,
-$\Psi\propto e^{-(r_1^2+r_2^2)/2}(1+r_{12})$; cusp $\mathrm{d}J/\mathrm{d}r|_0=1$.
-% TODO cite Taut1993
-} All statistics below are single-seed unless a seed count is stated.
+\paragraph{The three questions.}
+\textbf{Q1 (architecture).} What does a message-passing correlator/backflow learn
+that a separable one cannot? \textbf{Q2 (optimiser).} What does stochastic
+reconfiguration (SR, natural gradient) do to the update, and where does it beat
+Adam? \textbf{Q3 (paradigm).} What changes between $|\Psi|^2$-sampled VMC and
+importance-sampled collocation?
 
-\paragraph{Headline findings.} \textbf{(Q1)} A message-passing correlator compresses
-the ground state into $\sim\!2\times$ fewer effective tangent directions than a
-separable DeepSet at weak coupling ($1.40\pm0.17$ vs $3.25\pm0.03$ at $\omega=1$,
-$\sim\!11\sigma$, seeded); the gap \emph{closes} toward the Wigner crystal, where
-both reach $\sim\!3.7$ but occupy different tangent subspaces and CTNN's is the
-lower-variance one. The tangent directions are \emph{named} at the exact $N=2$
-anchor --- they are the physical collective modes of $H$ (breathing,
-correlation-hole, relative excitation) to $R^2=1.00$. A single-seed dimension
-``inversion'' at the crystal is reported and then \emph{retracted} under seeding
-(\S\ref{sec:kernel-q1-sweep}), as a worked cautionary result. \textbf{(Q2)}
-Stochastic reconfiguration whitens the tangent kernel (exact at $N=2$); its
-advantage over Adam is null in the easy regime and first resolves at low $\omega$.
-\textbf{(Q3)} The collocation--VMC difference is governed by the sampling
-\emph{measure}: $|\Psi|^2$ is self-preconditioning, the covering proposal drives a
-monotone ESS collapse, and the weak form discards the Laplacian's zero-variance.
-Throughout, the robust cross-cutting discriminator is $\Var(E_L)$ --- lower for CTNN
-at every $\omega$.
+\paragraph{Discipline.} Cross-architecture $d_{\mathrm{eff}}$ comparisons use a
+\emph{common probe set} (all models scored on the same configurations, not on each
+model's own $|\Psi|^2$); we report only participation ratios converged in the
+sample count $B$; and we anchor the tooling on the analytic two-electron ground
+state, where the ansatz reproduces $E=3.000127$~Ha ($+0.004\%$) with squared
+overlap $1.000000$. Backflow comparisons are seeded ($\ge 2$ seeds) and held at
+DMC-quality energies.
+
+\paragraph{Headline findings.}
+\textbf{(Q1a, Jastrow)} A message-passing correlator compresses the ground state
+into $\sim\!2\times$ fewer effective tangent directions than a separable DeepSet at
+weak coupling ($1.40\pm0.17$ vs $3.25\pm0.03$ at $\omega=1$, $\sim\!11\sigma$,
+seeded), and those directions are the physical collective modes of $H$ (breathing,
+correlation-hole, relative excitation) to $R^2=1.00$ at the $N=2$ anchor.
+\textbf{(Q1b, backflow)} At the Wigner crystal the \emph{conventional} backflow
+collapses to a single collective displacement mode (rank $10\!\to\!1$ at $N=6$,
+$22\!\to\!1$ at $N=12$) and its energy degrades to $+0.5\%$, while the
+message-passing backflow keeps full rank $\sim\!N$ and stays at $\sim\!0.02\%$; the
+gain there is Coulomb (not kinetic) correlation, and the inter-particle messages
+account for the entire backflow contribution. \textbf{(Q2)} SR whitens the tangent
+kernel; its value tracks $\kappa(S)$---negligible for the well-conditioned VMC
+metric, decisive for the ill-conditioned collocation objective.
+\textbf{(Q3)} VMC and collocation reach the \emph{same state} when the importance
+sampling is healthy ($N=2$: overlap $>0.997$) and \emph{diverge} when it is not
+($N=6$ Wigner: ESS $\to 0.11$, overlap $\to 0$ under Adam). A cross-cutting caveat,
+itself a result: component-level quantities (rank, $|\Delta\mathbf{x}|$) are
+gauge-like; energy, overlap, and ablation are the invariants.
 
 % =====================================================================
-\section{Q1 --- Architecture: message passing compresses the correlator}
+\section{Q1 --- Architecture: message passing supplies a relational channel}
 \label{sec:kernel-q1}
 
-\subsection{At weak correlation, energy hides the difference; dimension reveals it}
+Message passing helps in both learnable objects, in two complementary ways that are
+the same statement about the tangent kernel: in the Jastrow it \emph{compresses}
+the correlation into fewer effective directions; in the backflow it keeps the
+displacement from \emph{collapsing} to a single direction. We take them in turn.
 
-At $N=6$, $\omega=1$ the two architectures are \emph{energetically
-indistinguishable}. Trained to DMC quality, every model --- CTNN and DeepSet
-alike, across a $20$k--$164$k parameter ladder --- lands within $\pm0.1\%$ of the
-reference energy; the best raw energy in the whole set belongs to a DeepSet at
-$164$k parameters ($-0.052\%$), \emph{twice} the CTNN parameter count. Total
-energy is a blunt discriminator here: both ans\"atze have saturated the variational
-floor.
+\subsection{Q1a --- In the Jastrow: message passing compresses the correlator}
+\label{sec:kernel-q1a}
 
-The difference is in the \emph{geometry}. Table~\ref{tab:fair-dim} reports the
-fair, common-probe effective dimension. Two facts stand out. First, the CTNN
-reaches the ground state in a tangent space of
-$d_{\mathrm{eff}} \approx 1.2$--$1.7$ (three seeds), while every DeepSet needs
-$d_{\mathrm{eff}} \approx 2.9$--$3.6$ --- a factor of $\sim\!2$. Second, this gap
-is \emph{robust to the probe measure} (the value moves by $\lesssim 0.2$ whether
-scored on CTNN-, DeepSet-, or pooled samples) and \emph{does not shrink as the
-DeepSet is given more capacity}: the $164$k DeepSet sits at $d_{\mathrm{eff}}=2.9$,
-no lower than the $20$k one. The compression is architectural, not a matter of
-size or of where each net places its sampling mass.
+At $N=6$, $\omega=1$ the two Jastrow families are \emph{energetically
+indistinguishable}: trained to DMC quality across a $20$k--$164$k parameter ladder,
+every model lands within $\pm0.1\%$ of the reference, and the best raw energy
+belongs to a $164$k DeepSet---twice the CTNN parameter count. Total energy is a
+blunt discriminator; both have saturated the variational floor.
 
-\begin{table}[htbp]
-\centering
-\caption{Fair effective dimension at $N=6$, $\omega=1$ (common probe set, $f$-net
-tangent space; backflow is identical across architectures). $d_{\mathrm{eff}}$ is
-reported on the pooled probe and, in the last two columns, on CTNN-only and
-DeepSet-only probe points to show measure-robustness. Parameter counts are for the
-correlator ($f$-net) only.}
-\label{tab:fair-dim}
-\small
-\setlength{\tabcolsep}{7pt}
-\begin{tabular}{llr ccc}
-\toprule
-Model & Family & $P_{f\text{-net}}$ & $d_{\mathrm{eff}}$ (pooled) & (CTNN pts) & (DS pts) \\
-\midrule
-CTNN, seed 1        & CTNN    & \num{66498}  & 1.50 & 1.47 & 1.50 \\
-CTNN, seed 2        & CTNN    & \num{66498}  & 1.20 & 1.18 & 1.19 \\
-CTNN, seed 3        & CTNN    & \num{66498}  & 1.66 & 1.62 & 1.66 \\
-\midrule
-DeepSet-S           & DeepSet & \num{6874}   & 3.63 & 3.42 & 3.61 \\
-DeepSet-M           & DeepSet & \num{34354}  & 3.37 & 3.11 & 3.32 \\
-DeepSet-match       & DeepSet & \num{76106}  & 3.65 & 3.42 & 3.62 \\
-DeepSet-XL          & DeepSet & \num{150754} & 2.94 & 2.73 & 2.90 \\
-\bottomrule
+The difference is geometric. On a common probe set the CTNN reaches the ground
+state in $d_{\mathrm{eff}}\approx1.2$--$1.7$ (three seeds), while every DeepSet
+needs $d_{\mathrm{eff}}\approx2.9$--$3.6$---a factor of $\sim\!2$. The gap is robust
+to the probe measure ($\lesssim0.2$ whether scored on CTNN, DeepSet, or pooled
+points) and does not shrink as the DeepSet is given more capacity (the $164$k
+DeepSet sits at $2.9$, no lower than the $20$k one). The compression is
+architectural, not a matter of size or sampling mass.
+
+Seeded, at weak coupling the separation is $d_{\mathrm{eff}}=1.40\pm0.17$ (CTNN) vs
+$3.25\pm0.03$ (DeepSet), $\sim\!11\sigma$. The gap is a \emph{weak-coupling} effect:
+it closes toward the Wigner crystal, where both families reach $\sim\!3.7$ but
+occupy \emph{different} tangent subspaces, with the CTNN's carrying the lower
+$\Var(E_L)$. A single-seed dimension ``inversion'' at the crystal, reported in an
+earlier draft, did \emph{not} survive seeding and is retracted here as a worked
+cautionary result (see \S\ref{sec:synthesis}).
+
+\paragraph{Naming the manifold.} At the exact $N=2$ anchor the leading tangent
+directions are not abstract: an operator decomposition identifies them, to
+$R^2=1.00$, as the physical collective modes of $H$---a breathing mode
+($\partial_\omega$), a correlation-hole mode, and the first relative excitation.
+The message-passing correlator finds the ground state by moving along the handful of
+coordinates the Hamiltonian actually couples; the separable network spreads the same
+solution over more directions because it must rebuild each pairwise correlation
+independently rather than route it through shared messages.
+
+\subsection{Q1b --- In the backflow: message passing prevents rank collapse}
+\label{sec:kernel-q1b}
+
+The same relational channel is decisive, in a sharper form, in the backflow. Here we
+fix everything but the backflow architecture (conventional per-particle vs.\ CTNN)
+and train both to a Woodbury-SR endpoint. At $\omega=1$ both reach reference
+quality, but they diverge as the trap weakens (Table~\ref{tab:bf_energies}): the
+CTNN backflow holds $\sim\!0.02\%$ error across all $N,\omega$, while the
+conventional backflow degrades to $+0.5\%$ at $N=6,\omega=0.01$ and $\sim\!10\times$
+the CTNN error already at $N=20,\omega=0.1$.
+
+\begin{table}[htbp]\centering
+\caption{Q1b. Relative energy error (\%), seed-averaged. ($N=20$ run only to
+$\omega=0.1$.)}
+\label{tab:bf_energies}
+\begin{tabular}{l|cc|cc|cc}
+\hline
+ & \multicolumn{2}{c|}{$N=6$} & \multicolumn{2}{c|}{$N=12$} & \multicolumn{2}{c}{$N=20$}\\
+$\omega$ & CTNN & conv & CTNN & conv & CTNN & conv \\
+\hline
+1.0  & $-0.03$ & $+0.06$ & $-0.02$ & $+0.06$ & $+0.03$ & $+0.05$ \\
+0.1  & $-0.04$ & $+0.19$ & $+0.01$ & $+0.16$ & $+0.00$ & $+0.18$ \\
+0.01 & $-0.04$ & $+0.56$ & $-0.00$ & $+0.54$ & \multicolumn{2}{c}{---}\\
+\hline
 \end{tabular}
 \end{table}
 
-\begin{figure}[htbp]
-  \centering
-  \includegraphics[width=0.86\textwidth]{fair_dimension}
-  \caption{Effective tangent dimension $d_{\mathrm{eff}}(S)$ at $N=6$, $\omega=1$
-  under the common-probe protocol. The CTNN--DeepSet gap ($\sim\!1.5$ vs
-  $\sim\!3.3$) is independent of DeepSet capacity and of the probe measure.}
-  \label{fig:fair-dimension}
-\end{figure}
+The energy gap has a sharp structural signature. Let the \emph{backflow rank} be the
+participation ratio of the displacement field $\Delta\mathbf{x}$ (how many
+independent directions the backflow moves electrons along). At large $\omega$ both
+architectures use $\sim\!N$ modes. Toward Wigner the \emph{conventional} backflow
+collapses to a single collective mode (rank $\to1$), while the CTNN backflow retains
+full rank $\sim\!N$ (Table~\ref{tab:bf_rank}); the collapse sharpens with size
+($10\!\to\!1$ at $N=6$ becomes $22\!\to\!1$ at $N=12$). The tangent dimension tells
+the same story from the other side: toward Wigner $d_{\mathrm{eff}}$ grows for CTNN
+($\sim\!4\!\to\!10$) and collapses for the conventional backflow
+($\sim\!6\!\to\!1$). ($N=20$, run only to $\omega=0.1$, has not reached the collapse
+frequency; both hold rank $\sim\!36$, consistent with $N=6,12$ where the
+conventional rank is intact at $\omega=0.1$ and collapses only at $\omega=0.01$.)
 
-The lower variance travels with the lower dimension. Even where the energies tie,
-the CTNN's $\Var(E_L)$ is consistently below the DeepSet's ($2.3\times$ at
-$\omega=1$; Table~\ref{tab:omega-sweep}), i.e.\ the CTNN's wavefunction is closer
-to a true eigenstate. This is the honest form of ``CTNN beats FFNN'': not in
-energy, but in the \emph{quality} and \emph{compactness} of the represented state.
-
-\subsection{Across $\omega$: CTNN's compression advantage is a weak-coupling effect}
-\label{sec:kernel-q1-sweep}
-
-The weak-correlation anchor tells only half the story. Sweeping $\omega$ from the
-shell regime ($\omega=1$) toward the Wigner crystal ($\omega=0.01$) at $N=6$
-(Table~\ref{tab:omega-sweep}, Fig.~\ref{fig:omega-sweep}) shows the CTNN's effective
-dimension rising with correlation ($1.2$ at $\omega=1$ toward $\sim\!3.7$ near the
-crystal) while the DeepSet's stays near $3.3$--$4.3$ throughout. The single-seed
-sweep appears to cross over --- CTNN's dimension overtaking DeepSet's at
-$\omega=0.01$ --- but, as we show next, that dramatic endpoint is a single-seed
-artifact: seeded, the two dimensions \emph{converge} rather than invert. The robust
-statement is milder and cleaner: CTNN compresses far below DeepSet at weak coupling
-($1.2$ vs $3.4$), and that gap \emph{closes} toward the crystal.
-
-\begin{table}[htbp]
-\centering
-\caption{$\omega$-sweep at $N=6$ (common probe, $f$-net tangent space; \emph{single
-seed per point --- exploratory}). The single-seed trend suggests CTNN's effective
-dimension rises toward Wigner while DeepSet's stays near $3.3$--$4.3$. The dramatic
-$\omega=0.01$ endpoint (marked $\dagger$) does \textbf{not} survive seeding: with
-three seeds at matched analysis-grade quality it becomes CTNN $3.70$ vs DeepSet
-$3.84$ --- convergence, not inversion (Table~\ref{tab:crossover-seeded}). What
-\emph{does} survive is CTNN's lower $\Var(E_L)$ at every $\omega$. $r$ is the ratio
-DeepSet/CTNN.}
-\label{tab:omega-sweep}
-\small
-\setlength{\tabcolsep}{6pt}
-\begin{tabular}{r cc c cc c}
-\toprule
- & \multicolumn{2}{c}{$d_{\mathrm{eff}}(S)$} & & \multicolumn{2}{c}{$\Var(E_L)$} & \\
-\cmidrule(lr){2-3}\cmidrule(lr){5-6}
-$\omega$ & CTNN & DeepSet & $r$ & CTNN & DeepSet & $r$ \\
-\midrule
-1.00 & 1.21 & 3.38 & 2.8 & $1.99\times10^{-2}$ & $4.55\times10^{-2}$ & 2.3 \\
-0.50 & 1.27 & 3.38 & 2.7 & $7.71\times10^{-3}$ & $1.17\times10^{-2}$ & 1.5 \\
-0.28 & 1.24 & 3.57 & 2.9 & $5.06\times10^{-3}$ & $6.24\times10^{-3}$ & 1.2 \\
-0.10 & 1.80 & 3.62 & 2.0 & $7.86\times10^{-4}$ & $1.31\times10^{-3}$ & 1.7 \\
-0.05 & 1.79 & 4.31 & 2.4 & $3.70\times10^{-4}$ & $6.02\times10^{-4}$ & 1.6 \\
-0.03 & 2.56 & 4.21 & 1.6 & $1.63\times10^{-4}$ & $2.30\times10^{-4}$ & 1.4 \\
-0.01$^\dagger$ & 5.21 & 3.24 & 0.6 & $8.50\times10^{-6}$ & $3.29\times10^{-5}$ & 3.9 \\
-\bottomrule
+\begin{table}[htbp]\centering
+\caption{Q1b. Backflow displacement rank (participation ratio), seed-averaged.}
+\label{tab:bf_rank}
+\begin{tabular}{l|cc|cc}
+\hline
+ & \multicolumn{2}{c|}{$N=6$} & \multicolumn{2}{c}{$N=12$}\\
+$\omega$ & CTNN & conv & CTNN & conv \\
+\hline
+1.0  & $8.8$ & $10.4$ & $20.8$ & $22.2$ \\
+0.1  & $7.7$ & $10.4$ & $18.2$ & $21.7$ \\
+0.01 & $9.6$ & $\mathbf{1.0}$ & $20.6$ & $\mathbf{1.0}$ \\
+\hline
 \end{tabular}
 \end{table}
 
-\begin{figure}[htbp]
-  \centering
-  \includegraphics[width=0.95\textwidth]{omega_sweep}
-  \caption{$\omega$-sweep of the effective tangent dimension and local-energy
-  variance at $N=6$. CTNN (blue) compresses to $\sim\!1$ collective direction at
-  weak coupling and expands to $\sim\!5$ toward the Wigner crystal; DeepSet
-  (wine) is pinned near $\sim\!3.3$ throughout. CTNN is the lower-variance
-  wavefunction at every $\omega$.}
-  \label{fig:omega-sweep}
-\end{figure}
+\paragraph{Why, mechanistically.} Ablating the backflow ($\Delta\mathbf{x}\!=\!0$,
+sampler re-optimised) and splitting the recovered energy into kinetic and Coulomb
+parts gives two seed-stable facts. (i) A \textbf{kinetic$\to$Coulomb crossover}: at
+$\omega=1$ the backflow buys kinetic energy; at $\omega=0.01$ the gain is entirely
+Coulomb ($\Delta V_{\mathrm{Coul}}\!\approx\!+0.017$, $\Delta T\!\approx\!0$).
+``Message passing buys kinetic energy'' is a high-$\omega$ statement only.
+(ii) \textbf{At Wigner the messages \emph{are} the backflow}: zeroing the
+inter-particle maps ($\rho_{v\to e},\rho_{e\to v}$) costs as much as deleting the
+whole displacement. A per-particle backflow has no channel for relative positioning
+---exactly what the crystal needs---so it can only shift everyone together (rank~1);
+the messages supply that channel.
 
-The single-seed sweep suggests an \emph{inversion} at the crystal --- CTNN's
-dimension overtaking DeepSet's --- but this is exactly the kind of dramatic
-single-seed claim that must be checked before it is believed. Retraining three
-seeds per architecture at $\omega=0.01$ to matched analysis-grade quality
-(Table~\ref{tab:crossover-seeded}, Fig.~\ref{fig:crossover-seeded}) \textbf{overturns
-it}: the effective dimensions \emph{converge} to $3.70\pm0.04$ (CTNN) and
-$3.84\pm0.08$ (DeepSet) --- equal within error. The single-seed $5.21$ vs $3.24$ was
-a checkpoint/optimisation-path artifact: at $\omega=0.01$ the landscape is flat
-enough that $d_{\mathrm{eff}}$ depends on which ground state a run settles into, so a
-single seed is not diagnostic there. What is robust and seeded is the
-\emph{variance}: CTNN's $\Var(E_L) = 1.8\times10^{-5}$ vs DeepSet's
-$3.3\times10^{-5}$ ($1.8\times$ lower), with a better energy ($-0.030\%$ vs
-$+0.072\%$). So at the Wigner crystal the two architectures reach the \emph{same}
-effective dimension, but CTNN finds a lower-variance state within it --- and, as the
-cross-projection below shows, a \emph{different} tangent subspace.
-
-\begin{table}[htbp]
-\centering
-\caption{Seeded Q1: the compression gap at weak coupling and its closure at the
-crystal ($N=6$, fair common-probe $d_{\mathrm{eff}}$; mean\,$\pm$\,seed s.d., $n$ in
-parentheses). At $\omega=1$, five CTNN and three DeepSet \emph{independent} runs give
-a $2.3\times$ gap separated by $\sim\!11\sigma$ --- the weak-coupling compression is
-robust. At $\omega=0.01$ the dimensions \emph{converge}: the single-seed inversion of
-Table~\ref{tab:omega-sweep} does not survive (here the three seeds share an
-$\omega=0.1$ warm-start, so the bands are measurement/optimisation variance, not
-independent basins). CTNN's $\Var(E_L)$ is lower in both regimes.}
-\label{tab:crossover-seeded}
-\small
-\setlength{\tabcolsep}{9pt}
-\begin{tabular}{ll cccc}
-\toprule
-$\omega$ & arch & $d_{\mathrm{eff}}(S)$ & $\Var(E_L)$ & energy error & NO count \\
-\midrule
-$1$      & CTNN    & $1.40\pm0.17$ (5) & $2.2\times10^{-2}$ & $+0.016\%$ & $2.21$ \\
-         & DeepSet & $3.25\pm0.03$ (3) & $7.1\times10^{-2}$ & $+0.046\%$ & $2.11$ \\
-\midrule
-$0.01$   & CTNN    & $3.70\pm0.04$ (3) & $1.8\times10^{-5}$ & $-0.030\%$ & $6.13$ \\
-         & DeepSet & $3.84\pm0.08$ (3) & $3.3\times10^{-5}$ & $+0.072\%$ & $6.14$ \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-\begin{figure}[htbp]
-  \centering
-  \includegraphics[width=0.8\textwidth]{phaseB_crossover}
-  \caption{Seeded $\omega=0.01$ crossover ($N=6$, three seeds each). Left: effective
-  tangent dimension --- CTNN and DeepSet converge ($3.70\pm0.04$ vs $3.84\pm0.08$),
-  overturning the single-seed inversion. Right: local-energy variance --- CTNN
-  remains $\sim\!1.8\times$ lower. At the crystal the architectures reach equal
-  dimension; CTNN's edge is quality.}
-  \label{fig:crossover-seeded}
-\end{figure}
-
-The sweep is therefore best read not as an inversion but as a weak-to-strong
-\emph{convergence}: CTNN's large compression advantage at weak coupling shrinks as
-correlation grows, until at the crystal both architectures need the same effective
-dimension. To see what that dimension is spent on --- and why the architectures
-differ at weak coupling --- we compare it against the physical collective-mode count
-(the natural-orbital participation ratio of the 1-RDM), which is nearly
-architecture-independent. Table~\ref{tab:modecount} pairs the two.
-
-\begin{table}[htbp]
-\centering
-\caption{Tangent dimension versus the physical mode count (natural-orbital
-participation ratio of the 1-RDM), $N=6$, both architectures on a common probe. The
-NO count is nearly the same for the two nets at each $\omega$ (it is set by the
-represented state), rising $\sim\!2\to6$ toward the crystal. CTNN's tangent
-dimension stays a roughly constant fraction of it (ratio $\approx0.5$--$0.6$);
-DeepSet's is rigid, so its ratio \emph{crosses unity} --- over-complete at weak
-coupling, converging to CTNN's fraction at the crystal. Rows for $\omega\geq0.1$ are
-single-seed; the $\omega=0.01$ row ($\ddagger$) is the three-seed matched-grade value
-(Table~\ref{tab:crossover-seeded}). (The $\omega=0.01$ NO count is on a grid-truncated
-1-RDM, trace $\approx1.9$ of $3$, so its absolute value is uncertain; the
-cross-architecture comparison is fair because both nets share the grid.)}
-\label{tab:modecount}
-\small
-\setlength{\tabcolsep}{6pt}
-\begin{tabular}{r ccc c ccc}
-\toprule
- & \multicolumn{3}{c}{CTNN} & & \multicolumn{3}{c}{DeepSet} \\
-\cmidrule(lr){2-4}\cmidrule(lr){6-8}
-$\omega$ & $d_{\mathrm{eff}}$ & NO & ratio & & $d_{\mathrm{eff}}$ & NO & ratio \\
-\midrule
-1.00 & 1.21 & 2.10 & 0.58 & & 3.38 & 2.34 & 1.45 \\
-0.50 & 1.27 & 2.25 & 0.57 & & 3.38 & 2.68 & 1.26 \\
-0.10 & 1.80 & 3.44 & 0.52 & & 3.62 & 3.36 & 1.08 \\
-0.01$^\ddagger$ & 3.70 & 6.13 & 0.60 & & 3.84 & 6.14 & 0.63 \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-\paragraph{Interpretation.} The physical mode count is the same for both nets at
-each $\omega$ (Table~\ref{tab:modecount}): it is set by the state and rises from
-$\sim\!2$ to $\sim\!6$ toward the crystal. What differs is whether the \emph{tangent}
-dimension follows it. CTNN's does, at a roughly constant fraction (ratio
-$\approx0.5$--$0.6$): it allocates variational directions in step with the physics as
-the mode count grows. DeepSet's does not --- pinned near $3.3$--$3.8$, its ratio
-\emph{crosses unity} around $\omega=0.1$: over-complete at weak coupling (three
-tangent directions for a $\sim\!2$-mode state, redundant), and converging to CTNN's
-dimension only at the crystal. The architectural difference is therefore a
-\emph{weak-coupling} one --- CTNN compresses where DeepSet is redundant --- and it
-closes toward Wigner, where both reach $\sim\!3.7$--$3.8$ (seeded,
-Table~\ref{tab:crossover-seeded}) and CTNN's remaining advantage is variance.
-
-\paragraph{Whose collective coordinate?} A cross-architecture projection on the
-common probe --- both nets' NTK eigenfunctions live in the same space of functions on
-the probe points --- shows the two architectures differ not only in \emph{how many}
-directions they carry but in \emph{which}. At weak-to-moderate coupling
-($\omega\geq0.1$) they share the \emph{same single leading collective coordinate}:
-DeepSet's top direction captures $\geq0.98$ of CTNN's and vice versa ($k_{90}=1$),
-differing only in the redundant directions DeepSet carries on top. At the crystal (on
-the matched-grade seeded checkpoints) their leading modes become nearly
-\emph{orthogonal} (mutual top-1 capture $\approx0.01$): CTNN's leading mode needs
-three DeepSet directions to represent, DeepSet's needs all six of CTNN's, and the
-top-3 subspaces overlap only $0.42$. So at Wigner the nets reach the \emph{same}
-effective dimension but span \emph{different} tangent subspaces --- and CTNN's is the
-lower-variance one. The message-passing advantage thus changes character across the
-sweep: dimensional \emph{compression} at weak coupling (a global collective
-coordinate is a coordinated deformation across all particles, which iterated message
-passing and the V-cycle's coarse-graining carry in one coherent direction, whereas a
-sum of pairwise features must approximate it piecewise), and a better \emph{choice} of
-subspace at the crystal, where the dimension is common. This reframes the earlier
-feature-space observation (\S\ref{sec:repr-geom}): the correlator does not merely
-\emph{live} on a low-dimensional manifold, it \emph{sizes} and \emph{orients} that
-manifold to the physics.
-
-\subsection{Naming the manifold}
-\label{sec:kernel-naming}
-
-What \emph{are} these tangent directions? At $N=2$, $\omega=1$ the ansatz is exact
-(overlap$^2 = 1.00000$, $E = 3.00000$~Ha), so we can compare the network's Jastrow
-tangent modes --- functions of the pair distance $r_{12}$ --- against the exact
-physical responses of the Hamiltonian in the \emph{same} function space: the
-breathing response $\partial_\omega J^\star$ (trap scale), the correlation-hole
-response $\partial_\lambda J^\star$ (Coulomb strength $\lambda$), and the relative
-excitations $\phi_n = u_n/u_0$ (exact excited states of the relative problem).
-
-The identification is essentially perfect (Fig.~\ref{fig:response-projection}). The
-network's leading tangent mode is captured by
-$\mathrm{span}\{\partial_\omega,\partial_\lambda,\phi_1\}$ to \textbf{1.000}, and
-its top-two subspace to $0.990$. A least-squares naming of the leading mode gives
-$R^2 = 1.000$ with the breathing response dominant ($\partial_\omega$ coefficient
-$-0.83$), plus the first relative excitation ($\phi_1$, $-0.16$) and negligible
-$\partial_\lambda$/$\phi_2$. All four physical modes lie inside the network's
-top-six span ($0.92$--$1.00$); the remaining network directions are
-tiny-eigenvalue numerical modes with no physical content.
-
-So the $\sim\!1$-dimensional variational manifold at weak coupling \emph{is the
-breathing mode}, and the effective $2$--$3$-dimensional tangent space is exactly
-$\{$breathing, correlation-hole, first relative excitation$\}$. This names the
-dimensions of Table~\ref{tab:modecount} at the exact anchor and grounds the
-physical reading the $N=6$ sweep only inferred: the directions the ansatz must
-resolve are the low collective modes of $H$, and the tangent dimension is their
-count. It also sets up Q2 --- the dominant, softest direction is the smooth
-breathing, while the short-range correlation-hole (the cusp physics) is a stiffer,
-subdominant direction, which is where the optimiser question turns.
-
-\paragraph{Naming at $N=6$ by operator decomposition.} There is no analytic $N=6$
-solution, so we name the tangent modes there against a basis of physical operator
-generators evaluated on the probe --- monopole/breathing $\sum_i r_i^2$, quadrupole
-$\sum_i(x_i^2-y_i^2)$, short-range correlation-hole
-$\sum_{i<j}e^{-r_{ij}^2/2\sigma^2}$, pair-Coulomb $\sum_{i<j}1/r_{ij}$, and
-pair-linear $\sum_{i<j}r_{ij}$. At $\omega=1$ the leading tangent mode of \emph{both}
-architectures is a named physical collective mode --- a pair-correlation/breathing
-combination ($R^2 = 0.99$ CTNN, $1.00$ DeepSet) --- so the $N=2$ picture carries to
-$N=6$. At the Wigner crystal a sharp, seed-robust difference appears (three seeds
-each): CTNN's leading mode stays physical ($R^2 = 0.93\pm0.02$, dominated by the
-pair/Coulomb/breathing operators), while \emph{DeepSet's leading mode is not physical
-at all} ($R^2 = 0.01\pm0.01$) --- its physical content is demoted to a subdominant
-direction. This independently corroborates the cross-projection
-(\S\ref{sec:kernel-q1-sweep}): at strong correlation the separable net's dominant
-variational direction drifts off the physical collective modes, whereas message
-passing keeps its leading direction oriented to the physics.
-
-\begin{figure}[htbp]
-  \centering
-  \includegraphics[width=0.95\textwidth]{response_projection}
-  \caption{Naming the manifold at $N=2$, $\omega=1$ (exact). Left: the exact
-  physical response/excitation modes as functions of pair distance. Right: the
-  network's leading tangent modes. The leading network mode is the breathing
-  response $\partial_\omega$ to $R^2 = 1.00$; the effective tangent space is spanned
-  by $\{$breathing, correlation-hole, first relative excitation$\}$.}
-  \label{fig:response-projection}
-\end{figure}
-
-\begin{figure}[htbp]
-  \centering
-  \includegraphics[width=0.98\textwidth]{phaseA_closers}
-  \caption{Phase-A closers ($N=6$, no training; the $\omega=0.01$ points here are
-  single-seed and superseded by the seeded values of Table~\ref{tab:crossover-seeded}).
-  Left: tangent $d_{\mathrm{eff}}$ (solid) and the physical natural-orbital count
-  (dashed) vs $\omega$ for both architectures. Middle: their ratio; CTNN stays
-  near-constant and below unity, DeepSet crosses unity. Right: fraction of CTNN's
-  leading collective coordinate captured by DeepSet's top $k$ NTK directions --- one
-  suffices at weak coupling; at the crystal the leading modes diverge (three DeepSet
-  directions needed on the matched-grade seeded checkpoints).}
-  \label{fig:phaseA-closers}
-\end{figure}
-
-\subsection{Scaling in $N$ (at initialisation)}
-\label{sec:kernel-q1-scaling}
-
-Does the compression advantage grow with system size? The trained-state answer at
-$N\geq12$ is blocked by training instability and exact-Laplacian memory (a separate
-infrastructure task), but the \emph{architectural inductive bias} can be probed
-directly and cheaply, because it is already present at initialisation (the $N=6$ gap
-appears in the untrained tangent space). Building the untrained $f$-net tangent space
-on a common Gaussian probe --- first derivatives only, no Laplacian --- gives the
-effective dimension of the architecture's raw parametrisation (Table~\ref{tab:scaling},
-three random inits each). CTNN's init dimension \emph{falls} with $N$
-($2.1\to1.6\to1.4$ for $N=6,12,20$) while DeepSet's stays rigid ($\sim\!3.5$--$3.7$),
-so the gap \emph{grows} with system size ($1.7\times\to2.6\times$;
-Fig.~\ref{fig:dinit-scaling}). Message passing
-compresses harder the more particles there are to correlate; a separable pairwise sum
-does not. This is the inductive-bias dimension, not the trained-solution dimension
-(the seed scatter at init is large, and init $\neq$ solution --- e.g.\ trained CTNN at
-$N=6$, $\omega=1$ sits at $1.4$, below its init $2.1$); the trained-state $N$-scaling
-remains for the deferred large-$N$ training campaign.
-
-\begin{table}[htbp]
-\centering
-\caption{Architectural inductive-bias dimension vs $N$ at $\omega=1$: fair
-$d_{\mathrm{eff}}$ of the \emph{untrained} $f$-net tangent space on a common Gaussian
-probe (mean\,$\pm$\,s.d.\ over three inits). CTNN compresses further with $N$;
-DeepSet is rigid; the gap grows.}
-\label{tab:scaling}
-\small
-\setlength{\tabcolsep}{10pt}
-\begin{tabular}{r ccc}
-\toprule
-$N$ & CTNN & DeepSet & gap \\
-\midrule
-6  & $2.09\pm0.77$ & $3.60\pm0.79$ & $1.7\times$ \\
-12 & $1.63\pm0.47$ & $3.49\pm0.61$ & $2.1\times$ \\
-20 & $1.44\pm0.24$ & $3.69\pm0.97$ & $2.6\times$ \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-\begin{figure}[htbp]
-  \centering
-  \includegraphics[width=0.62\textwidth]{dinit_scaling}
-  \caption{Architectural inductive-bias dimension vs $N$ ($\omega=1$, at
-  initialisation). CTNN's effective tangent dimension falls with $N$ while DeepSet's
-  is $N$-independent, so the compression gap widens toward larger systems.}
-  \label{fig:dinit-scaling}
-\end{figure}
+\subsection{The unified reading of Q1}
+Q1a and Q1b are one statement. In both objects the separable network must rebuild
+each inter-particle relation independently, so it either spreads the solution over
+more tangent directions (Jastrow: larger $d_{\mathrm{eff}}$) or, when the physics
+demands a genuinely collective response, cannot represent it at all and collapses to
+the only relation it can express---a rigid common shift (backflow: rank~1). Message
+passing routes those relations through shared messages, which \emph{compresses} the
+correlation where a compact representation exists and \emph{sustains} it where a
+collective one is required. Both are visible only in the tangent-kernel geometry, not
+in the total energy, until the physics (weak confinement) makes the geometric deficit
+an energetic one.
 
 % =====================================================================
-\section{Q2 --- Optimiser: what SR does, and where it earns its keep}
+\section{Q2 --- Optimiser: SR earns its keep where the metric is ill-conditioned}
 \label{sec:kernel-q2}
 
-\subsection{SR whitens the tangent kernel (exact validation)}
+Stochastic reconfiguration preconditions the gradient by the inverse QGT,
+$\dot\btheta = -S^{-1}\nabla_\btheta E$; geometrically it \emph{whitens} the tangent
+kernel. At $N=2$ this is exact: the SR step aligns with the imaginary-time direction
+to numerical precision. The question is where whitening changes the outcome.
 
-Against the exact $N=2$ ground state, the role of natural gradient is
-unambiguous. The plain (score-function) gradient weights each NTK mode by its
-eigenvalue $\mu_a$, starving all but the few stiffest directions; SR reweights all
-supported modes equally --- it \emph{whitens} the kernel. The physics residual,
-$-(H-E)\Psi$ projected onto the tangent space, has power spread across \emph{all}
-modes. The result is a near-orthogonality of the plain gradient to the imaginary-time
-(Hamiltonian) flow that SR removes: at convergence,
-$\cos(\delta\btheta_{\mathrm{SR}}, \text{$H$-flow}) = 0.997$ versus
-$\cos(\delta\btheta_{\mathrm{plain}}, \text{$H$-flow}) = 0.041$
-(Fig.~\ref{fig:ntk-whitening}), with the gap driven by an extreme conditioning
-$\kappa(S)\sim 10^{12}$ on a $d_{\mathrm{eff}}\approx1.2$ tangent space. This is
-the descriptive claim ``SR = NTK whitening'', validated exactly.
+Fixing the ansatz and varying only the optimiser from a common stage-3 base:
+\textbf{for $|\Psi|^2$-VMC, SR and Adam are indistinguishable}---exact at $N=2$
+(var $\sim\!10^{-9}$), and at $N=6$ the energy gap
+$E_{\mathrm{Adam}}-E_{\mathrm{SR}}$ is $\lesssim0.002$ across $\omega$ and both
+seeds. The VMC metric is well enough conditioned ($\kappa(S)$ moderate, and
+$|\Psi|^2$ sampling is self-preconditioning) that Adam already moves along the right
+directions. \textbf{For weak-form collocation, SR is essential}: there
+$E_{\mathrm{Adam}}-E_{\mathrm{SR}}$ is large and positive (e.g.\ $+2.9$ at
+$N=6,\omega=1$), because the importance weights make the objective badly
+conditioned and plain Adam fails to converge it.
 
-\begin{figure}[htbp]
-  \centering
-  \includegraphics[width=0.92\textwidth]{ntk_whitening}
-  \caption{NTK whitening at $N=2$, $\omega=1$ (exact ground truth). The plain
-  gradient (weighting $\propto\mu_a$) collapses onto the softest modes; SR spreads
-  the update over all supported modes, matching the spectrum of the physics
-  residual. This is what ``the gradient is misaligned with the Hamiltonian'' means
-  concretely.}
-  \label{fig:ntk-whitening}
-\end{figure}
-
-\subsection{Whether SR \emph{beats} Adam depends on the regime}
-
-Descriptive whitening does not by itself imply a prescriptive advantage. To test
-where SR actually beats Adam we ran a controlled experiment: a common Adam
-warm-up, then a branch into Adam-only versus SR-only from an \emph{identical}
-checkpoint, measuring against the exact state the energy error, the distance
-$\|\log|\Psi_{\mathrm{exact}}| - \log|\Psi_{\btheta}|\|$, and its decomposition in
-a fixed NTK eigenbasis split into stiff (low-$\mu$) and soft (high-$\mu$) halves.
-Table~\ref{tab:sr-vs-adam} collects three regimes (four seeds each).
-
-\begin{table}[htbp]
-\centering
-\caption{SR versus Adam from a shared warm-up (four seeds; mean, with $\pm1$~s.d.\
-seed band where informative). At $N=2$, $\omega=1$ the optimisers tie, with or
-without the analytic cusp. As $\omega$ drops to $0.1$, SR's energy band separates
-from Adam's ($\sim\!1.5\sigma$): the advantage appears where $\kappa(S)$ and
-$\Var(E_L)$ grow.}
-\label{tab:sr-vs-adam}
-\small
-\setlength{\tabcolsep}{6pt}
-\begin{tabular}{ll cc c cc}
-\toprule
- & & \multicolumn{2}{c}{energy error (\%)} & & \multicolumn{2}{c}{stiff-mode error} \\
-\cmidrule(lr){3-4}\cmidrule(lr){6-7}
-Regime & & Adam & SR & & Adam & SR \\
-\midrule
-$N{=}2,\ \omega{=}1$, cusp on  & & $+0.047$ & $+0.056$ & & $3.4\times10^{-3}$ & $5.0\times10^{-3}$ \\
-$N{=}2,\ \omega{=}1$, cusp off & & $-0.277$ & $-0.216$ & & $1.13\times10^{-2}$ & $1.06\times10^{-2}$ \\
-$N{=}2,\ \omega{=}0.1$, cusp on & & $+0.163$ & $\mathbf{-0.028}$ & & $1.66\times10^{-2}$ & $1.67\times10^{-2}$ \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-\begin{figure}[htbp]
-  \centering
-  \includegraphics[width=0.95\textwidth]{sr_mechanism_lowomega}
-  \caption{SR versus Adam at $N=2$, $\omega=0.1$ (four seeds), branched from a
-  shared warm-up. SR reaches a lower energy error ($-0.028\%$ vs $+0.163\%$) and a
-  smaller distance-to-exact, with tighter seed bands. This is the first regime in
-  which SR's advantage is statistically resolved.}
-  \label{fig:sr-lowomega}
-\end{figure}
-
-Three findings. \emph{(i) The cusp prior does part of SR's job.} Removing the
-analytic cusp inflates the stiff-mode error $\sim\!2$--$3\times$ (to
-$\approx1.1\times10^{-2}$) for both optimisers --- direct evidence that the fixed
-cusp removes the stiffest direction from the \emph{learning} problem, i.e.\ it is
-a function-space preconditioner. \emph{(ii) In the easy regime the optimiser is
-largely immaterial.} At $\omega=1$, with or without the cusp, SR and Adam tie
-within seed noise (cusp-off SR is consistently but not significantly better, and
-notably more reproducible: energy seed-s.d.\ $\approx0.025\%$ vs Adam
-$\approx0.074\%$). \emph{(iii) SR's advantage switches on as $\omega$ drops.} At
-$\omega=0.1$ the SR energy ($-0.028\%$) beats Adam ($+0.163\%$) with $\pm1$~s.d.\
-seed bands that are nearly disjoint (Adam $\geq +0.058\%$, SR $\leq +0.052\%$) ---
-a $\sim\!1.5\sigma$ separation, and the first regime where the advantage is
-resolved rather than descriptive. Notably the gain is \emph{not} through the
-pre-registered stiff-mode channel (stiff errors tie); it appears in the soft modes
-and the overall state, consistent with the interpretation that at low $\omega$ the
-whole tangent space becomes ill-conditioned, not just a single cusp direction.
-
-\paragraph{But the advantage does not grow into a decisive win.} Extending the sweep
-to $\omega=0.05$ and $0.03$ (Fig.~\ref{fig:sr-adam-trend}) makes the picture more
-sober. SR's \emph{energy} edge is clearly resolved only at $\omega=0.1$; at
-$\omega=0.05$ the four-seed bands overlap ($-0.00\%$ vs Adam $+0.10\%$, but the
-$\pm1$~s.d.\ bands cross) and at $\omega=0.03$ the energies tie ($+0.064\%$ vs
-$+0.063\%$). What \emph{is} consistent across the whole low-$\omega$ range is the
-distance-to-exact: SR is $\sim\!10$--$20\%$ lower than Adam at every $\omega$ (the
-less noisy signal). SR therefore helps, but modestly --- a slightly closer state
-everywhere and a resolved energy edge around $\omega=0.1$, without a decisive,
-monotonically growing advantage in the range tested. (The $\omega=0.01$ point is not
-shown: the lightweight from-scratch diagnostic recipe diverges there; a genuine
-SR-vs-Adam test at the crystal needs the warm-started, annealed cascade, left to
-future work.)
-
-\begin{figure}[htbp]
-  \centering
-  \includegraphics[width=0.95\textwidth]{sr_vs_adam_trend}
-  \caption{SR versus Adam across $\omega$ at $N=2$ (four seeds, $\pm1$~s.d.). Left:
-  energy error --- SR's edge is resolved only near $\omega=0.1$; the bands overlap at
-  $\omega=0.05$ and tie at $0.03$. Right: distance-to-exact --- SR is consistently
-  $\sim\!10$--$20\%$ lower at every $\omega$. SR helps modestly, not decisively.}
-  \label{fig:sr-adam-trend}
-\end{figure}
-
-\paragraph{Interpretation.} SR earns its keep where the ansatz and the measure leave
-conditioning behind --- but with a physics-informed ansatz that residual is small,
-and Adam's diagonal preconditioner reaches essentially the same floor. The honest,
-seeded verdict is a \emph{modest, publishable} advantage: SR is consistently a little
-closer to the exact state, with a resolved energy edge around $\omega=0.1$, rather
-than a decisive win. The earlier single-seed claim that SR ``breaks the accuracy
-wall'' at $\omega=1$ does not survive seeding and is withdrawn. In this ansatz the
-optimiser is largely immaterial; the conditioning lives in the ansatz (cusp prior,
-backflow) and the measure ($|\Psi|^2$) --- the through-line to Q1 and Q3.
+The honest verdict is therefore not ``SR wins'' or ``SR ties'' but \textbf{SR
+matters precisely when the tangent metric is ill-conditioned}. Its value is a
+function of $\kappa(S)$, set by the ansatz and the sampling measure, not an intrinsic
+property of the optimiser---which is exactly why an earlier low-$\omega$ VMC sweep
+saw a modest SR advantage that never grew into a decisive win.
 
 % =====================================================================
-\section{Q3 --- Paradigm: the sampling measure sets conditioning and variance}
+\section{Q3 --- Paradigm: the sampling measure sets conditioning, variance, and reach}
 \label{sec:kernel-q3}
 
-\subsection{The collocation bottleneck is ESS collapse}
+Between $|\Psi|^2$-VMC and importance-sampled collocation the wavefunction family is
+identical; only the measure that defines the loss changes. Three consequences, one
+statement.
 
-Collocation training replaces $|\Psi|^2$ sampling with an importance-weighted
-proposal (a Gaussian mixture) that must \emph{cover} configuration space. We find
-the dominant conditioning lever is not the strong-versus-weak form of the residual
-but the \emph{sampling measure itself}. Under $|\Psi|^2$ the collocation operators
-are mild ($N=6$, $\omega=1$: $\kappa(S)=6.6\times10^4$, weak-form
-$4.7\times10^4$, strong-form $4.8\times10^3$); under the covering mixture the
-\emph{same} operators exceed $\sim\!10^8$ --- a $\gtrsim\!2000\times$ penalty from
-the measure alone.
+\paragraph{$|\Psi|^2$ is self-preconditioning; the covering proposal is not.}
+Sampling from $|\Psi|^2$ makes the estimator of $S$ and of the gradient share the
+same measure, which conditions the update. A fixed covering proposal instead drives
+a monotone \emph{ESS collapse} as $N$ and $1/\omega$ grow: at $N=6,\omega=0.01$ the
+effective sample size falls to $0.11$. When ESS collapses the gradient estimator is
+degenerate---a hard limit, not undertraining.
 
-The threshold-free diagnostic behind this is the effective sample size. As
-$\omega$ falls, the broad proposal needed to cover the tails mismatches the
-sharpening $|\Psi|^2$, and the importance-weighted estimator collapses onto a
-handful of points (Fig.~\ref{fig:ess-collapse}): the ESS fraction runs
-$3.0\%\to2.3\%\to0.59\%\to0.11\%$ across $\omega=1\to0.5\to0.1\to0.01$. At the
-crystal only $\sim\!5$ of $4096$ draws carry the weight. VMC is, by construction,
-free of this: $|\Psi|^2$ sampling gives unit weights, $\mathrm{ESS}=B$, and a
-well-conditioned operator --- $|\Psi|^2$ is its own preconditioner.
+\paragraph{Same state, until the sampling loses the target.} We test whether the two
+paradigms reach the same \emph{state} (not merely the same energy) via the symmetric
+overlap
+$\mathcal{S}^2=\langle\Psi_B/\Psi_A\rangle_{|\Psi_A|^2}
+\langle\Psi_A/\Psi_B\rangle_{|\Psi_B|^2}$. At $N=2$ they are identical
+($\mathcal{S}^2>0.997$ for every $\omega$, both optimisers, both seeds): the paradigm
+is efficiency-only, collocation paying $\sim\!5\times$ the variance for the same
+wavefunction. At $N=6$ they \emph{diverge}: under Adam $\mathcal{S}^2$ falls
+$0.85\to0.77\to\approx0$ from $\omega=1$ to $0.01$ (both seeds), tracking the ESS
+collapse; SR partially rescues it ($\mathcal{S}^2\!\approx\!0.95$) but does not close
+the gap. Weak-form collocation thus has a \textbf{domain of validity}---equivalent to
+VMC when the importance sampling is healthy, degrading as correlation strengthens.
+This couples Q3 to Q2: the paradigm that needs SR is the one that breaks down at
+scale. An adaptive proposal that tracks $|\Psi|^2$ is the natural remedy (future
+work).
 
-\begin{figure}[htbp]
-  \centering
-  \includegraphics[width=0.72\textwidth]{ess_collapse}
-  \caption{Effective sample size of the importance-weighted collocation estimator
-  versus $\omega$ ($N=6$, $4096$ draws). The monotone collapse to $0.11\%$ is the
-  true collocation bottleneck; it explains why low-$\omega$ collocation needs
-  continuation chains and adaptive resampling, and why natural gradient (which
-  needs a stable Fisher estimate) degrades there.}
-  \label{fig:ess-collapse}
-\end{figure}
-
-\subsection{The proposal frontier: conditioning versus unbiased coverage}
-
-Given that the measure is the lever, how good is the trainer's ``smart'' adaptive
-mixture? Comparing single Gaussians against the adaptive mixture
-(Fig.~\ref{fig:proposal-compare}) shows the mixture sits \emph{off} the efficient
-frontier: at $\omega=0.1$ a matched single Gaussian achieves $\mathrm{ESS}=1.6\%$
-and a resolved $\kappa(A)=1.5\times10^5$, versus the mixture's $0.67\%$ and
-$9.6\times10^7$ --- roughly $600\times$ better conditioned and $2\times$ more
-efficient. But the matched Gaussian wins partly by \emph{not covering the hard
-region}: its tail reaches $4\,\ell$ while the density needs $9.5\,\ell$ at
-$\omega=0.1$ (and $22\,\ell$ at $\omega=0.01$); only the mixture's broad
-components reach there. The real trade-off is thus \textbf{conditioning versus
-unbiased coverage}: good conditioning bought by ignoring the tails risks a
-solution that is wrong where it was never penalised.
-
-\begin{figure}[htbp]
-  \centering
-  \includegraphics[width=0.95\textwidth]{proposal_compare}
-  \caption{Proposal comparison at $N=6$. Every proposal with $\mathrm{ESS}\gtrsim1\%$
-  has a resolved $\kappa(A)\sim10^5$; every one below $1\%$ floors at $\sim\!10^8$
-  (effective rank $\approx$ ESS). A matched Gaussian dominates the adaptive mixture
-  on both conditioning and efficiency, but only by sacrificing tail coverage.}
-  \label{fig:proposal-compare}
-\end{figure}
-
-\subsection{The Laplacian's gift is zero variance --- the weak form discards it}
-
-Finally, the weak (Rayleigh) form and the strong (local-energy) form estimate the
-same energy but differ enormously in variance. At the exact $N=2$ ground state the
-strong estimator has $\Var(E_L)=1.4\times10^{-3}\approx0$ (the zero-variance
-principle: $E_L$ is constant on an eigenstate), while the weak estimator has
-$\Var(e_w)=2.9$ --- a ratio of $2071\times$. The same ordering holds for trained
-$N=6$ states (Table~\ref{tab:zero-variance}). The means agree within the (large)
-weak-form sampling error, consistent with the integration-by-parts identity
-$\langle E_L\rangle = \langle e_w\rangle$: the weak form is unbiased but a
-catastrophic estimator. This is why the winning recipe keeps a forward-only,
-detached local-energy reward and a small weak-form weight.
-
-\begin{table}[htbp]
-\centering
-\caption{Zero-variance is the Laplacian's gift. $\Var(\text{strong})=\Var(E_L)$
-vanishes on an eigenstate; the weak form pays a $10^2$--$10^4\times$ variance
-premium for dropping the kinetic (Laplacian) term. Means agree; only the variance
-differs. (The weak estimator is heavy-tailed; only the order of magnitude of the
-ratio is robust.)}
-\label{tab:zero-variance}
-\small
-\setlength{\tabcolsep}{10pt}
-\begin{tabular}{l ccc}
-\toprule
-State & $\Var(\text{strong})$ & $\Var(\text{weak})$ & ratio \\
-\midrule
-$N{=}2$ exact          & $1.4\times10^{-3}$ & $2.9$ & $2071$ \\
-$N{=}6$ CTNN (trained) & --- & --- & $10957$ \\
-$N{=}6$ DeepSet        & --- & --- & $403$ \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-\paragraph{Interpretation.} The three collocation results are one statement: what
-makes an estimator well-conditioned and low-variance is $|\Psi|^2$ sampling plus
-the Laplacian. VMC has both for free; collocation trades them for coverage, and
-must claw back stability with continuation, resampling, and ESS control. The
-practical claim in the literature (and in an earlier draft of our own method
-notes) that the weak form ``eliminates the conditioning catastrophe'' is
-\emph{contradicted} here --- under the covering measure the weak-form operator is
-just as ill-conditioned as the strong one. % (run_weak_form.py header claim corrected in commit a582d56)
-
-\subsection{Dual-track: the two paradigms reach the same state, at different quality}
-\label{sec:kernel-q3-dualtrack}
-
-Does collocation reach a different \emph{wavefunction} than VMC, or the same state by
-a noisier route? At the exact $N=2$ anchor we train the identical CTNN (same
-initialisation) two ways --- VMC ($|\Psi|^2$-MCMC, strong-form $E_L$) and weak-form
-collocation (a fixed Gaussian proposal, importance-reweighted Rayleigh energy, never
-sampling $|\Psi|^2$) --- and compare both to the exact state and to each other
-(Fig.~\ref{fig:dual-track}). Both converge to essentially the \emph{same}
-wavefunction: overlap$^2$ with exact is $0.99998$ (VMC) and $0.99920$ (collocation),
-and the two trained states overlap each other at $0.99918$; the learned pair
-correlation $u(r)$ overlays the exact curve for both. The paradigms do not find
-different states --- they find the same ground state. What differs is \emph{quality}:
-collocation's $\Var(E_L) = 5.1\times10^{-2}$ is nearly $5\times$ VMC's
-$1.1\times10^{-2}$ (a marginally worse eigenstate), and its weak-form energy read-out
-settled at $2.94$, below the exact $3.0$, \emph{even though the state itself was
-accurate}. That last point is the zero-variance principle made concrete: the weak
-estimator is unbiased in principle but noisy enough (here at a benign
-$\mathrm{ESS}\approx37\%$ for $N=2$) to mis-report the energy while the wavefunction
-is right. The effective dimension is the same for both ($\approx1.1$), as it must be
-for the same state. So the collocation--VMC distinction is not about \emph{which}
-state is found but about the variance at which it is resolved --- exactly the
-measure/Laplacian story of the preceding subsections.
-
-\begin{figure}[htbp]
-  \centering
-  \includegraphics[width=0.62\textwidth]{dual_track}
-  \caption{Dual-track at $N=2$, $\omega=1$ (exact): the learned pair-correlation
-  $\log u(r)$ from VMC (blue) and weak-form collocation (red) both overlay the exact
-  curve (black). The two paradigms reach the same wavefunction (mutual overlap$^2$
-  $0.9992$); collocation reaches it at $\sim\!5\times$ higher $\Var(E_L)$.}
-  \label{fig:dual-track}
-\end{figure}
+\paragraph{The weak form discards the Laplacian's zero variance.} The strong-form
+local energy uses the Laplacian, whose contribution has zero variance for an exact
+eigenstate; the weak (first-derivative) form trades that exact cancellation for a
+Laplacian-free estimator and so carries irreducibly higher variance. This is why the
+importance-sampled energy readout $E_{\mathrm{weak}}$ is biased and must not be used
+as the convergence criterion---overlap and $\Var(E_L)$ are.
 
 % =====================================================================
 \section{Synthesis and discussion}
-\label{sec:kernel-synthesis}
+\label{sec:synthesis}
 
-The three questions converge on a single object: the trained wavefunction lives in
-a \emph{low-dimensional, cusp/kinetic-dominated tangent space}, and architecture,
-optimiser, and paradigm are each about how faithfully they resolve it.
+The three axes are one geometry. \textbf{Architecture} sets the shape of the tangent
+space: message passing compresses it (Jastrow) and keeps it from collapsing
+(backflow), because it supplies the relational channel the physics needs.
+\textbf{Optimiser} is about inverting the metric on that space: SR pays off exactly
+when the metric is ill-conditioned. \textbf{Paradigm} is about which measure defines
+the metric and the gradient: $|\Psi|^2$ self-preconditions and stays on target, the
+covering proposal loses conditioning and eventually the state. The single
+cross-cutting discriminator, robust where dimension and rank are not, is
+$\Var(E_L)$---lower for the message-passing ansatz at every $\omega$.
 
-\begin{itemize}
-  \item \textbf{Architecture (Q1)} sets \emph{how many} collective directions the
-  ansatz spends and \emph{which}. Message passing compresses hard at weak coupling
-  (tangent $d_{\mathrm{eff}}\approx1.2$ vs DeepSet's $\approx3.4$, a $\sim\!2$-mode
-  state); toward the Wigner crystal the two dimensions \emph{converge}
-  ($\approx3.7$--$3.8$, seeded) as the physical mode count grows, but they occupy
-  \emph{different} tangent subspaces and CTNN's is the lower-variance one. So the
-  CTNN advantage is dimensional compression at weak coupling and, everywhere,
-  wavefunction quality ($\Var(E_L)$ lower at every $\omega$) --- not energy.
-  \item \textbf{Optimiser (Q2)} sets whether that space is \emph{navigable}. SR
-  whitens the QGT (exactly validated); it is immaterial where the ansatz already
-  removes the stiff directions (weak coupling, cusp on) and earns its keep where
-  $\kappa(S)$ and $\Var(E_L)$ grow (low $\omega$), where its energy advantage over
-  Adam first becomes statistically resolved.
-  \item \textbf{Paradigm (Q3)} sets whether that space is \emph{resolvable with low
-  variance}. $|\Psi|^2$ sampling and the Laplacian deliver conditioning and
-  zero-variance for free; collocation sacrifices both for coverage, and its
-  bottleneck is a clean, monotone ESS collapse.
-\end{itemize}
+\paragraph{A gauge caveat, itself a result.} Component-level quantities---backflow
+rank, displacement magnitude $|\Delta\mathbf{x}|$, per-component
+$d_{\mathrm{eff}}$---are \textbf{gauge-like}. The Jastrow and backflow are
+substitutes, so how correlation is split between them is a nearly-flat,
+path-dependent direction of the loss; those quantities depend on the training route,
+not on the state. Every claim that reversed during this project was of that kind
+(the retracted $d_{\mathrm{eff}}$ inversion at the crystal; a mislabelled backflow;
+an artefactual rank collapse from joint-from-scratch training). The reliable
+measurements---energy, state overlap, and ablation (delete a component, price it in
+energy)---are invariant to the gauge, and the conclusions above rest only on those.
 
-The kinetic/zero-variance thread links Q1 and Q3 (the same $\Var(E_L)$ that
-discriminates the architectures is the quantity the Laplacian drives to zero), and
-the low-rank, ill-conditioned tangent space links Q1 and Q2 (a lower-dimensional
-$S$ is both cheaper for SR to whiten and the reason plain gradients misalign).
-
-\paragraph{Caveats.} The single-seed $\omega$-sweep (Table~\ref{tab:omega-sweep})
-suggested a dramatic dimension \emph{inversion} at the crystal; seeded, matched-grade
-retraining overturned it (Table~\ref{tab:crossover-seeded}: the dimensions converge,
-$3.70\pm0.04$ vs $3.84\pm0.08$) --- the single-seed-promotion failure mode caught
-before publication. The two seeded anchors are now solid: the weak-coupling gap is
-confirmed from \emph{independent} runs (five CTNN, three DeepSet at $\omega=1$:
-$1.40\pm0.17$ vs $3.25\pm0.03$, $\sim\!11\sigma$), and the crystal convergence from
-three seeds each (these share an $\omega=0.1$ warm-start, so their bands are
-measurement/optimisation variance, not independent basins from $\omega=1$ --- the
-full seeded cascade is deferred). What is robust: the compression gap at weak
-coupling, its closure at the crystal, the $\Var(E_L)$ discriminator (CTNN lower at
-every $\omega$, seeded in both regimes), the cross-projection (leading modes shared
-at weak coupling, orthogonal at the crystal), and the exact $N=2$ naming of the modes
-(\S\ref{sec:kernel-naming}). Remaining limits: the $\omega=0.01$ natural-orbital count
-is on a grid-truncated
-1-RDM (trace $\approx1.9$ of $3$), so its absolute value is uncertain (the
-cross-architecture comparison is fair, as the grid is shared); the mode-naming is
-\emph{exact} only at $N=2$ --- at $N=6$ it is by operator decomposition
-(\S\ref{sec:kernel-naming}), which names the leading mode but not a full basis; and
-the $N$-scaling is measured only at \emph{initialisation} (Table~\ref{tab:scaling}:
-the gap grows $1.7\times\to2.6\times$ to $N=20$), with the trained-state $N$-scaling
-deferred behind the large-$N$ training infrastructure. The weak-form variance is
-heavy-tailed, so only the order of magnitude of the zero-variance ratio is robust.
-
-% =====================================================================
 \section{Conclusions}
-\label{sec:kernel-conclusions}
-
-Viewed through the tangent kernel, the three design axes of a neural quantum state
-resolve into complementary statements about one low-dimensional variational
-manifold.
-
-\begin{enumerate}
-  \item \textbf{A message-passing correlator compresses at weak coupling and finds a
-  better state at the crystal; energy hides both.} At weak correlation, CTNN and
-  DeepSet tie in energy, but CTNN reaches the state in half the effective tangent
-  dimension ($\sim\!1.5$ vs $\sim\!3.3$, fair and capacity-independent) and with
-  lower local-energy variance. Toward the Wigner crystal the compression gap
-  \emph{closes} --- seeded, the two dimensions converge ($3.70\pm0.04$ vs
-  $3.84\pm0.08$; the single-seed ``inversion'' did not survive) --- but the nets
-  occupy \emph{different} tangent subspaces and CTNN's carries $1.8\times$ lower
-  $\Var(E_L)$. And the manifold is \emph{named}: at the exact $N=2$ anchor the leading
-  tangent direction is the breathing response ($\partial_\omega$) and the effective
-  tangent space is $\{$breathing, correlation-hole, first relative excitation$\}$ to
-  $R^2=1.00$ --- the dimensions are the low collective modes of $H$.
-  \item \textbf{SR whitens the tangent kernel, but its prescriptive advantage is
-  modest.} The whitening picture is exact at $N=2$; the advantage over Adam is null
-  in the easy regime (with or without the cusp, which itself acts as a preconditioner)
-  and becomes statistically resolved only around $\omega=0.1$, then washes back into
-  the seed noise on energy at $\omega=0.05$--$0.03$ (SR stays consistently
-  $\sim\!10$--$20\%$ closer to the exact state throughout). With a physics-informed
-  ansatz the optimiser is largely immaterial --- conditioning lives in the ansatz and
-  the measure, not the optimiser.
-  \item \textbf{The sampling measure, not the residual form, governs collocation.}
-  $|\Psi|^2$ sampling is self-preconditioning; the covering proposal collocation
-  requires drives a monotone ESS collapse ($3.0\%\!\to\!0.11\%$) and a
-  $\gtrsim\!2000\times$ conditioning penalty, and the weak form additionally
-  discards the Laplacian's zero-variance property (a $10^2$--$10^4\times$ variance
-  premium). VMC is the better-conditioned paradigm; collocation's value is in
-  coverage, at a quantified cost. Trained side by side on the same $N=2$ ansatz, the
-  two routes reach the \emph{same} ground state (mutual overlap$^2$ $0.9992$) ---
-  collocation simply at $\sim\!5\times$ higher $\Var(E_L)$, with a weak-form energy
-  read-out that mis-reports while the state is right. The paradigm choice is about
-  the variance of resolution, not the identity of the state.
-\end{enumerate}
-
-Together these make the low-dimensional, kinetic-dominated tangent space the
-organising object of the analysis: the architecture sizes it to the physics, the
-optimiser navigates it, and the paradigm determines the variance at which it can be
-resolved. The open frontier --- naming the manifold's directions as physical
-response and excitation modes, seeding the crossover, and scaling the dimension
-gap in $N$ --- is the subject of the next stage of work.
+Message passing is not a uniformly ``better network''; it buys one specific thing, a
+relational channel, whose value the tangent kernel makes precise. In the Jastrow that
+channel compresses the ground state onto the few collective modes the Hamiltonian
+couples; in the backflow it sustains a full-rank, relative displacement where a
+per-particle network can only shift everyone together and its energy fails---at the
+Wigner crystal, and by capturing Coulomb rather than kinetic correlation. The
+optimiser and paradigm choices around this ansatz are governed by the same geometry:
+SR is needed only for the ill-conditioned collocation objective, and collocation
+equals VMC only until its importance sampling loses the target at scale. What message
+passing, natural-gradient preconditioning, and $|\Psi|^2$ sampling have in common is
+that each keeps the variational optimisation aligned with the low-dimensional,
+physically-collective structure of the problem.

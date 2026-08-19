@@ -1542,3 +1542,30 @@ adapted on that garbage (ESS~2), driving the ring to nonsense (0.88-5.6 ell) and
 v2 fixes both: (1) seed each rung's ring by FITTING to the warm-started state (high starting ESS);
 (2) SKIP the re-fit whenever ESS < 25 (never adapt on garbage). Resumes from the good omega=0.0035
 checkpoint, heavy-evals each rung. If it clears 0.0027 -> 0.001, the MCMC-free method reaches Wigner.
+
+### [2026-08-18f] — Q3 deep-Wigner cascade: mechanism fully resolved (wide exploration drives re-expansion; tracking is the last piece)
+
+The obstacle below omega=0.0035 is NOT the proposal's coverage per se but a two-part dynamic, now fully
+diagnosed on the omega=0.0027 rung (which broke v1):
+ 1. Warm-starting params across omega REBUILDS the omega-dependent Slater determinant, which jumps the
+    state's equilibrium scale -- the omega=0.0035 state (ring 3.33 ell) lands under-expanded on the
+    omega=0.0027 Slater. So each deep rung must DISCOVER a re-expansion.
+ 2. A narrow/state-fit proposal is LOCAL and cannot drive that discovery (IS follows |Psi|^2, which is
+    under-expanded) -> the rung stalls or diverges (v1, v2).
+
+Decisive test (wigner_wide_rung.py): a WIDE exploratory proposal (broad radial band covering
+under-expanded..classical) DID drive the re-expansion -- the omega=0.0027 state expanded 0.75 -> 3.14 ->
+3.33 -> 3.59 ell (== classical) with Ew descending toward the expected 0.280. So wide exploration SOLVES
+the expansion the narrow proposal cannot. BUT the run then lost tracking: the ESS-guard (skip re-fit when
+ESS<15) kept the proposal frozen at 2.30 ell while the state moved to 3.59 ell -> ESS -> 1 -> the tail
+trains on noise. Catch-22: ESS is low BECAUSE the proposal is stale, but the hard guard won't update it.
+
+**Complete fix (not yet run):** wide exploratory proposal to drive re-expansion + TEMPERED-weight
+adaptive tracking (re-fit from w^beta, beta<1, so a few outliers don't corrupt it AND it keeps following
+the state even at moderate ESS) -- replacing the hard ESS-guard. This should let the proposal follow the
+state out to classical each rung and carry the MCMC-free cascade past omega=0.0035 toward 0.001.
+
+**Bankable results regardless:** (a) Wigner-ring proposal 15-47x ESS over origin at moderate Wigner;
+(b) angular-crystallisation diagnosis (gap std 40->6.7 deg); (c) MCMC-free cascade produces DMC-scaling
+states down to omega=0.0035 (4 rungs, ratios 1.00-1.02) -- extending the collocation frontier and
+explaining the thesis wall. The deep push (<0.0035) needs the wide+tempered recipe above.

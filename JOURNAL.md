@@ -1520,3 +1520,25 @@ bridge.
 Fix: gentle cascade -- many SMALL omega steps (factor ~1.3) so each rung stays within the adaptive
 proposal's local reach, more steps/rung, checkpoint each rung. (Alternative: broaden sigma_r for
 exploration.) Relaunching as a long run. The MCMC-free-to-omega=0.005 result already extends the frontier.
+
+### [2026-08-18e] — Q3 Wigner cascade WORKS to omega=0.0035 MCMC-free; v1 broke at 0.0027 from adaptive instability
+
+Per-rung heavy-VMC eval of the v1 gentle cascade localises the break precisely. Energy vs the
+Wigner-scaling estimate E(w)=0.69036*(w/0.01)^0.689:
+  omega   E       expected  ratio  ring
+  0.0077  0.5767  0.5766    1.00   2.89 ell
+  0.0059  0.4810  0.4799    1.00   3.04 ell
+  0.0045  0.4005  0.3982    1.01   3.17 ell
+  0.0035  0.3404  0.3349    1.02   3.33 ell   <- last GOOD rung
+  0.0027  0.4160  0.2801    1.49   2.85 ell   <- BROKE
+  0.0021  0.3761  0.2356    1.60
+  0.0016  0.6127  0.1953    3.14   0.88 ell   (collapsed inward)
+So the MCMC-free Wigner-ring cascade produced GOOD states (on the scaling curve, ratios 1.00-1.02) for
+FOUR rungs down to omega=0.0035 -- well past where the origin-Gaussian proposal collapses (ESS~1 even at
+0.01). It broke at 0.0027 due to two self-inflicted bugs: (1) v1 initialised each rung's proposal at the
+CLASSICAL radius, mismatching the warm-started state -> ESS starts ~2; (2) the continuous re-fit then
+adapted on that garbage (ESS~2), driving the ring to nonsense (0.88-5.6 ell) and the state with it.
+
+v2 fixes both: (1) seed each rung's ring by FITTING to the warm-started state (high starting ESS);
+(2) SKIP the re-fit whenever ESS < 25 (never adapt on garbage). Resumes from the good omega=0.0035
+checkpoint, heavy-evals each rung. If it clears 0.0027 -> 0.001, the MCMC-free method reaches Wigner.

@@ -258,8 +258,8 @@ collapse; SR partially rescues it ($\mathcal{S}^2\!\approx\!0.95$) but does not 
 the gap. Weak-form collocation thus has a \textbf{domain of validity}---equivalent to
 VMC when the importance sampling is healthy, degrading as correlation strengthens.
 This couples Q3 to Q2: the paradigm that needs SR is the one that breaks down at
-scale. An adaptive proposal that tracks $|\Psi|^2$ is the natural remedy (future
-work).
+scale. An adaptive proposal that tracks $|\Psi|^2$ is the natural remedy, pursued in
+\S\ref{sec:kernel-q3-frontier}.
 
 \paragraph{The weak form discards the Laplacian's zero variance.} The strong-form
 local energy uses the Laplacian, whose contribution has zero variance for an exact
@@ -267,6 +267,107 @@ eigenstate; the weak (first-derivative) form trades that exact cancellation for 
 Laplacian-free estimator and so carries irreducibly higher variance. This is why the
 importance-sampled energy readout $E_{\mathrm{weak}}$ is biased and must not be used
 as the convergence criterion---overlap and $\Var(E_L)$ are.
+
+% =====================================================================
+\section{The collocation frontier: a physics-informed proposal for the Wigner regime}
+\label{sec:kernel-q3-frontier}
+
+The ESS collapse of \S\ref{sec:kernel-q3} is a limitation of the \emph{proposal}, not
+of collocation itself, and it can be substantially pushed back. This section reports a
+physics-informed proposal that extends MCMC-free collocation deep into the Wigner
+regime, the mechanism that limits it, and the wall that remains.
+
+\subsection{The origin-centred proposal misses the Wigner shell}
+Every proposal in the standard pipeline is a mixture of \emph{origin-centred} Gaussians
+$q(\mathbf{R})=\frac1K\sum_k \mathcal{N}(\mathbf{R};0,\sigma_{f,k}^2/\omega)$. But as
+$\omega\to0$ the electrons localise into a Wigner molecule on a \emph{shell} far from the
+origin: the classical $N=6$ minimum is the $(1,5)$ configuration (one central electron,
+five on a ring at radius $1.334\,\omega^{-2/3}$), which in oscillator units sits at
+$1.96/2.87/4.22\,\ell$ for $\omega=0.1/0.01/0.001$---moving outward as the trap weakens,
+past the reach of a width-$2\ell$ origin Gaussian. The proposal aims where $|\Psi|^2$ has
+no mass; hence the collapse.
+
+\subsection{The Wigner-ring proposal}
+We replace the origin mixture with a \emph{Wigner-ring} proposal: a radial Gaussian at the
+shell radius times an angular distribution for the ring electrons, plus a central Gaussian.
+On trusted states this lifts the effective sample size by $15$--$47\times$ over the origin
+mixture (Table~\ref{tab:ring-ess}), turning a collapsed sampler into a usable one---without
+any training, a cheap decisive test. Fitting the ring to $|\Psi|^2$ samples (the simplest
+adaptive form) doubles the ESS again; a $(1,5)+(0,6)$ mixture \emph{hurts} at $N=6$, since
+the state is $(1,5)$ and the extra channel dilutes the proposal mass.
+
+\begin{table}[htbp]\centering
+\caption{ESS (of 4096) against a trusted $N=6,\omega=0.01$ state. The origin mixture is
+already collapsed; the ring proposal covers the shell.}
+\label{tab:ring-ess}
+\begin{tabular}{lc}
+\hline
+proposal & ESS \\
+\hline
+origin-Gaussian mixture (standard) & $1.5$ \\
+Wigner ring $(1,5)$, hand-tuned & $22.5$ \\
+Wigner ring $(1,5)$, fitted to $|\Psi|^2$ & $47.5$ \\
+\hline
+\end{tabular}
+\end{table}
+
+\subsection{Angular crystallisation is the deep-Wigner wall}
+Why does the ring work at $\omega=0.01$ but fail at $\omega=0.001$? The molecule
+\emph{crystallises angularly} as the trap weakens. The nearest-neighbour angular-gap
+standard deviation of the five ring electrons is $40.8^\circ/33.3^\circ/25.5^\circ/6.7^\circ$
+at $\omega=1/0.1/0.01/0.001$: a ``ring liquid'' at moderate coupling becomes an angular
+crystal (electrons pinned near $72^\circ$ apart) at $\omega=0.001$. A proposal with
+independent, uniform angles almost never lands on the crystalline configuration---so the
+angular distribution must crystallise too. This is captured MCMC-free by modelling the five
+gaps (which sum to $2\pi$) as $\mathrm{Dirichlet}(\alpha)$: an exact tractable density whose
+single concentration $\alpha$ interpolates liquid ($\alpha$ small) to crystal ($\alpha$
+large), fitted to the measured gap variance. This diagnosis \emph{explains} the collocation
+wall that is otherwise only observed.
+
+\subsection{An MCMC-free cascade reaches $\omega=0.0035$}
+Combining the ring proposal (radial Gaussian $\times$ Dirichlet gaps) with importance
+oversampling, a \emph{continuous} adaptive re-fit of the proposal to the current
+importance-weighted batch (every few steps, no MCMC), and a gentle $\omega$-cascade
+seeded from a converged $\omega=0.01$ state, MCMC-free collocation produces states that
+lie on the Wigner energy-scaling curve down to $\omega=0.0035$---four cascade rungs, with
+heavy-VMC energies within $1$--$2\%$ of the scaling estimate (Table~\ref{tab:cascade}),
+well past where the origin proposal collapses ($\mathrm{ESS}\!\sim\!1$ even at
+$\omega=0.01$). The essential ingredient is the continuous re-fit: it keeps ESS healthy
+($\sim\!10^2$) \emph{while} the energy descends, where a static or slowly-updated proposal
+collapses to $\mathrm{ESS}\!\sim\!1$ as the wavefunction moves away from it.
+
+\begin{table}[htbp]\centering
+\caption{MCMC-free Wigner-ring cascade, $N=6$: heavy-VMC energy vs.\ the Wigner-scaling
+estimate $E(\omega)\approx 0.690\,(\omega/0.01)^{0.689}$. Good to $\omega=0.0035$.}
+\label{tab:cascade}
+\begin{tabular}{lccc}
+\hline
+$\omega$ & $E$ & scaling est. & ratio \\
+\hline
+0.0077 & 0.577 & 0.577 & 1.00 \\
+0.0059 & 0.481 & 0.480 & 1.00 \\
+0.0045 & 0.400 & 0.398 & 1.01 \\
+0.0035 & 0.340 & 0.335 & 1.02 \\
+\hline
+\end{tabular}
+\end{table}
+
+\subsection{The remaining wall is the warm-start, not the proposal}
+Below $\omega=0.0035$ the cascade becomes unstable, and---informatively---the instability
+is \emph{non-monotonic} across proposal variants: wide-exploratory, tempered-tracking, and
+outward-anchored proposals each converge some rungs and diverge others. That pattern
+locates the obstacle not in the proposal but in the \emph{warm-start}. Changing $\omega$
+rebuilds the $\omega$-dependent Slater determinant, which collapses the warm-started state
+back to $\sim\!1\ell$ at every rung; re-expanding it to the shell by importance sampling is
+inherently unstable, because the proposal either follows the collapse inward or, if held
+out at the shell, loses ESS. A wide exploratory proposal \emph{can} drive the re-expansion
+(the state was observed to expand to the classical shell at $\omega=0.0027$), but doing so
+robustly at every rung is not a matter of proposal tuning. The clean resolution is an
+$\omega$-robust warm-start---a coordinate rescaling that preserves the state's shape in
+$\ell$-units across $\omega$, or an $\ell$-invariant parametrisation---which is a distinct
+problem left to future work. The contribution here is concrete: a physics-informed proposal
+that carries MCMC-free collocation from the origin-proposal wall down to $\omega=0.0035$,
+and a precise account of the angular-crystallisation and warm-start effects that bound it.
 
 % =====================================================================
 \section{Synthesis and discussion}

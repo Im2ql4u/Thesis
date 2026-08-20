@@ -1569,3 +1569,26 @@ state out to classical each rung and carry the MCMC-free cascade past omega=0.00
 (b) angular-crystallisation diagnosis (gap std 40->6.7 deg); (c) MCMC-free cascade produces DMC-scaling
 states down to omega=0.0035 (4 rungs, ratios 1.00-1.02) -- extending the collocation frontier and
 explaining the thesis wall. The deep push (<0.0035) needs the wide+tempered recipe above.
+
+### [2026-08-18g] — Q3 deep cascade: proposal-tuning cannot robustly cross omega<0.0035; the wall is the warm-start, not the proposal
+
+v3 outward-anchor variant (r0 >= 0.7*classical, sr floor 0.8 ell) FAILED and worse than the un-anchored
+run: heavy-eval ratios 1.44 / 2.75 / 3.30 / 3.73 at omega 0.0027..0.0012 and +294% at 0.001. The anchor
+keeps the proposal near classical AWAY from the (collapsed) warm-started state -> low ESS -> noisy
+gradient -> no clean convergence. Summary of the deep-rung attempts:
+  - v1 (state-fit init, 200-step re-fit): breaks at 0.0027 (ratio 1.49).
+  - v2 (state-fit init, ESS-guarded re-fit): breaks at 0.0027 (ESS collapses, guard freezes proposal).
+  - v3 wide+tempered (un-anchored): omega=0.0027 = 1.16 (best single rung), but 0.0021 COLLAPSES inward.
+  - v3 wide+tempered+anchor: worse everywhere (1.44 .. +294%).
+Each variant works for SOME rungs and fails for others -- non-monotonic, unstable. This is the signal
+that the obstacle is not the proposal but the WARM-START: changing omega rebuilds the omega-dependent
+Slater, collapsing the state to ~1 ell each rung; re-expanding it via importance sampling is inherently
+unstable (the proposal either follows the collapse or, if held out, loses ESS). Proposal tuning cannot
+robustly fix a warm-start that destroys the state every rung.
+
+DECISION: stop tuning proposal variants (diminishing returns, non-monotonic). The robust, real result is
+the MCMC-free Wigner-ring cascade to omega=0.0035 (4 rungs, ratios 1.00-1.02) + the full diagnosis. A
+proper fix for omega<0.0035 is a DIFFERENT problem -- an omega-robust warm-start (coordinate rescaling so
+the state's shape in ell-units is preserved across omega) or an ell-invariant parametrisation -- a
+separate research thread, not a proposal tweak. Consolidate and write up Q3 as: ring proposal (15-47x
+ESS), angular-crystallisation diagnosis, MCMC-free frontier at omega=0.0035, and the warm-start wall.

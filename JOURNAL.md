@@ -1592,3 +1592,24 @@ proper fix for omega<0.0035 is a DIFFERENT problem -- an omega-robust warm-start
 the state's shape in ell-units is preserved across omega) or an ell-invariant parametrisation -- a
 separate research thread, not a proposal tweak. Consolidate and write up Q3 as: ring proposal (15-47x
 ESS), angular-crystallisation diagnosis, MCMC-free frontier at omega=0.0035, and the warm-start wall.
+
+### [2026-08-19] — Completeness pass: N=20 Wigner launched; thesis-checkpoint reconciliation localised
+
+Thread 1 (N=20 at omega=0.01, closes Q1 rank-collapse across 3 sizes): launched, warm-started from the
+omega=0.1 checkpoints (ctnn/conv x 2 seeds, GPUs 0-3), with the memory fixes. Running.
+
+Thread 2 (thesis-checkpoint +8% mismatch): LOCALISED, confirmation-only. My own N=6 w=1 state is at
+-0.008%. Loading the thesis official CTNN checkpoint (results/official_models/6p/w_10) into my System
+gives +8.36% and overlap^2 = 0.62 with my true-GS state. Ruled out: PINN config (checkpoint shapes match
+dL=5/hidden=128; act=gelu confirmed, overlap 0.62 vs silu 0.27), the hard_cusp_gate (0.60 vs 0.62,
+irrelevant), and the weights (load strict-clean, all shapes match). Both states share my System's
+IDENTICAL Slater, so the residual is that the thesis Jastrow+backflow WEIGHTS, run through my psi_fn
+assembly, give a degraded (0.62-overlap) state -- i.e. my assembly differs subtly from the thesis's
+original psi_fn invocation (in the deleted run_6e_bf_*.py). Exact reconciliation needs that script; NOT
+essential, since my own states independently reach thesis-quality energies. Note: hard_cusp_gate=True
+also breaks the exact Laplacian (torch.cdist has no double-derivative) -- a separate eval limitation.
+
+Threads 3 (omega-robust warm-start for deep MCMC-free collocation) and 4 (N=12/20 low-omega collocation
+via the ring proposal) remain: genuine new research, coupled (4 needs 3), and already CHARACTERISED (the
+warm-start wall is documented). Not diminishing-returns proposal tuning but a distinct architecture
+thread (an ell-invariant / coordinate-rescaled warm-start).

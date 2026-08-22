@@ -1,0 +1,62 @@
+{
+  "ok": false,
+  "meta": {
+    "N": 6,
+    "omega": 0.01,
+    "variant": "CTNN",
+    "torch_device": "cuda",
+    "torch_dtype": "torch.float64",
+    "cfg": {
+      "torch_device": "cuda",
+      "torch_dtype": "torch.float64",
+      "sampler": "mcmc",
+      "B": 192,
+      "mcmc_steps": 70,
+      "burn_in": 20,
+      "thin": 10,
+      "proposal_sigma_scale": 0.08,
+      "proposal_sigma_min": 0.02,
+      "proposal_sigma_max": 1.2,
+      "init_sigma_max": 10.0,
+      "hook_chunk": 48,
+      "mcmc_chunk": 96,
+      "max_node_instances": 4096,
+      "max_edge_instances": 4096,
+      "max_global_instances": 4096,
+      "max_modules_per_model": 60,
+      "var_capture_levels": [
+        0.5,
+        0.8,
+        0.95
+      ],
+      "sv_topk": 0
+    },
+    "basis_dims": {
+      "nx": 2,
+      "ny": 2,
+      "n_occ": 3
+    },
+    "created_unix": 1768228020.219794
+  },
+  "error": "AttributeError: 'tuple' object has no attribute 'to'",
+  "traceback": "Traceback (most recent call last):\n  File \"/tmp/ipykernel_4073298/2686053612.py\", line 204, in _run_one_case\n    mcmc_info = _sample_and_collect(\n  File \"/tmp/ipykernel_4073298/2686053612.py\", line 307, in _sample_and_collect\n    logpsi = _batched_logpsi(\n  File \"/tmp/ipykernel_4073298/2686053612.py\", line 676, in _batched_logpsi\n    out = _call_psi_fn(\n  File \"/tmp/ipykernel_4073298/2686053612.py\", line 631, in _call_psi_fn\n    return psi_fn(f_net, x, **kw2)\n  File \"/itf-fi-ml/home/aleksns/Thesis/src/utils.py\", line 57, in wrapper\n    return fn(*args, **kwargs)\n  File \"/itf-fi-ml/home/aleksns/Thesis/src/functions/Neural_Networks.py\", line 290, in psi_fn\n    C_occ = C_occ.to(device=dev, dtype=x_batch.dtype).contiguous()\nAttributeError: 'tuple' object has no attribute 'to'\n",
+  "diagnostics": {
+    "checkpoint_search": {
+      "models_root": "../results/models",
+      "basis_dims": {
+        "nx": 2,
+        "ny": 2,
+        "n_occ": 3
+      },
+      "case_dir": "../results/models/6p/w_00",
+      "w_folder": "w_00",
+      "f_net_candidates": [
+        "../results/models/6p/w_00/f_netCTNN_01.pt"
+      ],
+      "bf_candidates": [
+        "../results/models/6p/w_00/backflowCTNN_01.pt"
+      ],
+      "notes": []
+    }
+  }
+}

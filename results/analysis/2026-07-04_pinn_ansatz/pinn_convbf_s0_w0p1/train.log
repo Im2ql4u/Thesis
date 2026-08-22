@@ -1,0 +1,79 @@
+0
+[phase] N=6 omega=0.1 arch=pinn  ->  results/analysis/2026-07-04_pinn_ansatz/pinn_convbf_s0_w0p1
+0
+[phase] warm-started from results/analysis/2026-07-04_pinn_ansatz/pinn_convbf_s0_w1p0/checkpoint.pt (omega 1.0 -> 0.1)
+[phase] params=67,248 device=cuda:0 ref_energy=3.55385
+[adam 00000] E=5.152622 var=5.7239e-01 sig=0.611 acc~0.5 n=2048
+[adam 00031] E=3.584057 var=1.1084e-02 sig=0.837 acc~0.5 n=2048
+[adam 00061] E=3.577651 var=7.0941e-03 sig=0.878 acc~0.5 n=2048
+[seg 1/4] step=62 E_raw=3.57517 (+0.605%) var=7.991e-03 kappa(S)=9.90e+11 rank=673 cos_sr=0.763 cos_plain=0.067
+[adam 00000] E=3.578604 var=7.0801e-03 sig=0.877 acc~0.5 n=2048
+[adam 00047] E=3.577759 var=6.0567e-03 sig=0.877 acc~0.5 n=2048
+[adam 00094] E=3.577122 var=5.6957e-03 sig=0.879 acc~0.5 n=2048
+[seg 2/4] step=157 E_raw=3.58245 (+0.815%) var=6.236e-03 kappa(S)=9.88e+11 rank=663 cos_sr=0.696 cos_plain=0.128
+[adam 00000] E=3.578112 var=5.4033e-03 sig=0.882 acc~0.5 n=2048
+[adam 00119] E=3.577122 var=5.4992e-03 sig=0.879 acc~0.5 n=2048
+[adam 00238] E=3.575522 var=5.1555e-03 sig=0.878 acc~0.5 n=2048
+[seg 3/4] step=396 E_raw=3.57120 (+0.498%) var=5.919e-03 kappa(S)=9.89e+11 rank=864 cos_sr=0.827 cos_plain=0.174
+[adam 00000] E=3.571641 var=5.0962e-03 sig=0.885 acc~0.5 n=2048
+[adam 00302] E=3.571042 var=5.2206e-03 sig=0.872 acc~0.5 n=2048
+[adam 00603] E=3.570336 var=4.9362e-03 sig=0.876 acc~0.5 n=2048
+[seg 4/4] step=1000 E_raw=3.57389 (+0.570%) var=4.853e-03 kappa(S)=9.95e+11 rank=901 cos_sr=0.819 cos_plain=0.116
+[phase] training done in 15.0 min
+[adam 00000] E=3.575533 var=4.5183e-03 sig=0.885 acc~0.5 n=4096
+[adam 00050] E=3.573891 var=4.7384e-03 sig=0.877 acc~0.5 n=4096
+[adam 00100] E=3.570515 var=5.0284e-03 sig=0.876 acc~0.5 n=4096
+[adam 00150] E=3.573777 var=4.9181e-03 sig=0.878 acc~0.5 n=4096
+[adam 00199] E=3.574335 var=4.7548e-03 sig=0.878 acc~0.5 n=4096
+[sr 0000] E=3.571639 (+0.501%) var=5.779e-03 |dθ|=1.00e-02 |g|=1.52e-02 damp=1.0e-03 lr=2.00e-01
+[sr 0040] E=3.571823 (+0.506%) var=5.148e-03 |dθ|=5.88e-03 |g|=6.77e-03 damp=7.9e-04 lr=1.48e-01
+[sr 0080] E=3.569439 (+0.439%) var=5.507e-03 |dθ|=3.46e-03 |g|=2.79e-02 damp=6.3e-04 lr=1.10e-01
+[sr 0120] E=3.571849 (+0.506%) var=5.616e-03 |dθ|=2.03e-03 |g|=8.40e-03 damp=5.0e-04 lr=8.12e-02
+[sr 0160] E=3.569237 (+0.433%) var=5.563e-03 |dθ|=1.19e-03 |g|=1.06e-02 damp=4.0e-04 lr=6.02e-02
+[sr 0200] E=3.569010 (+0.427%) var=6.030e-03 |dθ|=7.02e-04 |g|=1.65e-02 damp=3.2e-04 lr=4.46e-02
+[sr 0240] E=3.572091 (+0.513%) var=5.538e-03 |dθ|=4.13e-04 |g|=2.94e-02 damp=2.5e-04 lr=3.30e-02
+[sr 0280] E=3.572308 (+0.519%) var=5.361e-03 |dθ|=2.43e-04 |g|=1.69e-02 damp=2.0e-04 lr=2.44e-02
+[sr 0320] E=3.570584 (+0.471%) var=5.644e-03 |dθ|=1.43e-04 |g|=1.37e-02 damp=1.6e-04 lr=1.81e-02
+[sr 0360] E=3.571725 (+0.503%) var=5.957e-03 |dθ|=8.39e-05 |g|=1.48e-02 damp=1.3e-04 lr=1.34e-02
+[sr 0399] E=3.572212 (+0.517%) var=5.571e-03 |dθ|=5.00e-05 |g|=9.76e-03 damp=1.0e-04 lr=1.00e-02
+[phase] summary:
+{
+  "N": 6,
+  "omega": 0.1,
+  "arch": "pinn",
+  "n_params": 67248,
+  "final": {
+    "E_mean": 3.5712645551655147,
+    "E_mean_raw": 3.5708660409530393,
+    "E_stderr": 0.0006443031244729625,
+    "var_EL": 0.005542290134287526,
+    "n_samples": 8192,
+    "frac_clipped": 0.00537109375,
+    "ref_energy": 3.55385,
+    "error_pct": 0.49001942022073214,
+    "error_sigma": 27.028512673688383
+  },
+  "energy_raw": 3.5708660409530393,
+  "error_pct_raw": 0.4788058289753113,
+  "energy_zv": 3.5683559665575197,
+  "error_pct_zv": 0.40817610640627955,
+  "zv_n_points": 5,
+  "spectrum": {
+    "lam_max": 36.39897295104346,
+    "lam_min_supported": 3.67360268276311e-11,
+    "effective_rank": 1.938686510738102,
+    "numerical_rank": 1098,
+    "condition_number": 990824977394.2859,
+    "n_params": 67248,
+    "n_samples": 2048
+  },
+  "alignment": {
+    "cos_sr": 0.6401823785447472,
+    "cos_plain": 0.02694607602102467,
+    "rep_fraction": 0.6401823785447472,
+    "ntk_condition": 9872696436.53241,
+    "ntk_eff_rank": 1.9386864887071846,
+    "ntk_numerical_rank": 707
+  },
+  "n_align_samples": 2048
+}

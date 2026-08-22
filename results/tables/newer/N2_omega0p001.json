@@ -1,0 +1,749 @@
+{
+  "system": {
+    "N": 2,
+    "d": 2,
+    "omega": 0.001
+  },
+  "mcmc": {
+    "step_sigma": 13.662203090322075,
+    "acc_burn": 0.6013645076751709,
+    "acc_mix": 0.6006106913089753
+  },
+  "physics": {
+    "names": [
+      "r_mean",
+      "r_var",
+      "r_min",
+      "Pr(r<0.25)",
+      "shell_contrast"
+    ],
+    "features_summary": {
+      "mean": [
+        4.096884250640869,
+        0.0,
+        4.096884250640869,
+        0.0,
+        0.14512991905212402
+      ],
+      "std": [
+        0.7563453316688538,
+        0.0,
+        0.7563453316688538,
+        0.0,
+        0.015294160693883896
+      ]
+    }
+  },
+  "pinn": {
+    "rho_module": "rho@rho",
+    "reduce_info": {
+      "orig_shape": [
+        24,
+        1
+      ],
+      "reduce": "none"
+    },
+    "rho_in": {
+      "shape": {
+        "B": 1048,
+        "F": 12
+      },
+      "finite": {
+        "B_finite": 1048
+      },
+      "norm_stats": {
+        "mean": 746.6184692382812,
+        "std": 147.3007354736328,
+        "q05": 485.7529602050781,
+        "q50": 770.167724609375,
+        "q95": 965.2882080078125
+      },
+      "pca": {
+        "eff_rank": 1.0001767593392092,
+        "pr": 1.0000273237448192,
+        "expvar_top": [
+          0.9999863383476852,
+          1.0772789070745011e-05,
+          1.7596833624036117e-06,
+          6.924344292063502e-07,
+          3.057296174426366e-07,
+          1.1661986402144554e-07,
+          8.857119404349927e-09,
+          4.616425480383562e-09
+        ],
+        "k90": 1,
+        "k95": 1,
+        "k99": 1,
+        "feature_subsample": {
+          "feature_subsample": "none",
+          "F": 12
+        }
+      },
+      "intrinsic_dim": {
+        "method": "Levina-Bickel-kNN-MLE",
+        "k": 20,
+        "max_points": 1200,
+        "estimate": 1.1742287289977746,
+        "feature_subsample": {
+          "feature_subsample": "none",
+          "F": 12
+        }
+      }
+    },
+    "rho_out": {
+      "shape": {
+        "B": 1048,
+        "F": 1
+      },
+      "finite": {
+        "B_finite": 1048
+      },
+      "norm_stats": {
+        "mean": 9.08060073852539,
+        "std": 1.4578721523284912,
+        "q05": 6.596434116363525,
+        "q50": 9.24174690246582,
+        "q95": 11.380121231079102
+      },
+      "pca": {
+        "eff_rank": 1.00000000000047,
+        "pr": 0.9999999999997791,
+        "expvar_top": [
+          0.9999999999995299
+        ],
+        "k90": 1,
+        "k95": 1,
+        "k99": 1,
+        "feature_subsample": {
+          "feature_subsample": "none",
+          "F": 1
+        }
+      },
+      "intrinsic_dim": {
+        "method": "Levina-Bickel-kNN-MLE",
+        "k": 20,
+        "max_points": 1200,
+        "estimate": 1.0716641958125042,
+        "feature_subsample": {
+          "feature_subsample": "none",
+          "F": 1
+        }
+      }
+    },
+    "pc_corr_with_physics": {
+      "r_mean": [
+        0.9868617653846741,
+        0.15251636505126953,
+        0.05171157792210579
+      ],
+      "r_var": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "r_min": [
+        0.9868617653846741,
+        0.15251636505126953,
+        0.05171157792210579
+      ],
+      "Pr(r<0.25)": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "shell_contrast": [
+        -0.034479886293411255,
+        -0.0068977526389062405,
+        0.1158173680305481
+      ]
+    }
+  },
+  "backflow": {
+    "dx": {
+      "shape": {
+        "B": 1048,
+        "F": 4
+      },
+      "finite": {
+        "B_finite": 1048
+      },
+      "norm_stats": {
+        "mean": 0.12798218429088593,
+        "std": 0.06747247278690338,
+        "q05": 0.024135900661349297,
+        "q50": 0.12346487492322922,
+        "q95": 0.23672698438167572
+      },
+      "pca": {
+        "eff_rank": 1.5476473514629518,
+        "pr": 1.3631351221909822,
+        "expvar_top": [
+          0.8417623345082678,
+          0.158237665345963,
+          4.859005754853172e-11,
+          4.8589706165199525e-11
+        ],
+        "k90": 2,
+        "k95": 2,
+        "k99": 2,
+        "feature_subsample": {
+          "feature_subsample": "none",
+          "F": 4
+        }
+      },
+      "intrinsic_dim": {
+        "method": "Levina-Bickel-kNN-MLE",
+        "k": 20,
+        "max_points": 1200,
+        "estimate": 2.143325113109314,
+        "feature_subsample": {
+          "feature_subsample": "none",
+          "F": 4
+        }
+      }
+    },
+    "dx_decomposition": {
+      "com_energy_frac": 3.9917833184655754e-16,
+      "rel_energy_frac": 1.0,
+      "radial_frac_of_rel": 0.5249819159507751,
+      "tangential_frac_of_rel": 0.47501808404922485
+    },
+    "near_field_dx2_share": [
+      {
+        "q": 0.01,
+        "share": 0.7509160849835075,
+        "count": 11,
+        "frac": 0.01049618320610687
+      },
+      {
+        "q": 0.05,
+        "share": 1.1054902632708523,
+        "count": 53,
+        "frac": 0.05057251908396947
+      },
+      {
+        "q": 0.1,
+        "share": 0.8491919257219067,
+        "count": 105,
+        "frac": 0.10019083969465649
+      }
+    ],
+    "ctnn_layers": {
+      "node_embed@node_embed": {
+        "shape": {
+          "B": 2096,
+          "F": 128
+        },
+        "finite": {
+          "B_finite": 2096
+        },
+        "norm_stats": {
+          "mean": 3.7678346633911133,
+          "std": 0.7386110424995422,
+          "q05": 2.93485689163208,
+          "q50": 3.59493350982666,
+          "q95": 5.241338729858398
+        },
+        "pca": {
+          "eff_rank": 1.9947172890759122,
+          "pr": 1.989485497575036,
+          "expvar_top": [
+            0.5363491265720342,
+            0.46365087340839817,
+            1.5444937265037328e-13,
+            1.5430787977086358e-13,
+            1.5427966481421445e-13,
+            1.5426351683172333e-13,
+            1.5425021772696093e-13,
+            1.542436591738946e-13
+          ],
+          "k90": 2,
+          "k95": 2,
+          "k99": 2,
+          "feature_subsample": {
+            "feature_subsample": "none",
+            "F": 128
+          }
+        },
+        "intrinsic_dim": {
+          "method": "Levina-Bickel-kNN-MLE",
+          "k": 20,
+          "max_points": 1200,
+          "estimate": 1.4373789982696872,
+          "feature_subsample": {
+            "feature_subsample": "none",
+            "F": 128
+          }
+        },
+        "reduce_info": {
+          "orig_shape": [
+            24,
+            2,
+            128
+          ],
+          "reduce": "nodes",
+          "mean": true,
+          "std": false
+        }
+      },
+      "edge_embed@edge_embed": {
+        "shape": {
+          "B": 2096,
+          "F": 128
+        },
+        "finite": {
+          "B_finite": 2096
+        },
+        "norm_stats": {
+          "mean": 81.74166107177734,
+          "std": 25.512779235839844,
+          "q05": 45.213096618652344,
+          "q50": 80.33641052246094,
+          "q95": 128.65975952148438
+        },
+        "pca": {
+          "eff_rank": 1.0255785597891904,
+          "pr": 1.0062745301292224,
+          "expvar_top": [
+            0.9968758085042264,
+            0.001464989599651664,
+            0.000825435702546156,
+            0.0006067853955825381,
+            0.00013861132776213977,
+            2.903131172739143e-05,
+            2.0834196853827117e-05,
+            1.353116951017933e-05
+          ],
+          "k90": 1,
+          "k95": 1,
+          "k99": 1,
+          "feature_subsample": {
+            "feature_subsample": "none",
+            "F": 128
+          }
+        },
+        "intrinsic_dim": {
+          "method": "Levina-Bickel-kNN-MLE",
+          "k": 20,
+          "max_points": 1200,
+          "estimate": 1.5000027702910665,
+          "feature_subsample": {
+            "feature_subsample": "none",
+            "F": 128
+          }
+        },
+        "reduce_info": {
+          "orig_shape": [
+            24,
+            2,
+            2,
+            128
+          ],
+          "reduce": "edges_offdiag",
+          "E": 2,
+          "mean": true,
+          "std": false,
+          "diag_shape": [
+            24,
+            128,
+            2
+          ]
+        }
+      },
+      "rho_v_to_e@rho_v_to_e": {
+        "shape": {
+          "B": 4192,
+          "F": 128
+        },
+        "finite": {
+          "B_finite": 4192
+        },
+        "norm_stats": {
+          "mean": 2.729489803314209,
+          "std": 0.3805621564388275,
+          "q05": 2.3067541122436523,
+          "q50": 2.6510009765625,
+          "q95": 3.4613871574401855
+        },
+        "pca": {
+          "eff_rank": 1.9974574057204517,
+          "pr": 1.9949266277073427,
+          "expvar_top": [
+            0.5252147647289341,
+            0.4747852351889176,
+            6.700356355157222e-13,
+            6.646468250678289e-13,
+            6.598138033595304e-13,
+            6.589085215633506e-13,
+            6.581753250130997e-13,
+            6.555383748838917e-13
+          ],
+          "k90": 2,
+          "k95": 2,
+          "k99": 2,
+          "feature_subsample": {
+            "feature_subsample": "none",
+            "F": 128
+          }
+        },
+        "intrinsic_dim": {
+          "method": "Levina-Bickel-kNN-MLE",
+          "k": 20,
+          "max_points": 1200,
+          "estimate": 1.38746302360271,
+          "feature_subsample": {
+            "feature_subsample": "none",
+            "F": 128
+          }
+        },
+        "reduce_info": {
+          "orig_shape": [
+            24,
+            2,
+            2,
+            128
+          ],
+          "reduce": "edges_offdiag",
+          "E": 2,
+          "mean": true,
+          "std": false,
+          "diag_shape": [
+            24,
+            128,
+            2
+          ]
+        }
+      },
+      "edge_update@edge_update": {
+        "shape": {
+          "B": 2096,
+          "F": 128
+        },
+        "finite": {
+          "B_finite": 2096
+        },
+        "norm_stats": {
+          "mean": 120.72593688964844,
+          "std": 16.36666488647461,
+          "q05": 96.6485824584961,
+          "q50": 119.99027252197266,
+          "q95": 150.17672729492188
+        },
+        "pca": {
+          "eff_rank": 1.389234005963366,
+          "pr": 1.149094942433057,
+          "expvar_top": [
+            0.9318734066498773,
+            0.03543387684295066,
+            0.02425229849678868,
+            0.003343767833364446,
+            0.0022097986738996898,
+            0.0011604688672880916,
+            0.0008973071981306901,
+            0.0002692222164988193
+          ],
+          "k90": 1,
+          "k95": 2,
+          "k99": 3,
+          "feature_subsample": {
+            "feature_subsample": "none",
+            "F": 128
+          }
+        },
+        "intrinsic_dim": {
+          "method": "Levina-Bickel-kNN-MLE",
+          "k": 20,
+          "max_points": 1200,
+          "estimate": 2.4369438801015764,
+          "feature_subsample": {
+            "feature_subsample": "none",
+            "F": 128
+          }
+        },
+        "reduce_info": {
+          "orig_shape": [
+            24,
+            2,
+            2,
+            128
+          ],
+          "reduce": "edges_offdiag",
+          "E": 2,
+          "mean": true,
+          "std": false,
+          "diag_shape": [
+            24,
+            128,
+            2
+          ]
+        }
+      },
+      "rho_e_to_v@rho_e_to_v": {
+        "shape": {
+          "B": 2096,
+          "F": 128
+        },
+        "finite": {
+          "B_finite": 2096
+        },
+        "norm_stats": {
+          "mean": 238.435546875,
+          "std": 26.570791244506836,
+          "q05": 198.23519897460938,
+          "q50": 237.6015625,
+          "q95": 284.98004150390625
+        },
+        "pca": {
+          "eff_rank": 1.2436476193994035,
+          "pr": 1.0903876717689356,
+          "expvar_top": [
+            0.95719702625505,
+            0.026700058727285952,
+            0.012710679544384549,
+            0.0019560372041554164,
+            0.0006574168074477811,
+            0.00029265633195028575,
+            0.00023343661050094893,
+            9.482830178615053e-05
+          ],
+          "k90": 1,
+          "k95": 1,
+          "k99": 3,
+          "feature_subsample": {
+            "feature_subsample": "none",
+            "F": 128
+          }
+        },
+        "intrinsic_dim": {
+          "method": "Levina-Bickel-kNN-MLE",
+          "k": 20,
+          "max_points": 1200,
+          "estimate": 2.194145900521071,
+          "feature_subsample": {
+            "feature_subsample": "none",
+            "F": 128
+          }
+        },
+        "reduce_info": {
+          "orig_shape": [
+            24,
+            2,
+            2,
+            128
+          ],
+          "reduce": "edges_offdiag",
+          "E": 2,
+          "mean": true,
+          "std": false,
+          "diag_shape": [
+            24,
+            128,
+            2
+          ]
+        }
+      },
+      "node_update@node_update": {
+        "shape": {
+          "B": 2096,
+          "F": 128
+        },
+        "finite": {
+          "B_finite": 2096
+        },
+        "norm_stats": {
+          "mean": 17.494600296020508,
+          "std": 2.050884485244751,
+          "q05": 14.285077095031738,
+          "q50": 17.468006134033203,
+          "q95": 21.139419555664062
+        },
+        "pca": {
+          "eff_rank": 3.022348573454211,
+          "pr": 1.8762844055091823,
+          "expvar_top": [
+            0.7182983715147998,
+            0.09840199324041261,
+            0.05973064040932734,
+            0.044560397937205135,
+            0.03426334654539153,
+            0.02156652291380831,
+            0.011186056955952917,
+            0.00228227286921332
+          ],
+          "k90": 4,
+          "k95": 5,
+          "k99": 8,
+          "feature_subsample": {
+            "feature_subsample": "none",
+            "F": 128
+          }
+        },
+        "intrinsic_dim": {
+          "method": "Levina-Bickel-kNN-MLE",
+          "k": 20,
+          "max_points": 1200,
+          "estimate": 2.818495130546414,
+          "feature_subsample": {
+            "feature_subsample": "none",
+            "F": 128
+          }
+        },
+        "reduce_info": {
+          "orig_shape": [
+            24,
+            2,
+            128
+          ],
+          "reduce": "nodes",
+          "mean": true,
+          "std": false
+        }
+      },
+      "dx_head@dx_head": {
+        "shape": {
+          "B": 2096,
+          "F": 2
+        },
+        "finite": {
+          "B_finite": 2096
+        },
+        "norm_stats": {
+          "mean": 0.2520700991153717,
+          "std": 0.18253830075263977,
+          "q05": 0.0559682697057724,
+          "q50": 0.23744815587997437,
+          "q95": 0.4771175682544708
+        },
+        "pca": {
+          "eff_rank": 1.8686572022395753,
+          "pr": 1.7656161260855652,
+          "expvar_top": [
+            0.6821737189245848,
+            0.3178262810600666
+          ],
+          "k90": 2,
+          "k95": 2,
+          "k99": 2,
+          "feature_subsample": {
+            "feature_subsample": "none",
+            "F": 2
+          }
+        },
+        "intrinsic_dim": {
+          "method": "Levina-Bickel-kNN-MLE",
+          "k": 20,
+          "max_points": 1200,
+          "estimate": 1.5528058086944845,
+          "feature_subsample": {
+            "feature_subsample": "none",
+            "F": 2
+          }
+        },
+        "reduce_info": {
+          "orig_shape": [
+            24,
+            2,
+            2
+          ],
+          "reduce": "nodes",
+          "mean": true,
+          "std": false
+        }
+      }
+    },
+    "alignment": {
+      "linear_cka_rho_in__dx": 0.00032924083643592894
+    },
+    "bf_scale_sweep_logpsi": {
+      "per_alpha": {
+        "0.0": {
+          "mean": -3.7880096435546875,
+          "std": 0.6039392948150635,
+          "dlogpsi_vs_0_mean": 0.0,
+          "dlogpsi_vs_0_std": 0.0,
+          "dlogpsi_vs_1_mean": 0.004974260460585356,
+          "dlogpsi_vs_1_std": 0.007837779819965363
+        },
+        "0.25": {
+          "mean": -3.7892510890960693,
+          "std": 0.603525698184967,
+          "dlogpsi_vs_0_mean": -0.001241584774106741,
+          "dlogpsi_vs_0_std": 0.0019584433175623417,
+          "dlogpsi_vs_1_mean": 0.0037326759193092585,
+          "dlogpsi_vs_1_std": 0.005879336968064308
+        },
+        "0.5": {
+          "mean": -3.790494203567505,
+          "std": 0.6031181216239929,
+          "dlogpsi_vs_0_mean": -0.0024845018051564693,
+          "dlogpsi_vs_0_std": 0.003917548339813948,
+          "dlogpsi_vs_1_mean": 0.00248975888825953,
+          "dlogpsi_vs_1_std": 0.0039202324114739895
+        },
+        "0.75": {
+          "mean": -3.791738510131836,
+          "std": 0.6027168035507202,
+          "dlogpsi_vs_0_mean": -0.003728749230504036,
+          "dlogpsi_vs_0_std": 0.005877330899238586,
+          "dlogpsi_vs_1_mean": 0.0012455113464966416,
+          "dlogpsi_vs_1_std": 0.0019604491535574198
+        },
+        "1.0": {
+          "mean": -3.7929837703704834,
+          "std": 0.6023217439651489,
+          "dlogpsi_vs_0_mean": -0.004974260460585356,
+          "dlogpsi_vs_0_std": 0.007837779819965363,
+          "dlogpsi_vs_1_mean": 0.0,
+          "dlogpsi_vs_1_std": 0.0
+        }
+      },
+      "refs": {
+        "alpha0": "0.0",
+        "alpha1": "1.0"
+      }
+    }
+  },
+  "energy": {
+    "note": "energy_not_computed"
+  },
+  "linear_layers": {
+    "note": "capture_linear_layers=False"
+  },
+  "config": {
+    "B": 1048,
+    "burn_in": 150,
+    "mix_steps": 50,
+    "step_sigma_scale": 0.2,
+    "target_accept": 0.6,
+    "psi_forward_chunk": 256,
+    "dx_forward_chunk": 256,
+    "hook_forward_chunk": 256,
+    "hook_store_cpu": true,
+    "hook_store_float32": true,
+    "node_reduce_mean": true,
+    "node_reduce_std": false,
+    "edge_reduce_mean": true,
+    "edge_reduce_std": false,
+    "edge_offdiag_only": true,
+    "pca_topk": 8,
+    "id_k": 20,
+    "id_max_points": 1200,
+    "max_F_for_id": 1024,
+    "max_F_for_pca": 4096,
+    "r0": 0.25,
+    "nbins_shell": 24,
+    "compute_energy": false,
+    "chunk_B_energy": 96,
+    "winsor_pct_energy": 0.0,
+    "capture_linear_layers": false,
+    "bf_scale_sweep": true,
+    "bf_alphas": [
+      0.0,
+      0.25,
+      0.5,
+      0.75,
+      1.0
+    ],
+    "seed": 0
+  }
+}

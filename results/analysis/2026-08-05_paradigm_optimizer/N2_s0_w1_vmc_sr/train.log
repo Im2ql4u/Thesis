@@ -1,0 +1,72 @@
+0
+[phase] N=2 omega=1.0 arch=pinn  ->  /itf-fi-ml/home/aleksns/Thesis/results/analysis/2026-08-05_paradigm_optimizer/N2_s0_w1_vmc_sr
+0
+[phase] warm-started from /itf-fi-ml/home/aleksns/Thesis/results/analysis/2026-08-05_paradigm_optimizer/base_N2_s0_w1/checkpoint.pt (omega 1.0 -> 1.0)
+[phase] params=236,336 device=cuda:0 ref_energy=3.0
+[sr 0000] E=2.999964 var=7.506e-06 |dθ|=1.87e-03 |g|=4.90e-04 damp=1.0e-03 lr=2.00e-01 |dx|/ell=0.3027 sat=0.00 com_kill=0.03
+[sr 0037] E=3.000180 var=7.596e-06 |dθ|=2.74e-03 |g|=3.76e-04 damp=1.0e-03 lr=2.00e-01 |dx|/ell=0.2999 sat=0.00 com_kill=0.03
+[sr 0074] E=3.000210 var=6.603e-06 |dθ|=1.69e-03 |g|=7.70e-04 damp=1.0e-03 lr=2.00e-01 |dx|/ell=0.3028 sat=0.00 com_kill=0.03
+[seg 1/5] step=75 E_raw=2.99995 (+0.010%) var=7.581e-06 kappa(S)=9.91e+11 rank=649 cos_sr=0.999 cos_plain=0.176
+[sr 0000] E=3.000305 var=6.309e-06 |dθ|=1.61e-03 |g|=3.65e-04 damp=1.0e-03 lr=2.00e-01 |dx|/ell=0.2970 sat=0.00 com_kill=0.03
+[sr 0042] E=3.000156 var=6.254e-06 |dθ|=2.24e-03 |g|=4.35e-04 damp=1.0e-03 lr=2.00e-01 |dx|/ell=0.2980 sat=0.00 com_kill=0.03
+[sr 0083] E=3.000146 var=5.647e-06 |dθ|=1.44e-03 |g|=1.39e-04 damp=1.0e-03 lr=2.00e-01 |dx|/ell=0.3016 sat=0.00 com_kill=0.03
+[seg 2/5] step=159 E_raw=3.00020 (+0.008%) var=5.803e-06 kappa(S)=9.91e+11 rank=643 cos_sr=0.994 cos_plain=0.136
+[sr 0000] E=3.000045 var=6.444e-06 |dθ|=1.68e-03 |g|=1.88e-04 damp=1.0e-03 lr=2.00e-01 |dx|/ell=0.2945 sat=0.00 com_kill=0.04
+[sr 0088] E=3.000075 var=5.558e-06 |dθ|=1.88e-03 |g|=3.53e-04 damp=1.0e-03 lr=2.00e-01 |dx|/ell=0.2908 sat=0.00 com_kill=0.04
+[sr 0175] E=2.999989 var=4.815e-06 |dθ|=1.81e-03 |g|=2.59e-04 damp=1.0e-03 lr=2.00e-01 |dx|/ell=0.2957 sat=0.00 com_kill=0.03
+[seg 3/5] step=335 E_raw=3.00015 (+0.004%) var=4.604e-06 kappa(S)=9.94e+11 rank=644 cos_sr=0.992 cos_plain=0.067
+[sr 0000] E=2.999932 var=4.594e-06 |dθ|=1.78e-03 |g|=6.39e-04 damp=1.0e-03 lr=2.00e-01 |dx|/ell=0.3020 sat=0.00 com_kill=0.04
+[sr 0187] E=3.000169 var=3.740e-06 |dθ|=1.75e-03 |g|=5.37e-04 damp=1.0e-03 lr=2.00e-01 |dx|/ell=0.2871 sat=0.00 com_kill=0.03
+[sr 0373] E=2.999986 var=3.480e-06 |dθ|=1.92e-03 |g|=4.01e-04 damp=1.0e-03 lr=2.00e-01 |dx|/ell=0.2934 sat=0.00 com_kill=0.03
+[seg 4/5] step=709 E_raw=2.99985 (+0.001%) var=3.427e-06 kappa(S)=9.95e+11 rank=641 cos_sr=0.994 cos_plain=0.222
+[sr 0000] E=3.000045 var=2.771e-06 |dθ|=1.62e-03 |g|=2.37e-04 damp=1.0e-03 lr=2.00e-01 |dx|/ell=0.2879 sat=0.00 com_kill=0.03
+[sr 0395] E=2.999979 var=2.246e-06 |dθ|=1.37e-03 |g|=2.96e-04 damp=1.0e-03 lr=2.00e-01 |dx|/ell=0.2974 sat=0.00 com_kill=0.03
+[sr 0790] E=2.999967 var=2.485e-06 |dθ|=1.74e-03 |g|=2.39e-04 damp=1.0e-03 lr=2.00e-01 |dx|/ell=0.2890 sat=0.00 com_kill=0.03
+[seg 5/5] step=1500 E_raw=3.00000 (-0.001%) var=2.471e-06 kappa(S)=9.95e+11 rank=637 cos_sr=0.937 cos_plain=0.103
+[phase] training done in 141.3 min
+[phase] summary:
+{
+  "N": 2,
+  "omega": 1.0,
+  "arch": "pinn",
+  "n_params": 236336,
+  "final": {
+    "E_mean": 2.9999803645331964,
+    "E_mean_raw": 3.000017097635474,
+    "E_stderr": 1.9860352248847356e-05,
+    "var_EL": 2.6016667954840153e-06,
+    "n_samples": 8192,
+    "frac_clipped": 0.0126953125,
+    "ref_energy": 3.0,
+    "error_pct": -0.0006545155601204538,
+    "error_sigma": -0.9886766638166351
+  },
+  "energy_raw": 3.000017097635474,
+  "error_pct_raw": 0.0005699211824694572,
+  "energy_zv": 2.9999589347840425,
+  "error_pct_zv": -0.0013688405319160304,
+  "zv_n_points": 5,
+  "spectrum": {
+    "lam_max": 4.073356269382592,
+    "lam_min_supported": 4.099709528526692e-12,
+    "effective_rank": 4.165080107073073,
+    "numerical_rank": 789,
+    "condition_number": 993571920410.2808,
+    "n_params": 236336,
+    "n_samples": 2048
+  },
+  "alignment": {
+    "cos_sr": 0.9070392369153618,
+    "cos_plain": 0.030109698601429726,
+    "rep_fraction": 0.9070392369153618,
+    "ntk_condition": 9948880262.51717,
+    "ntk_eff_rank": 4.16508008929883,
+    "ntk_numerical_rank": 477
+  },
+  "n_align_samples": 2048,
+  "exact": {
+    "energy": 2.999999983284695,
+    "cusp_slope": 0.9990630204195662,
+    "overlap_sq": 0.9999999561632152
+  }
+}

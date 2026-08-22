@@ -1,0 +1,93 @@
+0
+[phase] N=20 omega=0.28 arch=pinn  ->  /itf-fi-ml/home/aleksns/Thesis/results/analysis/2026-07-16_scaling/N20_ctnnbf_s1_w0p28
+0
+[phase] params=236,336 device=cuda:0 ref_energy=61.9268
+
+=== stage 1/4: Jastrow alone (backflow detached) ===
+[adam 00000] E=104.560463 var=6.8173e+01 sig=0.127 acc~0.5 n=128
+[adam 00100] E=110.340647 var=6.1731e+01 sig=0.120 acc~0.5 n=128
+[adam 00200] E=109.936771 var=5.7794e+01 sig=0.121 acc~0.5 n=128
+[adam 00300] E=105.741741 var=4.9110e+01 sig=0.124 acc~0.5 n=128
+[adam 00400] E=101.535858 var=4.9227e+01 sig=0.130 acc~0.5 n=128
+[adam 00500] E=95.237634 var=3.4378e+01 sig=0.135 acc~0.5 n=128
+[adam 00600] E=88.293408 var=3.1575e+01 sig=0.147 acc~0.5 n=128
+[adam 00700] E=78.310245 var=1.8234e+01 sig=0.168 acc~0.5 n=128
+[adam 00749] E=72.729954 var=1.0937e+01 sig=0.184 acc~0.5 n=128
+
+=== stage 2/4: cusp pre-train SKIPPED (thesis 'bf_then_joint' variant) ===
+
+=== stage 3/4: backflow only (Jastrow frozen) ===
+[adam 00000] E=71.597215 var=1.0647e+01 sig=0.193 acc~0.5 n=128 |dx|/ell=0.1952 sat=0.00 com_kill=0.25
+[adam 00100] E=64.540247 var=2.4542e+00 sig=0.224 acc~0.5 n=128 |dx|/ell=0.4319 sat=0.22 com_kill=0.01
+[adam 00200] E=62.784944 var=1.5333e+00 sig=0.245 acc~0.5 n=128 |dx|/ell=0.3415 sat=0.04 com_kill=0.02
+[adam 00300] E=62.666697 var=7.8770e-01 sig=0.251 acc~0.5 n=128 |dx|/ell=0.3349 sat=0.03 com_kill=0.01
+[adam 00400] E=62.314233 var=6.0027e-01 sig=0.251 acc~0.5 n=128 |dx|/ell=0.3346 sat=0.02 com_kill=0.03
+[adam 00500] E=62.236591 var=5.0332e-01 sig=0.244 acc~0.5 n=128 |dx|/ell=0.3392 sat=0.02 com_kill=0.03
+[adam 00600] E=62.276359 var=3.4396e-01 sig=0.248 acc~0.5 n=128 |dx|/ell=0.2330 sat=0.00 com_kill=0.01
+[adam 00700] E=62.163103 var=3.8651e-01 sig=0.248 acc~0.5 n=128 |dx|/ell=0.2689 sat=0.00 com_kill=0.03
+[adam 00749] E=62.165144 var=3.4017e-01 sig=0.248 acc~0.5 n=128 |dx|/ell=0.1825 sat=0.00 com_kill=0.02
+
+=== stage 4/4: joint (Jastrow released at lr*0.1) ===
+[adam 00000] E=85.835127 var=6.9545e+01 sig=0.150 acc~0.5 n=128 |dx|/ell=0.4494 sat=0.68 com_kill=0.17
+[adam 00100] E=62.248520 var=4.8853e-01 sig=0.249 acc~0.5 n=128 |dx|/ell=0.3527 sat=0.01 com_kill=0.05
+[adam 00200] E=62.140813 var=2.5706e-01 sig=0.251 acc~0.5 n=128 |dx|/ell=0.3078 sat=0.00 com_kill=0.00
+[adam 00300] E=62.082932 var=2.4625e-01 sig=0.248 acc~0.5 n=128 |dx|/ell=0.2392 sat=0.00 com_kill=0.04
+[adam 00400] E=62.064322 var=2.0081e-01 sig=0.248 acc~0.5 n=128 |dx|/ell=0.2674 sat=0.00 com_kill=0.04
+[adam 00500] E=62.076914 var=2.5529e-01 sig=0.249 acc~0.5 n=128 |dx|/ell=0.2441 sat=0.00 com_kill=0.05
+[adam 00600] E=62.094209 var=1.5784e-01 sig=0.250 acc~0.5 n=128 |dx|/ell=0.2458 sat=0.00 com_kill=0.01
+[adam 00700] E=62.107742 var=1.5040e-01 sig=0.251 acc~0.5 n=128 |dx|/ell=0.2577 sat=0.00 com_kill=0.02
+[adam 00800] E=62.063142 var=2.0522e-01 sig=0.247 acc~0.5 n=128 |dx|/ell=0.2470 sat=0.00 com_kill=0.02
+[adam 00900] E=61.984363 var=1.5829e-01 sig=0.246 acc~0.5 n=128 |dx|/ell=0.2394 sat=0.00 com_kill=0.02
+[adam 00999] E=62.031236 var=1.6091e-01 sig=0.249 acc~0.5 n=128 |dx|/ell=0.2048 sat=0.00 com_kill=0.02
+[phase] training done in 163.6 min
+Traceback (most recent call last):
+  File "/itf-fi-ml/home/aleksns/Thesis/scripts/run_phase_analysis.py", line 532, in <module>
+    main()
+  File "/itf-fi-ml/home/aleksns/Thesis/scripts/run_phase_analysis.py", line 266, in main
+    train_vmc_adam(
+  File "/itf-fi-ml/home/aleksns/Thesis/src/analysis/train.py", line 200, in train_vmc_adam
+    x, sig, _, _ = _persistent_rw(system.log_psi, x, steps=200, sigma=sig,
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/storage/software/PyTorch/2.1.2-foss-2023a-CUDA-12.1.1/lib/python3.11/site-packages/torch/utils/_contextlib.py", line 115, in decorate_context
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/itf-fi-ml/home/aleksns/Thesis/src/functions/Stochastic_Reconfiguration.py", line 41, in _persistent_rw
+    lp = psi_log_fn(x) * 2.0  # log |ψ|^2
+         ^^^^^^^^^^^^^
+  File "/itf-fi-ml/home/aleksns/Thesis/src/analysis/system.py", line 126, in log_psi
+    logpsi, _ = psi_fn(
+                ^^^^^^^
+  File "/itf-fi-ml/home/aleksns/Thesis/src/utils.py", line 57, in wrapper
+    return fn(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^
+  File "/itf-fi-ml/home/aleksns/Thesis/src/functions/Neural_Networks.py", line 1635, in psi_fn
+    x_eff = x_batch + (backflow_net(x_batch, spin=spin_bn) if backflow_net is not None else 0.0)
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/storage/software/PyTorch/2.1.2-foss-2023a-CUDA-12.1.1/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1518, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/storage/software/PyTorch/2.1.2-foss-2023a-CUDA-12.1.1/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1527, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/itf-fi-ml/home/aleksns/Thesis/src/PINN.py", line 631, in forward
+    h_e_new = self.edge_update(edge_update_in)  # (B,N,N,edge_hidden)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/storage/software/PyTorch/2.1.2-foss-2023a-CUDA-12.1.1/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1518, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/storage/software/PyTorch/2.1.2-foss-2023a-CUDA-12.1.1/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1527, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/storage/software/PyTorch/2.1.2-foss-2023a-CUDA-12.1.1/lib/python3.11/site-packages/torch/nn/modules/container.py", line 215, in forward
+    input = module(input)
+            ^^^^^^^^^^^^^
+  File "/storage/software/PyTorch/2.1.2-foss-2023a-CUDA-12.1.1/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1518, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/storage/software/PyTorch/2.1.2-foss-2023a-CUDA-12.1.1/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1527, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/storage/software/PyTorch/2.1.2-foss-2023a-CUDA-12.1.1/lib/python3.11/site-packages/torch/nn/modules/linear.py", line 114, in forward
+    return F.linear(input, self.weight, self.bias)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+torch.cuda.OutOfMemoryError: CUDA out of memory. Tried to allocate 1.56 GiB. GPU 0 has a total capacty of 10.57 GiB of which 727.06 MiB is free. Including non-PyTorch memory, this process has 9.85 GiB memory in use. Of the allocated memory 9.60 GiB is allocated by PyTorch, and 58.87 MiB is reserved by PyTorch but unallocated. If reserved but unallocated memory is large try setting max_split_size_mb to avoid fragmentation.  See documentation for Memory Management and PYTORCH_CUDA_ALLOC_CONF

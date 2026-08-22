@@ -1,0 +1,20 @@
+0
+  PINN+conv-bf s0 w 0.01  err=+0.592% (unclipped) [clip +0.609%]  no-bf +0.520%, backflow buys -0.0006  var=1.06e-04 d_eff=1.10 |dx|=0.1379 BFrank=1.0 dT_msg=+nan
+  PINN+conv-bf s0 w  0.1  err=+0.310% (unclipped) [clip +0.307%]  no-bf -0.174%, backflow buys -0.0171  var=3.68e-03 d_eff=9.62 |dx|=0.1388 BFrank=10.1 dT_msg=+nan
+  PINN+conv-bf s0 w  1.0  err=+0.074% (unclipped) [clip +0.075%]  no-bf -0.178%, backflow buys -0.0511  var=1.02e-01 d_eff=6.59 |dx|=0.0665 BFrank=10.5 dT_msg=+nan
+  PINN+conv-bf s1 w 0.01  err=+0.566% (unclipped) [clip +0.578%]  no-bf +0.489%, backflow buys -0.0006  var=1.08e-04 d_eff=1.13 |dx|=0.1536 BFrank=1.0 dT_msg=+nan
+  PINN+conv-bf s1 w  0.1  err=+0.265% (unclipped) [clip +0.271%]  no-bf -0.294%, backflow buys -0.0200  var=3.70e-03 d_eff=10.68 |dx|=0.1477 BFrank=10.2 dT_msg=+nan
+  PINN+conv-bf s1 w  1.0  err=+0.075% (unclipped) [clip +0.071%]  no-bf -0.170%, backflow buys -0.0486  var=1.10e-01 d_eff=6.14 |dx|=0.0772 BFrank=10.6 dT_msg=+nan
+  PINN+ctnn-bf s0 w 0.01  err=-0.047% (unclipped) [clip -0.056%]  no-bf -1.623%, backflow buys -0.0108  var=1.71e-05 d_eff=10.30 |dx|=0.0904 BFrank=9.9 dT_msg=+0.004
+  PINN+ctnn-bf s0 w  0.1  err=+0.031% (unclipped) [clip +0.030%]  no-bf -1.216%, backflow buys -0.0443  var=5.50e-04 d_eff=7.70 |dx|=0.1416 BFrank=7.5 dT_msg=+0.060
+  PINN+ctnn-bf s0 w  1.0  err=-0.035% (unclipped) [clip -0.028%]  no-bf -0.450%, backflow buys -0.0851  var=2.31e-02 d_eff=4.20 |dx|=0.1205 BFrank=9.1 dT_msg=+0.592
+  PINN+ctnn-bf s1 w 0.01  err=-0.000% (unclipped) [clip -0.007%]  no-bf -1.486%, backflow buys -0.0102  var=1.84e-05 d_eff=9.24 |dx|=0.0843 BFrank=9.8 dT_msg=+0.010
+  PINN+ctnn-bf s1 w  0.1  err=+0.005% (unclipped) [clip +0.015%]  no-bf -1.324%, backflow buys -0.0476  var=5.88e-04 d_eff=7.92 |dx|=0.1375 BFrank=7.8 dT_msg=+0.076
+  PINN+ctnn-bf s1 w  1.0  err=-0.004% (unclipped) [clip -0.008%]  no-bf -0.303%, backflow buys -0.0594  var=2.44e-02 d_eff=4.21 |dx|=0.1203 BFrank=9.1 dT_msg=+0.603
+
+[contrast] PINN + CTNN-backflow vs PINN + conventional-backflow (seed-avg):
+     w |   err% ctnn/conv |      var ctnn/conv | BFrank ctnn/conv | dT_msg(ctnn)
+   1.0 | -0.018/+0.073 | 2.38e-02/1.06e-01 | 9.1/10.5 | +0.597
+   0.1 | +0.023/+0.289 | 5.69e-04/3.69e-03 | 7.6/10.1 | +0.068
+  0.01 | -0.032/+0.594 | 1.78e-05/1.07e-04 | 9.9/1.0 | +0.007
+-> results/analysis/2026-07-11_pinn_ansatz_v3/master.csv

@@ -1,0 +1,19 @@
+\begin{table}[t]
+\centering
+\small
+\setlength{\tabcolsep}{4pt}
+\renewcommand{\arraystretch}{1.15}
+\begin{tabular}{rrrrrr}
+\toprule
+$b$ & $\mathrm{median}(z_b)$ & $P(z_b>1.5)$ & $\mathrm{median}(\mathrm{rank})$ & $P(\mathrm{rank}<3)$ & $\mathrm{median}(\Delta q_b)$ \\
+\midrule
+1 & 2.645 & 1.000 & 1.0 & 0.699 & 2.1490 \\
+4 & 2.358 & 1.000 & 8.0 & 0.146 & 0.6992 \\
+7 & 2.552 & 1.000 & 6.0 & 0.262 & 1.1761 \\
+10 & 2.133 & 1.000 & 8.0 & 0.124 & 0.8462 \\
+13 & 1.662 & 0.885 & 12.0 & 0.013 & 0.3407 \\
+\bottomrule
+\end{tabular}
+\caption{Boundary diagnostics for $N=20$, $\omega=0.001$. Global cuts: (1,4,7,10,13), implied occupancy (1,3,3,3,3,7). $z_b$ is the separation z-score across boundary $b$; $\Delta q_b$ is trimmed separation (default $\alpha=0.1$).}
+\label{tab:boundaries_N20_omega0p001}
+\end{table}

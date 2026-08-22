@@ -1,0 +1,48 @@
+0
+[phase] N=6 omega=0.1 arch=pinn  ->  results/analysis/2026-07-11_pinn_ansatz_v3/pinn_convbf_s1_w0p1
+0
+[phase] warm-started from results/analysis/2026-07-11_pinn_ansatz_v3/pinn_convbf_s1_w1p0/checkpoint.pt (omega 1.0 -> 0.1)
+[phase] params=105,136 device=cuda:0 ref_energy=3.55385
+[adam 00000] E=5.274715 var=6.9232e-01 sig=0.602 acc~0.5 n=2048 |dx|/ell=0.0641
+[adam 00093] E=3.767694 var=8.6570e-02 sig=0.834 acc~0.5 n=2048 |dx|/ell=0.2444
+[adam 00186] E=3.620502 var=2.7858e-02 sig=0.923 acc~0.5 n=2048 |dx|/ell=0.2022
+[seg 1/4] step=187 E_raw=3.60863 (+1.544%) var=3.053e-02 kappa(S)=1.42e+09 rank=1023 cos_sr=1.000 cos_plain=0.186
+[adam 00000] E=3.615653 var=2.8060e-02 sig=0.927 acc~0.5 n=2048 |dx|/ell=0.2926
+[adam 00142] E=3.582422 var=8.4516e-03 sig=0.902 acc~0.5 n=2048 |dx|/ell=0.1581
+[adam 00284] E=3.571642 var=6.6878e-03 sig=0.885 acc~0.5 n=2048 |dx|/ell=0.0975
+[seg 2/4] step=472 E_raw=3.57651 (+0.638%) var=7.117e-03 kappa(S)=6.18e+08 rank=1023 cos_sr=1.000 cos_plain=0.136
+[adam 00000] E=3.572976 var=6.3947e-03 sig=0.892 acc~0.5 n=2048 |dx|/ell=0.2485
+[adam 00358] E=3.571133 var=5.8270e-03 sig=0.881 acc~0.5 n=2048 |dx|/ell=0.2199
+[adam 00716] E=3.566375 var=5.2917e-03 sig=0.879 acc~0.5 n=2048 |dx|/ell=0.1064
+[seg 3/4] step=1189 E_raw=3.56144 (+0.216%) var=5.721e-03 kappa(S)=4.58e+07 rank=1023 cos_sr=1.000 cos_plain=0.160
+[adam 00000] E=3.567471 var=5.0363e-03 sig=0.885 acc~0.5 n=2048 |dx|/ell=0.2754
+[adam 00905] E=3.563181 var=4.7529e-03 sig=0.882 acc~0.5 n=2048 |dx|/ell=0.1256
+[adam 01810] E=3.559950 var=3.8017e-03 sig=0.881 acc~0.5 n=2048 |dx|/ell=0.1429
+[seg 4/4] step=3000 E_raw=3.56195 (+0.231%) var=4.823e-03 kappa(S)=6.25e+06 rank=1023 cos_sr=1.000 cos_plain=0.133
+[phase] training done in 157.7 min
+[adam 00000] E=3.560716 var=3.8584e-03 sig=0.888 acc~0.5 n=4096 |dx|/ell=0.1448
+[adam 00125] E=3.561950 var=3.8355e-03 sig=0.882 acc~0.5 n=4096 |dx|/ell=0.1430
+[adam 00250] E=3.560651 var=3.9963e-03 sig=0.882 acc~0.5 n=4096 |dx|/ell=0.1485
+[adam 00375] E=3.561871 var=3.6492e-03 sig=0.881 acc~0.5 n=4096 |dx|/ell=0.1470
+[adam 00499] E=3.560847 var=3.8900e-03 sig=0.880 acc~0.5 n=4096 |dx|/ell=0.1486
+[sr 0000] E=3.562195 (+0.235%) var=4.215e-03 |dθ|=1.00e-02 |g|=7.55e-02 damp=1.0e-03 lr=2.00e-01 |dx|/ell=0.1473
+[sr 0050] E=3.559828 (+0.168%) var=3.940e-03 |dθ|=5.88e-03 |g|=8.23e-02 damp=7.9e-04 lr=1.48e-01 |dx|/ell=0.1474
+[sr 0100] E=3.559255 (+0.152%) var=4.233e-03 |dθ|=3.46e-03 |g|=8.80e-02 damp=6.3e-04 lr=1.10e-01 |dx|/ell=0.1442
+[sr 0150] E=3.560006 (+0.173%) var=3.834e-03 |dθ|=2.03e-03 |g|=1.04e-01 damp=5.0e-04 lr=8.13e-02 |dx|/ell=0.1477
+[sr 0200] E=3.559668 (+0.164%) var=3.994e-03 |dθ|=1.20e-03 |g|=6.74e-02 damp=4.0e-04 lr=6.02e-02 |dx|/ell=0.1450
+[sr 0250] E=3.563940 (+0.284%) var=4.064e-03 |dθ|=7.03e-04 |g|=1.17e-01 damp=3.2e-04 lr=4.46e-02 |dx|/ell=0.1455
+[sr 0300] E=3.560264 (+0.180%) var=4.190e-03 |dθ|=4.14e-04 |g|=1.08e-01 damp=2.5e-04 lr=3.30e-02 |dx|/ell=0.1460
+[sr 0350] E=3.561870 (+0.226%) var=3.998e-03 |dθ|=2.43e-04 |g|=7.77e-02 damp=2.0e-04 lr=2.45e-02 |dx|/ell=0.1486
+[sr 0400] E=3.557845 (+0.112%) var=4.250e-03 |dθ|=1.43e-04 |g|=7.17e-02 damp=1.6e-04 lr=1.81e-02 |dx|/ell=0.1489
+[sr 0450] E=3.560958 (+0.200%) var=4.043e-03 |dθ|=8.41e-05 |g|=1.12e-01 damp=1.3e-04 lr=1.34e-02 |dx|/ell=0.1476
+[sr 0499] E=3.561126 (+0.205%) var=3.596e-03 |dθ|=5.00e-05 |g|=8.78e-02 damp=1.0e-04 lr=1.00e-02 |dx|/ell=0.1452
+Traceback (most recent call last):
+  File "/itf-fi-ml/home/aleksns/Thesis/scripts/run_phase_analysis.py", line 532, in <module>
+    main()
+  File "/itf-fi-ml/home/aleksns/Thesis/scripts/run_phase_analysis.py", line 303, in main
+    spf = dg.kernel_spectrum(Of)
+          ^^^^^^^^^^^^^^^^^^^^^^
+  File "/itf-fi-ml/home/aleksns/Thesis/src/analysis/diagnostics.py", line 54, in kernel_spectrum
+    s = torch.linalg.svdvals(O.double())  # singular values of O
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+torch.cuda.OutOfMemoryError: CUDA out of memory. Tried to allocate 1.64 GiB. GPU 0 has a total capacty of 10.75 GiB of which 889.56 MiB is free. Process 1599619 has 3.94 GiB memory in use. Including non-PyTorch memory, this process has 5.94 GiB memory in use. Of the allocated memory 5.67 GiB is allocated by PyTorch, and 51.37 MiB is reserved by PyTorch but unallocated. If reserved but unallocated memory is large try setting max_split_size_mb to avoid fragmentation.  See documentation for Memory Management and PYTORCH_CUDA_ALLOC_CONF

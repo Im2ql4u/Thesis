@@ -1,0 +1,79 @@
+0
+[phase] N=6 omega=0.1 arch=pinn  ->  /itf-fi-ml/home/aleksns/Thesis/results/analysis/2026-07-16_scaling/N6_ctnnbf_s1_w0p1
+0
+[phase] warm-started from /itf-fi-ml/home/aleksns/Thesis/results/analysis/2026-07-16_scaling/N6_ctnnbf_s1_w0p28/checkpoint.pt (omega 0.28 -> 0.1)
+[phase] params=236,336 device=cuda:0 ref_energy=3.55385
+[adam 00000] E=3.982440 var=1.4632e-01 sig=0.810 acc~0.5 n=2048 |dx|/ell=0.0770 sat=0.00 com_kill=0.01
+[adam 00093] E=3.560436 var=5.0894e-03 sig=0.904 acc~0.5 n=2048 |dx|/ell=0.1378 sat=0.00 com_kill=0.03
+[adam 00186] E=3.555840 var=2.6689e-03 sig=0.900 acc~0.5 n=2048 |dx|/ell=0.1234 sat=0.00 com_kill=0.03
+[seg 1/4] step=187 E_raw=3.55658 (+0.059%) var=2.704e-03 kappa(S)=1.56e+05 rank=1023 cos_sr=1.000 cos_plain=0.204
+[adam 00000] E=3.556114 var=2.4065e-03 sig=0.910 acc~0.5 n=2048 |dx|/ell=0.1287 sat=0.00 com_kill=0.04
+[adam 00142] E=3.553276 var=1.1655e-03 sig=0.895 acc~0.5 n=2048 |dx|/ell=0.1050 sat=0.00 com_kill=0.03
+[adam 00284] E=3.554084 var=8.0662e-04 sig=0.894 acc~0.5 n=2048 |dx|/ell=0.1072 sat=0.00 com_kill=0.02
+[seg 2/4] step=472 E_raw=3.55458 (+0.020%) var=9.833e-04 kappa(S)=3.14e+05 rank=1023 cos_sr=1.000 cos_plain=0.109
+[adam 00000] E=3.553692 var=8.5681e-04 sig=0.903 acc~0.5 n=2048 |dx|/ell=0.1146 sat=0.00 com_kill=0.02
+[adam 00358] E=3.553622 var=6.4737e-04 sig=0.897 acc~0.5 n=2048 |dx|/ell=0.1159 sat=0.00 com_kill=0.02
+[adam 00716] E=3.553611 var=6.1383e-04 sig=0.892 acc~0.5 n=2048 |dx|/ell=0.1189 sat=0.00 com_kill=0.02
+[seg 3/4] step=1189 E_raw=3.55251 (-0.034%) var=7.146e-04 kappa(S)=2.52e+05 rank=1023 cos_sr=1.000 cos_plain=0.130
+[adam 00000] E=3.553195 var=6.2259e-04 sig=0.900 acc~0.5 n=2048 |dx|/ell=0.1193 sat=0.00 com_kill=0.02
+[adam 00905] E=3.552341 var=4.8742e-04 sig=0.895 acc~0.5 n=2048 |dx|/ell=0.1271 sat=0.00 com_kill=0.01
+[adam 01810] E=3.552997 var=4.5473e-04 sig=0.894 acc~0.5 n=2048 |dx|/ell=0.1303 sat=0.00 com_kill=0.01
+[seg 4/4] step=3000 E_raw=3.55105 (-0.080%) var=6.189e-04 kappa(S)=3.27e+05 rank=1023 cos_sr=1.000 cos_plain=0.142
+[phase] training done in 171.7 min
+[adam 00000] E=3.552794 var=4.4528e-04 sig=0.900 acc~0.5 n=4096 |dx|/ell=0.1288 sat=0.00 com_kill=0.01
+[adam 00125] E=3.552000 var=3.5902e-04 sig=0.892 acc~0.5 n=4096 |dx|/ell=0.1322 sat=0.00 com_kill=0.01
+[adam 00250] E=3.552697 var=3.5326e-04 sig=0.894 acc~0.5 n=4096 |dx|/ell=0.1291 sat=0.00 com_kill=0.01
+[adam 00375] E=3.552346 var=3.4657e-04 sig=0.893 acc~0.5 n=4096 |dx|/ell=0.1330 sat=0.00 com_kill=0.02
+[adam 00499] E=3.552132 var=3.3879e-04 sig=0.893 acc~0.5 n=4096 |dx|/ell=0.1320 sat=0.00 com_kill=0.01
+[sr 0000] E=3.552723 (-0.032%) var=4.358e-04 |dθ|=1.00e-02 |g|=1.00e-02 damp=1.0e-03 lr=2.00e-01 |dx|/ell=0.1347 sat=0.00 com_kill=0.02
+[sr 0050] E=3.552639 (-0.034%) var=4.391e-04 |dθ|=5.88e-03 |g|=8.54e-03 damp=7.9e-04 lr=1.48e-01 |dx|/ell=0.1263 sat=0.00 com_kill=0.02
+[sr 0100] E=3.552209 (-0.046%) var=4.443e-04 |dθ|=3.46e-03 |g|=9.68e-03 damp=6.3e-04 lr=1.10e-01 |dx|/ell=0.1249 sat=0.00 com_kill=0.01
+[sr 0150] E=3.551904 (-0.055%) var=4.522e-04 |dθ|=2.03e-03 |g|=7.30e-03 damp=5.0e-04 lr=8.13e-02 |dx|/ell=0.1295 sat=0.00 com_kill=0.01
+[sr 0200] E=3.551495 (-0.066%) var=4.183e-04 |dθ|=1.20e-03 |g|=7.63e-03 damp=4.0e-04 lr=6.02e-02 |dx|/ell=0.1272 sat=0.00 com_kill=0.01
+[sr 0250] E=3.553349 (-0.014%) var=3.811e-04 |dθ|=7.03e-04 |g|=6.49e-03 damp=3.2e-04 lr=4.46e-02 |dx|/ell=0.1277 sat=0.00 com_kill=0.02
+[sr 0300] E=3.552304 (-0.044%) var=4.294e-04 |dθ|=4.14e-04 |g|=5.90e-03 damp=2.5e-04 lr=3.30e-02 |dx|/ell=0.1311 sat=0.00 com_kill=0.02
+[sr 0350] E=3.552503 (-0.038%) var=4.304e-04 |dθ|=2.43e-04 |g|=1.16e-02 damp=2.0e-04 lr=2.45e-02 |dx|/ell=0.1300 sat=0.00 com_kill=0.02
+[sr 0400] E=3.552402 (-0.041%) var=4.369e-04 |dθ|=1.43e-04 |g|=8.24e-03 damp=1.6e-04 lr=1.81e-02 |dx|/ell=0.1307 sat=0.00 com_kill=0.01
+[sr 0450] E=3.552629 (-0.034%) var=4.048e-04 |dθ|=8.41e-05 |g|=7.52e-03 damp=1.3e-04 lr=1.34e-02 |dx|/ell=0.1248 sat=0.00 com_kill=0.02
+[sr 0499] E=3.551538 (-0.065%) var=4.362e-04 |dθ|=5.00e-05 |g|=8.60e-03 damp=1.0e-04 lr=1.00e-02 |dx|/ell=0.1308 sat=0.00 com_kill=0.02
+[phase] summary:
+{
+  "N": 6,
+  "omega": 0.1,
+  "arch": "pinn",
+  "n_params": 236336,
+  "final": {
+    "E_mean": 3.552754639615852,
+    "E_mean_raw": 3.552905207271579,
+    "E_stderr": 0.00025955238558543177,
+    "var_EL": 0.0004214873646644351,
+    "n_samples": 8192,
+    "frac_clipped": 0.0137939453125,
+    "ref_energy": 3.55385,
+    "error_pct": -0.030821795634259953,
+    "error_sigma": -4.220190007799443
+  },
+  "energy_raw": 3.552905207271579,
+  "error_pct_raw": -0.026585048002059297,
+  "energy_zv": 3.5513746669661397,
+  "error_pct_zv": -0.06965215284439394,
+  "zv_n_points": 5,
+  "spectrum": {
+    "lam_max": 42.74662923122796,
+    "lam_min_supported": 2.0246845165213692e-05,
+    "effective_rank": 6.487203585486407,
+    "numerical_rank": 2047,
+    "condition_number": 2111273.577805167,
+    "n_params": 236336,
+    "n_samples": 2048
+  },
+  "alignment": {
+    "cos_sr": 0.9999999999999998,
+    "cos_plain": 0.05831677305769539,
+    "rep_fraction": 0.9999999999999998,
+    "ntk_condition": 2111273.5778042423,
+    "ntk_eff_rank": 6.487203585486405,
+    "ntk_numerical_rank": 2047
+  },
+  "n_align_samples": 2048
+}

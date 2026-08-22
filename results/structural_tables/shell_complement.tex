@@ -1,0 +1,31 @@
+\begin{table}[t]
+\centering
+\small
+\setlength{\tabcolsep}{3.5pt}
+\renewcommand{\arraystretch}{1.15}
+\begin{adjustbox}{max width=\textwidth}
+\begin{tabular}{rrrlllrlll}
+\toprule
+$N$ & $\omega$ & $S$ & occ. & cuts & $B_s$ per shell & $\max|\rho|_{(B=20)}$ & NN-CV per shell & $r_{\mathrm{peak}}$ & peak--valley \\
+\midrule
+6 & 0.001 & 2 & (1,5) & (1) & 0.626, 0.055 & 0.180 & -, 0.214 & 1.212 & 0.789 \\
+6 & 0.01 & 2 & (1,5) & (1) & 0.418, 0.079 & 0.025 & -, 0.325 & 1.325 & 0.557 \\
+6 & 0.1 & 2 & (1,5) & (1) & 0.413, 0.106 & 0.166 & -, 0.389 & 1.600 & 0.601 \\
+6 & 0.5 & 2 & (1,5) & (1) & 0.426, 0.126 & 0.271 & -, 0.435 & 1.725 & 0.561 \\
+6 & 1 & 2 & (1,5) & (1) & 0.434, 0.134 & 0.276 & -, 0.451 & 1.748 & 0.531 \\
+12 & 0.001 & 3 & (1,3,8) & (1,4) & 0.808, 0.396, 0.189 & 0.957 & -, 0.287, 0.290 & 1.197 & 0.425 \\
+12 & 0.01 & 3 & (1,3,8) & (1,4) & 0.410, 0.111, 0.043 & 0.093 & -, 0.302, 0.347 & 1.441 & 0.108 \\
+12 & 0.1 & 3 & (1,3,8) & (1,4) & 0.454, 0.138, 0.058 & 0.202 & -, 0.334, 0.423 & 2.030 & 0.219 \\
+12 & 0.5 & 3 & (1,3,8) & (1,4) & 0.472, 0.155, 0.071 & 0.329 & -, 0.355, 0.475 & 2.187 & 0.202 \\
+12 & 1 & 3 & (1,3,8) & (1,4) & 0.473, 0.163, 0.076 & 0.334 & -, 0.364, 0.492 & 2.197 & 0.202 \\
+20 & 0.001 & 3 & (1,7,12) & (1,8) & 0.466, 0.042, 0.019 & 0.121 & -, 0.265, 0.250 & 1.292 & 0.282 \\
+20 & 0.01 & 4 & (1,3,3,13) & (1,4,7) & 0.487, 0.154, 0.096, 0.044 & 0.542 & -, 0.309, 0.345, 0.313 & 2.182 & 0.037 \\
+20 & 0.1 & 3 & (1,3,16) & (1,4) & 0.423, 0.140, 0.037 & 0.279 & -, 0.339, 0.360 & 2.173 & 0.000 \\
+20 & 0.5 & 2 & (1,19) & (1) & 0.438, 0.047 & 0.118 & -, 0.415 & 2.170 & 0.000 \\
+20 & 1 & 2 & (1,19) & (1) & 0.444, 0.051 & 0.152 & -, 0.432 & 2.166 & 0.000 \\
+\bottomrule
+\end{tabular}
+\end{adjustbox}
+\caption{Complementary structural metrics. $B_s$ is the per-shell breathing Lindemann (std/mean of per-frame mean radii). $\max|\rho|_{(B=20)}$ is the maximum inter-shell breathing correlation after block-averaging 20 consecutive frames (guards against autocorrelation artifacts). NN-CV is the coefficient of variation of chord distances between angular nearest neighbors within each shell (n<3 omitted). Pair metric uses distances scaled by the median nearest-neighbor spacing: $r_{\mathrm{peak}}$ is the first peak position and peak--valley is $(g_{\mathrm{peak}}-g_{\mathrm{valley}})/g_{\mathrm{peak}}$.}
+\label{tab:shell_complement}
+\end{table}

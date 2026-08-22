@@ -1,0 +1,549 @@
+[07-20 07:54:21] 12 chains over 8 GPUs (one chain per GPU at a time)
+[07-20 07:54:21] GPU0 start N=6 ctnn s0
+[07-20 07:54:21] GPU1 start N=6 ctnn s1
+[07-20 07:54:21] GPU2 start N=6 conv s0
+[07-20 07:54:21] GPU3 start N=6 conv s1
+[07-20 07:54:21] GPU4 start N=12 ctnn s0
+[07-20 07:54:21] GPU5 start N=12 ctnn s1
+[07-20 07:54:21] GPU6 start N=12 conv s0
+[07-20 07:54:21] GPU7 start N=12 conv s1
+[07-20 10:12:21] done: N6_convbf_s1_w1 (attempt 1)
+[07-20 10:16:21] done: N6_convbf_s0_w1 (attempt 1)
+[07-20 10:40:21] FAILED N12_ctnnbf_s1_w1 attempt 1 (OOM -> halving sizes)
+[07-20 10:42:21] FAILED N12_ctnnbf_s0_w1 attempt 1 (OOM -> halving sizes)
+[07-20 12:40:21] done: N6_convbf_s1_w0p5 (attempt 1)
+[07-20 12:48:21] done: N6_convbf_s0_w0p5 (attempt 1)
+[07-20 13:36:22] FAILED N12_ctnnbf_s1_w1 attempt 2 (OOM -> halving sizes)
+[07-20 13:40:22] FAILED N12_ctnnbf_s0_w1 attempt 2 (OOM -> halving sizes)
+[07-20 14:04:22] done: N6_ctnnbf_s1_w1 (attempt 1)
+[07-20 14:34:22] done: N6_ctnnbf_s0_w1 (attempt 1)
+[07-20 14:40:22] done: N12_convbf_s1_w1 (attempt 1)
+[07-20 14:40:22] done: N12_convbf_s0_w1 (attempt 1)
+[07-20 15:08:22] done: N6_convbf_s1_w0p28 (attempt 1)
+[07-20 15:10:22] FAILED N12_ctnnbf_s1_w1 attempt 3 (OOM -> halving sizes)
+[07-20 15:10:22] GIVING UP on N12_ctnnbf_s1_w1
+[07-20 15:10:22] chain N12 ctnn s1: stage w=1.0 failed, continuing from previous init
+[07-20 15:16:22] FAILED N12_ctnnbf_s0_w1 attempt 3 (OOM -> halving sizes)
+[07-20 15:16:22] GIVING UP on N12_ctnnbf_s0_w1
+[07-20 15:16:22] chain N12 ctnn s0: stage w=1.0 failed, continuing from previous init
+[07-20 15:20:22] done: N6_convbf_s0_w0p28 (attempt 1)
+[07-20 17:36:22] done: N6_convbf_s1_w0p1 (attempt 1)
+[07-20 17:52:22] done: N6_convbf_s0_w0p1 (attempt 1)
+[07-20 17:56:22] FAILED N12_ctnnbf_s1_w0p5 attempt 1 (OOM -> halving sizes)
+[07-20 18:04:22] FAILED N12_ctnnbf_s0_w0p5 attempt 1 (OOM -> halving sizes)
+[07-20 20:06:22] done: N6_convbf_s1_w0p01 (attempt 1)
+[07-20 20:24:22] done: N6_convbf_s0_w0p01 (attempt 1)
+[07-20 20:52:22] FAILED N12_ctnnbf_s1_w0p5 attempt 2 (OOM -> halving sizes)
+[07-20 20:58:22] done: N6_ctnnbf_s1_w0p5 (attempt 1)
+[07-20 21:02:22] FAILED N12_ctnnbf_s0_w0p5 attempt 2 (OOM -> halving sizes)
+[07-20 21:32:22] done: N6_ctnnbf_s0_w0p5 (attempt 1)
+[07-20 21:50:22] done: N12_convbf_s0_w0p5 (attempt 1)
+[07-20 21:50:22] done: N12_convbf_s1_w0p5 (attempt 1)
+[07-20 22:26:22] FAILED N12_ctnnbf_s1_w0p5 attempt 3 (OOM -> halving sizes)
+[07-20 22:26:22] GIVING UP on N12_ctnnbf_s1_w0p5
+[07-20 22:26:22] chain N12 ctnn s1: stage w=0.5 failed, continuing from previous init
+[07-20 22:36:22] done: N6_convbf_s1_w0p001 (attempt 1)
+[07-20 22:36:22] GPU3 start N=20 ctnn s0
+[07-20 22:38:22] FAILED N12_ctnnbf_s0_w0p5 attempt 3 (OOM -> halving sizes)
+[07-20 22:38:22] GIVING UP on N12_ctnnbf_s0_w0p5
+[07-20 22:38:22] chain N12 ctnn s0: stage w=0.5 failed, continuing from previous init
+[07-20 22:58:22] done: N6_convbf_s0_w0p001 (attempt 1)
+[07-20 22:58:22] GPU2 start N=20 ctnn s1
+[07-20 23:14:22] FAILED N20_ctnnbf_s0_w1 attempt 1 (OOM -> halving sizes)
+[07-20 23:36:22] FAILED N20_ctnnbf_s1_w1 attempt 1 (OOM -> halving sizes)
+[07-21 01:12:22] FAILED N12_ctnnbf_s1_w0p28 attempt 1 (OOM -> halving sizes)
+[07-21 01:26:22] FAILED N12_ctnnbf_s0_w0p28 attempt 1 (OOM -> halving sizes)
+[07-21 03:52:23] done: N6_ctnnbf_s1_w0p28 (attempt 1)
+[07-21 04:00:23] FAILED N20_ctnnbf_s0_w1 attempt 2 (OOM -> halving sizes)
+[07-21 04:08:23] FAILED N12_ctnnbf_s1_w0p28 attempt 2 (OOM -> halving sizes)
+[07-21 04:24:23] FAILED N12_ctnnbf_s0_w0p28 attempt 2 (OOM -> halving sizes)
+[07-21 04:28:23] FAILED N20_ctnnbf_s1_w1 attempt 2 (OOM -> halving sizes)
+[07-21 04:30:23] done: N6_ctnnbf_s0_w0p28 (attempt 1)
+[07-21 05:00:23] done: N12_convbf_s1_w0p28 (attempt 1)
+[07-21 05:00:23] done: N12_convbf_s0_w0p28 (attempt 1)
+[07-21 05:42:23] FAILED N12_ctnnbf_s1_w0p28 attempt 3 (OOM -> halving sizes)
+[07-21 05:42:23] GIVING UP on N12_ctnnbf_s1_w0p28
+[07-21 05:42:23] chain N12 ctnn s1: stage w=0.28 failed, continuing from previous init
+[07-21 06:00:23] FAILED N12_ctnnbf_s0_w0p28 attempt 3 (OOM -> halving sizes)
+[07-21 06:00:23] GIVING UP on N12_ctnnbf_s0_w0p28
+[07-21 06:00:23] chain N12 ctnn s0: stage w=0.28 failed, continuing from previous init
+[07-21 06:30:23] FAILED N20_ctnnbf_s0_w1 attempt 3 (OOM -> halving sizes)
+[07-21 06:30:23] GIVING UP on N20_ctnnbf_s0_w1
+[07-21 06:30:23] chain N20 ctnn s0: stage w=1.0 failed, continuing from previous init
+[07-21 07:02:23] FAILED N20_ctnnbf_s1_w1 attempt 3 (OOM -> halving sizes)
+[07-21 07:02:23] GIVING UP on N20_ctnnbf_s1_w1
+[07-21 07:02:23] chain N20 ctnn s1: stage w=1.0 failed, continuing from previous init
+[07-21 07:08:23] FAILED N20_ctnnbf_s0_w0p5 attempt 1 (OOM -> halving sizes)
+[07-21 07:40:23] FAILED N20_ctnnbf_s1_w0p5 attempt 1 (OOM -> halving sizes)
+[07-21 08:28:23] FAILED N12_ctnnbf_s1_w0p1 attempt 1 (OOM -> halving sizes)
+[07-21 08:48:23] FAILED N12_ctnnbf_s0_w0p1 attempt 1 (OOM -> halving sizes)
+[07-21 10:46:23] done: N6_ctnnbf_s1_w0p1 (attempt 1)
+[07-21 11:24:23] FAILED N12_ctnnbf_s1_w0p1 attempt 2 (OOM -> halving sizes)
+[07-21 11:28:23] done: N6_ctnnbf_s0_w0p1 (attempt 1)
+[07-21 11:46:23] FAILED N12_ctnnbf_s0_w0p1 attempt 2 (OOM -> halving sizes)
+[07-21 11:54:23] FAILED N20_ctnnbf_s0_w0p5 attempt 2 (OOM -> halving sizes)
+[07-21 12:10:23] done: N12_convbf_s0_w0p1 (attempt 1)
+[07-21 12:10:23] done: N12_convbf_s1_w0p1 (attempt 1)
+[07-21 12:32:23] FAILED N20_ctnnbf_s1_w0p5 attempt 2 (OOM -> halving sizes)
+[07-21 12:58:23] FAILED N12_ctnnbf_s1_w0p1 attempt 3 (OOM -> halving sizes)
+[07-21 12:58:23] GIVING UP on N12_ctnnbf_s1_w0p1
+[07-21 12:58:23] chain N12 ctnn s1: stage w=0.1 failed, continuing from previous init
+[07-21 14:18:23] FAILED N12_ctnnbf_s0_w0p1 attempt 3 (OOM -> halving sizes)
+[07-21 14:18:23] GIVING UP on N12_ctnnbf_s0_w0p1
+[07-21 14:18:23] chain N12 ctnn s0: stage w=0.1 failed, continuing from previous init
+[07-21 14:26:23] FAILED N20_ctnnbf_s0_w0p5 attempt 3 (OOM -> halving sizes)
+[07-21 14:26:23] GIVING UP on N20_ctnnbf_s0_w0p5
+[07-21 14:26:23] chain N20 ctnn s0: stage w=0.5 failed, continuing from previous init
+[07-21 15:04:23] FAILED N20_ctnnbf_s0_w0p28 attempt 1 (OOM -> halving sizes)
+[07-21 15:06:23] FAILED N20_ctnnbf_s1_w0p5 attempt 3 (OOM -> halving sizes)
+[07-21 15:06:23] GIVING UP on N20_ctnnbf_s1_w0p5
+[07-21 15:06:23] chain N20 ctnn s1: stage w=0.5 failed, continuing from previous init
+[07-21 15:44:23] FAILED N20_ctnnbf_s1_w0p28 attempt 1 (OOM -> halving sizes)
+[07-21 15:44:23] FAILED N12_ctnnbf_s1_w0p01 attempt 1 (OOM -> halving sizes)
+[07-21 17:06:24] FAILED N12_ctnnbf_s0_w0p01 attempt 1 (OOM -> halving sizes)
+[07-21 17:42:24] done: N6_ctnnbf_s1_w0p01 (attempt 1)
+[07-21 18:40:24] FAILED N12_ctnnbf_s1_w0p01 attempt 2 (OOM -> halving sizes)
+[07-21 19:24:24] done: N12_convbf_s1_w0p01 (attempt 1)
+[07-21 19:24:24] done: N12_convbf_s0_w0p01 (attempt 1)
+[07-21 19:24:24] GPU7 start N=20 conv s0
+[07-21 19:24:24] GPU6 start N=20 conv s1
+[07-21 20:04:24] FAILED N12_ctnnbf_s0_w0p01 attempt 2 (OOM -> halving sizes)
+[07-21 20:14:24] FAILED N12_ctnnbf_s1_w0p01 attempt 3 (OOM -> halving sizes)
+[07-21 20:14:24] GIVING UP on N12_ctnnbf_s1_w0p01
+[07-21 20:14:24] chain N12 ctnn s1: stage w=0.01 failed, continuing from previous init
+[07-21 20:36:24] FAILED N20_ctnnbf_s1_w0p28 attempt 2 (OOM -> halving sizes)
+[07-21 21:00:24] done: N6_ctnnbf_s0_w0p01 (attempt 1)
+[07-21 21:34:24] FAILED N20_ctnnbf_s0_w0p28 attempt 2 (OOM -> halving sizes)
+[07-21 21:40:24] FAILED N12_ctnnbf_s0_w0p01 attempt 3 (OOM -> halving sizes)
+[07-21 21:40:24] GIVING UP on N12_ctnnbf_s0_w0p01
+[07-21 21:40:24] chain N12 ctnn s0: stage w=0.01 failed, continuing from previous init
+[07-21 22:56:24] FAILED N20_convbf_s0_w1 attempt 1 (OOM -> halving sizes)
+[07-21 22:56:24] FAILED N20_convbf_s1_w1 attempt 1 (OOM -> halving sizes)
+[07-21 23:10:24] FAILED N20_ctnnbf_s1_w0p28 attempt 3 (OOM -> halving sizes)
+[07-21 23:10:24] GIVING UP on N20_ctnnbf_s1_w0p28
+[07-21 23:10:24] chain N20 ctnn s1: stage w=0.28 failed, continuing from previous init
+[07-21 23:48:24] FAILED N20_ctnnbf_s1_w0p1 attempt 1 (OOM -> halving sizes)
+[07-22 00:06:24] FAILED N20_ctnnbf_s0_w0p28 attempt 3 (OOM -> halving sizes)
+[07-22 00:06:24] GIVING UP on N20_ctnnbf_s0_w0p28
+[07-22 00:06:24] chain N20 ctnn s0: stage w=0.28 failed, continuing from previous init
+[07-22 00:38:24] done: N6_ctnnbf_s1_w0p001 (attempt 1)
+[07-22 00:44:24] FAILED N20_ctnnbf_s0_w0p1 attempt 1 (OOM -> halving sizes)
+[07-22 00:48:24] FAILED N20_convbf_s0_w1 attempt 2 (OOM -> halving sizes)
+[07-22 00:48:24] FAILED N20_convbf_s1_w1 attempt 2 (OOM -> halving sizes)
+[07-22 01:50:24] FAILED N20_convbf_s1_w1 attempt 3 (OOM -> halving sizes)
+[07-22 01:50:24] GIVING UP on N20_convbf_s1_w1
+[07-22 01:50:24] FAILED N20_convbf_s0_w1 attempt 3 (OOM -> halving sizes)
+[07-22 01:50:24] GIVING UP on N20_convbf_s0_w1
+[07-22 01:50:24] chain N20 conv s1: stage w=1.0 failed, continuing from previous init
+[07-22 01:50:24] chain N20 conv s0: stage w=1.0 failed, continuing from previous init
+[07-22 04:10:24] done: N6_ctnnbf_s0_w0p001 (attempt 1)
+[07-22 04:40:24] FAILED N20_ctnnbf_s1_w0p1 attempt 2 (OOM -> halving sizes)
+[07-22 05:22:25] FAILED N20_convbf_s0_w0p5 attempt 1 (OOM -> halving sizes)
+[07-22 05:22:25] FAILED N20_convbf_s1_w0p5 attempt 1 (OOM -> halving sizes)
+[07-22 05:30:25] FAILED N20_ctnnbf_s0_w0p1 attempt 2 (OOM -> halving sizes)
+[07-22 07:14:25] FAILED N20_convbf_s1_w0p5 attempt 2 (OOM -> halving sizes)
+[07-22 07:14:25] FAILED N20_convbf_s0_w0p5 attempt 2 (OOM -> halving sizes)
+[07-22 07:14:25] FAILED N20_ctnnbf_s1_w0p1 attempt 3 (OOM -> halving sizes)
+[07-22 07:14:25] GIVING UP on N20_ctnnbf_s1_w0p1
+[07-22 07:14:25] chain N20 ctnn s1: stage w=0.1 failed, continuing from previous init
+[07-22 08:00:25] FAILED N20_ctnnbf_s0_w0p1 attempt 3 (OOM -> halving sizes)
+[07-22 08:00:25] GIVING UP on N20_ctnnbf_s0_w0p1
+[07-22 08:00:25] chain N20 ctnn s0: stage w=0.1 failed, continuing from previous init
+[07-22 08:16:25] FAILED N20_convbf_s1_w0p5 attempt 3 (OOM -> halving sizes)
+[07-22 08:16:25] GIVING UP on N20_convbf_s1_w0p5
+[07-22 08:16:25] FAILED N20_convbf_s0_w0p5 attempt 3 (OOM -> halving sizes)
+[07-22 08:16:25] GIVING UP on N20_convbf_s0_w0p5
+[07-22 08:16:25] chain N20 conv s1: stage w=0.5 failed, continuing from previous init
+[07-22 08:16:25] chain N20 conv s0: stage w=0.5 failed, continuing from previous init
+[07-22 11:48:25] FAILED N20_convbf_s1_w0p28 attempt 1 (OOM -> halving sizes)
+[07-22 11:48:25] FAILED N20_convbf_s0_w0p28 attempt 1 (OOM -> halving sizes)
+[07-22 13:40:25] FAILED N20_convbf_s1_w0p28 attempt 2 (OOM -> halving sizes)
+[07-22 13:40:25] FAILED N20_convbf_s0_w0p28 attempt 2 (OOM -> halving sizes)
+[07-22 14:42:25] FAILED N20_convbf_s1_w0p28 attempt 3 (OOM -> halving sizes)
+[07-22 14:42:25] FAILED N20_convbf_s0_w0p28 attempt 3 (OOM -> halving sizes)
+[07-22 14:42:25] GIVING UP on N20_convbf_s0_w0p28
+[07-22 14:42:25] GIVING UP on N20_convbf_s1_w0p28
+[07-22 14:42:25] chain N20 conv s0: stage w=0.28 failed, continuing from previous init
+[07-22 14:42:25] chain N20 conv s1: stage w=0.28 failed, continuing from previous init
+[07-22 18:14:26] FAILED N20_convbf_s0_w0p1 attempt 1 (OOM -> halving sizes)
+[07-22 18:14:26] FAILED N20_convbf_s1_w0p1 attempt 1 (OOM -> halving sizes)
+[07-22 20:06:26] FAILED N20_convbf_s0_w0p1 attempt 2 (OOM -> halving sizes)
+[07-22 20:06:26] FAILED N20_convbf_s1_w0p1 attempt 2 (OOM -> halving sizes)
+[07-22 21:08:26] FAILED N20_convbf_s0_w0p1 attempt 3 (OOM -> halving sizes)
+[07-22 21:08:26] FAILED N20_convbf_s1_w0p1 attempt 3 (OOM -> halving sizes)
+[07-22 21:08:26] GIVING UP on N20_convbf_s1_w0p1
+[07-22 21:08:26] GIVING UP on N20_convbf_s0_w0p1
+[07-22 21:08:26] chain N20 conv s1: stage w=0.1 failed, continuing from previous init
+[07-22 21:08:26] chain N20 conv s0: stage w=0.1 failed, continuing from previous init
+[07-22 21:08:26] === TRAINING COMPLETE — running the mechanism analysis ===
+[07-22 22:19:38] analysis written to /itf-fi-ml/home/aleksns/Thesis/results/analysis/2026-07-16_scaling/ANALYSIS.log and master.csv
+[07-22 22:19:38] === SCALING CAMPAIGN COMPLETE ===
+  File "scripts/orchestrate_scaling.py", line 20
+    from __future__ import annotations
+    ^
+SyntaxError: future feature annotations is not defined
+[07-24 16:43:43] 12 chains over 2 FREE GPUs [0, 1] (one chain per GPU; busy GPUs skipped)
+[07-24 16:43:43] GPU0 start N=6 ctnn s0
+[07-24 16:43:43] GPU1 start N=6 ctnn s1
+[07-24 16:43:43] skip (done): N6_ctnnbf_s0_w1
+[07-24 16:43:43] skip (done): N6_ctnnbf_s1_w1
+[07-24 16:43:43] skip (done): N6_ctnnbf_s0_w0p5
+[07-24 16:43:43] skip (done): N6_ctnnbf_s1_w0p5
+[07-24 16:43:43] skip (done): N6_ctnnbf_s0_w0p28
+[07-24 16:43:43] skip (done): N6_ctnnbf_s1_w0p28
+[07-24 16:43:43] skip (done): N6_ctnnbf_s0_w0p1
+[07-24 16:43:43] skip (done): N6_ctnnbf_s1_w0p1
+[07-24 16:43:43] skip (done): N6_ctnnbf_s0_w0p01
+[07-24 16:43:43] skip (done): N6_ctnnbf_s1_w0p01
+[07-24 16:43:43] skip (done): N6_ctnnbf_s0_w0p001
+[07-24 16:43:43] skip (done): N6_ctnnbf_s1_w0p001
+[07-24 16:43:43] GPU0 start N=6 conv s0
+[07-24 16:43:43] GPU1 start N=6 conv s1
+[07-24 16:43:43] skip (done): N6_convbf_s0_w1
+[07-24 16:43:43] skip (done): N6_convbf_s1_w1
+[07-24 16:43:43] skip (done): N6_convbf_s0_w0p5
+[07-24 16:43:43] skip (done): N6_convbf_s1_w0p5
+[07-24 16:43:43] skip (done): N6_convbf_s0_w0p28
+[07-24 16:43:43] skip (done): N6_convbf_s1_w0p28
+[07-24 16:43:43] skip (done): N6_convbf_s0_w0p1
+[07-24 16:43:43] skip (done): N6_convbf_s1_w0p1
+[07-24 16:43:43] skip (done): N6_convbf_s0_w0p01
+[07-24 16:43:43] skip (done): N6_convbf_s1_w0p01
+[07-24 16:43:43] skip (done): N6_convbf_s0_w0p001
+[07-24 16:43:43] skip (done): N6_convbf_s1_w0p001
+[07-24 16:43:43] GPU0 start N=12 ctnn s0
+[07-24 16:43:43] GPU1 start N=12 ctnn s1
+[07-25 05:59:44] done: N12_ctnnbf_s1_w1 (attempt 1)
+[07-25 06:01:44] done: N12_ctnnbf_s0_w1 (attempt 1)
+[07-25 20:19:45] done: N12_ctnnbf_s1_w0p5 (attempt 1)
+[07-25 20:23:45] done: N12_ctnnbf_s0_w0p5 (attempt 1)
+[07-26 10:41:46] done: N12_ctnnbf_s1_w0p28 (attempt 1)
+[07-26 10:45:46] done: N12_ctnnbf_s0_w0p28 (attempt 1)
+[07-27 01:03:47] done: N12_ctnnbf_s1_w0p1 (attempt 1)
+[07-27 01:07:47] done: N12_ctnnbf_s0_w0p1 (attempt 1)
+[07-27 15:25:48] done: N12_ctnnbf_s1_w0p01 (attempt 1)
+[07-27 15:25:48] GPU1 start N=12 conv s0
+[07-27 15:25:48] skip (done): N12_convbf_s0_w1
+[07-27 15:25:48] skip (done): N12_convbf_s0_w0p5
+[07-27 15:25:48] skip (done): N12_convbf_s0_w0p28
+[07-27 15:25:48] skip (done): N12_convbf_s0_w0p1
+[07-27 15:25:48] skip (done): N12_convbf_s0_w0p01
+[07-27 15:25:48] GPU1 start N=12 conv s1
+[07-27 15:25:48] skip (done): N12_convbf_s1_w1
+[07-27 15:25:48] skip (done): N12_convbf_s1_w0p5
+[07-27 15:25:48] skip (done): N12_convbf_s1_w0p28
+[07-27 15:25:48] skip (done): N12_convbf_s1_w0p1
+[07-27 15:25:48] skip (done): N12_convbf_s1_w0p01
+[07-27 15:25:48] GPU1 start N=20 ctnn s0
+[07-27 15:29:48] done: N12_ctnnbf_s0_w0p01 (attempt 1)
+[07-27 15:29:48] GPU0 start N=20 ctnn s1
+[07-27 20:17:49] FAILED N20_ctnnbf_s0_w1 attempt 1 (OOM -> halving sizes)
+[07-27 20:23:49] FAILED N20_ctnnbf_s1_w1 attempt 1 (OOM -> halving sizes)
+[07-27 22:51:49] FAILED N20_ctnnbf_s0_w1 attempt 2 (OOM -> halving sizes)
+[07-27 22:57:49] FAILED N20_ctnnbf_s1_w1 attempt 2 (OOM -> halving sizes)
+[07-27 23:30:58] 12 chains over 2 FREE GPUs [0, 1] (one chain per GPU; busy GPUs skipped)
+[07-27 23:30:58] GPU0 start N=6 ctnn s0
+[07-27 23:30:58] GPU1 start N=6 ctnn s1
+[07-27 23:30:58] skip (done): N6_ctnnbf_s0_w1
+[07-27 23:30:58] skip (done): N6_ctnnbf_s1_w1
+[07-27 23:30:58] skip (done): N6_ctnnbf_s0_w0p5
+[07-27 23:30:58] skip (done): N6_ctnnbf_s1_w0p5
+[07-27 23:30:58] skip (done): N6_ctnnbf_s0_w0p28
+[07-27 23:30:58] skip (done): N6_ctnnbf_s1_w0p28
+[07-27 23:30:58] skip (done): N6_ctnnbf_s0_w0p1
+[07-27 23:30:58] skip (done): N6_ctnnbf_s1_w0p1
+[07-27 23:30:58] skip (done): N6_ctnnbf_s0_w0p01
+[07-27 23:30:58] skip (done): N6_ctnnbf_s1_w0p01
+[07-27 23:30:58] skip (done): N6_ctnnbf_s0_w0p001
+[07-27 23:30:58] skip (done): N6_ctnnbf_s1_w0p001
+[07-27 23:30:58] GPU0 start N=6 conv s0
+[07-27 23:30:58] GPU1 start N=6 conv s1
+[07-27 23:30:58] skip (done): N6_convbf_s0_w1
+[07-27 23:30:58] skip (done): N6_convbf_s1_w1
+[07-27 23:30:58] skip (done): N6_convbf_s0_w0p5
+[07-27 23:30:58] skip (done): N6_convbf_s1_w0p5
+[07-27 23:30:58] skip (done): N6_convbf_s0_w0p28
+[07-27 23:30:58] skip (done): N6_convbf_s1_w0p28
+[07-27 23:30:58] skip (done): N6_convbf_s0_w0p1
+[07-27 23:30:58] skip (done): N6_convbf_s1_w0p1
+[07-27 23:30:58] skip (done): N6_convbf_s0_w0p01
+[07-27 23:30:58] skip (done): N6_convbf_s1_w0p01
+[07-27 23:30:58] skip (done): N6_convbf_s0_w0p001
+[07-27 23:30:58] skip (done): N6_convbf_s1_w0p001
+[07-27 23:30:58] GPU0 start N=12 ctnn s0
+[07-27 23:30:58] GPU1 start N=12 ctnn s1
+[07-27 23:30:58] skip (done): N12_ctnnbf_s0_w1
+[07-27 23:30:58] skip (done): N12_ctnnbf_s1_w1
+[07-27 23:30:58] skip (done): N12_ctnnbf_s0_w0p5
+[07-27 23:30:58] skip (done): N12_ctnnbf_s1_w0p5
+[07-27 23:30:58] skip (done): N12_ctnnbf_s0_w0p28
+[07-27 23:30:58] skip (done): N12_ctnnbf_s1_w0p28
+[07-27 23:30:58] skip (done): N12_ctnnbf_s0_w0p1
+[07-27 23:30:58] skip (done): N12_ctnnbf_s1_w0p1
+[07-27 23:30:58] skip (done): N12_ctnnbf_s0_w0p01
+[07-27 23:30:58] skip (done): N12_ctnnbf_s1_w0p01
+[07-27 23:30:58] GPU0 start N=12 conv s0
+[07-27 23:30:58] GPU1 start N=12 conv s1
+[07-27 23:30:58] skip (done): N12_convbf_s0_w1
+[07-27 23:30:58] skip (done): N12_convbf_s1_w1
+[07-27 23:30:58] skip (done): N12_convbf_s0_w0p5
+[07-27 23:30:58] skip (done): N12_convbf_s1_w0p5
+[07-27 23:30:58] skip (done): N12_convbf_s0_w0p28
+[07-27 23:30:58] skip (done): N12_convbf_s1_w0p28
+[07-27 23:30:58] skip (done): N12_convbf_s0_w0p1
+[07-27 23:30:58] skip (done): N12_convbf_s1_w0p1
+[07-27 23:30:58] skip (done): N12_convbf_s0_w0p01
+[07-27 23:30:58] GPU0 start N=20 ctnn s0
+[07-27 23:30:58] skip (done): N12_convbf_s1_w0p01
+[07-27 23:30:58] GPU1 start N=20 ctnn s1
+[07-28 04:54:58] FAILED N20_ctnnbf_s1_w1 attempt 1 (OOM -> halving sizes)
+[07-28 05:58:58] FAILED N20_ctnnbf_s0_w1 attempt 1 (OOM -> halving sizes)
+[07-28 07:40:58] FAILED N20_ctnnbf_s1_w1 attempt 2 (OOM -> halving sizes)
+[07-28 09:10:58] FAILED N20_ctnnbf_s0_w1 attempt 2 (OOM -> halving sizes)
+[07-28 10:26:58] FAILED N20_ctnnbf_s1_w1 attempt 3 (OOM -> halving sizes)
+[07-28 10:26:58] GIVING UP on N20_ctnnbf_s1_w1
+[07-28 10:26:58] chain N20 ctnn s1: stage w=1.0 failed, continuing from previous init
+[07-28 12:54:59] FAILED N20_ctnnbf_s0_w1 attempt 3 (OOM -> halving sizes)
+[07-28 12:54:59] GIVING UP on N20_ctnnbf_s0_w1
+[07-28 12:54:59] chain N20 ctnn s0: stage w=1.0 failed, continuing from previous init
+[07-28 15:50:59] FAILED N20_ctnnbf_s1_w0p5 attempt 1 (OOM -> halving sizes)
+[07-28 18:36:59] FAILED N20_ctnnbf_s1_w0p5 attempt 2 (OOM -> halving sizes)
+[07-28 20:30:59] FAILED N20_ctnnbf_s0_w0p5 attempt 1 (OOM -> halving sizes)
+[07-28 21:22:59] FAILED N20_ctnnbf_s1_w0p5 attempt 3 (OOM -> halving sizes)
+[07-28 21:22:59] GIVING UP on N20_ctnnbf_s1_w0p5
+[07-28 21:22:59] chain N20 ctnn s1: stage w=0.5 failed, continuing from previous init
+[07-28 23:36:59] FAILED N20_ctnnbf_s0_w0p5 attempt 2 (OOM -> halving sizes)
+[07-29 02:22:59] FAILED N20_ctnnbf_s0_w0p5 attempt 3 (OOM -> halving sizes)
+[07-29 02:22:59] GIVING UP on N20_ctnnbf_s0_w0p5
+[07-29 02:22:59] chain N20 ctnn s0: stage w=0.5 failed, continuing from previous init
+[07-29 02:46:59] FAILED N20_ctnnbf_s1_w0p28 attempt 1 (OOM -> halving sizes)
+[07-29 05:31:00] FAILED N20_ctnnbf_s1_w0p28 attempt 2 (OOM -> halving sizes)
+[07-29 07:47:00] FAILED N20_ctnnbf_s0_w0p28 attempt 1 (OOM -> halving sizes)
+[07-29 08:15:00] FAILED N20_ctnnbf_s1_w0p28 attempt 3 (OOM -> halving sizes)
+[07-29 08:15:00] GIVING UP on N20_ctnnbf_s1_w0p28
+[07-29 08:15:00] chain N20 ctnn s1: stage w=0.28 failed, continuing from previous init
+[07-29 10:33:00] FAILED N20_ctnnbf_s0_w0p28 attempt 2 (OOM -> halving sizes)
+[07-29 13:19:00] FAILED N20_ctnnbf_s0_w0p28 attempt 3 (OOM -> halving sizes)
+[07-29 13:19:00] GIVING UP on N20_ctnnbf_s0_w0p28
+[07-29 13:19:00] chain N20 ctnn s0: stage w=0.28 failed, continuing from previous init
+[07-29 13:37:00] FAILED N20_ctnnbf_s1_w0p1 attempt 1 (OOM -> halving sizes)
+[07-29 16:21:00] FAILED N20_ctnnbf_s1_w0p1 attempt 2 (OOM -> halving sizes)
+[07-29 18:43:01] FAILED N20_ctnnbf_s0_w0p1 attempt 1 (OOM -> halving sizes)
+[07-29 19:07:01] FAILED N20_ctnnbf_s1_w0p1 attempt 3 (OOM -> halving sizes)
+[07-29 19:07:01] GIVING UP on N20_ctnnbf_s1_w0p1
+[07-29 19:07:01] chain N20 ctnn s1: stage w=0.1 failed, continuing from previous init
+[07-29 19:07:01] GPU1 start N=20 conv s0
+[07-29 21:29:01] FAILED N20_ctnnbf_s0_w0p1 attempt 2 (OOM -> halving sizes)
+[07-29 22:55:01] STALL (92 min idle): killing N20_convbf_s0_w1 attempt 1
+[07-29 22:55:01] FAILED N20_convbf_s0_w1 attempt 1
+[07-30 00:15:01] FAILED N20_ctnnbf_s0_w0p1 attempt 3 (OOM -> halving sizes)
+[07-30 00:15:01] GIVING UP on N20_ctnnbf_s0_w0p1
+[07-30 00:15:01] chain N20 ctnn s0: stage w=0.1 failed, continuing from previous init
+[07-30 00:15:01] GPU0 start N=20 conv s1
+[07-30 01:37:01] STALL (90 min idle): killing N20_convbf_s0_w1 attempt 2
+[07-30 01:37:01] FAILED N20_convbf_s0_w1 attempt 2
+[07-30 04:03:01] STALL (90 min idle): killing N20_convbf_s1_w1 attempt 1
+[07-30 04:03:01] FAILED N20_convbf_s1_w1 attempt 1
+[07-30 04:19:01] STALL (90 min idle): killing N20_convbf_s0_w1 attempt 3
+[07-30 04:19:01] FAILED N20_convbf_s0_w1 attempt 3
+[07-30 04:19:01] GIVING UP on N20_convbf_s0_w1
+[07-30 04:19:01] chain N20 conv s0: stage w=1.0 failed, continuing from previous init
+[07-30 06:47:02] STALL (92 min idle): killing N20_convbf_s1_w1 attempt 2
+[07-30 06:47:02] FAILED N20_convbf_s1_w1 attempt 2
+[07-30 08:07:02] STALL (91 min idle): killing N20_convbf_s0_w0p5 attempt 1
+[07-30 08:07:02] FAILED N20_convbf_s0_w0p5 attempt 1
+[07-30 09:31:02] STALL (92 min idle): killing N20_convbf_s1_w1 attempt 3
+[07-30 09:31:02] FAILED N20_convbf_s1_w1 attempt 3
+[07-30 09:31:02] GIVING UP on N20_convbf_s1_w1
+[07-30 09:31:02] chain N20 conv s1: stage w=1.0 failed, continuing from previous init
+[07-30 10:49:02] STALL (90 min idle): killing N20_convbf_s0_w0p5 attempt 2
+[07-30 10:49:02] FAILED N20_convbf_s0_w0p5 attempt 2
+[07-30 13:19:02] STALL (90 min idle): killing N20_convbf_s1_w0p5 attempt 1
+[07-30 13:19:02] FAILED N20_convbf_s1_w0p5 attempt 1
+[07-30 13:31:02] STALL (90 min idle): killing N20_convbf_s0_w0p5 attempt 3
+[07-30 13:31:02] FAILED N20_convbf_s0_w0p5 attempt 3
+[07-30 13:31:02] GIVING UP on N20_convbf_s0_w0p5
+[07-30 13:31:02] chain N20 conv s0: stage w=0.5 failed, continuing from previous init
+[07-30 16:01:02] STALL (90 min idle): killing N20_convbf_s1_w0p5 attempt 2
+[07-30 16:01:02] FAILED N20_convbf_s1_w0p5 attempt 2
+[07-30 17:19:02] STALL (90 min idle): killing N20_convbf_s0_w0p28 attempt 1
+[07-30 17:19:02] FAILED N20_convbf_s0_w0p28 attempt 1
+[07-30 18:43:03] STALL (90 min idle): killing N20_convbf_s1_w0p5 attempt 3
+[07-30 18:43:03] FAILED N20_convbf_s1_w0p5 attempt 3
+[07-30 18:43:03] GIVING UP on N20_convbf_s1_w0p5
+[07-30 18:43:03] chain N20 conv s1: stage w=0.5 failed, continuing from previous init
+[07-30 20:01:03] STALL (91 min idle): killing N20_convbf_s0_w0p28 attempt 2
+[07-30 20:01:03] FAILED N20_convbf_s0_w0p28 attempt 2
+[07-30 22:31:03] STALL (90 min idle): killing N20_convbf_s1_w0p28 attempt 1
+[07-30 22:31:03] FAILED N20_convbf_s1_w0p28 attempt 1
+[07-30 22:43:03] STALL (90 min idle): killing N20_convbf_s0_w0p28 attempt 3
+[07-30 22:43:03] FAILED N20_convbf_s0_w0p28 attempt 3
+[07-30 22:43:03] GIVING UP on N20_convbf_s0_w0p28
+[07-30 22:43:03] chain N20 conv s0: stage w=0.28 failed, continuing from previous init
+[07-31 01:13:03] STALL (90 min idle): killing N20_convbf_s1_w0p28 attempt 2
+[07-31 01:13:03] FAILED N20_convbf_s1_w0p28 attempt 2
+[07-31 02:31:03] STALL (91 min idle): killing N20_convbf_s0_w0p1 attempt 1
+[07-31 02:31:03] FAILED N20_convbf_s0_w0p1 attempt 1
+[07-31 05:13:03] STALL (91 min idle): killing N20_convbf_s0_w0p1 attempt 2
+[07-31 05:13:03] FAILED N20_convbf_s0_w0p1 attempt 2
+[07-31 05:29:03] STALL (91 min idle): killing N20_convbf_s1_w0p28 attempt 3
+[07-31 05:29:03] FAILED N20_convbf_s1_w0p28 attempt 3
+[07-31 05:29:03] GIVING UP on N20_convbf_s1_w0p28
+[07-31 05:29:03] chain N20 conv s1: stage w=0.28 failed, continuing from previous init
+[07-31 07:55:04] STALL (90 min idle): killing N20_convbf_s0_w0p1 attempt 3
+[07-31 07:55:04] FAILED N20_convbf_s0_w0p1 attempt 3
+[07-31 07:55:04] GIVING UP on N20_convbf_s0_w0p1
+[07-31 07:55:04] chain N20 conv s0: stage w=0.1 failed, continuing from previous init
+[07-31 09:17:04] STALL (91 min idle): killing N20_convbf_s1_w0p1 attempt 1
+[07-31 09:17:04] FAILED N20_convbf_s1_w0p1 attempt 1
+[07-31 12:01:04] STALL (91 min idle): killing N20_convbf_s1_w0p1 attempt 2
+[07-31 12:01:04] FAILED N20_convbf_s1_w0p1 attempt 2
+[07-31 14:45:04] STALL (92 min idle): killing N20_convbf_s1_w0p1 attempt 3
+[07-31 14:45:04] FAILED N20_convbf_s1_w0p1 attempt 3
+[07-31 14:45:04] GIVING UP on N20_convbf_s1_w0p1
+[07-31 14:45:04] chain N20 conv s1: stage w=0.1 failed, continuing from previous init
+[07-31 14:45:04] === TRAINING COMPLETE — running the mechanism analysis ===
+[07-31 17:40:31] analysis written to /itf-fi-ml/home/aleksns/Thesis/results/analysis/2026-07-16_scaling/ANALYSIS.log and master.csv
+[07-31 17:40:31] === SCALING CAMPAIGN COMPLETE ===
+[autolaunch] waiting for CUDA to come back (Wed Aug  5 16:33:45 CEST 2026)
+[autolaunch] CUDA is back (Mon Aug 10 10:04:26 CEST 2026) — launching N=20 orchestrator
+[08-10 10:04:26] 12 chains over 8 FREE GPUs [0, 1, 2, 3, 4, 5, 6, 7] (one chain per GPU; busy GPUs skipped)
+[08-10 10:04:27] GPU0 start N=6 ctnn s0
+[08-10 10:04:27] GPU1 start N=6 ctnn s1
+[08-10 10:04:27] GPU2 start N=6 conv s0
+[08-10 10:04:27] GPU3 start N=6 conv s1
+[08-10 10:04:27] GPU4 start N=12 ctnn s0
+[08-10 10:04:27] GPU5 start N=12 ctnn s1
+[08-10 10:04:27] GPU6 start N=12 conv s0
+[08-10 10:04:27] GPU7 start N=12 conv s1
+[08-10 10:04:27] skip (done): N12_convbf_s0_w1
+[08-10 10:04:27] skip (done): N6_convbf_s1_w1
+[08-10 10:04:27] skip (done): N12_convbf_s1_w1
+[08-10 10:04:27] skip (done): N12_ctnnbf_s1_w1
+[08-10 10:04:27] skip (done): N12_ctnnbf_s0_w1
+[08-10 10:04:27] skip (done): N6_ctnnbf_s1_w1
+[08-10 10:04:27] skip (done): N6_convbf_s0_w1
+[08-10 10:04:27] skip (done): N6_ctnnbf_s0_w1
+[08-10 10:04:27] skip (done): N12_convbf_s0_w0p5
+[08-10 10:04:27] skip (done): N6_convbf_s1_w0p5
+[08-10 10:04:27] skip (done): N12_convbf_s1_w0p5
+[08-10 10:04:27] skip (done): N12_ctnnbf_s1_w0p5
+[08-10 10:04:27] skip (done): N6_ctnnbf_s1_w0p5
+[08-10 10:04:27] skip (done): N12_ctnnbf_s0_w0p5
+[08-10 10:04:27] skip (done): N6_ctnnbf_s0_w0p5
+[08-10 10:04:27] skip (done): N6_convbf_s0_w0p5
+[08-10 10:04:27] skip (done): N12_convbf_s0_w0p28
+[08-10 10:04:27] skip (done): N6_convbf_s1_w0p28
+[08-10 10:04:27] skip (done): N12_convbf_s1_w0p28
+[08-10 10:04:27] skip (done): N6_ctnnbf_s1_w0p28
+[08-10 10:04:27] skip (done): N12_ctnnbf_s1_w0p28
+[08-10 10:04:27] skip (done): N12_ctnnbf_s0_w0p28
+[08-10 10:04:27] skip (done): N6_ctnnbf_s0_w0p28
+[08-10 10:04:27] skip (done): N6_convbf_s0_w0p28
+[08-10 10:04:27] skip (done): N6_convbf_s1_w0p1
+[08-10 10:04:27] skip (done): N12_convbf_s0_w0p1
+[08-10 10:04:27] skip (done): N12_convbf_s1_w0p1
+[08-10 10:04:27] skip (done): N6_ctnnbf_s1_w0p1
+[08-10 10:04:27] skip (done): N12_ctnnbf_s0_w0p1
+[08-10 10:04:27] skip (done): N12_ctnnbf_s1_w0p1
+[08-10 10:04:27] skip (done): N6_ctnnbf_s0_w0p1
+[08-10 10:04:27] skip (done): N6_convbf_s0_w0p1
+[08-10 10:04:27] skip (done): N6_convbf_s1_w0p01
+[08-10 10:04:27] skip (done): N6_ctnnbf_s1_w0p01
+[08-10 10:04:27] skip (done): N12_convbf_s1_w0p01
+[08-10 10:04:27] skip (done): N12_convbf_s0_w0p01
+[08-10 10:04:27] GPU7 start N=20 ctnn s0
+[08-10 10:04:27] GPU6 start N=20 ctnn s1
+[08-10 10:04:27] skip (done): N6_ctnnbf_s0_w0p01
+[08-10 10:04:27] skip (done): N6_convbf_s0_w0p01
+[08-10 10:04:27] skip (done): N12_ctnnbf_s0_w0p01
+[08-10 10:04:27] GPU4 start N=20 conv s0
+[08-10 10:04:27] skip (done): N6_convbf_s1_w0p001
+[08-10 10:04:27] GPU3 start N=20 conv s1
+[08-10 10:04:27] skip (done): N6_ctnnbf_s1_w0p001
+[08-10 10:04:27] skip (done): N6_convbf_s0_w0p001
+[08-10 10:04:27] skip (done): N12_ctnnbf_s1_w0p01
+[08-10 10:04:27] skip (done): N6_ctnnbf_s0_w0p001
+[08-10 15:02:27] FAILED N20_ctnnbf_s0_w1 attempt 1 (OOM -> halving sizes)
+[08-10 15:02:27] FAILED N20_ctnnbf_s1_w1 attempt 1 (OOM -> halving sizes)
+[08-10 16:34:27] done: N20_convbf_s1_w1 (attempt 1)
+[08-10 16:38:27] done: N20_convbf_s0_w1 (attempt 1)
+[08-10 17:34:27] FAILED N20_ctnnbf_s1_w1 attempt 2 (OOM -> halving sizes)
+[08-10 17:36:27] FAILED N20_ctnnbf_s0_w1 attempt 2 (OOM -> halving sizes)
+nohup: failed to run command '/tmp/claude-390735/-itf-fi-ml-home-aleksns-Thesis/2e13352c-b603-43bc-ba12-61a11ea63062/scratchpad/launch_orc.sh': No such file or directory
+[08-10 20:04:14] 12 chains over 8 FREE GPUs [0, 1, 2, 3, 4, 5, 6, 7] (one chain per GPU; busy GPUs skipped)
+[08-10 20:04:14] GPU0 start N=6 ctnn s0
+[08-10 20:04:14] GPU1 start N=6 ctnn s1
+[08-10 20:04:14] GPU2 start N=6 conv s0
+[08-10 20:04:14] GPU3 start N=6 conv s1
+[08-10 20:04:14] GPU4 start N=12 ctnn s0
+[08-10 20:04:14] GPU5 start N=12 ctnn s1
+[08-10 20:04:14] GPU6 start N=12 conv s0
+[08-10 20:04:14] GPU7 start N=12 conv s1
+[08-10 20:04:14] skip (done): N6_ctnnbf_s0_w1
+[08-10 20:04:14] skip (done): N6_ctnnbf_s1_w1
+[08-10 20:04:14] skip (done): N6_convbf_s0_w1
+[08-10 20:04:14] skip (done): N6_convbf_s1_w1
+[08-10 20:04:14] skip (done): N12_ctnnbf_s0_w1
+[08-10 20:04:14] skip (done): N12_ctnnbf_s1_w1
+[08-10 20:04:14] skip (done): N12_convbf_s0_w1
+[08-10 20:04:14] skip (done): N12_convbf_s1_w1
+[08-10 20:04:14] skip (done): N6_ctnnbf_s0_w0p5
+[08-10 20:04:14] skip (done): N6_ctnnbf_s1_w0p5
+[08-10 20:04:14] skip (done): N6_convbf_s0_w0p5
+[08-10 20:04:14] skip (done): N6_convbf_s1_w0p5
+[08-10 20:04:14] skip (done): N12_ctnnbf_s0_w0p5
+[08-10 20:04:14] skip (done): N12_ctnnbf_s1_w0p5
+[08-10 20:04:14] skip (done): N12_convbf_s0_w0p5
+[08-10 20:04:14] skip (done): N12_convbf_s1_w0p5
+[08-10 20:04:14] skip (done): N6_ctnnbf_s0_w0p28
+[08-10 20:04:14] skip (done): N6_ctnnbf_s1_w0p28
+[08-10 20:04:14] skip (done): N6_convbf_s0_w0p28
+[08-10 20:04:14] skip (done): N6_convbf_s1_w0p28
+[08-10 20:04:14] skip (done): N12_ctnnbf_s0_w0p28
+[08-10 20:04:14] skip (done): N12_ctnnbf_s1_w0p28
+[08-10 20:04:14] skip (done): N12_convbf_s0_w0p28
+[08-10 20:04:14] skip (done): N12_convbf_s1_w0p28
+[08-10 20:04:14] skip (done): N6_ctnnbf_s0_w0p1
+[08-10 20:04:14] skip (done): N6_ctnnbf_s1_w0p1
+[08-10 20:04:14] skip (done): N6_convbf_s0_w0p1
+[08-10 20:04:14] skip (done): N6_convbf_s1_w0p1
+[08-10 20:04:14] skip (done): N12_ctnnbf_s0_w0p1
+[08-10 20:04:14] skip (done): N12_ctnnbf_s1_w0p1
+[08-10 20:04:14] skip (done): N12_convbf_s0_w0p1
+[08-10 20:04:14] skip (done): N12_convbf_s1_w0p1
+[08-10 20:04:14] skip (done): N6_ctnnbf_s0_w0p01
+[08-10 20:04:14] skip (done): N6_ctnnbf_s1_w0p01
+[08-10 20:04:14] skip (done): N6_convbf_s0_w0p01
+[08-10 20:04:14] skip (done): N6_convbf_s1_w0p01
+[08-10 20:04:14] skip (done): N12_ctnnbf_s0_w0p01
+[08-10 20:04:14] skip (done): N12_ctnnbf_s1_w0p01
+[08-10 20:04:14] skip (done): N12_convbf_s0_w0p01
+[08-10 20:04:14] skip (done): N12_convbf_s1_w0p01
+[08-10 20:04:14] skip (done): N6_ctnnbf_s0_w0p001
+[08-10 20:04:14] skip (done): N6_ctnnbf_s1_w0p001
+[08-10 20:04:14] skip (done): N6_convbf_s0_w0p001
+[08-10 20:04:14] skip (done): N6_convbf_s1_w0p001
+[08-10 20:04:14] GPU4 start N=20 ctnn s0
+[08-10 20:04:14] GPU5 start N=20 ctnn s1
+[08-10 20:04:14] GPU6 start N=20 conv s0
+[08-10 20:04:14] GPU7 start N=20 conv s1
+[08-10 20:04:14] skip (done): N20_convbf_s0_w1
+[08-10 20:04:14] skip (done): N20_convbf_s1_w1
+[08-11 00:48:14] done: N20_convbf_s0_w0p5 (attempt 1)
+[08-11 00:50:14] done: N20_convbf_s1_w0p5 (attempt 1)
+[08-11 05:34:16] done: N20_convbf_s0_w0p28 (attempt 1)
+[08-11 05:36:16] done: N20_convbf_s1_w0p28 (attempt 1)
+[08-11 08:58:17] done: N20_ctnnbf_s1_w1 (attempt 1)
+[08-11 09:04:17] done: N20_ctnnbf_s0_w1 (attempt 1)
+[08-11 10:22:18] done: N20_convbf_s0_w0p1 (attempt 1)
+[08-11 10:26:18] done: N20_convbf_s1_w0p1 (attempt 1)
+[08-11 23:46:31] done: N20_ctnnbf_s1_w0p5 (attempt 1)
+[08-11 23:58:31] done: N20_ctnnbf_s0_w0p5 (attempt 1)
+[08-12 14:26:34] done: N20_ctnnbf_s1_w0p28 (attempt 1)
+[08-12 14:44:34] done: N20_ctnnbf_s0_w0p28 (attempt 1)
+[08-13 05:06:21] done: N20_ctnnbf_s1_w0p1 (attempt 1)
+[08-13 05:30:21] done: N20_ctnnbf_s0_w0p1 (attempt 1)
+[08-13 05:30:21] === TRAINING COMPLETE — running the mechanism analysis ===
+[08-13 11:30:21] analysis FAILED (TimeoutExpired(['python3', '-u', '/itf-fi-ml/home/aleksns/Thesis/scripts/analyze_pinn_ansatz.py', '--camp', '/itf-fi-ml/home/aleksns/Thesis/results/analysis/2026-07-16_scaling'], 21599.99997346988)) — checkpoints are intact, rerun analyze_pinn_ansatz.py --camp /itf-fi-ml/home/aleksns/Thesis/results/analysis/2026-07-16_scaling
+[08-13 11:30:21] === SCALING CAMPAIGN COMPLETE ===

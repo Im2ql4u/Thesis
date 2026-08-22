@@ -1,0 +1,59 @@
+0
+[phase] N=6 omega=0.01 arch=ctnn_vcycle_big  ->  /itf-fi-ml/home/aleksns/Thesis/results/analysis/2026-07-02_overnight/B_ctnn_bf_colloc_s1_w0p01
+0
+[phase] warm-started from /itf-fi-ml/home/aleksns/Thesis/results/analysis/2026-07-02_overnight/B_ctnn_bf_colloc_s1_w0p1/checkpoint.pt (omega 0.1 -> 0.01)
+[phase] params=79,813 device=cuda:0 ref_energy=0.69036
+[colloc 00000] E_weak=1.493427 ESS=0.409 n=2048
+[colloc 00043] E_weak=1.054489 ESS=0.402 n=2048
+[colloc 00086] E_weak=1.059252 ESS=0.417 n=2048
+[seg 1/4] step=87 E_raw=0.71776 (+4.037%) var=1.450e-03 kappa(S)=9.97e+11 rank=872 cos_sr=0.983 cos_plain=0.287
+[colloc 00000] E_weak=1.090149 ESS=0.415 n=2048
+[colloc 00066] E_weak=1.050838 ESS=0.402 n=2048
+[colloc 00132] E_weak=1.068368 ESS=0.408 n=2048
+[seg 2/4] step=220 E_raw=0.71634 (+3.979%) var=2.145e-03 kappa(S)=9.81e+11 rank=825 cos_sr=0.987 cos_plain=0.393
+[colloc 00000] E_weak=1.017527 ESS=0.400 n=2048
+[colloc 00167] E_weak=1.033209 ESS=0.407 n=2048
+[seg 3/4] step=555 E_raw=5874.22312 (+806526.744%) var=7.034e+07 kappa(S)=9.82e+11 rank=305 cos_sr=0.870 cos_plain=0.376
+[seg 4/4] step=1400 E_raw=5935.05692 (+809151.650%) var=6.771e+07 kappa(S)=9.89e+11 rank=303 cos_sr=0.776 cos_plain=0.334
+[phase] training done in 7.7 min
+[phase] summary:
+{
+  "N": 6,
+  "omega": 0.01,
+  "arch": "ctnn_vcycle_big",
+  "n_params": 79813,
+  "final": {
+    "E_mean": 7033.799297933661,
+    "E_mean_raw": 7298.295813228716,
+    "E_stderr": 100.82912889842633,
+    "var_EL": 79096851.42323275,
+    "n_samples": 8192,
+    "frac_clipped": 0.0201416015625,
+    "ref_energy": 0.69036,
+    "error_pct": 1018759.6236649953,
+    "error_sigma": 69.75274917845124
+  },
+  "energy_raw": 7298.295813228716,
+  "error_pct_raw": 1057072.462661324,
+  "energy_zv": -19.941484932675063,
+  "error_pct_zv": -2988.56320364376,
+  "zv_n_points": 5,
+  "spectrum": {
+    "lam_max": 98834475.19814655,
+    "lam_min_supported": 0.00010348868957698488,
+    "effective_rank": 1.1159697757706903,
+    "numerical_rank": 330,
+    "condition_number": 955026830488.794,
+    "n_params": 79813,
+    "n_samples": 2048
+  },
+  "alignment": {
+    "cos_sr": 0.8240046139023283,
+    "cos_plain": 0.37354196040040094,
+    "rep_fraction": 0.8240046139023283,
+    "ntk_condition": 9203427372.639317,
+    "ntk_eff_rank": 1.1159697697898332,
+    "ntk_numerical_rank": 184
+  },
+  "n_align_samples": 2048
+}

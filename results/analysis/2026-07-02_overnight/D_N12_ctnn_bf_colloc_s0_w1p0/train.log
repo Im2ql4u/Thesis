@@ -1,0 +1,69 @@
+0
+[phase] N=12 omega=1.0 arch=ctnn_vcycle_big  ->  results/analysis/2026-07-02_overnight/D_N12_ctnn_bf_colloc_s0_w1p0
+0
+[phase] params=79,813 device=cuda:0 ref_energy=65.7001
+[colloc 00000] E_weak=173.165508 ESS=0.419 n=512
+[colloc 00043] E_weak=129.482544 ESS=0.416 n=512
+[colloc 00086] E_weak=126.064149 ESS=0.399 n=512
+[seg 1/4] step=87 E_raw=67.79534 (+3.185%) var=1.004e+01 kappa(S)=2.20e+11 rank=255 cos_sr=0.994 cos_plain=0.494
+[colloc 00000] E_weak=121.548007 ESS=0.392 n=512
+[colloc 00066] E_weak=122.465187 ESS=0.406 n=512
+[colloc 00132] E_weak=124.295241 ESS=0.399 n=512
+[seg 2/4] step=220 E_raw=73.78435 (+12.305%) var=3.820e+01 kappa(S)=7.05e+10 rank=255 cos_sr=1.000 cos_plain=0.937
+[colloc 00000] E_weak=126.554268 ESS=0.397 n=512
+[colloc 00167] E_weak=106.410486 ESS=0.406 n=512
+[colloc 00334] E_weak=106.424892 ESS=0.398 n=512
+[seg 3/4] step=555 E_raw=68.27080 (+3.912%) var=1.490e+01 kappa(S)=3.56e+07 rank=255 cos_sr=1.000 cos_plain=0.205
+[colloc 00000] E_weak=96.322096 ESS=0.370 n=512
+[colloc 00422] E_weak=91.121193 ESS=0.362 n=512
+[colloc 00844] E_weak=89.627120 ESS=0.355 n=512
+[seg 4/4] step=1400 E_raw=68.71028 (+4.582%) var=1.471e+01 kappa(S)=3.14e+07 rank=255 cos_sr=1.000 cos_plain=0.234
+[phase] training done in 11.1 min
+Traceback (most recent call last):
+  File "/itf-fi-ml/home/aleksns/Thesis/scripts/run_phase_analysis.py", line 498, in <module>
+    main()
+  File "/itf-fi-ml/home/aleksns/Thesis/scripts/run_phase_analysis.py", line 230, in main
+    train_collocation_weak(sysm, steps=a.polish_steps, lr=a.lr * 0.3,
+  File "/itf-fi-ml/home/aleksns/Thesis/src/analysis/train.py", line 155, in train_collocation_weak
+    logpsi = system.log_psi(x[finite])
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/itf-fi-ml/home/aleksns/Thesis/src/analysis/system.py", line 119, in log_psi
+    logpsi, _ = psi_fn(
+                ^^^^^^^
+  File "/itf-fi-ml/home/aleksns/Thesis/src/utils.py", line 57, in wrapper
+    return fn(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^
+  File "/itf-fi-ml/home/aleksns/Thesis/src/functions/Neural_Networks.py", line 1635, in psi_fn
+    x_eff = x_batch + (backflow_net(x_batch, spin=spin_bn) if backflow_net is not None else 0.0)
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/storage/software/PyTorch/2.1.2-foss-2023a-CUDA-12.1.1/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1518, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/storage/software/PyTorch/2.1.2-foss-2023a-CUDA-12.1.1/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1527, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/itf-fi-ml/home/aleksns/Thesis/src/PINN.py", line 385, in forward
+    m_ij = self.phi(msg_in) * weight  # (B,N,N,H)
+           ^^^^^^^^^^^^^^^^
+  File "/storage/software/PyTorch/2.1.2-foss-2023a-CUDA-12.1.1/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1518, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/storage/software/PyTorch/2.1.2-foss-2023a-CUDA-12.1.1/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1527, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/storage/software/PyTorch/2.1.2-foss-2023a-CUDA-12.1.1/lib/python3.11/site-packages/torch/nn/modules/container.py", line 215, in forward
+    input = module(input)
+            ^^^^^^^^^^^^^
+  File "/storage/software/PyTorch/2.1.2-foss-2023a-CUDA-12.1.1/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1518, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/storage/software/PyTorch/2.1.2-foss-2023a-CUDA-12.1.1/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1527, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/storage/software/PyTorch/2.1.2-foss-2023a-CUDA-12.1.1/lib/python3.11/site-packages/torch/nn/modules/activation.py", line 393, in forward
+    return F.silu(input, inplace=self.inplace)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/storage/software/PyTorch/2.1.2-foss-2023a-CUDA-12.1.1/lib/python3.11/site-packages/torch/nn/functional.py", line 2072, in silu
+    return torch._C._nn.silu(input)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+torch.cuda.OutOfMemoryError: CUDA out of memory. Tried to allocate 144.00 MiB. GPU 0 has a total capacty of 10.75 GiB of which 83.56 MiB is free. Including non-PyTorch memory, this process has 10.67 GiB memory in use. Of the allocated memory 10.32 GiB is allocated by PyTorch, and 125.08 MiB is reserved by PyTorch but unallocated. If reserved but unallocated memory is large try setting max_split_size_mb to avoid fragmentation.  See documentation for Memory Management and PYTORCH_CUDA_ALLOC_CONF

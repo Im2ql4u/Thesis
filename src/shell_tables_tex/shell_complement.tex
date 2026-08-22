@@ -1,0 +1,31 @@
+\begin{table}[t]
+\centering
+\small
+\setlength{\tabcolsep}{3.5pt}
+\renewcommand{\arraystretch}{1.15}
+\begin{adjustbox}{max width=\textwidth}
+\begin{tabular}{rrrlllrlll}
+\toprule
+$N$ & $\omega$ & $S$ & occ. & cuts & $B_s$ per shell & $\max|\rho|_{(B=20)}$ & NN-CV per shell & $r_{\mathrm{peak}}$ & peak--valley \\
+\midrule
+6 & 0.001 & 2 & (1,5) & (1) & 0.626, 0.055 & 0.180 & -, 0.213 & 1.125 & 0.749 \\
+6 & 0.01 & 2 & (1,5) & (1) & 0.418, 0.079 & 0.025 & -, 0.316 & 1.158 & 0.684 \\
+6 & 0.1 & 2 & (1,5) & (1) & 0.412, 0.107 & 0.171 & -, 0.383 & 1.213 & 0.597 \\
+6 & 0.5 & 2 & (1,5) & (1) & 0.427, 0.126 & 0.229 & -, 0.429 & 1.237 & 0.528 \\
+6 & 1 & 2 & (1,5) & (1) & 0.431, 0.134 & 0.291 & -, 0.448 & 1.225 & 0.484 \\
+12 & 0.001 & 2 & (3,9) & (3) & 0.548, 0.197 & 0.968 & 0.222, 0.235 & 1.173 & 0.572 \\
+12 & 0.01 & 2 & (1,11) & (1) & 0.410, 0.043 & 0.076 & -, 0.274 & 1.269 & 0.484 \\
+12 & 0.1 & 2 & (1,11) & (1) & 0.454, 0.059 & 0.098 & -, 0.360 & 1.385 & 0.378 \\
+12 & 0.5 & 2 & (1,11) & (1) & 0.471, 0.071 & 0.182 & -, 0.416 & - & 0.000 \\
+12 & 1 & 2 & (1,11) & (1) & 0.473, 0.076 & 0.179 & -, 0.435 & - & 0.000 \\
+20 & 0.001 & 3 & (1,7,12) & (1,8) & 0.466, 0.042, 0.019 & 0.121 & -, 0.266, 0.248 & 1.232 & 0.451 \\
+20 & 0.01 & 2 & (1,19) & (1) & 0.487, 0.050 & 0.346 & -, 0.298 & 1.344 & 0.357 \\
+20 & 0.1 & 2 & (1,19) & (1) & 0.423, 0.038 & 0.127 & -, 0.369 & - & 0.000 \\
+20 & 0.5 & 2 & (1,19) & (1) & 0.438, 0.047 & 0.118 & -, 0.418 & - & 0.000 \\
+20 & 1 & 2 & (1,19) & (1) & 0.444, 0.051 & 0.152 & -, 0.436 & - & 0.000 \\
+\bottomrule
+\end{tabular}
+\end{adjustbox}
+\caption{Complementary structural metrics. $B_s$ is the per-shell breathing Lindemann (std/mean of per-frame mean radii). $\max|\rho|_{(B=20)}$ is the maximum inter-shell breathing correlation after block-averaging 20 consecutive frames. NN-CV is the coefficient of variation of chord distances between angular nearest neighbors within each shell ($n<3$ omitted). Pair metric uses distances scaled by the median nearest-neighbor spacing: $r_{\mathrm{peak}}$ is the first peak position and peak--valley is $(g_{\mathrm{peak}}-g_{\mathrm{valley}})/g_{\mathrm{peak}}$, with the valley searched strictly after the peak.}
+\label{tab:shell_complement}
+\end{table}

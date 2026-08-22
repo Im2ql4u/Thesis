@@ -315,3 +315,25 @@ architecture-agnostic on `|dx|` but only reports `sat`/`com_kill` for heads name
 shows |dx| > 0 — `com_kill -> 1.00` means the COM projection has annihilated the displacement.
 
 **Confidence:** high (A/B measured directly: dead vs alive under identical seeds and architecture)
+
+---
+
+## 2026-08-22 — The Wigner-cascade frontier stops at omega=0.0035 by ansatz design, not tooling
+
+**Decision:** Stand the MCMC-free collocation frontier at omega=0.0035 (a verified Wigner molecule at
+3.34 ell) and stop, rather than chasing omega<0.0035 with more proposal engineering.
+
+**Why:** The cross-omega collapse was localised (4 diagnostics, see SESSION_LOG 2026-08-22) to a
+fine-tuned Slater-suppression x Jastrow-amplification balance: the shell density is a ~1e-5 (Slater) x
+~1e5 (Jastrow) cancellation that a 23% omega step destabilises. This is a property of the ansatz, not
+the sampler (shell-init still relaxes inward) or the backflow (|dx|~0.13 ell, preserved on transfer).
+  - Rejected: coordinate-rescale / ell-invariant warm-start. Empirically ruled out — the ansatz relaxes
+    inward even when handed shell configurations, so no coordinate transform preserves the state.
+  - Rejected: more cascade/proposal variants. The non-monotonic v1/v2/v3 behaviour is a symptom of the
+    balance tipping, not of proposal tuning; more variants would thrash without addressing the cause.
+  - The honest, publishable statement (domain-of-validity for Q3) is stronger than a lower omega would
+    be: it explains WHY collocation-only has a floor. Below it needs a shell-amplitude-anchored
+    re-optimisation or an ell-covariant parametrisation — a distinct architecture problem, future work.
+
+**Confidence:** high (mechanism measured directly across the transfer; the source rung's genuineness and
+the sampler/backflow exclusions are each independently checked).

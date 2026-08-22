@@ -1,0 +1,72 @@
+0
+[phase] N=2 omega=0.1 arch=pinn  ->  /itf-fi-ml/home/aleksns/Thesis/results/analysis/2026-08-05_paradigm_optimizer/N2_s0_w0p1_vmc_sr
+0
+[phase] warm-started from /itf-fi-ml/home/aleksns/Thesis/results/analysis/2026-08-05_paradigm_optimizer/base_N2_s0_w0p1/checkpoint.pt (omega 0.1 -> 0.1)
+[phase] params=236,336 device=cuda:0 ref_energy=0.44079
+[sr 0000] E=0.440827 var=5.220e-08 |dθ|=1.97e-04 |g|=1.02e-04 damp=1.0e-03 lr=2.00e-01 |dx|/ell=0.1363 sat=0.01 com_kill=0.36
+[sr 0037] E=0.440828 var=5.207e-08 |dθ|=1.86e-04 |g|=1.63e-05 damp=1.0e-03 lr=2.00e-01 |dx|/ell=0.1320 sat=0.01 com_kill=0.39
+[sr 0074] E=0.440837 var=5.912e-08 |dθ|=1.70e-04 |g|=1.66e-05 damp=1.0e-03 lr=2.00e-01 |dx|/ell=0.1344 sat=0.01 com_kill=0.37
+[seg 1/5] step=75 E_raw=0.44085 (+0.011%) var=5.152e-08 kappa(S)=9.96e+11 rank=826 cos_sr=0.996 cos_plain=0.057
+[sr 0000] E=0.440834 var=5.036e-08 |dθ|=2.08e-04 |g|=3.61e-05 damp=1.0e-03 lr=2.00e-01 |dx|/ell=0.1390 sat=0.00 com_kill=0.33
+[sr 0042] E=0.440828 var=4.815e-08 |dθ|=1.72e-04 |g|=1.75e-05 damp=1.0e-03 lr=2.00e-01 |dx|/ell=0.1365 sat=0.01 com_kill=0.36
+[sr 0083] E=0.440824 var=5.882e-08 |dθ|=2.09e-04 |g|=1.59e-05 damp=1.0e-03 lr=2.00e-01 |dx|/ell=0.1379 sat=0.01 com_kill=0.35
+[seg 2/5] step=159 E_raw=0.44083 (+0.008%) var=5.731e-08 kappa(S)=9.82e+11 rank=831 cos_sr=0.996 cos_plain=0.048
+[sr 0000] E=0.440823 var=5.254e-08 |dθ|=1.87e-04 |g|=2.54e-05 damp=1.0e-03 lr=2.00e-01 |dx|/ell=0.1400 sat=0.01 com_kill=0.34
+[sr 0088] E=0.440827 var=5.075e-08 |dθ|=2.28e-04 |g|=2.78e-05 damp=1.0e-03 lr=2.00e-01 |dx|/ell=0.1352 sat=0.01 com_kill=0.36
+[sr 0175] E=0.440821 var=4.850e-08 |dθ|=1.78e-04 |g|=1.33e-05 damp=1.0e-03 lr=2.00e-01 |dx|/ell=0.1365 sat=0.01 com_kill=0.36
+[seg 3/5] step=335 E_raw=0.44073 (+0.011%) var=5.507e-08 kappa(S)=9.88e+11 rank=826 cos_sr=0.999 cos_plain=0.108
+[sr 0000] E=0.440836 var=4.569e-08 |dθ|=1.81e-04 |g|=1.98e-05 damp=1.0e-03 lr=2.00e-01 |dx|/ell=0.1409 sat=0.01 com_kill=0.33
+[sr 0187] E=0.440825 var=5.398e-08 |dθ|=1.94e-04 |g|=1.32e-05 damp=1.0e-03 lr=2.00e-01 |dx|/ell=0.1368 sat=0.01 com_kill=0.35
+[sr 0373] E=0.440829 var=4.450e-08 |dθ|=1.45e-04 |g|=1.73e-05 damp=1.0e-03 lr=2.00e-01 |dx|/ell=0.1403 sat=0.01 com_kill=0.33
+[seg 4/5] step=709 E_raw=0.44081 (+0.009%) var=4.223e-08 kappa(S)=9.68e+11 rank=823 cos_sr=0.999 cos_plain=0.118
+[sr 0000] E=0.440828 var=4.977e-08 |dθ|=1.93e-04 |g|=1.35e-05 damp=1.0e-03 lr=2.00e-01 |dx|/ell=0.1395 sat=0.00 com_kill=0.34
+[sr 0395] E=0.440836 var=4.608e-08 |dθ|=1.91e-04 |g|=1.50e-05 damp=1.0e-03 lr=2.00e-01 |dx|/ell=0.1417 sat=0.02 com_kill=0.33
+[sr 0790] E=0.440841 var=5.108e-08 |dθ|=1.74e-04 |g|=1.64e-05 damp=1.0e-03 lr=2.00e-01 |dx|/ell=0.1391 sat=0.01 com_kill=0.34
+[seg 5/5] step=1500 E_raw=0.44083 (+0.009%) var=4.123e-08 kappa(S)=9.97e+11 rank=839 cos_sr=0.995 cos_plain=0.012
+[phase] training done in 140.5 min
+[phase] summary:
+{
+  "N": 2,
+  "omega": 0.1,
+  "arch": "pinn",
+  "n_params": 236336,
+  "final": {
+    "E_mean": 0.4408283344434101,
+    "E_mean_raw": 0.4408096806221395,
+    "E_stderr": 2.309494479215497e-06,
+    "var_EL": 4.59246213008307e-08,
+    "n_samples": 8192,
+    "frac_clipped": 0.0228271484375,
+    "ref_energy": 0.44079,
+    "error_pct": 0.00869675886704772,
+    "error_sigma": 16.598629594075202
+  },
+  "energy_raw": 0.4408096806221395,
+  "error_pct_raw": 0.004464852228832997,
+  "energy_zv": 0.440893710881085,
+  "error_pct_zv": 0.023528410600277196,
+  "zv_n_points": 5,
+  "spectrum": {
+    "lam_max": 3.889392705869186,
+    "lam_min_supported": 3.938811307152085e-12,
+    "effective_rank": 2.1426580673880347,
+    "numerical_rank": 1095,
+    "condition_number": 987453422510.1963,
+    "n_params": 236336,
+    "n_samples": 2048
+  },
+  "alignment": {
+    "cos_sr": 0.9938943818702815,
+    "cos_plain": 0.08861072298620162,
+    "rep_fraction": 0.9938943818702815,
+    "ntk_condition": 9982618955.934673,
+    "ntk_eff_rank": 2.1426580426324264,
+    "ntk_numerical_rank": 666
+  },
+  "n_align_samples": 2048,
+  "exact": {
+    "energy": 0.4407918872067004,
+    "cusp_slope": 0.9990470286486856,
+    "overlap_sq": 0.9999994262883775
+  }
+}

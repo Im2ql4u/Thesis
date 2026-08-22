@@ -1,0 +1,107 @@
+0
+[phase] N=6 omega=1.0 arch=pinn  ->  results/analysis/2026-07-11_pinn_ansatz_v3/pinn_convbf_s0_w1p0
+0
+[phase] params=105,136 device=cuda:0 ref_energy=20.15932
+
+=== stage 1/4: Jastrow alone (backflow detached) ===
+[adam 00000] E=23.211328 var=9.1547e+00 sig=0.223 acc~0.5 n=2048
+[adam 00100] E=22.329196 var=6.0388e+00 sig=0.228 acc~0.5 n=2048
+[adam 00200] E=20.763740 var=1.7999e+00 sig=0.252 acc~0.5 n=2048
+[adam 00300] E=20.292247 var=5.7648e-01 sig=0.279 acc~0.5 n=2048
+[adam 00400] E=20.271888 var=5.1265e-01 sig=0.278 acc~0.5 n=2048
+[adam 00500] E=20.252430 var=4.0861e-01 sig=0.277 acc~0.5 n=2048
+[adam 00600] E=20.229955 var=3.6932e-01 sig=0.278 acc~0.5 n=2048
+[adam 00700] E=20.229942 var=2.9848e-01 sig=0.278 acc~0.5 n=2048
+[adam 00800] E=20.236033 var=2.6531e-01 sig=0.278 acc~0.5 n=2048
+[adam 00899] E=20.226623 var=2.6419e-01 sig=0.278 acc~0.5 n=2048
+
+=== stage 2/4: cusp pre-train (prime the Pauli hole) ===
+[cusp 0000] mse=0.028968 |pred|=0.3372 |tgt|=0.0197
+[cusp 0100] mse=0.000788 |pred|=0.0063 |tgt|=0.0194
+[cusp 0200] mse=0.000737 |pred|=0.0069 |tgt|=0.0190
+[cusp 0299] mse=0.000765 |pred|=0.0084 |tgt|=0.0197
+
+=== stage 3/4: backflow only (Jastrow frozen) ===
+[adam 00000] E=20.220940 var=2.3553e-01 sig=0.280 acc~0.5 n=2048 |dx|/ell=0.0561
+[adam 00100] E=20.188185 var=1.9361e-01 sig=0.277 acc~0.5 n=2048 |dx|/ell=0.0311
+[adam 00200] E=20.181231 var=1.7436e-01 sig=0.278 acc~0.5 n=2048 |dx|/ell=0.0343
+[adam 00300] E=20.185597 var=1.5494e-01 sig=0.278 acc~0.5 n=2048 |dx|/ell=0.0395
+[adam 00400] E=20.195016 var=1.5285e-01 sig=0.278 acc~0.5 n=2048 |dx|/ell=0.0449
+[adam 00500] E=20.164847 var=1.3720e-01 sig=0.278 acc~0.5 n=2048 |dx|/ell=0.0441
+[adam 00600] E=20.177519 var=1.2041e-01 sig=0.278 acc~0.5 n=2048 |dx|/ell=0.0404
+[adam 00700] E=20.179551 var=1.1621e-01 sig=0.278 acc~0.5 n=2048 |dx|/ell=0.0446
+[adam 00800] E=20.172512 var=1.2445e-01 sig=0.279 acc~0.5 n=2048 |dx|/ell=0.0480
+[adam 00899] E=20.155185 var=1.1400e-01 sig=0.278 acc~0.5 n=2048 |dx|/ell=0.0487
+
+=== stage 4/4: joint (Jastrow released at lr*0.1) ===
+[adam 00000] E=20.156339 var=1.1904e-01 sig=0.278 acc~0.5 n=2048 |dx|/ell=0.1184
+[adam 00100] E=20.182545 var=1.1219e-01 sig=0.279 acc~0.5 n=2048 |dx|/ell=0.0543
+[adam 00200] E=20.175302 var=1.0397e-01 sig=0.277 acc~0.5 n=2048 |dx|/ell=0.0554
+[adam 00300] E=20.170401 var=1.0228e-01 sig=0.278 acc~0.5 n=2048 |dx|/ell=0.0575
+[adam 00400] E=20.180435 var=1.1727e-01 sig=0.278 acc~0.5 n=2048 |dx|/ell=0.0621
+[adam 00500] E=20.164900 var=1.0910e-01 sig=0.278 acc~0.5 n=2048 |dx|/ell=0.0609
+[adam 00600] E=20.180015 var=9.4367e-02 sig=0.279 acc~0.5 n=2048 |dx|/ell=0.0618
+[adam 00700] E=20.169523 var=9.8652e-02 sig=0.278 acc~0.5 n=2048 |dx|/ell=0.0609
+[adam 00800] E=20.164646 var=1.0113e-01 sig=0.278 acc~0.5 n=2048 |dx|/ell=0.0640
+[adam 00900] E=20.178664 var=9.5330e-02 sig=0.278 acc~0.5 n=2048 |dx|/ell=0.0605
+[adam 01000] E=20.162358 var=1.0232e-01 sig=0.278 acc~0.5 n=2048 |dx|/ell=0.0613
+[adam 01100] E=20.171721 var=9.7631e-02 sig=0.278 acc~0.5 n=2048 |dx|/ell=0.0622
+[adam 01199] E=20.158814 var=9.6566e-02 sig=0.278 acc~0.5 n=2048 |dx|/ell=0.0625
+[phase] training done in 123.2 min
+[adam 00000] E=20.174576 var=1.0062e-01 sig=0.279 acc~0.5 n=4096 |dx|/ell=0.0622
+[adam 00125] E=20.173829 var=9.4558e-02 sig=0.278 acc~0.5 n=4096 |dx|/ell=0.0646
+[adam 00250] E=20.166619 var=8.8526e-02 sig=0.278 acc~0.5 n=4096 |dx|/ell=0.0674
+[adam 00375] E=20.174550 var=9.4676e-02 sig=0.278 acc~0.5 n=4096 |dx|/ell=0.0657
+[adam 00499] E=20.171640 var=8.9613e-02 sig=0.278 acc~0.5 n=4096 |dx|/ell=0.0684
+[sr 0000] E=20.163659 (+0.022%) var=1.045e-01 |dθ|=1.00e-02 |g|=1.52e-01 damp=1.0e-03 lr=2.00e-01 |dx|/ell=0.0699
+[sr 0050] E=20.165741 (+0.032%) var=1.117e-01 |dθ|=5.88e-03 |g|=1.76e-01 damp=7.9e-04 lr=1.48e-01 |dx|/ell=0.0704
+[sr 0100] E=20.168193 (+0.044%) var=1.094e-01 |dθ|=3.46e-03 |g|=2.25e-01 damp=6.3e-04 lr=1.10e-01 |dx|/ell=0.0653
+[sr 0150] E=20.166764 (+0.037%) var=1.011e-01 |dθ|=2.03e-03 |g|=1.70e-01 damp=5.0e-04 lr=8.13e-02 |dx|/ell=0.0687
+[sr 0200] E=20.168343 (+0.045%) var=1.037e-01 |dθ|=1.20e-03 |g|=1.74e-01 damp=4.0e-04 lr=6.02e-02 |dx|/ell=0.0677
+[sr 0250] E=20.171920 (+0.063%) var=9.733e-02 |dθ|=7.03e-04 |g|=1.60e-01 damp=3.2e-04 lr=4.46e-02 |dx|/ell=0.0694
+[sr 0300] E=20.176344 (+0.084%) var=1.033e-01 |dθ|=4.14e-04 |g|=2.24e-01 damp=2.5e-04 lr=3.30e-02 |dx|/ell=0.0676
+[sr 0350] E=20.174802 (+0.077%) var=1.147e-01 |dθ|=2.43e-04 |g|=2.31e-01 damp=2.0e-04 lr=2.45e-02 |dx|/ell=0.0661
+[sr 0400] E=20.178628 (+0.096%) var=1.035e-01 |dθ|=1.43e-04 |g|=1.25e-01 damp=1.6e-04 lr=1.81e-02 |dx|/ell=0.0649
+[sr 0450] E=20.161644 (+0.012%) var=1.038e-01 |dθ|=8.41e-05 |g|=1.62e-01 damp=1.3e-04 lr=1.34e-02 |dx|/ell=0.0673
+[sr 0499] E=20.164883 (+0.028%) var=1.054e-01 |dθ|=5.00e-05 |g|=1.51e-01 damp=1.0e-04 lr=1.00e-02 |dx|/ell=0.0681
+[phase] summary:
+{
+  "N": 6,
+  "omega": 1.0,
+  "arch": "pinn",
+  "n_params": 105136,
+  "final": {
+    "E_mean": 20.17225634822084,
+    "E_mean_raw": 20.171929376158708,
+    "E_stderr": 0.0026617641541447287,
+    "var_EL": 0.10371836682439482,
+    "n_samples": 8192,
+    "frac_clipped": 0.005126953125,
+    "ref_energy": 20.15932,
+    "error_pct": 0.0641705584357034,
+    "error_sigma": 4.860065532363861
+  },
+  "energy_raw": 20.171929376158708,
+  "error_pct_raw": 0.06254861849857615,
+  "energy_zv": 20.171929376158708,
+  "error_pct_zv": 0.06254861849857615,
+  "zv_n_points": 1,
+  "spectrum": {
+    "lam_max": 54.037094685573734,
+    "lam_min_supported": 3.2986694251037945e-08,
+    "effective_rank": 6.508041796928062,
+    "numerical_rank": 2047,
+    "condition_number": 1638148226.504189,
+    "n_params": 105136,
+    "n_samples": 2048
+  },
+  "alignment": {
+    "cos_sr": 1.0,
+    "cos_plain": 0.07336455540233605,
+    "rep_fraction": 1.0,
+    "ntk_condition": 1638148225.637491,
+    "ntk_eff_rank": 6.5080417969252675,
+    "ntk_numerical_rank": 2047
+  },
+  "n_align_samples": 2048
+}

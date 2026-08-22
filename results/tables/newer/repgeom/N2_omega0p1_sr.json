@@ -1,0 +1,63 @@
+{
+  "system": {
+    "N": 2,
+    "omega": 0.1,
+    "variant": "SR"
+  },
+  "ok": false,
+  "error": "TypeError: make_cartesian_C_occ() missing 3 required positional arguments: 'nx', 'ny', and 'n_occ'",
+  "config": {
+    "torch_device": "cuda",
+    "B": 512,
+    "hook_chunk": 64,
+    "mcmc_chunk": 128,
+    "max_node_instances": 10240,
+    "max_edge_instances": 12000,
+    "n_burn": 400,
+    "n_mix": 800,
+    "thin": 5,
+    "target_accept": 0.62,
+    "step_sigma_init": 0.25,
+    "adapt_steps": 200,
+    "seed": 0,
+    "edge_offdiag_only": true,
+    "pca_topk": 8,
+    "id_k": 20,
+    "id_max_points": 1200,
+    "max_F_for_id": 1024,
+    "max_F_for_pca": 4096,
+    "r0": 0.25,
+    "nbins_shell": 24,
+    "compute_energy": false,
+    "chunk_B_energy": 96,
+    "winsor_pct_energy": 0.0,
+    "capture_linear_layers": false,
+    "bf_scale_sweep": true,
+    "bf_alphas": [
+      0.0,
+      0.25,
+      0.5,
+      0.75,
+      1.0
+    ],
+    "variants": [
+      "SR",
+      "CTNN"
+    ],
+    "hook_regex_ctnn": [
+      "node",
+      "edge",
+      "rho",
+      "message",
+      "update",
+      "embed",
+      "dx",
+      "mlp"
+    ],
+    "hook_regex_pinn": [
+      ".*"
+    ],
+    "strict": false,
+    "verbose": true
+  }
+}

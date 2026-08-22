@@ -1,0 +1,28 @@
+\begin{table}[t]
+\centering
+\small
+\setlength{\tabcolsep}{4pt}
+\renewcommand{\arraystretch}{1.15}
+\begin{tabular}{r r r r l l r r}
+\toprule
+$N$ & $\omega$ & $K$ & $S$ & occupancy & cuts & $\min f_{\mathrm{top}3}$ & $\max \tilde{r}$ \\
+\midrule
+6 & 0.00100 & 30000 & 2 & (1,5) & (1) & 0.972 & 0.0 \\
+6 & 0.01000 & 30000 & 1 & (6) & () & nan & nan \\
+6 & 0.10000 & 238400 & 1 & (6) & () & nan & nan \\
+6 & 0.50000 & 238400 & 1 & (6) & () & nan & nan \\
+6 & 1.00000 & 238400 & 1 & (6) & () & nan & nan \\
+12 & 0.00100 & 42900 & 1 & (12) & () & nan & nan \\
+12 & 0.01000 & 25200 & 1 & (12) & () & nan & nan \\
+12 & 0.10000 & 238400 & 1 & (12) & () & nan & nan \\
+12 & 0.50000 & 66800 & 1 & (12) & () & nan & nan \\
+12 & 1.00000 & 238400 & 1 & (12) & () & nan & nan \\
+20 & 0.00100 & 25200 & 3 & (1,7,12) & (1,8) & 0.373 & 4.0 \\
+20 & 0.01000 & 42900 & 2 & (1,19) & (1) & 0.542 & 2.0 \\
+20 & 0.10000 & 42900 & 1 & (20) & () & nan & nan \\
+20 & 0.50000 & 42900 & 1 & (20) & () & nan & nan \\
+20 & 1.00000 & 42900 & 1 & (20) & () & nan & nan \\
+\bottomrule
+\end{tabular}
+\caption{Ring-structure summary: selected shell occupancy and global cut indices. $\min f_{\mathrm{top}3}$ is the minimum fraction of frames where each chosen boundary appears among the top-3 radial gaps; $\max \tilde{r}$ is the maximum median gap-rank among chosen boundaries (smaller is better).}
+\end{table}

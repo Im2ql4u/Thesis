@@ -1,0 +1,56 @@
+0
+[phase] N=6 omega=0.01 arch=ctnn_vcycle_big  ->  /itf-fi-ml/home/aleksns/Thesis/results/analysis/2026-07-02_overnight/A_ctnn_bf_s1_w0p01
+0
+[phase] warm-started from /itf-fi-ml/home/aleksns/Thesis/results/analysis/2026-07-02_overnight/A_ctnn_bf_s1_w0p1/checkpoint.pt (omega 0.1 -> 0.01)
+[phase] params=79,813 device=cuda:0 ref_energy=0.69036
+[adam 00000] E=1.130909 var=1.9726e-02 sig=1.628 acc~0.5 n=2048
+[adam 00015] E=-8055569.542086 var=1.5404e+12 sig=2.000 acc~0.5 n=2048
+/storage/software/SciPy-bundle/2023.07-gfbf-2023a/lib/python3.11/site-packages/numpy/core/fromnumeric.py:3504: RuntimeWarning: Mean of empty slice.
+  return _methods._mean(a, axis=axis, dtype=dtype,
+/storage/software/SciPy-bundle/2023.07-gfbf-2023a/lib/python3.11/site-packages/numpy/core/_methods.py:129: RuntimeWarning: invalid value encountered in scalar divide
+  ret = ret.dtype.type(ret / rcount)
+/itf-fi-ml/home/aleksns/Thesis/src/analysis/diagnostics.py:188: RuntimeWarning: Mean of empty slice.
+  E_mean = float(e_cl.mean())
+/itf-fi-ml/home/aleksns/Thesis/src/analysis/diagnostics.py:189: RuntimeWarning: Degrees of freedom <= 0 for slice
+  var = float(e_cl.var(ddof=1))
+/storage/software/SciPy-bundle/2023.07-gfbf-2023a/lib/python3.11/site-packages/numpy/core/_methods.py:163: RuntimeWarning: invalid value encountered in divide
+  arrmean = um.true_divide(arrmean, div, out=arrmean,
+/storage/software/SciPy-bundle/2023.07-gfbf-2023a/lib/python3.11/site-packages/numpy/core/_methods.py:198: RuntimeWarning: invalid value encountered in scalar divide
+  ret = ret.dtype.type(ret / rcount)
+/storage/software/SciPy-bundle/2023.07-gfbf-2023a/lib/python3.11/site-packages/numpy/core/_methods.py:206: RuntimeWarning: Degrees of freedom <= 0 for slice
+  ret = _var(a, axis=axis, dtype=dtype, out=out, ddof=ddof,
+/itf-fi-ml/home/aleksns/Thesis/src/analysis/diagnostics.py:193: RuntimeWarning: Mean of empty slice.
+  "E_mean_raw": float(e.mean()),  # unclipped mean (unbiased but higher variance)
+[seg 1/4] step=31 E_raw=nan (+nan%) var=nan kappa(S)=inf rank=0 cos_sr=0.000 cos_plain=0.000
+[seg 2/4] step=78 E_raw=nan (+nan%) var=nan kappa(S)=inf rank=0 cos_sr=0.000 cos_plain=0.000
+[seg 3/4] step=198 E_raw=nan (+nan%) var=nan kappa(S)=inf rank=0 cos_sr=0.000 cos_plain=0.000
+[seg 4/4] step=500 E_raw=nan (+nan%) var=nan kappa(S)=inf rank=0 cos_sr=0.000 cos_plain=0.000
+[phase] training done in 19.6 min
+Traceback (most recent call last):
+  File "/itf-fi-ml/home/aleksns/Thesis/scripts/run_phase_analysis.py", line 491, in <module>
+    main()
+  File "/itf-fi-ml/home/aleksns/Thesis/scripts/run_phase_analysis.py", line 265, in main
+    tb = dg.two_body_correlation(sysm.log_psi, sysm.log_slater, xf)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/storage/software/PyTorch/2.1.2-foss-2023a-CUDA-12.1.1/lib/python3.11/site-packages/torch/utils/_contextlib.py", line 115, in decorate_context
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/itf-fi-ml/home/aleksns/Thesis/src/analysis/diagnostics.py", line 272, in two_body_correlation
+    logpsi = log_psi_fn(x).detach()
+             ^^^^^^^^^^^^^
+  File "/itf-fi-ml/home/aleksns/Thesis/src/analysis/system.py", line 119, in log_psi
+    logpsi, _ = psi_fn(
+                ^^^^^^^
+  File "/itf-fi-ml/home/aleksns/Thesis/src/utils.py", line 57, in wrapper
+    return fn(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^
+  File "/itf-fi-ml/home/aleksns/Thesis/src/functions/Neural_Networks.py", line 1637, in psi_fn
+    sign, logabs = slater_determinant_closed_shell(
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/itf-fi-ml/home/aleksns/Thesis/src/utils.py", line 57, in wrapper
+    return fn(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^
+  File "/itf-fi-ml/home/aleksns/Thesis/src/functions/Slater_Determinant.py", line 704, in slater_determinant_closed_shell
+    spin_vec = s[0].long()  # use the shared pattern
+               ~^^^
+IndexError: index 0 is out of bounds for dimension 0 with size 0

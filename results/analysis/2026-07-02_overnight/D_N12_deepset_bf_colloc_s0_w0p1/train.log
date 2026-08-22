@@ -1,0 +1,68 @@
+0
+[phase] N=12 omega=0.1 arch=deepset_big  ->  /itf-fi-ml/home/aleksns/Thesis/results/analysis/2026-07-02_overnight/D_N12_deepset_bf_colloc_s0_w0p1
+0
+[phase] warm-started from /itf-fi-ml/home/aleksns/Thesis/results/analysis/2026-07-02_overnight/D_N12_deepset_bf_colloc_s0_w1p0/checkpoint.pt (omega 1.0 -> 0.1)
+[phase] params=47,669 device=cuda:0 ref_energy=12.26984
+[colloc 00000] E_weak=28.870653 ESS=0.416 n=512
+[colloc 00043] E_weak=22.930029 ESS=0.418 n=512
+[colloc 00086] E_weak=19.784251 ESS=0.394 n=512
+[seg 1/4] step=87 E_raw=14.32094 (+16.656%) var=1.661e+00 kappa(S)=3.78e+09 rank=383 cos_sr=1.000 cos_plain=0.329
+[colloc 00000] E_weak=20.450952 ESS=0.383 n=512
+[colloc 00066] E_weak=19.388924 ESS=0.382 n=512
+[colloc 00132] E_weak=22.456676 ESS=0.419 n=512
+[seg 2/4] step=220 E_raw=12.82043 (+4.487%) var=3.084e-01 kappa(S)=7.09e+08 rank=383 cos_sr=1.000 cos_plain=0.141
+[colloc 00000] E_weak=22.903179 ESS=0.419 n=512
+[colloc 00167] E_weak=19.331369 ESS=0.402 n=512
+[colloc 00334] E_weak=19.517952 ESS=0.397 n=512
+[seg 3/4] step=555 E_raw=13.20465 (+7.619%) var=5.356e-01 kappa(S)=7.00e+08 rank=383 cos_sr=1.000 cos_plain=0.532
+[colloc 00000] E_weak=20.911780 ESS=0.417 n=512
+[colloc 00422] E_weak=18.942849 ESS=0.394 n=512
+[colloc 00844] E_weak=18.883385 ESS=0.377 n=512
+[seg 4/4] step=1400 E_raw=13.87266 (+13.063%) var=1.108e+00 kappa(S)=2.36e+09 rank=383 cos_sr=1.000 cos_plain=0.664
+[phase] training done in 3.3 min
+[colloc 00000] E_weak=18.834757 ESS=0.393 n=2048
+[colloc 00075] E_weak=19.489801 ESS=0.403 n=2048
+[colloc 00150] E_weak=19.485235 ESS=0.407 n=2048
+[colloc 00225] E_weak=18.903922 ESS=0.386 n=2048
+[colloc 00299] E_weak=19.225775 ESS=0.386 n=2048
+[phase] summary:
+{
+  "N": 12,
+  "omega": 0.1,
+  "arch": "deepset_big",
+  "n_params": 47669,
+  "final": {
+    "E_mean": 13.880433626465674,
+    "E_mean_raw": 13.880433626465674,
+    "E_stderr": 0.05156676349770025,
+    "var_EL": 1.074430927635977,
+    "n_samples": 512,
+    "frac_clipped": 0.0,
+    "ref_energy": 12.26984,
+    "error_pct": 13.126443592301722,
+    "error_sigma": 31.233172633328095
+  },
+  "energy_raw": 13.880433626465674,
+  "error_pct_raw": 13.126443592301722,
+  "energy_zv": 12.576467134180698,
+  "error_pct_zv": 2.4990312357838196,
+  "zv_n_points": 5,
+  "spectrum": {
+    "lam_max": 234.01212030129216,
+    "lam_min_supported": 1.1085553880313065e-07,
+    "effective_rank": 2.344805237484595,
+    "numerical_rank": 383,
+    "condition_number": 2110964619.6107204,
+    "n_params": 47669,
+    "n_samples": 384
+  },
+  "alignment": {
+    "cos_sr": 0.9999999999999997,
+    "cos_plain": 0.6951515709772064,
+    "rep_fraction": 0.9999999999999997,
+    "ntk_condition": 2110964641.9758177,
+    "ntk_eff_rank": 2.3448052374844552,
+    "ntk_numerical_rank": 383
+  },
+  "n_align_samples": 384
+}

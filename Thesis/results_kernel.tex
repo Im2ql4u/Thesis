@@ -350,22 +350,41 @@ $\omega$ & $E$ & scaling est. & ratio \\
 \end{tabular}
 \end{table}
 
-\subsection{The remaining wall is the warm-start, not the proposal}
+\subsection{The remaining wall: a fine-tuned Slater--Jastrow balance, not the sampler}
 Below $\omega=0.0035$ the cascade becomes unstable, and---informatively---the instability
 is \emph{non-monotonic} across proposal variants: wide-exploratory, tempered-tracking, and
 outward-anchored proposals each converge some rungs and diverge others. That pattern
-locates the obstacle not in the proposal but in the \emph{warm-start}. Changing $\omega$
-rebuilds the $\omega$-dependent Slater determinant, which collapses the warm-started state
-back to $\sim\!1\ell$ at every rung; re-expanding it to the shell by importance sampling is
-inherently unstable, because the proposal either follows the collapse inward or, if held
-out at the shell, loses ESS. A wide exploratory proposal \emph{can} drive the re-expansion
-(the state was observed to expand to the classical shell at $\omega=0.0027$), but doing so
-robustly at every rung is not a matter of proposal tuning. The clean resolution is an
-$\omega$-robust warm-start---a coordinate rescaling that preserves the state's shape in
-$\ell$-units across $\omega$, or an $\ell$-invariant parametrisation---which is a distinct
-problem left to future work. The contribution here is concrete: a physics-informed proposal
-that carries MCMC-free collocation from the origin-proposal wall down to $\omega=0.0035$,
-and a precise account of the angular-crystallisation and warm-start effects that bound it.
+locates the obstacle not in the proposal but in the warm-start, and four transfer diagnostics
+(taking the converged $\omega=0.0035$ rung down to $\omega=0.0027$, a $23\%$ step) pin down
+its mechanism precisely.
+
+First, the frontier state is genuine: at its own $\omega=0.0035$ the rung is a bona-fide
+Wigner molecule, with radial density peaked at $3.34\ell$ (classical ring $3.42\ell$) and a
+\emph{single} basin---initialising the sampler on the shell converges to the same $3.34\ell$.
+Transferred to $\omega=0.0027$, however, the wavefunction collapses to $\sim\!1\ell$, and two
+tests show \emph{where} the collapse lives. It is not the sampler: initialising the Metropolis
+walkers directly on the classical shell ($3.57\ell$) still relaxes inward to $1.1\ell$, so the
+collapsed density is a property of the ansatz, not of sampler initialisation. And it is not the
+backflow: its displacement is small ($|\Delta\mathbf{x}|\approx0.13\ell$, radially inward) and
+essentially \emph{preserved} across the transfer ($0.15\ell\!\to\!0.13\ell$)---it scales
+correctly with $\ell$ but is far too small to bridge the $2.4\ell$ gap between the Slater core
+($\sim\!1\ell$) and the Wigner shell.
+
+The mechanism is a delicate cancellation. The bare harmonic-oscillator determinant suppresses
+the shell by $\exp(-\omega r^2/2)\!\sim\!\exp(-5.6)$ in amplitude ($\sim\!10^{-5}$ in density);
+the Wigner peak exists only because the Jastrow amplifies it back by a comparable factor, with
+the backflow contributing a small inward nudge. A $23\%$ change in $\omega$ perturbs both the
+Slater confinement and the Jastrow correlation length, the fine-tuned balance tips, and the
+density falls back to the non-interacting shell---from which the collocation re-fit cannot
+reliably climb out (hence the non-monotonic proposal behaviour). This rules out the natural fix
+of an $\omega$-robust warm-start by coordinate rescaling: because the ansatz relaxes inward even
+when handed shell configurations, no coordinate transform can preserve the state. Reaching
+$\omega<0.0035$ would require per-$\omega$ re-optimisation against a shell-\emph{amplitude}-anchored
+objective, or a genuinely $\ell$-covariant parametrisation---a distinct problem left to future
+work. The contribution here is concrete: a physics-informed proposal that carries MCMC-free
+collocation from the origin-proposal wall down to a verified Wigner molecule at $\omega=0.0035$,
+and a precise account of the angular-crystallisation and Slater--Jastrow-balance effects that
+bound it.
 
 % =====================================================================
 \section{Synthesis and discussion}

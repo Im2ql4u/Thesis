@@ -281,3 +281,30 @@ isolation, resume-on-restart, and an automatic analysis pass at the end.
 **Open:** whether the collapse persists at N=12/20 and how the gap scales; results_kernel.tex still
 describes the CTNN *Jastrow* (CTNNJastrowVCycle vs DeepSet), not the thesis ansatz — valid work, wrong
 subject, NOT to be merged as-is (Aleksander asked me to hold off).
+
+---
+
+## 2026-08-22 — Q3 closed; thread 3 (cross-omega collapse) resolved; results banked
+
+**Thread 3 — the deep-cascade wall, mechanism nailed.** Four transfer diagnostics on the last good
+cascade rung (w0.0035.pt -> omega=0.0027, a 23% step). Scripts: warmstart_collapse_diag.py,
+warmstart_shellinit_test.py, warmstart_dxscale_test.py, source_state_check.py.
+  - Source rung is a GENUINE Wigner molecule at its own omega: 3.34 ell (classical 3.42), single basin
+    (shell-init converges to the same 3.34 ell). Frontier is real; cascade integrity confirmed.
+  - Collapse to ~1 ell' on transfer is in the ANSATZ, not the sampler: shell-initialised walkers still
+    relax to 1.13 ell'. Two-basin/sampler-init hypothesis REFUTED.
+  - Backflow is NOT the culprit: |dx| ~ 0.13 ell inward, preserved across transfer (0.15 -> 0.13 ell) —
+    scales with ell but far too small to bridge the 2.4 ell core->shell gap.
+  - Mechanism: the Wigner peak is a fine cancellation — Slater exp(-omega r^2/2) suppresses the shell
+    ~1e-5 in density, the Jastrow amplifies it back ~1e5; a 23% omega change tips the balance and the
+    density collapses to the non-interacting shell. From there the re-fit can't reliably climb back
+    (the non-monotonic v1/v2/v3 behaviour). Coordinate-rescale warm-start is RULED OUT (ansatz relaxes
+    inward from shell configs). Honest frontier: omega=0.0035, MCMC-free.
+
+**Thesis:** folded the resolved mechanism into results_kernel.tex 4.x "The remaining wall" subsection
+(replaced the earlier speculative Slater-rebuild/coordinate-rescale-as-future-work text).
+
+**Repo hygiene:** .gitignore extended to exclude data binaries globally (*.npz/*.npy/*.zip — ~6 GB,
+several npz >100MB would have broken the GitHub push) and exploratory src notebooks (per CLAUDE.md).
+Figures (*.png) kept, per Aleksander's request. Everything else (tex, md/REPORTs, csv, log, json, py,
+scripts, journals) committed and pushed. Q3 called DONE; Aleksander will do the prose writeup locally.

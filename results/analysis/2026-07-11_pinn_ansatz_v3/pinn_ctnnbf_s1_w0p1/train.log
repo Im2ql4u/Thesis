@@ -1,0 +1,48 @@
+0
+[phase] N=6 omega=0.1 arch=pinn  ->  results/analysis/2026-07-11_pinn_ansatz_v3/pinn_ctnnbf_s1_w0p1
+0
+[phase] warm-started from results/analysis/2026-07-11_pinn_ansatz_v3/pinn_ctnnbf_s1_w1p0/checkpoint.pt (omega 1.0 -> 0.1)
+[phase] params=236,336 device=cuda:0 ref_energy=3.55385
+[adam 00000] E=5.300671 var=7.5396e-01 sig=0.609 acc~0.5 n=2048 |dx|/ell=0.0348 sat=0.00 com_kill=0.74
+[adam 00093] E=3.825175 var=9.6989e-02 sig=0.826 acc~0.5 n=2048 |dx|/ell=0.2642 sat=0.44 com_kill=0.01
+[adam 00186] E=3.580599 var=1.2885e-02 sig=0.911 acc~0.5 n=2048 |dx|/ell=0.1324 sat=0.00 com_kill=0.10
+[seg 1/4] step=187 E_raw=3.58292 (+0.780%) var=1.473e-02 kappa(S)=1.02e+06 rank=1023 cos_sr=1.000 cos_plain=0.285
+[adam 00000] E=3.578392 var=1.2795e-02 sig=0.916 acc~0.5 n=2048 |dx|/ell=0.1943 sat=0.01 com_kill=0.04
+[adam 00142] E=3.559033 var=3.1275e-03 sig=0.903 acc~0.5 n=2048 |dx|/ell=0.0872 sat=0.00 com_kill=0.07
+[adam 00284] E=3.557578 var=2.3188e-03 sig=0.897 acc~0.5 n=2048 |dx|/ell=0.0927 sat=0.00 com_kill=0.05
+[seg 2/4] step=472 E_raw=3.55905 (+0.140%) var=2.928e-03 kappa(S)=1.10e+06 rank=1023 cos_sr=1.000 cos_plain=0.139
+[adam 00000] E=3.555857 var=2.3043e-03 sig=0.901 acc~0.5 n=2048 |dx|/ell=0.1141 sat=0.00 com_kill=0.07
+[adam 00358] E=3.554985 var=1.3039e-03 sig=0.897 acc~0.5 n=2048 |dx|/ell=0.1066 sat=0.00 com_kill=0.02
+[adam 00716] E=3.554576 var=1.0231e-03 sig=0.895 acc~0.5 n=2048 |dx|/ell=0.1127 sat=0.00 com_kill=0.02
+[seg 3/4] step=1189 E_raw=3.55465 (+0.012%) var=1.115e-03 kappa(S)=9.07e+05 rank=1023 cos_sr=1.000 cos_plain=0.147
+[adam 00000] E=3.555110 var=9.9711e-04 sig=0.899 acc~0.5 n=2048 |dx|/ell=0.1206 sat=0.00 com_kill=0.02
+[adam 00905] E=3.553538 var=8.2270e-04 sig=0.894 acc~0.5 n=2048 |dx|/ell=0.1266 sat=0.00 com_kill=0.02
+[adam 01810] E=3.553389 var=6.0486e-04 sig=0.892 acc~0.5 n=2048 |dx|/ell=0.1342 sat=0.00 com_kill=0.03
+[seg 4/4] step=3000 E_raw=3.55174 (-0.047%) var=8.078e-04 kappa(S)=5.56e+05 rank=1023 cos_sr=1.000 cos_plain=0.138
+[phase] training done in 173.2 min
+[adam 00000] E=3.553058 var=5.9556e-04 sig=0.905 acc~0.5 n=4096 |dx|/ell=0.1369 sat=0.00 com_kill=0.02
+[adam 00125] E=3.553270 var=5.4792e-04 sig=0.893 acc~0.5 n=4096 |dx|/ell=0.1328 sat=0.00 com_kill=0.02
+[adam 00250] E=3.553097 var=5.2462e-04 sig=0.895 acc~0.5 n=4096 |dx|/ell=0.1353 sat=0.00 com_kill=0.02
+[adam 00375] E=3.553023 var=5.4949e-04 sig=0.894 acc~0.5 n=4096 |dx|/ell=0.1410 sat=0.00 com_kill=0.02
+[adam 00499] E=3.552515 var=5.4083e-04 sig=0.894 acc~0.5 n=4096 |dx|/ell=0.1398 sat=0.00 com_kill=0.02
+[sr 0000] E=3.553212 (-0.018%) var=6.853e-04 |dθ|=1.00e-02 |g|=1.13e-02 damp=1.0e-03 lr=2.00e-01 |dx|/ell=0.1362 sat=0.00 com_kill=0.02
+[sr 0050] E=3.552429 (-0.040%) var=6.018e-04 |dθ|=5.88e-03 |g|=8.40e-03 damp=7.9e-04 lr=1.48e-01 |dx|/ell=0.1372 sat=0.00 com_kill=0.02
+[sr 0100] E=3.553220 (-0.018%) var=6.704e-04 |dθ|=3.46e-03 |g|=8.07e-03 damp=6.3e-04 lr=1.10e-01 |dx|/ell=0.1367 sat=0.00 com_kill=0.02
+[sr 0150] E=3.553159 (-0.019%) var=5.279e-04 |dθ|=2.03e-03 |g|=8.95e-03 damp=5.0e-04 lr=8.13e-02 |dx|/ell=0.1370 sat=0.00 com_kill=0.02
+[sr 0200] E=3.552685 (-0.033%) var=6.212e-04 |dθ|=1.20e-03 |g|=1.38e-02 damp=4.0e-04 lr=6.02e-02 |dx|/ell=0.1384 sat=0.00 com_kill=0.02
+[sr 0250] E=3.554204 (+0.010%) var=6.287e-04 |dθ|=7.03e-04 |g|=1.55e-02 damp=3.2e-04 lr=4.46e-02 |dx|/ell=0.1376 sat=0.00 com_kill=0.02
+[sr 0300] E=3.552071 (-0.050%) var=5.921e-04 |dθ|=4.14e-04 |g|=1.40e-02 damp=2.5e-04 lr=3.30e-02 |dx|/ell=0.1370 sat=0.00 com_kill=0.02
+[sr 0350] E=3.553152 (-0.020%) var=5.482e-04 |dθ|=2.43e-04 |g|=8.38e-03 damp=2.0e-04 lr=2.45e-02 |dx|/ell=0.1377 sat=0.00 com_kill=0.02
+[sr 0400] E=3.553328 (-0.015%) var=5.857e-04 |dθ|=1.43e-04 |g|=1.43e-02 damp=1.6e-04 lr=1.81e-02 |dx|/ell=0.1338 sat=0.00 com_kill=0.02
+[sr 0450] E=3.553650 (-0.006%) var=5.515e-04 |dθ|=8.41e-05 |g|=1.37e-02 damp=1.3e-04 lr=1.34e-02 |dx|/ell=0.1339 sat=0.00 com_kill=0.02
+[sr 0499] E=3.554198 (+0.010%) var=5.683e-04 |dθ|=5.00e-05 |g|=8.98e-03 damp=1.0e-04 lr=1.00e-02 |dx|/ell=0.1361 sat=0.00 com_kill=0.02
+Traceback (most recent call last):
+  File "/itf-fi-ml/home/aleksns/Thesis/scripts/run_phase_analysis.py", line 532, in <module>
+    main()
+  File "/itf-fi-ml/home/aleksns/Thesis/scripts/run_phase_analysis.py", line 303, in main
+    spf = dg.kernel_spectrum(Of)
+          ^^^^^^^^^^^^^^^^^^^^^^
+  File "/itf-fi-ml/home/aleksns/Thesis/src/analysis/diagnostics.py", line 54, in kernel_spectrum
+    s = torch.linalg.svdvals(O.double())  # singular values of O
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+torch.cuda.OutOfMemoryError: CUDA out of memory. Tried to allocate 3.61 GiB. GPU 0 has a total capacty of 10.57 GiB of which 1.19 GiB is free. Including non-PyTorch memory, this process has 9.37 GiB memory in use. Of the allocated memory 9.07 GiB is allocated by PyTorch, and 73.52 MiB is reserved by PyTorch but unallocated. If reserved but unallocated memory is large try setting max_split_size_mb to avoid fragmentation.  See documentation for Memory Management and PYTORCH_CUDA_ALLOC_CONF

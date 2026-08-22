@@ -1,0 +1,85 @@
+{
+  "N": 6,
+  "omega": 1.0,
+  "n_grid": [
+    256,
+    512,
+    1024,
+    2048
+  ],
+  "probe_pooled_size": 3072,
+  "ctnn_eff_rank_mean": 1.4533375562634914,
+  "ctnn_eff_rank_range": [
+    1.195116647042934,
+    1.6608206331750976
+  ],
+  "deepset_eff_rank_range": [
+    2.944966505944914,
+    3.6471724193553445
+  ],
+  "fair_rows": [
+    {
+      "model": "ctnn_seed1",
+      "family": "CTNN",
+      "n_params": 66498,
+      "eff_rank_pooled": 1.5040753885724427,
+      "eff_rank_ctnnpts": 1.4669400377854,
+      "eff_rank_dspts": 1.5021676575414677,
+      "kappa": 2743750227.7406654
+    },
+    {
+      "model": "ctnn_seed2",
+      "family": "CTNN",
+      "n_params": 66498,
+      "eff_rank_pooled": 1.195116647042934,
+      "eff_rank_ctnnpts": 1.178739165885785,
+      "eff_rank_dspts": 1.191195492065972,
+      "kappa": 207468274782.75388
+    },
+    {
+      "model": "ctnn_2x2sr",
+      "family": "CTNN",
+      "n_params": 66498,
+      "eff_rank_pooled": 1.6608206331750976,
+      "eff_rank_ctnnpts": 1.6168998899231,
+      "eff_rank_dspts": 1.6575342939092763,
+      "kappa": 4671358671.839624
+    },
+    {
+      "model": "deepset_s_20k",
+      "family": "DeepSet",
+      "n_params": 6874,
+      "eff_rank_pooled": 3.633892930867838,
+      "eff_rank_ctnnpts": 3.424246433815379,
+      "eff_rank_dspts": 3.6066809684340684,
+      "kappa": 927891614613.2037
+    },
+    {
+      "model": "deepset_m_48k",
+      "family": "DeepSet",
+      "n_params": 34354,
+      "eff_rank_pooled": 3.3662159645971697,
+      "eff_rank_ctnnpts": 3.109984026110145,
+      "eff_rank_dspts": 3.3182496064194082,
+      "kappa": 996114639568.7595
+    },
+    {
+      "model": "deepset_match_89k",
+      "family": "DeepSet",
+      "n_params": 76106,
+      "eff_rank_pooled": 3.6471724193553445,
+      "eff_rank_ctnnpts": 3.4233549470956026,
+      "eff_rank_dspts": 3.6218006047223636,
+      "kappa": 994775971615.0034
+    },
+    {
+      "model": "deepset_xl_164k",
+      "family": "DeepSet",
+      "n_params": 150754,
+      "eff_rank_pooled": 2.944966505944914,
+      "eff_rank_ctnnpts": 2.7254424980707985,
+      "eff_rank_dspts": 2.8968345773847384,
+      "kappa": 994918258963.2557
+    }
+  ]
+}

@@ -1,0 +1,58 @@
+{
+  "ok": false,
+  "meta": {
+    "N": 20,
+    "omega": 0.5,
+    "variant": "SR",
+    "torch_device": "cuda",
+    "torch_dtype": "torch.float64",
+    "cfg": {
+      "torch_device": "cuda",
+      "torch_dtype": "torch.float64",
+      "sampler": "mcmc",
+      "B": 192,
+      "mcmc_steps": 70,
+      "burn_in": 20,
+      "thin": 10,
+      "proposal_sigma_scale": 0.08,
+      "proposal_sigma_min": 0.02,
+      "proposal_sigma_max": 1.2,
+      "init_sigma_max": 10.0,
+      "hook_chunk": 48,
+      "mcmc_chunk": 96,
+      "max_node_instances": 4096,
+      "max_edge_instances": 4096,
+      "max_global_instances": 4096,
+      "max_modules_per_model": 60,
+      "var_capture_levels": [
+        0.5,
+        0.8,
+        0.95
+      ],
+      "sv_topk": 0
+    },
+    "basis_dims": {
+      "nx": 4,
+      "ny": 4,
+      "n_occ": 10
+    },
+    "created_unix": 1768553431.6992295
+  },
+  "error": "FileNotFoundError: No SR f_net candidates found.",
+  "traceback": "Traceback (most recent call last):\n  File \"/tmp/ipykernel_4109844/2686053612.py\", line 171, in _run_one_case\n    ckpt = _find_checkpoints(case_dir, omega, variant, diag)\n  File \"/tmp/ipykernel_4109844/2686053612.py\", line 479, in _find_checkpoints\n    fnet = _pick_sr_fnet(pts, diag)\n  File \"/tmp/ipykernel_4109844/2686053612.py\", line 499, in _pick_sr_fnet\n    raise FileNotFoundError(\"No SR f_net candidates found.\")\nFileNotFoundError: No SR f_net candidates found.\n",
+  "diagnostics": {
+    "checkpoint_search": {
+      "models_root": "../results/models",
+      "basis_dims": {
+        "nx": 4,
+        "ny": 4,
+        "n_occ": 10
+      },
+      "case_dir": "../results/models/20p/w_05",
+      "w_folder": "w_05",
+      "f_net_candidates": [],
+      "bf_candidates": [],
+      "notes": []
+    }
+  }
+}

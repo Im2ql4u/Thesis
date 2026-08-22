@@ -1,0 +1,76 @@
+08:28:44 === overnight campaign: 13 chains on GPUs [1, 2, 3, 4, 5, 6] ===
+08:28:44 [gpu1] START A_ctnn_bf s0 w1.0
+08:28:44 [gpu4] START A_ctnn_nobf s1 w1.0
+08:28:44 [gpu5] START A_deepset_bf s0 w1.0
+08:28:44 [gpu3] START A_ctnn_nobf s0 w1.0
+08:28:44 [gpu6] START A_deepset_bf s1 w1.0
+08:28:44 [gpu2] START A_ctnn_bf s1 w1.0
+08:55:13 [gpu5] DONE  A_deepset_bf s0 w1.0 rc=0 (26 min)
+08:55:13 [gpu5] START A_deepset_bf s0 w0.1
+08:55:16 [gpu6] DONE  A_deepset_bf s1 w1.0 rc=0 (27 min)
+08:55:16 [gpu6] START A_deepset_bf s1 w0.1
+09:21:42 [gpu6] DONE  A_deepset_bf s1 w0.1 rc=0 (26 min)
+09:21:42 [gpu6] START A_deepset_bf s1 w0.01
+09:21:44 [gpu5] DONE  A_deepset_bf s0 w0.1 rc=0 (27 min)
+09:21:44 [gpu5] START A_deepset_bf s0 w0.01
+09:48:30 [gpu5] DONE  A_deepset_bf s0 w0.01 rc=0 (27 min)
+09:48:30 [gpu5] START A_deepset_nobf s0 w1.0
+09:48:32 [gpu6] DONE  A_deepset_bf s1 w0.01 rc=0 (27 min)
+09:48:32 [gpu6] START A_deepset_nobf s1 w1.0
+09:57:25 [gpu3] DONE  A_ctnn_nobf s0 w1.0 rc=0 (89 min)
+09:57:25 [gpu3] START A_ctnn_nobf s0 w0.1
+09:57:46 [gpu4] DONE  A_ctnn_nobf s1 w1.0 rc=0 (89 min)
+09:57:46 [gpu4] START A_ctnn_nobf s1 w0.1
+10:05:02 [gpu5] DONE  A_deepset_nobf s0 w1.0 rc=0 (17 min)
+10:05:02 [gpu5] START A_deepset_nobf s0 w0.1
+10:05:05 [gpu6] DONE  A_deepset_nobf s1 w1.0 rc=0 (17 min)
+10:05:05 [gpu6] START A_deepset_nobf s1 w0.1
+10:09:10 [gpu1] DONE  A_ctnn_bf s0 w1.0 rc=0 (100 min)
+10:09:10 [gpu1] START A_ctnn_bf s0 w0.1
+10:09:52 [gpu2] DONE  A_ctnn_bf s1 w1.0 rc=0 (101 min)
+10:09:52 [gpu2] START A_ctnn_bf s1 w0.1
+10:21:36 [gpu5] DONE  A_deepset_nobf s0 w0.1 rc=0 (17 min)
+10:21:36 [gpu5] START A_deepset_nobf s0 w0.01
+10:21:46 [gpu6] DONE  A_deepset_nobf s1 w0.1 rc=0 (17 min)
+10:21:46 [gpu6] START A_deepset_nobf s1 w0.01
+10:38:12 [gpu5] DONE  A_deepset_nobf s0 w0.01 rc=0 (17 min)
+10:38:12 [gpu5] START B_ctnn_bf_colloc s0 w1.0
+10:38:28 [gpu6] DONE  A_deepset_nobf s1 w0.01 rc=0 (17 min)
+10:38:28 [gpu6] START B_ctnn_bf_colloc s1 w1.0
+10:56:10 [gpu5] DONE  B_ctnn_bf_colloc s0 w1.0 rc=0 (18 min)
+10:56:10 [gpu5] START B_ctnn_bf_colloc s0 w0.1
+10:56:25 [gpu6] DONE  B_ctnn_bf_colloc s1 w1.0 rc=0 (18 min)
+10:56:25 [gpu6] START B_ctnn_bf_colloc s1 w0.1
+11:14:06 [gpu5] DONE  B_ctnn_bf_colloc s0 w0.1 rc=0 (18 min)
+11:14:06 [gpu5] START B_ctnn_bf_colloc s0 w0.01
+11:14:21 [gpu6] DONE  B_ctnn_bf_colloc s1 w0.1 rc=0 (18 min)
+11:14:21 [gpu6] START B_ctnn_bf_colloc s1 w0.01
+11:25:11 [gpu5] DONE  B_ctnn_bf_colloc s0 w0.01 rc=0 (11 min)
+11:25:11 [gpu5] START C_ctnn_bf_vmcadam s0 w1.0
+11:26:07 [gpu3] DONE  A_ctnn_nobf s0 w0.1 rc=0 (89 min)
+11:26:07 [gpu3] START A_ctnn_nobf s0 w0.01
+11:26:29 [gpu6] DONE  B_ctnn_bf_colloc s1 w0.01 rc=0 (12 min)
+11:26:29 [gpu6] START D_N12_ctnn_bf_colloc s0 w1.0
+11:26:44 [gpu4] DONE  A_ctnn_nobf s1 w0.1 rc=0 (89 min)
+11:26:44 [gpu4] START A_ctnn_nobf s1 w0.01
+11:38:16 [gpu6] DONE  D_N12_ctnn_bf_colloc s0 w1.0 rc=1 (12 min)
+11:38:16 [gpu6] WARN  D_N12_ctnn_bf_colloc w1.0 failed/no-checkpoint -> stop this chain
+11:38:16 [gpu6] START D_N12_deepset_bf_colloc s0 w1.0
+11:43:37 [gpu6] DONE  D_N12_deepset_bf_colloc s0 w1.0 rc=0 (5 min)
+11:43:37 [gpu6] START D_N12_deepset_bf_colloc s0 w0.1
+11:49:02 [gpu6] DONE  D_N12_deepset_bf_colloc s0 w0.1 rc=0 (5 min)
+11:49:36 [gpu1] DONE  A_ctnn_bf s0 w0.1 rc=0 (100 min)
+11:49:36 [gpu1] START A_ctnn_bf s0 w0.01
+11:50:59 [gpu2] DONE  A_ctnn_bf s1 w0.1 rc=0 (101 min)
+11:50:59 [gpu2] START A_ctnn_bf s1 w0.01
+12:10:10 [gpu4] DONE  A_ctnn_nobf s1 w0.01 rc=0 (43 min)
+12:11:28 [gpu5] DONE  C_ctnn_bf_vmcadam s0 w1.0 rc=0 (46 min)
+12:11:28 [gpu5] START C_ctnn_bf_vmcadam s0 w0.1
+12:31:16 [gpu2] DONE  A_ctnn_bf s1 w0.01 rc=1 (40 min)
+12:31:16 [gpu2] WARN  A_ctnn_bf w0.01 failed/no-checkpoint -> stop this chain
+12:54:48 [gpu3] DONE  A_ctnn_nobf s0 w0.01 rc=0 (89 min)
+12:57:37 [gpu5] DONE  C_ctnn_bf_vmcadam s0 w0.1 rc=0 (46 min)
+12:57:37 [gpu5] START C_ctnn_bf_vmcadam s0 w0.01
+13:30:13 [gpu1] DONE  A_ctnn_bf s0 w0.01 rc=0 (101 min)
+13:44:05 [gpu5] DONE  C_ctnn_bf_vmcadam s0 w0.01 rc=0 (46 min)
+13:44:05 === ALL CHAINS DONE ===

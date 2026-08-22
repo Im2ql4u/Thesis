@@ -1,0 +1,103 @@
+0
+[phase] N=6 omega=1.0 arch=pinn  ->  /itf-fi-ml/home/aleksns/Thesis/results/analysis/2026-07-16_scaling/N6_convbf_s1_w1
+0
+[phase] params=105,136 device=cuda:0 ref_energy=20.15932
+
+=== stage 1/4: Jastrow alone (backflow detached) ===
+[adam 00000] E=23.272832 var=9.6003e+00 sig=0.220 acc~0.5 n=2048
+[adam 00100] E=22.655725 var=6.8631e+00 sig=0.224 acc~0.5 n=2048
+[adam 00200] E=21.566215 var=3.6148e+00 sig=0.238 acc~0.5 n=2048
+[adam 00300] E=20.403724 var=8.6271e-01 sig=0.261 acc~0.5 n=2048
+[adam 00400] E=20.249787 var=4.3074e-01 sig=0.279 acc~0.5 n=2048
+[adam 00500] E=20.236975 var=3.7717e-01 sig=0.278 acc~0.5 n=2048
+[adam 00600] E=20.215797 var=3.4850e-01 sig=0.279 acc~0.5 n=2048
+[adam 00700] E=20.210703 var=3.0641e-01 sig=0.279 acc~0.5 n=2048
+[adam 00800] E=20.230309 var=2.5727e-01 sig=0.279 acc~0.5 n=2048
+[adam 00899] E=20.210361 var=2.9199e-01 sig=0.277 acc~0.5 n=2048
+
+=== stage 2/4: cusp pre-train SKIPPED (thesis 'bf_then_joint' variant) ===
+
+=== stage 3/4: backflow only (Jastrow frozen) ===
+[adam 00000] E=20.411105 var=6.9407e-01 sig=0.286 acc~0.5 n=2048 |dx|/ell=0.1454
+[adam 00100] E=20.222558 var=2.0495e-01 sig=0.276 acc~0.5 n=2048 |dx|/ell=0.0622
+[adam 00200] E=20.210761 var=1.8389e-01 sig=0.277 acc~0.5 n=2048 |dx|/ell=0.0726
+[adam 00300] E=20.193303 var=1.7268e-01 sig=0.277 acc~0.5 n=2048 |dx|/ell=0.0659
+[adam 00400] E=20.188452 var=1.6170e-01 sig=0.278 acc~0.5 n=2048 |dx|/ell=0.0714
+[adam 00500] E=20.182321 var=1.4581e-01 sig=0.278 acc~0.5 n=2048 |dx|/ell=0.0698
+[adam 00600] E=20.170115 var=1.3874e-01 sig=0.279 acc~0.5 n=2048 |dx|/ell=0.0736
+[adam 00700] E=20.171186 var=1.2796e-01 sig=0.278 acc~0.5 n=2048 |dx|/ell=0.0668
+[adam 00800] E=20.175089 var=1.2343e-01 sig=0.280 acc~0.5 n=2048 |dx|/ell=0.0627
+[adam 00899] E=20.168567 var=1.2524e-01 sig=0.279 acc~0.5 n=2048 |dx|/ell=0.0684
+
+=== stage 4/4: joint (Jastrow released at lr*0.1) ===
+[adam 00000] E=20.163038 var=1.3097e-01 sig=0.280 acc~0.5 n=2048 |dx|/ell=0.1144
+[adam 00100] E=20.185768 var=1.1969e-01 sig=0.278 acc~0.5 n=2048 |dx|/ell=0.0739
+[adam 00200] E=20.186007 var=1.0814e-01 sig=0.278 acc~0.5 n=2048 |dx|/ell=0.0769
+[adam 00300] E=20.182275 var=1.0379e-01 sig=0.277 acc~0.5 n=2048 |dx|/ell=0.0784
+[adam 00400] E=20.184581 var=1.0545e-01 sig=0.277 acc~0.5 n=2048 |dx|/ell=0.0741
+[adam 00500] E=20.185098 var=1.0714e-01 sig=0.277 acc~0.5 n=2048 |dx|/ell=0.0781
+[adam 00600] E=20.176816 var=1.0371e-01 sig=0.278 acc~0.5 n=2048 |dx|/ell=0.0841
+[adam 00700] E=20.170150 var=1.0302e-01 sig=0.278 acc~0.5 n=2048 |dx|/ell=0.0799
+[adam 00800] E=20.178115 var=1.0587e-01 sig=0.278 acc~0.5 n=2048 |dx|/ell=0.0793
+[adam 00900] E=20.189486 var=1.1678e-01 sig=0.278 acc~0.5 n=2048 |dx|/ell=0.0797
+[adam 01000] E=20.173859 var=1.0105e-01 sig=0.278 acc~0.5 n=2048 |dx|/ell=0.0800
+[adam 01100] E=20.171461 var=1.1493e-01 sig=0.277 acc~0.5 n=2048 |dx|/ell=0.0787
+[adam 01199] E=20.181594 var=1.0057e-01 sig=0.278 acc~0.5 n=2048 |dx|/ell=0.0781
+[phase] training done in 51.6 min
+[adam 00000] E=20.161765 var=1.0530e-01 sig=0.280 acc~0.5 n=4096 |dx|/ell=0.0808
+[adam 00125] E=20.172201 var=1.0413e-01 sig=0.278 acc~0.5 n=4096 |dx|/ell=0.0839
+[adam 00250] E=20.169504 var=1.0650e-01 sig=0.278 acc~0.5 n=4096 |dx|/ell=0.0861
+[adam 00375] E=20.166429 var=1.0476e-01 sig=0.278 acc~0.5 n=4096 |dx|/ell=0.0886
+[adam 00499] E=20.171530 var=1.0585e-01 sig=0.277 acc~0.5 n=4096 |dx|/ell=0.0890
+[sr 0000] E=20.169828 (+0.052%) var=1.145e-01 |dθ|=1.00e-02 |g|=1.86e-01 damp=1.0e-03 lr=2.00e-01 |dx|/ell=0.0883
+[sr 0050] E=20.171771 (+0.062%) var=1.108e-01 |dθ|=5.88e-03 |g|=2.34e-01 damp=7.9e-04 lr=1.48e-01 |dx|/ell=0.0930
+[sr 0100] E=20.159391 (+0.000%) var=1.053e-01 |dθ|=3.46e-03 |g|=1.67e-01 damp=6.3e-04 lr=1.10e-01 |dx|/ell=0.0941
+[sr 0150] E=20.180203 (+0.104%) var=1.107e-01 |dθ|=2.03e-03 |g|=1.19e-01 damp=5.0e-04 lr=8.13e-02 |dx|/ell=0.0942
+[sr 0200] E=20.173920 (+0.072%) var=9.609e-02 |dθ|=1.20e-03 |g|=1.03e-01 damp=4.0e-04 lr=6.02e-02 |dx|/ell=0.0947
+[sr 0250] E=20.165002 (+0.028%) var=1.152e-01 |dθ|=7.03e-04 |g|=1.83e-01 damp=3.2e-04 lr=4.46e-02 |dx|/ell=0.0947
+[sr 0300] E=20.177239 (+0.089%) var=1.031e-01 |dθ|=4.14e-04 |g|=1.13e-01 damp=2.5e-04 lr=3.30e-02 |dx|/ell=0.0944
+[sr 0350] E=20.160263 (+0.005%) var=1.159e-01 |dθ|=2.43e-04 |g|=1.07e-01 damp=2.0e-04 lr=2.45e-02 |dx|/ell=0.0966
+[sr 0400] E=20.171514 (+0.060%) var=1.227e-01 |dθ|=1.43e-04 |g|=2.06e-01 damp=1.6e-04 lr=1.81e-02 |dx|/ell=0.0952
+[sr 0450] E=20.177321 (+0.089%) var=1.116e-01 |dθ|=8.41e-05 |g|=2.02e-01 damp=1.3e-04 lr=1.34e-02 |dx|/ell=0.0945
+[sr 0499] E=20.167595 (+0.041%) var=1.125e-01 |dθ|=5.00e-05 |g|=1.62e-01 damp=1.0e-04 lr=1.00e-02 |dx|/ell=0.0957
+[phase] summary:
+{
+  "N": 6,
+  "omega": 1.0,
+  "arch": "pinn",
+  "n_params": 105136,
+  "final": {
+    "E_mean": 20.167207545250836,
+    "E_mean_raw": 20.167016907954384,
+    "E_stderr": 0.0037324663286845703,
+    "var_EL": 0.11159504216038309,
+    "n_samples": 8192,
+    "frac_clipped": 0.00390625,
+    "ref_energy": 20.15932,
+    "error_pct": 0.039126048154575176,
+    "error_sigma": 2.1132260967012404
+  },
+  "energy_raw": 20.167016907954384,
+  "error_pct_raw": 0.03818039474735723,
+  "energy_zv": 20.167016907954384,
+  "error_pct_zv": 0.03818039474735723,
+  "zv_n_points": 1,
+  "spectrum": {
+    "lam_max": 42.57908703529057,
+    "lam_min_supported": 2.05815230566991e-08,
+    "effective_rank": 6.807404342261768,
+    "numerical_rank": 2047,
+    "condition_number": 2068801561.3806317,
+    "n_params": 105136,
+    "n_samples": 2048
+  },
+  "alignment": {
+    "cos_sr": 1.0,
+    "cos_plain": 0.0769451035188124,
+    "rep_fraction": 1.0,
+    "ntk_condition": 2068801557.4610384,
+    "ntk_eff_rank": 6.807404342261766,
+    "ntk_numerical_rank": 2047
+  },
+  "n_align_samples": 2048
+}

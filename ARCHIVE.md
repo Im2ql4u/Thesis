@@ -70,3 +70,15 @@ Read the last 2–3 entries during session open. Read the full file only when re
 **Would do differently:** "nothing worked, that is the question answers"
 
 ---
+
+## [2026-05-16] — Architecture diagnostics + thesis table fix
+
+### Technical summary
+- Fixed malformed N=12 rows in `tab:collocation` (6→7 cols) and populated Campaign-best column (commit `542beda`; script `scripts/extract_n12_campaign_best.py`).
+- Produced four architecture-diagnostic figures (commit `95193f5`) validating thesis design claims: input attribution (spin 0.03→1.05 across ω=1.0→0.001), activation effective rank (node 2.3/24, edge 1.4/24), REINFORCE vs FD-Colloc gradient norms (173 vs 413, 2.4×). Later deepened into the 10-figure `architecture_diagnostics/DIAGNOSTIC_SUMMARY.md`.
+- Failed: ShellAware BF cascade N=20 (checkpoints lost to OOM at final eval); N=12 shellaware bootstrap (91% error from random init) — shellaware Jastrow does not converge reliably from scratch.
+
+### Human reflection
+**Carry-forward:** diagnostic figures committed and ready for thesis integration; CTNN schematic still TODO (results.tex L428). Single-seed diagnostic numbers should be seed-swept before anchoring a chapter.
+
+---

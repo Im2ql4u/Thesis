@@ -1,0 +1,103 @@
+0
+[phase] N=12 omega=1.0 arch=pinn  ->  /itf-fi-ml/home/aleksns/Thesis/results/analysis/2026-07-16_scaling/N12_ctnnbf_s1_w1
+0
+[phase] params=236,336 device=cuda:0 ref_energy=65.7001
+
+=== stage 1/4: Jastrow alone (backflow detached) ===
+[adam 00000] E=80.695532 var=5.1027e+01 sig=0.125 acc~0.5 n=512
+[adam 00100] E=80.539370 var=4.2530e+01 sig=0.123 acc~0.5 n=512
+[adam 00200] E=78.457830 var=3.9371e+01 sig=0.127 acc~0.5 n=512
+[adam 00300] E=75.101254 var=2.6179e+01 sig=0.133 acc~0.5 n=512
+[adam 00400] E=71.299144 var=1.3924e+01 sig=0.143 acc~0.5 n=512
+[adam 00500] E=67.178901 var=4.4145e+00 sig=0.160 acc~0.5 n=512
+[adam 00600] E=65.999332 var=1.1102e+00 sig=0.175 acc~0.5 n=512
+[adam 00700] E=65.900898 var=1.0264e+00 sig=0.174 acc~0.5 n=512
+[adam 00800] E=65.803861 var=9.5480e-01 sig=0.174 acc~0.5 n=512
+[adam 00899] E=65.806438 var=1.0471e+00 sig=0.174 acc~0.5 n=512
+
+=== stage 2/4: cusp pre-train SKIPPED (thesis 'bf_then_joint' variant) ===
+
+=== stage 3/4: backflow only (Jastrow frozen) ===
+[adam 00000] E=68.802421 var=6.4978e+00 sig=0.172 acc~0.5 n=512 |dx|/ell=0.3621 sat=0.00 com_kill=0.21
+[adam 00100] E=65.931927 var=7.8329e-01 sig=0.174 acc~0.5 n=512 |dx|/ell=0.2095 sat=0.00 com_kill=0.07
+[adam 00200] E=65.771686 var=5.5560e-01 sig=0.176 acc~0.5 n=512 |dx|/ell=0.1897 sat=0.00 com_kill=0.02
+[adam 00300] E=65.752541 var=4.3155e-01 sig=0.176 acc~0.5 n=512 |dx|/ell=0.1561 sat=0.00 com_kill=0.04
+[adam 00400] E=65.752395 var=4.3157e-01 sig=0.174 acc~0.5 n=512 |dx|/ell=0.1566 sat=0.00 com_kill=0.18
+[adam 00500] E=65.763301 var=4.1851e-01 sig=0.176 acc~0.5 n=512 |dx|/ell=0.1340 sat=0.00 com_kill=0.30
+[adam 00600] E=65.732626 var=4.9977e-01 sig=0.177 acc~0.5 n=512 |dx|/ell=0.1114 sat=0.00 com_kill=0.41
+[adam 00700] E=65.739780 var=4.1925e-01 sig=0.175 acc~0.5 n=512 |dx|/ell=0.1016 sat=0.00 com_kill=0.58
+[adam 00800] E=65.721648 var=4.1441e-01 sig=0.177 acc~0.5 n=512 |dx|/ell=0.0863 sat=0.00 com_kill=0.71
+[adam 00899] E=65.757888 var=4.8014e-01 sig=0.175 acc~0.5 n=512 |dx|/ell=0.0775 sat=0.00 com_kill=0.76
+
+=== stage 4/4: joint (Jastrow released at lr*0.1) ===
+[adam 00000] E=65.740223 var=3.9526e-01 sig=0.178 acc~0.5 n=512 |dx|/ell=0.0767 sat=0.00 com_kill=0.75
+[adam 00100] E=65.817949 var=4.0415e-01 sig=0.176 acc~0.5 n=512 |dx|/ell=0.0775 sat=0.00 com_kill=0.80
+[adam 00200] E=65.752852 var=3.9855e-01 sig=0.175 acc~0.5 n=512 |dx|/ell=0.0660 sat=0.00 com_kill=0.84
+[adam 00300] E=65.713047 var=3.5283e-01 sig=0.175 acc~0.5 n=512 |dx|/ell=0.0614 sat=0.00 com_kill=0.87
+[adam 00400] E=65.702759 var=3.8000e-01 sig=0.176 acc~0.5 n=512 |dx|/ell=0.0551 sat=0.00 com_kill=0.90
+[adam 00500] E=65.703757 var=4.0318e-01 sig=0.175 acc~0.5 n=512 |dx|/ell=0.0642 sat=0.00 com_kill=0.89
+[adam 00600] E=65.713026 var=3.1322e-01 sig=0.175 acc~0.5 n=512 |dx|/ell=0.0598 sat=0.00 com_kill=0.90
+[adam 00700] E=65.717541 var=3.1984e-01 sig=0.175 acc~0.5 n=512 |dx|/ell=0.0620 sat=0.00 com_kill=0.90
+[adam 00800] E=65.729287 var=2.8686e-01 sig=0.176 acc~0.5 n=512 |dx|/ell=0.0657 sat=0.00 com_kill=0.89
+[adam 00900] E=65.708283 var=2.0752e-01 sig=0.176 acc~0.5 n=512 |dx|/ell=0.0795 sat=0.00 com_kill=0.86
+[adam 01000] E=65.692488 var=1.8291e-01 sig=0.175 acc~0.5 n=512 |dx|/ell=0.0847 sat=0.00 com_kill=0.84
+[adam 01100] E=65.689000 var=1.5885e-01 sig=0.174 acc~0.5 n=512 |dx|/ell=0.0847 sat=0.00 com_kill=0.85
+[adam 01199] E=65.678723 var=1.5351e-01 sig=0.176 acc~0.5 n=512 |dx|/ell=0.0821 sat=0.00 com_kill=0.85
+[phase] training done in 183.6 min
+[adam 00000] E=65.700138 var=1.6874e-01 sig=0.177 acc~0.5 n=4096 |dx|/ell=0.0830 sat=0.00 com_kill=0.85
+[adam 00125] E=65.698942 var=1.4693e-01 sig=0.175 acc~0.5 n=4096 |dx|/ell=0.0957 sat=0.00 com_kill=0.81
+[adam 00250] E=65.698912 var=1.3599e-01 sig=0.175 acc~0.5 n=4096 |dx|/ell=0.1027 sat=0.00 com_kill=0.79
+[adam 00375] E=65.696006 var=1.3457e-01 sig=0.175 acc~0.5 n=4096 |dx|/ell=0.1143 sat=0.00 com_kill=0.75
+[adam 00499] E=65.702009 var=1.3330e-01 sig=0.175 acc~0.5 n=4096 |dx|/ell=0.1201 sat=0.00 com_kill=0.73
+[sr 0000] E=65.707517 (+0.011%) var=1.868e-01 |dθ|=1.00e-02 |g|=1.83e-01 damp=1.0e-03 lr=2.00e-01 |dx|/ell=0.1191 sat=0.00 com_kill=0.73
+[sr 0050] E=65.688885 (-0.017%) var=1.476e-01 |dθ|=5.88e-03 |g|=4.63e-01 damp=7.9e-04 lr=1.48e-01 |dx|/ell=0.1267 sat=0.00 com_kill=0.70
+[sr 0100] E=65.698126 (-0.003%) var=1.341e-01 |dθ|=3.46e-03 |g|=3.90e-01 damp=6.3e-04 lr=1.10e-01 |dx|/ell=0.1333 sat=0.00 com_kill=0.68
+[sr 0150] E=65.719962 (+0.030%) var=1.541e-01 |dθ|=2.03e-03 |g|=4.86e-01 damp=5.0e-04 lr=8.13e-02 |dx|/ell=0.1332 sat=0.00 com_kill=0.68
+[sr 0200] E=65.723706 (+0.036%) var=1.481e-01 |dθ|=1.20e-03 |g|=2.61e-01 damp=4.0e-04 lr=6.02e-02 |dx|/ell=0.1338 sat=0.00 com_kill=0.67
+[sr 0250] E=65.710664 (+0.016%) var=1.430e-01 |dθ|=7.03e-04 |g|=2.02e-01 damp=3.2e-04 lr=4.46e-02 |dx|/ell=0.1352 sat=0.00 com_kill=0.67
+[sr 0300] E=65.714337 (+0.022%) var=1.326e-01 |dθ|=4.14e-04 |g|=3.68e-01 damp=2.5e-04 lr=3.30e-02 |dx|/ell=0.1328 sat=0.00 com_kill=0.67
+[sr 0350] E=65.698998 (-0.002%) var=1.577e-01 |dθ|=2.43e-04 |g|=2.82e-01 damp=2.0e-04 lr=2.45e-02 |dx|/ell=0.1355 sat=0.00 com_kill=0.67
+[sr 0400] E=65.719396 (+0.029%) var=1.274e-01 |dθ|=1.43e-04 |g|=3.48e-01 damp=1.6e-04 lr=1.81e-02 |dx|/ell=0.1349 sat=0.00 com_kill=0.67
+[sr 0450] E=65.697723 (-0.004%) var=1.231e-01 |dθ|=8.41e-05 |g|=4.58e-01 damp=1.3e-04 lr=1.34e-02 |dx|/ell=0.1336 sat=0.00 com_kill=0.67
+[sr 0499] E=65.674333 (-0.039%) var=1.390e-01 |dθ|=5.00e-05 |g|=3.48e-01 damp=1.0e-04 lr=1.00e-02 |dx|/ell=0.1346 sat=0.00 com_kill=0.67
+[phase] summary:
+{
+  "N": 12,
+  "omega": 1.0,
+  "arch": "pinn",
+  "n_params": 236336,
+  "final": {
+    "E_mean": 65.70382944295342,
+    "E_mean_raw": 65.70521325349227,
+    "E_stderr": 0.006569979683274122,
+    "var_EL": 0.13960781805362127,
+    "n_samples": 4096,
+    "frac_clipped": 0.00537109375,
+    "ref_energy": 65.7001,
+    "error_pct": 0.00567646465289134,
+    "error_sigma": 0.5676490846552681
+  },
+  "energy_raw": 65.70521325349227,
+  "error_pct_raw": 0.0077827179749629825,
+  "energy_zv": 65.70521325349227,
+  "error_pct_zv": 0.0077827179749629825,
+  "zv_n_points": 1,
+  "spectrum": {
+    "lam_max": 122.81313102695364,
+    "lam_min_supported": 7.430323537631552e-06,
+    "effective_rank": 3.8838954419746776,
+    "numerical_rank": 1023,
+    "condition_number": 16528638.41055579,
+    "n_params": 236336,
+    "n_samples": 1024
+  },
+  "alignment": {
+    "cos_sr": 1.0000000000000002,
+    "cos_plain": 0.07343280808765451,
+    "rep_fraction": 1.0000000000000002,
+    "ntk_condition": 16528638.411169592,
+    "ntk_eff_rank": 3.8838954419746776,
+    "ntk_numerical_rank": 1023
+  },
+  "n_align_samples": 1024
+}

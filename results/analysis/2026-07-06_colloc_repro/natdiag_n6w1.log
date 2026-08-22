@@ -1,0 +1,87 @@
+0
+================================================================
+  Weak-Form Collocation — natdiag_n6w1
+  Mode: bf   Device: cuda:0   Seed: 11
+  N=6  omega=1.0  basis=3x3 (n_basis=9, n_occ=3)
+  Spin layout: block   pattern=000111
+  DMC reference: 20.15932
+================================================================
+  Resume requested: skipping optional pretrained BF+Jastrow init
+  Jastrow: 25,562 params
+  Backflow: 182,403 params
+  Resuming from results/arch_colloc/repro_n6w1_scratch.pt
+    Loaded bf_state
+    Loaded jas_state
+  Backflow params: 182,403
+  Jastrow params: 25,562 (lr=0.001)
+  Total trainable: 207,965
+  Training: 1500 ep, 4096 samples, LR=0.01 opt=SGD+Fisher
+  HYBRID loss: REINFORCE(E_L, no-backprop-lap) + direct(½g², β=0.1)  clip_el=5.0  reward_qtrim=0.0  reward_normalize=False
+  ESS adaptive sampler: floor=0.100 oversample=10->24 step=4 tries=1 metric=raw
+  Natural gradient (diagonal): damping=1.0e-03 subsample=1024 momentum=0.9
+    Diagonal: ema=0.950 probes=4
+  [   0] E=20.2174±0.583 var=3.40e-01 ESS=1176 loss=1.835e+00 6.9s err=+0.29% rawESS=1176 khat=0.67  cand=40960 eta=173m
+  [  10] E=20.2156±0.599 var=3.59e-01 ESS=948 loss=1.646e+00 6.1s err=+0.28% rawESS=948 khat=0.71  cand=40960 eta=151m
+  [  20] E=20.2301±0.591 var=3.49e-01 ESS=1093 loss=1.738e+00 6.1s err=+0.35% rawESS=1093 khat=0.69  cand=40960 eta=150m
+  [  30] E=20.2532±0.563 var=3.17e-01 ESS=1062 loss=1.733e+00 6.1s err=+0.47% rawESS=1062 khat=0.72  cand=40960 eta=149m
+  [  40] E=20.2171±0.578 var=3.35e-01 ESS=1101 loss=1.737e+00 6.1s err=+0.29% rawESS=1101 khat=0.70  cand=40960 eta=148m
+  [  50] E=20.2398±0.583 var=3.39e-01 ESS=1204 loss=1.740e+00 6.1s err=+0.40% rawESS=1204 khat=0.68  cand=40960 eta=148m
+  [  60] E=20.2401±0.563 var=3.17e-01 ESS=1213 loss=1.748e+00 6.1s err=+0.40% rawESS=1213 khat=0.69  cand=40960 eta=146m
+  [  70] E=20.2428±0.606 var=3.68e-01 ESS=1055 loss=1.705e+00 6.1s err=+0.41% rawESS=1055 khat=0.69  cand=40960 eta=145m
+  [  80] E=20.2263±0.558 var=3.12e-01 ESS=1080 loss=1.676e+00 6.1s err=+0.33% rawESS=1080 khat=0.72  cand=40960 eta=144m
+  [  90] E=20.2449±0.551 var=3.04e-01 ESS=1095 loss=2.135e+00 6.1s err=+0.42% rawESS=1095 khat=0.75  cand=40960 eta=143m
+  [ 100] E=20.2327±0.560 var=3.14e-01 ESS=1204 loss=1.719e+00 6.1s err=+0.36% rawESS=1204 khat=0.69  cand=40960 eta=142m  vmc=20.2526(0.46%)
+  [ 110] E=20.2076±0.553 var=3.06e-01 ESS=957 loss=1.702e+00 6.1s err=+0.24% rawESS=957 khat=0.76  cand=40960 eta=141m
+  [ 120] E=20.2254±0.573 var=3.28e-01 ESS=1267 loss=1.787e+00 6.1s err=+0.33% rawESS=1267 khat=0.63  cand=40960 eta=140m
+  [ 130] E=20.2373±0.586 var=3.43e-01 ESS=1224 loss=1.699e+00 6.1s err=+0.39% rawESS=1224 khat=0.66  cand=40960 eta=139m
+  [ 140] E=20.2303±0.580 var=3.36e-01 ESS=1130 loss=1.662e+00 6.1s err=+0.35% rawESS=1130 khat=0.69  cand=40960 eta=138m
+  [ 150] E=20.2490±0.597 var=3.56e-01 ESS=1257 loss=1.664e+00 6.1s err=+0.44% rawESS=1257 khat=0.62  cand=40960 eta=137m
+  [ 160] E=20.2548±0.564 var=3.18e-01 ESS=1114 loss=1.741e+00 6.1s err=+0.47% rawESS=1114 khat=0.69  cand=40960 eta=136m
+  [ 170] E=20.2065±0.563 var=3.17e-01 ESS=1333 loss=1.716e+00 6.1s err=+0.23% rawESS=1333 khat=0.67  cand=40960 eta=135m
+  [ 180] E=20.2296±0.557 var=3.10e-01 ESS=1094 loss=1.713e+00 6.1s err=+0.35% rawESS=1094 khat=0.67  cand=40960 eta=134m
+  [ 190] E=20.2360±0.566 var=3.21e-01 ESS=1106 loss=1.734e+00 6.1s err=+0.38% rawESS=1106 khat=0.69  cand=40960 eta=133m
+  [ 200] E=20.2249±0.587 var=3.44e-01 ESS=1222 loss=1.793e+00 6.1s err=+0.33% rawESS=1222 khat=0.70  cand=40960 eta=132m  vmc=20.2211(0.31%)
+  [ 210] E=20.2382±0.546 var=2.98e-01 ESS=1258 loss=1.802e+00 6.1s err=+0.39% rawESS=1258 khat=0.68  cand=40960 eta=131m
+  [ 220] E=20.2091±0.547 var=2.99e-01 ESS=1136 loss=1.780e+00 6.1s err=+0.25% rawESS=1136 khat=0.71  cand=40960 eta=130m
+  [ 230] E=20.2048±0.549 var=3.01e-01 ESS=1039 loss=1.732e+00 6.1s err=+0.23% rawESS=1039 khat=0.70  cand=40960 eta=129m
+  [ 240] E=20.2471±0.553 var=3.06e-01 ESS=1226 loss=1.710e+00 6.1s err=+0.44% rawESS=1226 khat=0.70  cand=40960 eta=128m
+  [ 250] E=20.2145±0.542 var=2.94e-01 ESS=1115 loss=1.719e+00 6.1s err=+0.27% rawESS=1115 khat=0.71  cand=40960 eta=127m
+  [ 260] E=20.2174±0.561 var=3.15e-01 ESS=1111 loss=1.741e+00 6.1s err=+0.29% rawESS=1111 khat=0.68  cand=40960 eta=126m
+  [ 270] E=20.2171±0.565 var=3.20e-01 ESS=1015 loss=1.701e+00 6.1s err=+0.29% rawESS=1015 khat=0.73  cand=40960 eta=125m
+  [ 280] E=20.2365±0.552 var=3.05e-01 ESS=1217 loss=1.681e+00 6.1s err=+0.38% rawESS=1217 khat=0.68  cand=40960 eta=124m
+  [ 290] E=20.2075±0.566 var=3.20e-01 ESS=1039 loss=1.727e+00 6.1s err=+0.24% rawESS=1039 khat=0.71  cand=40960 eta=123m
+  [ 300] E=20.2552±0.542 var=2.94e-01 ESS=1059 loss=1.655e+00 6.1s err=+0.48% rawESS=1059 khat=0.74  cand=40960 eta=122m  vmc=20.2343(0.37%)
+  [ 310] E=20.2104±0.553 var=3.06e-01 ESS=1155 loss=1.753e+00 6.1s err=+0.25% rawESS=1155 khat=0.65  cand=40960 eta=121m
+  [ 320] E=20.2368±0.547 var=2.99e-01 ESS=1239 loss=1.784e+00 6.1s err=+0.38% rawESS=1239 khat=0.67  cand=40960 eta=120m
+  [ 330] E=20.2067±0.531 var=2.82e-01 ESS=1234 loss=1.789e+00 6.1s err=+0.23% rawESS=1234 khat=0.69  cand=40960 eta=119m
+  [ 340] E=20.1968±0.549 var=3.02e-01 ESS=1098 loss=1.794e+00 6.1s err=+0.19% rawESS=1098 khat=0.70  cand=40960 eta=118m
+  [ 350] E=20.2430±0.541 var=2.93e-01 ESS=1052 loss=1.706e+00 6.1s err=+0.42% rawESS=1052 khat=0.73  cand=40960 eta=117m
+  [ 360] E=20.2204±0.545 var=2.97e-01 ESS=1262 loss=1.747e+00 6.1s err=+0.30% rawESS=1262 khat=0.68  cand=40960 eta=116m
+  [ 370] E=20.2041±0.565 var=3.19e-01 ESS=1124 loss=1.678e+00 6.1s err=+0.22% rawESS=1124 khat=0.69  cand=40960 eta=115m
+  [ 380] E=20.2122±0.527 var=2.77e-01 ESS=1183 loss=1.752e+00 6.1s err=+0.26% rawESS=1183 khat=0.72  cand=40960 eta=114m
+  [ 390] E=20.2088±0.531 var=2.81e-01 ESS=1158 loss=1.694e+00 6.1s err=+0.25% rawESS=1158 khat=0.71  cand=40960 eta=113m
+  [ 400] E=20.2221±0.528 var=2.79e-01 ESS=1100 loss=1.699e+00 6.1s err=+0.31% rawESS=1100 khat=0.73  cand=40960 eta=112m  vmc=20.2046(0.22%)
+  [ 410] E=20.2191±0.559 var=3.13e-01 ESS=1147 loss=1.735e+00 6.1s err=+0.30% rawESS=1147 khat=0.70  cand=40960 eta=111m
+  [ 420] E=20.2047±0.549 var=3.01e-01 ESS=1058 loss=1.714e+00 6.1s err=+0.23% rawESS=1058 khat=0.71  cand=40960 eta=110m
+  [ 430] E=20.2232±0.577 var=3.33e-01 ESS=1226 loss=1.589e+00 6.1s err=+0.32% rawESS=1226 khat=0.67  cand=40960 eta=109m
+  [ 440] E=20.2531±0.554 var=3.07e-01 ESS=1100 loss=1.692e+00 6.1s err=+0.47% rawESS=1100 khat=0.70  cand=40960 eta=108m
+  [ 450] E=20.2060±0.550 var=3.03e-01 ESS=986 loss=1.671e+00 6.1s err=+0.23% rawESS=986 khat=0.75  cand=40960 eta=107m
+  [ 460] E=20.2281±0.556 var=3.09e-01 ESS=1185 loss=1.726e+00 6.1s err=+0.34% rawESS=1185 khat=0.71  cand=40960 eta=106m
+  [ 470] E=20.2152±0.566 var=3.20e-01 ESS=1100 loss=1.720e+00 6.1s err=+0.28% rawESS=1100 khat=0.71  cand=40960 eta=105m
+  [ 480] E=20.2227±0.579 var=3.35e-01 ESS=1165 loss=1.539e+00 6.1s err=+0.31% rawESS=1165 khat=0.67  cand=40960 eta=104m
+  [ 490] E=20.2258±0.587 var=3.44e-01 ESS=1237 loss=1.690e+00 6.1s err=+0.33% rawESS=1237 khat=0.68  cand=40960 eta=103m
+  [ 500] E=20.2016±0.526 var=2.77e-01 ESS=1122 loss=1.689e+00 6.1s err=+0.21% rawESS=1122 khat=0.71  cand=40960 eta=102m  vmc=20.1957(0.18%)
+  [ 510] E=20.2354±0.580 var=3.36e-01 ESS=1229 loss=1.649e+00 6.1s err=+0.38% rawESS=1229 khat=0.65  cand=40960 eta=101m
+  [ 520] E=20.2463±0.610 var=3.72e-01 ESS=1187 loss=1.683e+00 6.1s err=+0.43% rawESS=1187 khat=0.69  cand=40960 eta=100m
+  [ 530] E=20.1924±0.576 var=3.32e-01 ESS=1056 loss=1.735e+00 6.1s err=+0.16% rawESS=1056 khat=0.71  cand=40960 eta=99m
+  [ 540] E=20.2222±0.561 var=3.15e-01 ESS=1157 loss=1.659e+00 6.1s err=+0.31% rawESS=1157 khat=0.68  cand=40960 eta=98m
+  [ 550] E=20.2279±0.571 var=3.26e-01 ESS=1121 loss=1.635e+00 6.1s err=+0.34% rawESS=1121 khat=0.68  cand=40960 eta=97m
+  [ 560] E=20.2215±0.578 var=3.34e-01 ESS=1175 loss=1.756e+00 6.1s err=+0.31% rawESS=1175 khat=0.68  cand=40960 eta=96m
+  [ 570] E=20.2113±0.583 var=3.40e-01 ESS=1150 loss=1.640e+00 6.1s err=+0.26% rawESS=1150 khat=0.68  cand=40960 eta=94m
+  [ 580] E=20.1987±0.574 var=3.29e-01 ESS=1000 loss=1.693e+00 6.1s err=+0.20% rawESS=1000 khat=0.71  cand=40960 eta=94m
+  [ 590] E=20.2010±0.574 var=3.30e-01 ESS=1132 loss=1.598e+00 6.1s err=+0.21% rawESS=1132 khat=0.67  cand=40960 eta=92m
+  [ 600] E=20.1899±0.570 var=3.25e-01 ESS=1147 loss=1.681e+00 6.1s err=+0.15% rawESS=1147 khat=0.72  cand=40960 eta=91m  vmc=20.2321(0.36%)
+  [ 610] E=20.2343±0.606 var=3.67e-01 ESS=1239 loss=1.682e+00 6.1s err=+0.37% rawESS=1239 khat=0.64  cand=40960 eta=90m
+  [ 620] E=20.2154±0.586 var=3.43e-01 ESS=1315 loss=1.764e+00 6.1s err=+0.28% rawESS=1315 khat=0.68  cand=40960 eta=89m
+  [ 630] E=20.2077±0.587 var=3.45e-01 ESS=1200 loss=1.691e+00 6.1s err=+0.24% rawESS=1200 khat=0.71  cand=40960 eta=88m
+  [ 640] E=20.2131±0.608 var=3.69e-01 ESS=1181 loss=1.754e+00 6.1s err=+0.27% rawESS=1181 khat=0.71  cand=40960 eta=87m

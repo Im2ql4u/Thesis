@@ -1,0 +1,70 @@
+{
+  "ok": false,
+  "meta": {
+    "N": 20,
+    "omega": 1.0,
+    "variant": "SR",
+    "torch_device": "cuda",
+    "torch_dtype": "torch.float64",
+    "cfg": {
+      "torch_device": "cuda",
+      "torch_dtype": "torch.float64",
+      "sampler": "mcmc",
+      "B": 192,
+      "mcmc_steps": 70,
+      "burn_in": 20,
+      "thin": 10,
+      "proposal_sigma_scale": 0.08,
+      "proposal_sigma_min": 0.02,
+      "proposal_sigma_max": 1.2,
+      "init_sigma_max": 10.0,
+      "hook_chunk": 48,
+      "mcmc_chunk": 96,
+      "max_node_instances": 4096,
+      "max_edge_instances": 4096,
+      "max_global_instances": 4096,
+      "max_modules_per_model": 60,
+      "var_capture_levels": [
+        0.5,
+        0.8,
+        0.95
+      ],
+      "sv_topk": 0
+    },
+    "basis_dims": {
+      "nx": 4,
+      "ny": 4,
+      "n_occ": 10
+    },
+    "created_unix": 1768655731.308819
+  },
+  "error": "RuntimeError: Error(s) in loading state_dict for CTNNBackflowNet:\n\tMissing key(s) in state_dict: \"node_embed.weight\", \"node_embed.bias\", \"edge_embed.0.weight\", \"edge_embed.0.bias\", \"edge_embed.2.weight\", \"edge_embed.2.bias\", \"rho_v_to_e.weight\", \"rho_e_to_v.weight\", \"edge_update.0.weight\", \"edge_update.0.bias\", \"edge_update.2.weight\", \"edge_update.2.bias\", \"node_update.0.weight\", \"node_update.0.bias\", \"node_update.2.weight\", \"node_update.2.bias\", \"node_update.4.weight\", \"node_update.4.bias\", \"dx_head.weight\", \"dx_head.bias\". \n\tUnexpected key(s) in state_dict: \"phi.0.weight\", \"phi.0.bias\", \"phi.2.weight\", \"phi.2.bias\", \"phi.4.weight\", \"phi.4.bias\", \"psi.0.weight\", \"psi.0.bias\", \"psi.2.weight\", \"psi.2.bias\", \"psi.4.weight\", \"psi.4.bias\". ",
+  "traceback": "Traceback (most recent call last):\n  File \"/tmp/ipykernel_4109844/2686053612.py\", line 192, in _run_one_case\n    _load_model_into(bf, ckpt[\"bf_path\"], strict=True)\n  File \"/tmp/ipykernel_4109844/2686053612.py\", line 553, in _load_model_into\n    missing, unexpected = model.load_state_dict(state2, strict=strict)\n  File \"/storage/software/PyTorch/1.12.0-foss-2022a-CUDA-11.7.0/lib/python3.10/site-packages/torch/nn/modules/module.py\", line 1604, in load_state_dict\n    raise RuntimeError('Error(s) in loading state_dict for {}:\\n\\t{}'.format(\nRuntimeError: Error(s) in loading state_dict for CTNNBackflowNet:\n\tMissing key(s) in state_dict: \"node_embed.weight\", \"node_embed.bias\", \"edge_embed.0.weight\", \"edge_embed.0.bias\", \"edge_embed.2.weight\", \"edge_embed.2.bias\", \"rho_v_to_e.weight\", \"rho_e_to_v.weight\", \"edge_update.0.weight\", \"edge_update.0.bias\", \"edge_update.2.weight\", \"edge_update.2.bias\", \"node_update.0.weight\", \"node_update.0.bias\", \"node_update.2.weight\", \"node_update.2.bias\", \"node_update.4.weight\", \"node_update.4.bias\", \"dx_head.weight\", \"dx_head.bias\". \n\tUnexpected key(s) in state_dict: \"phi.0.weight\", \"phi.0.bias\", \"phi.2.weight\", \"phi.2.bias\", \"phi.4.weight\", \"phi.4.bias\", \"psi.0.weight\", \"psi.0.bias\", \"psi.2.weight\", \"psi.2.bias\", \"psi.4.weight\", \"psi.4.bias\". \n",
+  "diagnostics": {
+    "checkpoint_search": {
+      "models_root": "../results/models",
+      "basis_dims": {
+        "nx": 4,
+        "ny": 4,
+        "n_occ": 10
+      },
+      "case_dir": "../results/models/20p/w_10",
+      "w_folder": "w_10",
+      "f_net_candidates": [
+        "../results/models/20p/w_10/f_net_A_Res.pt",
+        "../results/models/20p/w_10/f_net_A.pt",
+        "../results/models/20p/w_10/f_net_A_Res2.pt",
+        "../results/models/20p/w_10/f_netSR.pt",
+        "../results/models/20p/w_10/f_netsR.pt",
+        "../results/models/20p/w_10/f_net_A_sR.pt"
+      ],
+      "bf_candidates": [
+        "../results/models/20p/w_10/backflowSsR.pt",
+        "../results/models/20p/w_10/backflowsR.pt",
+        "../results/models/20p/w_10/backflowSR.pt",
+        "../results/models/20p/w_10/backflow_sR.pt"
+      ],
+      "notes": []
+    }
+  }
+}

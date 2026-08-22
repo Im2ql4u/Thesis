@@ -1177,12 +1177,14 @@ class CTNNJastrowVCycle(nn.Module, CuspMixin):
         tail_guard_radius_aho: float = 0.0,
         tail_guard_strength: float = 0.0,
         tail_guard_power: float = 4.0,
+        use_analytic_cusp: bool = True,
     ):
         super().__init__()
         self._init_cusps(n_particles, d, omega)
         self.n_particles = n_particles
         self.d = d
         self.omega = omega
+        self.use_analytic_cusp = bool(use_analytic_cusp)
         self.n_down = n_down
         self.n_up = n_up
         self.aggregation = aggregation
@@ -1390,7 +1392,9 @@ class CTNNJastrowVCycle(nn.Module, CuspMixin):
 
         f_in = torch.cat([h_v_sum, h_v_mean, h_e_sum, h_e_mean, h_e_attn, r2_mean, s1_mean], dim=1)
         f_nn = self.f_head(f_in) - self._radial_tail_guard(x_sc_model)
-        return f_nn + self._compute_cusps(x, spin_1d)
+        if self.use_analytic_cusp:
+            return f_nn + self._compute_cusps(x, spin_1d)
+        return f_nn
 
 
 class CTNNShellAwareJastrow(nn.Module, CuspMixin):

@@ -1,0 +1,31 @@
+\begin{table}[t]
+\centering
+\small
+\setlength{\tabcolsep}{3.5pt}
+\renewcommand{\arraystretch}{1.12}
+\begin{adjustbox}{max width=\textwidth}
+\begin{tabular}{rrrlllrl}
+\toprule
+$N$ & $\omega$ & $S$ & occ. & cuts & $R^2_{\mathrm{rad}}$ & $d_{\mathrm{fit,min}}$ & ang-fit RMSE frac. per shell \\
+\midrule
+6 & 0.001 & 2 & (1,5) & (1) & 0.7674 & 3.334 & -, 0.150 \\
+6 & 0.01 & 2 & (1,5) & (1) & 0.4795 & 1.911 & -, 0.287 \\
+6 & 0.1 & 2 & (1,5) & (1) & 0.3909 & 1.715 & -, 0.377 \\
+6 & 0.5 & 2 & (1,5) & (1) & 0.3499 & 1.604 & -, 0.433 \\
+6 & 1 & 2 & (1,5) & (1) & 0.3382 & 1.570 & -, 0.454 \\
+12 & 0.001 & 2 & (3,9) & (3) & 0.5156 & 1.660 & 0.183, 0.254 \\
+12 & 0.01 & 2 & (1,11) & (1) & 0.3490 & 2.373 & -, 0.437 \\
+12 & 0.1 & 2 & (1,11) & (1) & 0.3116 & 2.179 & -, 0.507 \\
+12 & 0.5 & 2 & (1,11) & (1) & 0.2843 & 2.046 & -, 0.558 \\
+12 & 1 & 2 & (1,11) & (1) & 0.2753 & 2.005 & -, 0.578 \\
+20 & 0.001 & 3 & (1,7,12) & (1,8) & 0.8427 & 2.501 & -, 0.350, 0.314 \\
+20 & 0.01 & 2 & (1,19) & (1) & 0.2216 & 2.256 & -, 0.546 \\
+20 & 0.1 & 2 & (1,19) & (1) & 0.2037 & 2.172 & -, 0.612 \\
+20 & 0.5 & 2 & (1,19) & (1) & 0.1900 & 2.081 & -, 0.674 \\
+20 & 1 & 2 & (1,19) & (1) & 0.1852 & 2.048 & -, 0.700 \\
+\bottomrule
+\end{tabular}
+\end{adjustbox}
+\caption{Shell fit-quality diagnostics. $R^2_{\mathrm{rad}}$ measures how much of the total radius variance is explained by shell-wise mean radii under the fixed rank-based shell assignment. $d_{\mathrm{fit,min}}=\min_s\frac{\mu_{s+1}-\mu_s}{\sqrt{\sigma_s^2+\sigma_{s+1}^2}}$ is the minimum adjacent-shell separation using the fitted per-shell $(\mu_s,\sigma_s)$. Angular polygon fit error (fraction of ideal angular spacing $2\pi/n_s$) is obtained by fitting each shell to a regular $n_s$-gon (rotation + best cyclic shift) and reporting the time-averaged angular RMSE.}
+\label{tab:shell_fit_quality}
+\end{table}

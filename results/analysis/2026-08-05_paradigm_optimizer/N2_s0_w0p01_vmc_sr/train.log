@@ -1,0 +1,72 @@
+0
+[phase] N=2 omega=0.01 arch=pinn  ->  /itf-fi-ml/home/aleksns/Thesis/results/analysis/2026-08-05_paradigm_optimizer/N2_s0_w0p01_vmc_sr
+0
+[phase] warm-started from /itf-fi-ml/home/aleksns/Thesis/results/analysis/2026-08-05_paradigm_optimizer/base_N2_s0_w0p01/checkpoint.pt (omega 0.01 -> 0.01)
+[phase] params=236,336 device=cuda:0 ref_energy=0.073839
+[sr 0000] E=0.073836 var=2.693e-09 |dθ|=5.93e-05 |g|=2.67e-06 damp=1.0e-03 lr=2.00e-01 |dx|/ell=0.0629 sat=0.39 com_kill=0.33
+[sr 0037] E=0.073836 var=2.955e-09 |dθ|=5.27e-05 |g|=7.42e-06 damp=1.0e-03 lr=2.00e-01 |dx|/ell=0.0608 sat=0.36 com_kill=0.35
+[sr 0074] E=0.073836 var=3.072e-09 |dθ|=6.38e-05 |g|=1.10e-05 damp=1.0e-03 lr=2.00e-01 |dx|/ell=0.0618 sat=0.37 com_kill=0.34
+[seg 1/5] step=75 E_raw=0.07384 (-0.006%) var=2.807e-09 kappa(S)=9.55e+11 rank=991 cos_sr=1.000 cos_plain=0.037
+[sr 0000] E=0.073836 var=2.828e-09 |dθ|=6.11e-05 |g|=1.56e-05 damp=1.0e-03 lr=2.00e-01 |dx|/ell=0.0618 sat=0.36 com_kill=0.34
+[sr 0042] E=0.073835 var=2.777e-09 |dθ|=6.50e-05 |g|=1.11e-05 damp=1.0e-03 lr=2.00e-01 |dx|/ell=0.0613 sat=0.35 com_kill=0.36
+[sr 0083] E=0.073836 var=3.039e-09 |dθ|=5.65e-05 |g|=6.18e-06 damp=1.0e-03 lr=2.00e-01 |dx|/ell=0.0610 sat=0.36 com_kill=0.35
+[seg 2/5] step=159 E_raw=0.07385 (-0.001%) var=3.043e-09 kappa(S)=9.87e+11 rank=1003 cos_sr=1.000 cos_plain=0.119
+[sr 0000] E=0.073837 var=2.912e-09 |dθ|=5.43e-05 |g|=4.85e-06 damp=1.0e-03 lr=2.00e-01 |dx|/ell=0.0604 sat=0.37 com_kill=0.36
+[sr 0088] E=0.073839 var=2.725e-09 |dθ|=6.40e-05 |g|=4.18e-06 damp=1.0e-03 lr=2.00e-01 |dx|/ell=0.0597 sat=0.37 com_kill=0.37
+[sr 0175] E=0.073838 var=2.669e-09 |dθ|=5.93e-05 |g|=1.26e-05 damp=1.0e-03 lr=2.00e-01 |dx|/ell=0.0614 sat=0.37 com_kill=0.35
+[seg 3/5] step=335 E_raw=0.07383 (-0.005%) var=2.717e-09 kappa(S)=9.75e+11 rank=996 cos_sr=1.000 cos_plain=0.022
+[sr 0000] E=0.073838 var=2.918e-09 |dθ|=6.42e-05 |g|=7.37e-06 damp=1.0e-03 lr=2.00e-01 |dx|/ell=0.0617 sat=0.37 com_kill=0.34
+[sr 0187] E=0.073837 var=2.881e-09 |dθ|=6.37e-05 |g|=7.82e-06 damp=1.0e-03 lr=2.00e-01 |dx|/ell=0.0616 sat=0.37 com_kill=0.34
+[sr 0373] E=0.073837 var=2.581e-09 |dθ|=5.78e-05 |g|=1.19e-05 damp=1.0e-03 lr=2.00e-01 |dx|/ell=0.0600 sat=0.36 com_kill=0.36
+[seg 4/5] step=709 E_raw=0.07384 (-0.005%) var=2.791e-09 kappa(S)=9.56e+11 rank=1002 cos_sr=0.999 cos_plain=0.133
+[sr 0000] E=0.073837 var=2.386e-09 |dθ|=5.84e-05 |g|=3.96e-06 damp=1.0e-03 lr=2.00e-01 |dx|/ell=0.0609 sat=0.35 com_kill=0.36
+[sr 0395] E=0.073837 var=3.022e-09 |dθ|=6.18e-05 |g|=6.61e-06 damp=1.0e-03 lr=2.00e-01 |dx|/ell=0.0596 sat=0.38 com_kill=0.36
+[sr 0790] E=0.073837 var=2.420e-09 |dθ|=5.26e-05 |g|=1.48e-05 damp=1.0e-03 lr=2.00e-01 |dx|/ell=0.0614 sat=0.37 com_kill=0.35
+[seg 5/5] step=1500 E_raw=0.07384 (-0.005%) var=2.742e-09 kappa(S)=9.69e+11 rank=1003 cos_sr=1.000 cos_plain=0.031
+[phase] training done in 141.2 min
+[phase] summary:
+{
+  "N": 2,
+  "omega": 0.01,
+  "arch": "pinn",
+  "n_params": 236336,
+  "final": {
+    "E_mean": 0.0738357479853946,
+    "E_mean_raw": 0.07383798043183008,
+    "E_stderr": 5.85579515221346e-07,
+    "var_EL": 2.6044568210370854e-09,
+    "n_samples": 8192,
+    "frac_clipped": 0.02490234375,
+    "ref_energy": 0.073839,
+    "error_pct": -0.004404196434669322,
+    "error_sigma": -5.553497895441641
+  },
+  "energy_raw": 0.07383798043183008,
+  "error_pct_raw": -0.0013807989950009778,
+  "energy_zv": 0.073739558415186,
+  "error_pct_zv": -0.13467352593346124,
+  "zv_n_points": 5,
+  "spectrum": {
+    "lam_max": 16.111313762213072,
+    "lam_min_supported": 1.6234267473676105e-11,
+    "effective_rank": 1.2331271106906083,
+    "numerical_rank": 1574,
+    "condition_number": 992426285222.761,
+    "n_params": 236336,
+    "n_samples": 2048
+  },
+  "alignment": {
+    "cos_sr": 0.9930551882112117,
+    "cos_plain": 0.0750139310037112,
+    "rep_fraction": 0.9930551882112117,
+    "ntk_condition": 9989847766.605871,
+    "ntk_eff_rank": 1.2331270828797196,
+    "ntk_numerical_rank": 992
+  },
+  "n_align_samples": 2048,
+  "exact": {
+    "energy": 0.07383504069660732,
+    "cusp_slope": 0.9976137418475796,
+    "overlap_sq": 0.9999979428526119
+  }
+}

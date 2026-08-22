@@ -1,0 +1,60 @@
+0
+[phase] N=20 omega=1.0 arch=pinn  ->  /itf-fi-ml/home/aleksns/Thesis/results/analysis/2026-07-16_scaling/N20_ctnnbf_s0_w1
+0
+[phase] params=236,336 device=cuda:0 ref_energy=155.8822
+
+=== stage 1/4: Jastrow alone (backflow detached) ===
+[adam 00000] E=206.135571 var=1.9414e+02 sig=0.080 acc~0.5 n=256
+[adam 00100] E=210.133473 var=1.9291e+02 sig=0.077 acc~0.5 n=256
+[adam 00200] E=203.925882 var=1.8537e+02 sig=0.080 acc~0.5 n=256
+[adam 00300] E=193.779779 var=1.2283e+02 sig=0.084 acc~0.5 n=256
+[adam 00400] E=184.511904 var=9.3668e+01 sig=0.088 acc~0.5 n=256
+[adam 00500] E=169.523207 var=4.4703e+01 sig=0.099 acc~0.5 n=256
+[adam 00600] E=157.984423 var=6.3300e+00 sig=0.115 acc~0.5 n=256
+[adam 00700] E=156.509121 var=2.8487e+00 sig=0.125 acc~0.5 n=256
+[adam 00749] E=156.267760 var=2.2082e+00 sig=0.124 acc~0.5 n=256
+
+=== stage 2/4: cusp pre-train SKIPPED (thesis 'bf_then_joint' variant) ===
+
+=== stage 3/4: backflow only (Jastrow frozen) ===
+[adam 00000] E=162.097657 var=1.4368e+01 sig=0.142 acc~0.5 n=256 |dx|/ell=0.4743 sat=0.00 com_kill=0.12
+[adam 00100] E=156.320567 var=2.6039e+00 sig=0.125 acc~0.5 n=256 |dx|/ell=0.0081 sat=0.74 com_kill=0.99
+[adam 00200] E=156.321025 var=2.4906e+00 sig=0.123 acc~0.5 n=256 |dx|/ell=0.0023 sat=0.97 com_kill=1.00
+[adam 00300] E=156.261592 var=2.8158e+00 sig=0.124 acc~0.5 n=256 |dx|/ell=0.0005 sat=1.00 com_kill=1.00
+[adam 00400] E=156.323622 var=2.0215e+00 sig=0.124 acc~0.5 n=256 |dx|/ell=0.0001 sat=1.00 com_kill=1.00
+[adam 00500] E=156.373038 var=2.5784e+00 sig=0.123 acc~0.5 n=256 |dx|/ell=0.0000 sat=1.00 com_kill=1.00
+[adam 00600] E=156.285587 var=2.3406e+00 sig=0.124 acc~0.5 n=256 |dx|/ell=0.0070 sat=0.88 com_kill=0.99
+[adam 00700] E=156.302874 var=2.4361e+00 sig=0.125 acc~0.5 n=256 |dx|/ell=0.0281 sat=0.23 com_kill=0.97
+[adam 00749] E=156.113986 var=2.2679e+00 sig=0.123 acc~0.5 n=256 |dx|/ell=0.0396 sat=0.34 com_kill=0.96
+
+=== stage 4/4: joint (Jastrow released at lr*0.1) ===
+[adam 00000] E=156.198468 var=1.8321e+00 sig=0.126 acc~0.5 n=256 |dx|/ell=0.0363 sat=0.42 com_kill=0.96
+[adam 00100] E=156.233198 var=1.5819e+00 sig=0.124 acc~0.5 n=256 |dx|/ell=0.0404 sat=0.10 com_kill=0.95
+[adam 00200] E=156.141234 var=1.4187e+00 sig=0.124 acc~0.5 n=256 |dx|/ell=0.0403 sat=0.03 com_kill=0.95
+[adam 00300] E=156.086792 var=1.5065e+00 sig=0.123 acc~0.5 n=256 |dx|/ell=0.0377 sat=0.12 com_kill=0.96
+[adam 00400] E=156.033377 var=1.4678e+00 sig=0.124 acc~0.5 n=256 |dx|/ell=0.0413 sat=0.08 com_kill=0.95
+[adam 00500] E=155.968944 var=1.1716e+00 sig=0.123 acc~0.5 n=256 |dx|/ell=0.0341 sat=0.00 com_kill=0.96
+[adam 00600] E=156.056970 var=1.0892e+00 sig=0.125 acc~0.5 n=256 |dx|/ell=0.0406 sat=0.00 com_kill=0.95
+[adam 00700] E=155.953012 var=1.0260e+00 sig=0.124 acc~0.5 n=256 |dx|/ell=0.0443 sat=0.00 com_kill=0.94
+[adam 00800] E=156.029533 var=8.7473e-01 sig=0.125 acc~0.5 n=256 |dx|/ell=0.0383 sat=0.00 com_kill=0.95
+[adam 00900] E=155.984748 var=1.0647e+00 sig=0.124 acc~0.5 n=256 |dx|/ell=0.0414 sat=0.00 com_kill=0.95
+[adam 00999] E=155.979071 var=8.6173e-01 sig=0.124 acc~0.5 n=256 |dx|/ell=0.0439 sat=0.00 com_kill=0.94
+[phase] training done in 294.4 min
+Traceback (most recent call last):
+  File "/itf-fi-ml/home/aleksns/Thesis/scripts/run_phase_analysis.py", line 553, in <module>
+    main()
+  File "/itf-fi-ml/home/aleksns/Thesis/scripts/run_phase_analysis.py", line 287, in main
+    train_vmc_adam(
+  File "/itf-fi-ml/home/aleksns/Thesis/src/analysis/train.py", line 208, in train_vmc_adam
+    E_L = local_energy(system.log_psi, x, system.omega, system.params, lap_mode=lap_mode)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/itf-fi-ml/home/aleksns/Thesis/src/analysis/diagnostics.py", line 170, in local_energy
+    E_L, _ = _local_energy_multi(
+             ^^^^^^^^^^^^^^^^^^^^
+  File "/itf-fi-ml/home/aleksns/Thesis/src/functions/Stochastic_Reconfiguration.py", line 262, in _local_energy_multi
+    g = torch.autograd.grad(
+        ^^^^^^^^^^^^^^^^^^^^
+  File "/storage/software/PyTorch/2.1.2-foss-2023a-CUDA-12.1.1/lib/python3.11/site-packages/torch/autograd/__init__.py", line 394, in grad
+    result = Variable._execution_engine.run_backward(  # Calls into the C++ engine to run the backward pass
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+torch.cuda.OutOfMemoryError: CUDA out of memory. Tried to allocate 1.17 GiB. GPU 0 has a total capacty of 10.57 GiB of which 1017.06 MiB is free. Including non-PyTorch memory, this process has 9.57 GiB memory in use. Of the allocated memory 9.31 GiB is allocated by PyTorch, and 71.38 MiB is reserved by PyTorch but unallocated. If reserved but unallocated memory is large try setting max_split_size_mb to avoid fragmentation.  See documentation for Memory Management and PYTORCH_CUDA_ALLOC_CONF

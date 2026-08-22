@@ -22,6 +22,120 @@ Each entry answers: what was decided, what the alternatives were, why this was c
 
 ## Decisions
 
+### [2026-07-02c] — New spine: the Grand Mechanism Program (what the CTNN computes and why it wins); dimension is now one probe among many
+
+**Decision:** Refocus the thesis analysis from the tangent-dimension diagnostic onto the **mechanism**:
+what the message-passing graph computes that a separable net cannot, why it lowers the kinetic energy,
+how it changes across the quantum→Wigner crossover and with N, and which optimizer/paradigm resolves it.
+Plan: `plans/2026-07-02_grand-mechanism-program.md` (Threads T1 architecture internals, T2
+optimizer×paradigm, T3 low-ω physics, T4 scaling). Supersedes the dimension-centric
+`2026-06-22_dimension-program-and-roadmap.md`; the tangent d_eff work is folded into Thread 1.
+**Alternatives considered:** keep polishing the d_eff story (rejected — it is narrow and walks past the
+existing rich mechanism in DIAGNOSTIC_SUMMARY: +22–30% kinetic from messages, random=zero, edge-rank
+1.4, 3-body 2–3×, backflow force-switch, two orthogonal feature spaces).
+**Reasoning:** the user's core interest is the architecture mechanism and low-ω physics, most of which
+was measured once (single-seed, N=6, old checkpoints) and never finished, unified, or scaled. The
+d_eff result also had a backflow confound (both arms shared message-passing backflow) that must be
+untangled.
+**Constraints introduced:** every CTNN-vs-FFNN claim must state exactly what is ablated (no hidden
+shared message passing); ≥3 seeds/inits before any thesis claim; connect symptom (var(E_L)) to
+mechanism (kinetic). Execution phased M0→M1→O→P→S with a gate after each.
+**Confidence:** high (directly reflects the stated thesis heart).
+
+### [2026-07-02b] — Retract the Wigner d_eff "inversion"; single-seed d_eff at ω=0.01 is not diagnostic (flat landscape)
+
+**Decision:** Withdraw the single-seed Phase-A claim that CTNN's effective dimension INVERTS past
+DeepSet's at ω=0.01 (5.21 vs 3.24). Seeded, matched-analysis-grade retraining (3 seeds each) gives
+CTNN 3.70±0.04 vs DeepSet 3.84±0.08 — the dimensions CONVERGE. The corrected Q1 statement: CTNN's
+dimensional compression is a WEAK-COUPLING effect (1.2 vs 3.4 at ω=1) that CLOSES toward Wigner; at
+the crystal both nets reach ~3.7–3.8 but occupy different tangent subspaces, and CTNN's carries lower
+var(E_L). Do not report single-seed d_eff at ω≤0.01 as an architectural quantity — the low-ω landscape
+is flat enough that d_eff depends on the specific GS a run lands in.
+**Alternatives considered:** Keep the inversion with a caveat (rejected — it is the headline, and it is
+wrong); attribute the DeepSet 3.24 solely to its worse checkpoint (partly true, but the CTNN 5.21 was
+equally path-dependent — both endpoints moved). Refines the 2026-07-02 ratio decision, which STANDS
+(the ratio framing is what made the convergence legible); only the specific single-seed ω=0.01 values
+in that entry are superseded.
+**Reasoning:** This is the single-seed-promotion → retraction pattern the feedback discipline exists to
+prevent; seeding caught it before the thesis. The var(E_L) discriminator and the cross-projection
+(shared leading mode at weak coupling → orthogonal at the crystal) both survive seeding and carry the
+Q1 result without the inversion.
+**Constraints introduced:** Any low-ω d_eff comparison requires ≥3 seeds at matched GS quality before
+promotion; the weak-coupling gap (ω=1, still single-seed) is now the outstanding item to seed.
+**Confidence:** high (seeded, 6 matched-grade GS).
+
+### [2026-07-02] — The Q1 discriminator is the tangent-dim-vs-physical-mode-count RATIO, not raw effective dimension
+
+**Decision:** Report and interpret the effective tangent dimension `d_eff(S)` *relative to* the
+physical collective-mode count (natural-orbital participation ratio of the 1-RDM), not as an absolute
+"lower is better". The Q1 claim is that CTNN's `d_eff` TRACKS the physical mode count (ratio ~0.5–0.9,
+adaptive across ω) while DeepSet's is rigid (~3.3) and CROSSES the mode count — over-complete at weak
+coupling, under-complete at Wigner. The natural-orbital count is measured to be architecture-independent
+(a property of the state), which is what makes it a fair yardstick.
+**Alternatives considered:** Keep raw `d_eff` as the headline (the Phase-0/1/2 framing). Rejected
+because raw `d_eff` is ambiguous: CTNN's *rising* `d_eff` toward Wigner (1.2→5.2) and the ω=0.01
+"inversion" (DeepSet 3.24 < CTNN 5.21) read as CTNN *degrading* under the low-d_eff-is-good frame,
+when in fact CTNN is correctly matching the physics and DeepSet is the under-expressive one (higher
+var(E_L)). Also considered κ(S) (rejected earlier — not a clean discriminator).
+**Reasoning:** The response-projection (A4, exact N=2) shows the tangent directions ARE the physical
+collective modes (breathing / correlation-hole / relative excitation), so the mode count is the
+correct denominator. The ratio resolves the "CTNN scales horribly at low ω" paradox and turns the
+d_eff inversion from an embarrassment into the central result.
+**Constraints introduced:** Any Q1 d_eff comparison must be accompanied by the physical mode count on
+the SAME probe/grid (the absolute low-ω NO count is grid-sensitive, but the cross-architecture ratio is
+fair). Claims about DeepSet under-expressiveness must cite var(E_L) alongside the ratio.
+**Confidence:** high at N≤6 (mechanism triangulated by A2/A3/A4/A5); the N-scaling of the ratio is
+untested.
+
+### [2026-06-22b] — Refine the spine: three co-equal questions (CTNN-vs-FFNN, SR-vs-Adam, Collocation-vs-VMC) with the kernel/dimension picture as shared lens (refines 2026-06-22a)
+
+**Decision:** Reverse the framing of the earlier same-day decision that made *effective dimension* the
+thesis spine. The thesis answers **three co-equal questions** — Q1 architecture (CTNN vs FFNN), Q2
+optimizer (SR vs Adam), Q3 paradigm (collocation vs VMC) — each pursued to full mechanistic depth. The
+tangent-kernel / dimension picture (O, S, K, d_eff, var(E_L), ESS, zero-variance) is the **shared
+lens** serving all three, and the low-dimensional cusp-dominated tangent space is the expected
+*synthesis* the three converge on, not the organizing axis. Execution is phased by **system size**
+(N=2→6→12→20, ω=1→Wigner) with **all three questions run at every phase**, so none is starved. Roadmap
+rewritten accordingly: `plans/2026-06-22_dimension-program-and-roadmap.md`.
+**Alternatives considered:** Keep dimension as the spine with the optimizer/paradigm questions as a
+cross-cutting note and a late phase (the 2026-06-22a draft); serialise the three questions
+(would starve two while one is pursued).
+**Reasoning:** Dimension was the user's *illustration of the desired depth*, not the intended axis;
+collapsing the program onto it subordinated SR-vs-Adam and collocation-vs-VMC. Phasing by system size
+with all three per phase preserves depth-before-breadth while keeping the three balanced, and the fair-
+measurement protocol + GS-gate apply to all three (not only dimension).
+**Constraints introduced:** Every phase's consolidation gate must report progress on all three
+questions; no question may be deferred to "later" as a structural matter. The fair protocol and seed/
+GS discipline bind all three. The 2026-06-22a common-probe protocol stands (it now serves all three).
+**Confidence:** high — directly reflects the stated thesis aims.
+
+### [2026-06-22a] — Adopt effective tangent-space dimension as the thesis spine; require a fair common-probe protocol for cross-architecture dimension claims
+
+**Decision:** Reorganise the analysis program around one object — the effective dimension of the
+variational tangent space `d_eff = eff-rank(S)` and the physical identity of its directions — and
+make any cross-architecture or cross-(N,ω) `d_eff` comparison conform to a fixed fairness protocol:
+(a) evaluate every architecture's `O` on a **common probe set** from a fixed reference measure (not
+each net's own |Ψ|²); (b) report `d_eff` vs `n_samples` and accept only the converged plateau (never
+report sample-capped `numerical_rank` as the dimension); (c) identical participation-ratio estimator /
+rel_tol / centering; (d) report both **matched-params** and **matched-accuracy** axes; (e) ≥3 seeds +
+GS-gate; (f) triangulate with latent intrinsic dimension and message rank. Roadmap:
+`plans/2026-06-22_dimension-program-and-roadmap.md`.
+**Alternatives considered:** Keep the three angles as separate sub-projects; keep measuring κ(S) as
+the conditioning/advantage metric; keep the own-density QGT as the comparison measure; spin up a new
+plan per result (the recurring re-planning habit).
+**Reasoning:** The CTNN-advantage, the SR conditioning story, the "what is learned" question and the
+collocation/Laplacian (zero-variance) thread are all faces of the low-dimensional tangent space — one
+spine is more defensible and stops the narrative thrashing. κ(S) was found NOT to discriminate cleanly
+across DeepSet sizes (eff-rank and var(E_L) do). The own-density QGT confounds "geometry of the
+ansatz" with "where it puts mass", so cross-architecture dimension claims need a common probe set.
+**Constraints introduced:** No `d_eff` comparison is reportable unless it meets the protocol;
+single-seed / own-density / sample-capped numbers are motivating-only. New plans must extend this
+spine rather than replace it (finish the consolidation gate before changing the spine).
+**Confidence:** medium-high — the spine unifies the evidence; the headline gap still must survive the
+fair protocol (Phase 1) before it is load-bearing.
+
+---
+
 ### [2026-05-23] — Restructure the oral-exam talk: terminology + MBSE solvers before Paper A
 
 **Decision:** Open the talk with physics terminology — the MBSE Hamiltonian and a one-row-each comparison of HF, CCSD, FCI, DMC, VMC, NQS — followed immediately by our ansatz and CTNN architecture, *before* introducing Paper A's four questions. The deep-learning theory then lands on familiar physical objects.
@@ -37,6 +151,9 @@ Each entry answers: what was decided, what the alternatives were, why this was c
 **Reasoning:** Per the user's brief, Q1 is just universal approximation in a Sobolev norm (already covered by Paper A); Q2 is trivial for us by zero-variance; Q3 is bypassed by certifying every result with an independent heavy-VMC pass. Only Q4 has predictive bite on our work. The catch-22 result — 17 parameter-space interventions fail, only removing $\nabla_\theta$ through the Laplacian succeeds — *is* Theorem 7.10 said in negative form, and it deserves its own slide.
 **Constraints introduced:** The Q1–Q3 slide depends on the listener accepting that those three questions are derivative for our problem; if pushed, the notes give a per-question elaboration to read out.
 **Confidence:** high.
+
+---
+
 
 ### [2026-04-15] — Refit ShellFlow from weighted raw candidates and skip refits under catastrophic collapse
 
@@ -172,7 +289,78 @@ Each entry answers: what was decided, what the alternatives were, why this was c
 **Constraints introduced:** Future DMC updates must be made in [src/config.py](src/config.py); collocation helper changes now affect all runners importing from [src/functions/Neural_Networks.py](src/functions/Neural_Networks.py).
 **Confidence:** high
 
+### [2026-06-13] — Analyse VMC/SR-trained ground states through the tangent-kernel picture
+
+**Decision:** The new analysis program targets primarily VMC-trained (SR / Adam) wavefunctions that pass an explicit GS-quality gate, and interprets all three research angles (SR/natural-gradient, CTNN-vs-FFNN expressivity, what-is-learned) as properties of the per-sample log-derivative matrix `O` and its Gram matrices `S=OᵀO` (Fisher/QGT) and `K=OOᵀ` (NTK). Execution is phased by system size N=2→6→12→20 (N=2 first at ω=1.0 then full ω span), with a consolidation gate before each scale-up. Plan: `plans/2026-06-13_kernel-analysis-program.md`.
+**Alternatives considered:** Analyse the existing collocation-trained checkpoints directly without a GS-quality gate; treat the three angles as independent diagnostic mini-projects; scale to all N immediately to maximise coverage.
+**Reasoning:** Internal structure is only meaningful on genuine ground states, so analysis-grade GS verification must precede interpretation. VMC/SR wavefunctions are the most trustworthy GS approximations; collocation becomes a comparison axis (energy degeneracy vs representational degeneracy). The kernel picture gives one theory connecting trainability (spectrum of S/K), expressivity (span of O), and feature learning (eigenvector rotation), rather than a loose collection of plots. N=2 has an exact reference (E=3.0 at ω=1.0) to validate every tool before scaling.
+**Constraints introduced:** No wavefunction is interpreted until it passes the §4 GS-quality gate (energy vs reference, var(E_L), ESS/khat, train-route agreement, seed stability); diagnostics must be expressible as statements about O/S/K; we do not advance to N+1 before a written consolidation of the current N.
+**Confidence:** high
+
+### [2026-06-14] — Train analysis-target wavefunctions with Adam-VMC; use SR only as diagnostic/polish
+
+**Decision:** In the kernel-analysis program, train the ground-state wavefunctions with Adam-VMC (REINFORCE score-function gradient, one batched backward per step) rather than CG-SR. Stochastic reconfiguration and the per-sample score matrix O are reserved for (a) the kernel diagnostics and (b) an optional final polish. The exact 2-electron reference and all diagnostics live in the generalizable package `src/analysis/`, driven by `scripts/run_phase_analysis.py` (any even N, any omega).
+**Alternatives considered:** Train with the repo CG-SR trainer (`train_model_sr_energy`) as the primary optimiser; reconstruct and analyse the legacy `official_models` checkpoints directly.
+**Reasoning:** CG-SR's per-step cost is dominated by `_score_rows` building the per-sample score matrix (a Python loop of `total_rows` backprops); for the heavily over-parameterised small-N CTNN (9,842 params at N=2) this is minutes per step and the stable step-size window is narrow (kappa(S) ~ 1e12). Adam-VMC reached overlap^2 = 0.999984 with the exact N=2 ground state in 600 fast steps. The thesis scope explicitly includes Adam-trained wavefunctions; SR vs plain-gradient is a diagnostic comparison computed post-hoc on converged states, so training need not use SR. The legacy `official_models` lack saved hyperparameters, making reconstruction brittle; training our own guarantees verified, reproducible ground states.
+**Constraints introduced:** Final reported energies must use the unclipped mean / variance extrapolation (the MAD-clipped training estimator biases E low by removing coalescence spikes); the clipped value is for stability only. Any wavefunction analysed must still pass the GS-quality gate (energy + overlap where exact is available).
+**Confidence:** high
+
 ---
+
+### [2026-07-11] Analysis trainer adopts the thesis optimiser settings (split LR groups + grad_clip=1.0), and every backflow run carries a liveness guard
+
+**Decision:** `src/analysis/train.py` now builds TWO Adam param groups — backflow at `lr`, Jastrow at
+`lr * 0.1` — and clips gradients at 1.0, mirroring `src/run_weak_form.py` (`--lr 5e-4`, `--lr-jas 5e-5`,
+`--grad-clip 1.0`). Backflow sizing matches the thesis (`msg_hidden=hidden=128`, `layers=3`). Every Adam
+and SR log line calls `backflow_health()`, printing `|dx|/ell` and `com_kill`.
+
+**Alternatives considered:** (a) keep the single param group at lr=3e-3 and instead re-architect
+`CTNNBackflowNet` (LayerNorm on node features, or `out_bound="identity"`); (b) abandon the analysis
+trainer and drive everything through `run_weak_form.py`.
+
+**Reasoning:** `CTNNBackflowNet` computes `dx = tanh(dx_head(h_v))` and then subtracts the per-particle
+mean to conserve the centre of mass (PINN.py:650,669). Those two steps compose into a trap: if the
+pre-activation saturates tanh, every particle pins to the SAME +-1, and the zero-mean projection cancels
+identical values to EXACTLY zero. tanh' is then 0, so no gradient returns and the backflow is dead
+permanently. At lr=3e-3 with one param group this happened within 100 steps (|dx|/ell 0.0058 -> 0.0000,
+sat 0.00 -> 1.00) and silently invalidated a whole campaign, because the weights still LOOK trained.
+Rejected (a): a fresh net has |h| ~ 0.047, i.e. features are bounded at init and the blow-up is purely
+training-induced — so the architecture is sound and re-architecting would fork from the thesis ansatz
+for no reason. Rejected (b): the analysis trainer is what the kernel diagnostics are built around;
+importing the thesis's optimiser settings is the minimal change that makes it faithful.
+
+**Constraints introduced:** (1) The Jastrow now trains 10x slower than the backflow, so step budgets must
+grow accordingly (v2 uses 2500 + 500 polish + 500 SR, vs v1's 1000). (2) `backflow_health` is
+architecture-agnostic on `|dx|` but only reports `sat`/`com_kill` for heads named `dx_head`
+(the conventional `BackflowNet` has none). (3) Any future backflow result is invalid unless its log
+shows |dx| > 0 — `com_kill -> 1.00` means the COM projection has annihilated the displacement.
+
+**Confidence:** high (A/B measured directly: dead vs alive under identical seeds and architecture)
+
+---
+
+## 2026-08-22 — The Wigner-cascade frontier stops at omega=0.0035 by ansatz design, not tooling
+
+**Decision:** Stand the MCMC-free collocation frontier at omega=0.0035 (a verified Wigner molecule at
+3.34 ell) and stop, rather than chasing omega<0.0035 with more proposal engineering.
+
+**Why:** The cross-omega collapse was localised (4 diagnostics, see SESSION_LOG 2026-08-22) to a
+fine-tuned Slater-suppression x Jastrow-amplification balance: the shell density is a ~1e-5 (Slater) x
+~1e5 (Jastrow) cancellation that a 23% omega step destabilises. This is a property of the ansatz, not
+the sampler (shell-init still relaxes inward) or the backflow (|dx|~0.13 ell, preserved on transfer).
+  - Rejected: coordinate-rescale / ell-invariant warm-start. Empirically ruled out — the ansatz relaxes
+    inward even when handed shell configurations, so no coordinate transform preserves the state.
+  - Rejected: more cascade/proposal variants. The non-monotonic v1/v2/v3 behaviour is a symptom of the
+    balance tipping, not of proposal tuning; more variants would thrash without addressing the cause.
+  - The honest, publishable statement (domain-of-validity for Q3) is stronger than a lower omega would
+    be: it explains WHY collocation-only has a floor. Below it needs a shell-amplitude-anchored
+    re-optimisation or an ell-covariant parametrisation — a distinct architecture problem, future work.
+
+**Confidence:** high (mechanism measured directly across the transfer; the source rung's genuineness and
+the sampler/backflow exclusions are each independently checked).
+
+---
+
 **Decision (2026-05-11):** Move the collocation training methodology out of results.tex and into the Optimization (now "Training the Wavefunction") chapter in method.tex. The results section now refers to the methods chapter and reports only findings.
 **Alternatives considered:** Keep methodology in both places (redundant); keep it only in results (methods chapter too thin).
 **Reasoning:** Methodology belongs in methods. Having it in results was causing the results chapter to read as a lab notebook rather than a scientific report.
@@ -215,3 +403,6 @@ Each entry answers: what was decided, what the alternatives were, why this was c
 **Alternatives considered:** Fully merge into Methods; fully merge into Theory; keep both as-is.
 **Reasoning:** Both versions contained identical implementation sentences (trap-unit convention, production-chain thinning). The correct split is definition vs. procedure. An assessor should not read the same paragraph twice in two different chapters.
 **Confidence:** high
+
+---
+

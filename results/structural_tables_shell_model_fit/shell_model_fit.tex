@@ -1,0 +1,31 @@
+\begin{table}[t]
+\centering
+\small
+\setlength{\tabcolsep}{3.5pt}
+\renewcommand{\arraystretch}{1.12}
+\begin{adjustbox}{max width=\textwidth}
+\begin{tabular}{rrrllrrrr}
+\toprule
+$N$ & $\omega$ & $S$ & occ. & cuts & $\cos_{\rm poly}$ & $\cos_{\rm uni}$ & $\Delta\cos$ & $L2_{\rm poly}$ \\
+\midrule
+6 & 0.001 & 2 & $(1,5)$ & $(1)$ & 0.994237 & 0.935778 & 0.058459 & 1.044e-02 \\
+6 & 0.01 & 2 & $(1,5)$ & $(1)$ & 0.992205 & 0.953601 & 0.038604 & 1.140e-02 \\
+6 & 0.1 & 2 & $(1,5)$ & $(1)$ & 0.997413 & 0.974061 & 0.023352 & 6.831e-03 \\
+6 & 0.5 & 2 & $(1,5)$ & $(1)$ & 0.998583 & 0.983584 & 0.014999 & 5.090e-03 \\
+6 & 1 & 2 & $(1,5)$ & $(1)$ & 0.998779 & 0.986626 & 0.012153 & 4.695e-03 \\
+12 & 0.001 & 2 & $(3,9)$ & $(3)$ & 0.986750 & 0.960397 & 0.026353 & 1.339e-02 \\
+12 & 0.01 & 2 & $(1,11)$ & $(1)$ & 0.992912 & 0.980492 & 0.012420 & 9.923e-03 \\
+12 & 0.1 & 2 & $(1,11)$ & $(1)$ & 0.998046 & 0.989566 & 0.008480 & 5.431e-03 \\
+12 & 0.5 & 2 & $(1,11)$ & $(1)$ & 0.998986 & 0.992677 & 0.006309 & 4.012e-03 \\
+12 & 1 & 2 & $(1,11)$ & $(1)$ & 0.999292 & 0.993670 & 0.005622 & 3.357e-03 \\
+20 & 0.001 & 3 & $(1,7,12)$ & $(1,8)$ & 0.991529 & 0.981992 & 0.009537 & 1.019e-02 \\
+20 & 0.01 & 2 & $(1,19)$ & $(1)$ & 0.994742 & 0.990026 & 0.004717 & 8.214e-03 \\
+20 & 0.1 & 2 & $(1,19)$ & $(1)$ & 0.998242 & 0.994209 & 0.004034 & 4.948e-03 \\
+20 & 0.5 & 2 & $(1,19)$ & $(1)$ & 0.999019 & 0.995825 & 0.003194 & 3.779e-03 \\
+20 & 1 & 2 & $(1,19)$ & $(1)$ & 0.999203 & 0.996410 & 0.002792 & 3.433e-03 \\
+\bottomrule
+\end{tabular}
+\end{adjustbox}
+\caption{Shell-model fit to pair-distance statistics. Empirical $p_{\mathrm{test}}(r_{ij})$ (held-out frames) is compared to two generative models fitted on training frames: (i) \emph{polygon} shells, where each shell is a regular $n_s$-gon with a per-frame global rotation and fitted angular jitter, and (ii) a \emph{uniform-angle} baseline with the same fitted radial distributions but no polygonal order. Reported are cosine similarities between $p_{\mathrm{test}}$ and model predictions, their difference $\Delta\cos=\cos_{\rm poly}-\cos_{\rm uni}$, and the $L^2$ error for the polygon model.}
+\label{tab:shell_model_fit}
+\end{table}

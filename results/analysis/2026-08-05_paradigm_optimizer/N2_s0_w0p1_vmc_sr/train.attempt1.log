@@ -1,0 +1,17 @@
+0
+[phase] N=2 omega=0.1 arch=pinn  ->  /itf-fi-ml/home/aleksns/Thesis/results/analysis/2026-08-05_paradigm_optimizer/N2_s0_w0p1_vmc_sr
+0
+[phase] warm-started from /itf-fi-ml/home/aleksns/Thesis/results/analysis/2026-08-05_paradigm_optimizer/base_N2_s0_w0p1/checkpoint.pt (omega 0.1 -> 0.1)
+[phase] params=236,336 device=cuda:0 ref_energy=0.44079
+Traceback (most recent call last):
+  File "/itf-fi-ml/home/aleksns/Thesis/scripts/run_phase_analysis.py", line 555, in <module>
+    main()
+  File "/itf-fi-ml/home/aleksns/Thesis/scripts/run_phase_analysis.py", line 234, in main
+    train_model_sr_energy(
+  File "/itf-fi-ml/home/aleksns/Thesis/src/functions/Stochastic_Reconfiguration.py", line 783, in train_model_sr_energy
+    info = sr_step_energy_mb(
+           ^^^^^^^^^^^^^^^^^^
+  File "/itf-fi-ml/home/aleksns/Thesis/src/functions/Stochastic_Reconfiguration.py", line 646, in sr_step_energy_mb
+    Ok = Oc[:, keep_idx].to(dtype=torch.float64, device=store_device)
+         ~~^^^^^^^^^^^^^
+torch.cuda.OutOfMemoryError: CUDA out of memory. Tried to allocate 924.00 MiB. GPU 0 has a total capacty of 10.57 GiB of which 409.06 MiB is free. Including non-PyTorch memory, this process has 10.16 GiB memory in use. Of the allocated memory 9.94 GiB is allocated by PyTorch, and 31.17 MiB is reserved by PyTorch but unallocated. If reserved but unallocated memory is large try setting max_split_size_mb to avoid fragmentation.  See documentation for Memory Management and PYTORCH_CUDA_ALLOC_CONF

@@ -1,0 +1,426 @@
+% =====================================================================
+%  Results chapter: architecture, optimiser, and paradigm through the
+%  tangent kernel. UNIFIED draft.
+%
+%  Supersedes the split between the earlier kernel draft (message
+%  passing in the JASTROW) and results_backflow.tex (message passing in
+%  the BACKFLOW): both are the same relational-channel idea seen through
+%  the tangent kernel, and are merged here. All numbers are on the
+%  thesis ansatz at DMC-quality energies; seed counts are stated.
+% =====================================================================
+\graphicspath{{../results/figures/results/}{../results/figures/results/kernel/}}
+
+\chapter{Architecture, optimiser, and paradigm through the tangent kernel}
+\label{ch:kernel}
+
+Our ansatz is a closed-shell Slater determinant dressed by two learnable
+objects: a \emph{Jastrow} correlator $f$ and a coordinate \emph{backflow}
+$\Delta\mathbf{x}$. Both can be built as a separable, per-particle network or as a
+\emph{message-passing} (CTNN) network in which particles exchange learned messages
+on a graph before a quantity is read out. The previous chapter established that the
+message-passing ansatz reaches diffusion-Monte-Carlo (DMC) quality across the
+$(N,\omega)$ grid. This chapter asks \emph{why} message passing helps, and answers
+it for both objects through a single lens, then extends the same lens to the
+optimiser and the training paradigm.
+
+\paragraph{One idea, one lens.} The thesis of this chapter is that message passing
+buys one thing---a \textbf{relational channel}, a way to condition each particle's
+contribution on where the others are---and that this single mechanism explains
+three superficially separate design choices. We read all three through the geometry
+of the per-sample log-derivative (score) matrix
+\begin{equation}
+  O_{ki} \;=\; \frac{\partial \log|\Psi_{\btheta}(\bx_k)|}{\partial \theta_i},
+  \qquad k=1,\dots,B,\;\; i=1,\dots,P,
+  \label{eq:kernel-O}
+\end{equation}
+whose Gram matrices are the quantum geometric tensor (QGT / Fisher metric)
+$S = O^{\!\top}O / B$ and the neural tangent kernel $K = OO^{\!\top}$. The central
+diagnostic is the \emph{effective dimension} of the variational tangent space, the
+participation ratio of the QGT spectrum $\{\lambda_a\}$,
+\begin{equation}
+  d_{\mathrm{eff}}(S) \;=\; \frac{\left(\sum_a \lambda_a\right)^2}{\sum_a \lambda_a^2},
+  \label{eq:deff}
+\end{equation}
+which counts how many independent tangent directions carry Fisher weight at the
+solution, regardless of the parameter count $P$. We read it alongside the
+local-energy variance $\Var(E_L)$ (zero only for an exact eigenstate, hence a
+measure of wavefunction quality), the sampling efficiency (effective sample size
+ESS), and the condition number $\kappa(S)$.
+
+\paragraph{The three questions.}
+\textbf{Q1 (architecture).} What does a message-passing correlator/backflow learn
+that a separable one cannot? \textbf{Q2 (optimiser).} What does stochastic
+reconfiguration (SR, natural gradient) do to the update, and where does it beat
+Adam? \textbf{Q3 (paradigm).} What changes between $|\Psi|^2$-sampled VMC and
+importance-sampled collocation?
+
+\paragraph{Discipline.} Cross-architecture $d_{\mathrm{eff}}$ comparisons use a
+\emph{common probe set} (all models scored on the same configurations, not on each
+model's own $|\Psi|^2$); we report only participation ratios converged in the
+sample count $B$; and we anchor the tooling on the analytic two-electron ground
+state, where the ansatz reproduces $E=3.000127$~Ha ($+0.004\%$) with squared
+overlap $1.000000$. Backflow comparisons are seeded ($\ge 2$ seeds) and held at
+DMC-quality energies.
+
+\paragraph{Headline findings.}
+\textbf{(Q1a, Jastrow)} A message-passing correlator compresses the ground state
+into $\sim\!2\times$ fewer effective tangent directions than a separable DeepSet at
+weak coupling ($1.40\pm0.17$ vs $3.25\pm0.03$ at $\omega=1$, $\sim\!11\sigma$,
+seeded), and those directions are the physical collective modes of $H$ (breathing,
+correlation-hole, relative excitation) to $R^2=1.00$ at the $N=2$ anchor.
+\textbf{(Q1b, backflow)} At the Wigner crystal the \emph{conventional} backflow
+collapses to a single collective displacement mode (rank $10\!\to\!1$ at $N=6$,
+$22\!\to\!1$ at $N=12$) and its energy degrades to $+0.5\%$, while the
+message-passing backflow keeps full rank $\sim\!N$ and stays at $\sim\!0.02\%$; the
+gain there is Coulomb (not kinetic) correlation, and the inter-particle messages
+account for the entire backflow contribution. \textbf{(Q2)} SR whitens the tangent
+kernel; its value tracks $\kappa(S)$---negligible for the well-conditioned VMC
+metric, decisive for the ill-conditioned collocation objective.
+\textbf{(Q3)} VMC and collocation reach the \emph{same state} when the importance
+sampling is healthy ($N=2$: overlap $>0.997$) and \emph{diverge} when it is not
+($N=6$ Wigner: ESS $\to 0.11$, overlap $\to 0$ under Adam). A cross-cutting caveat,
+itself a result: component-level quantities (rank, $|\Delta\mathbf{x}|$) are
+gauge-like; energy, overlap, and ablation are the invariants.
+
+% =====================================================================
+\section{Q1 --- Architecture: message passing supplies a relational channel}
+\label{sec:kernel-q1}
+
+Message passing helps in both learnable objects, in two complementary ways that are
+the same statement about the tangent kernel: in the Jastrow it \emph{compresses}
+the correlation into fewer effective directions; in the backflow it keeps the
+displacement from \emph{collapsing} to a single direction. We take them in turn.
+
+\subsection{Q1a --- In the Jastrow: message passing compresses the correlator}
+\label{sec:kernel-q1a}
+
+At $N=6$, $\omega=1$ the two Jastrow families are \emph{energetically
+indistinguishable}: trained to DMC quality across a $20$k--$164$k parameter ladder,
+every model lands within $\pm0.1\%$ of the reference, and the best raw energy
+belongs to a $164$k DeepSet---twice the CTNN parameter count. Total energy is a
+blunt discriminator; both have saturated the variational floor.
+
+The difference is geometric. On a common probe set the CTNN reaches the ground
+state in $d_{\mathrm{eff}}\approx1.2$--$1.7$ (three seeds), while every DeepSet
+needs $d_{\mathrm{eff}}\approx2.9$--$3.6$---a factor of $\sim\!2$. The gap is robust
+to the probe measure ($\lesssim0.2$ whether scored on CTNN, DeepSet, or pooled
+points) and does not shrink as the DeepSet is given more capacity (the $164$k
+DeepSet sits at $2.9$, no lower than the $20$k one). The compression is
+architectural, not a matter of size or sampling mass.
+
+Seeded, at weak coupling the separation is $d_{\mathrm{eff}}=1.40\pm0.17$ (CTNN) vs
+$3.25\pm0.03$ (DeepSet), $\sim\!11\sigma$. The gap is a \emph{weak-coupling} effect:
+it closes toward the Wigner crystal, where both families reach $\sim\!3.7$ but
+occupy \emph{different} tangent subspaces, with the CTNN's carrying the lower
+$\Var(E_L)$. A single-seed dimension ``inversion'' at the crystal, reported in an
+earlier draft, did \emph{not} survive seeding and is retracted here as a worked
+cautionary result (see \S\ref{sec:synthesis}).
+
+\paragraph{Naming the manifold.} At the exact $N=2$ anchor the leading tangent
+directions are not abstract: an operator decomposition identifies them, to
+$R^2=1.00$, as the physical collective modes of $H$---a breathing mode
+($\partial_\omega$), a correlation-hole mode, and the first relative excitation.
+The message-passing correlator finds the ground state by moving along the handful of
+coordinates the Hamiltonian actually couples; the separable network spreads the same
+solution over more directions because it must rebuild each pairwise correlation
+independently rather than route it through shared messages.
+
+\subsection{Q1b --- In the backflow: message passing prevents rank collapse}
+\label{sec:kernel-q1b}
+
+The same relational channel is decisive, in a sharper form, in the backflow. Here we
+fix everything but the backflow architecture (conventional per-particle vs.\ CTNN)
+and train both to a Woodbury-SR endpoint. At $\omega=1$ both reach reference
+quality, but they diverge as the trap weakens (Table~\ref{tab:bf_energies}): the
+CTNN backflow holds $\sim\!0.02\%$ error across all $N,\omega$, while the
+conventional backflow degrades to $+0.5\%$ at $N=6,\omega=0.01$ and $\sim\!6\times$
+the CTNN error at $N=20,\omega=0.01$ ($+0.69\%$ vs.\ $+0.12\%$).
+
+\begin{table}[htbp]\centering
+\caption{Q1b. Relative energy error (\%), seed-averaged.}
+\label{tab:bf_energies}
+\begin{tabular}{l|cc|cc|cc}
+\hline
+ & \multicolumn{2}{c|}{$N=6$} & \multicolumn{2}{c|}{$N=12$} & \multicolumn{2}{c}{$N=20$}\\
+$\omega$ & CTNN & conv & CTNN & conv & CTNN & conv \\
+\hline
+1.0  & $-0.03$ & $+0.06$ & $-0.02$ & $+0.06$ & $+0.03$ & $+0.05$ \\
+0.1  & $-0.04$ & $+0.19$ & $+0.01$ & $+0.16$ & $+0.00$ & $+0.18$ \\
+0.01 & $-0.04$ & $+0.56$ & $-0.00$ & $+0.54$ & $+0.12$ & $+0.69$ \\
+\hline
+\end{tabular}
+\end{table}
+
+The energy gap has a sharp structural signature. Let the \emph{backflow rank} be the
+participation ratio of the displacement field $\Delta\mathbf{x}$ (how many
+independent directions the backflow moves electrons along). At large $\omega$ both
+architectures use $\sim\!N$ modes. Toward Wigner the \emph{conventional} backflow
+collapses to a single collective mode (rank $\to1$), while the CTNN backflow retains
+full rank $\sim\!N$ (Table~\ref{tab:bf_rank}); the collapse sharpens with size
+($10\!\to\!1$ at $N=6$, $22\!\to\!1$ at $N=12$, $35\!\to\!1$ at $N=20$). The tangent dimension tells
+the same story from the other side: toward Wigner $d_{\mathrm{eff}}$ grows for CTNN
+($\sim\!4\!\to\!10$) and collapses for the conventional backflow
+($\sim\!6\!\to\!1$). The collapse to \emph{exactly} rank~1 is seed-robust at every size, and the CTNN
+backflow holds full rank $\sim\!N$ throughout ($\sim\!10/20/35$ at $N=6/12/20$).
+
+\begin{table}[htbp]\centering
+\caption{Q1b. Backflow displacement rank (participation ratio), seed-averaged.}
+\label{tab:bf_rank}
+\begin{tabular}{l|cc|cc|cc}
+\hline
+ & \multicolumn{2}{c|}{$N=6$} & \multicolumn{2}{c|}{$N=12$} & \multicolumn{2}{c}{$N=20$}\\
+$\omega$ & CTNN & conv & CTNN & conv & CTNN & conv \\
+\hline
+1.0  & $8.8$ & $10.4$ & $20.8$ & $22.2$ & $35.1$ & $35.4$ \\
+0.1  & $7.7$ & $10.4$ & $18.2$ & $21.7$ & $33.8$ & $37.6$ \\
+0.01 & $9.6$ & $\mathbf{1.0}$ & $20.6$ & $\mathbf{1.0}$ & $35.2$ & $\mathbf{1.0}$ \\
+\hline
+\end{tabular}
+\end{table}
+
+\paragraph{Why, mechanistically.} Ablating the backflow ($\Delta\mathbf{x}\!=\!0$,
+sampler re-optimised) and splitting the recovered energy into kinetic and Coulomb
+parts gives two seed-stable facts. (i) A \textbf{kinetic$\to$Coulomb crossover}: at
+$\omega=1$ the backflow buys kinetic energy; at $\omega=0.01$ the gain is entirely
+Coulomb ($\Delta V_{\mathrm{Coul}}\!\approx\!+0.017$, $\Delta T\!\approx\!0$).
+``Message passing buys kinetic energy'' is a high-$\omega$ statement only.
+(ii) \textbf{At Wigner the messages \emph{are} the backflow}: zeroing the
+inter-particle maps ($\rho_{v\to e},\rho_{e\to v}$) costs as much as deleting the
+whole displacement. A per-particle backflow has no channel for relative positioning
+---exactly what the crystal needs---so it can only shift everyone together (rank~1);
+the messages supply that channel.
+
+\subsection{The unified reading of Q1}
+Q1a and Q1b are one statement. In both objects the separable network must rebuild
+each inter-particle relation independently, so it either spreads the solution over
+more tangent directions (Jastrow: larger $d_{\mathrm{eff}}$) or, when the physics
+demands a genuinely collective response, cannot represent it at all and collapses to
+the only relation it can express---a rigid common shift (backflow: rank~1). Message
+passing routes those relations through shared messages, which \emph{compresses} the
+correlation where a compact representation exists and \emph{sustains} it where a
+collective one is required. Both are visible only in the tangent-kernel geometry, not
+in the total energy, until the physics (weak confinement) makes the geometric deficit
+an energetic one.
+
+% =====================================================================
+\section{Q2 --- Optimiser: SR earns its keep where the metric is ill-conditioned}
+\label{sec:kernel-q2}
+
+Stochastic reconfiguration preconditions the gradient by the inverse QGT,
+$\dot\btheta = -S^{-1}\nabla_\btheta E$; geometrically it \emph{whitens} the tangent
+kernel. At $N=2$ this is exact: the SR step aligns with the imaginary-time direction
+to numerical precision. The question is where whitening changes the outcome.
+
+Fixing the ansatz and varying only the optimiser from a common stage-3 base:
+\textbf{for $|\Psi|^2$-VMC, SR and Adam are indistinguishable}---exact at $N=2$
+(var $\sim\!10^{-9}$), and at $N=6$ the energy gap
+$E_{\mathrm{Adam}}-E_{\mathrm{SR}}$ is $\lesssim0.002$ across $\omega$ and both
+seeds. The VMC metric is well enough conditioned ($\kappa(S)$ moderate, and
+$|\Psi|^2$ sampling is self-preconditioning) that Adam already moves along the right
+directions. \textbf{For weak-form collocation, SR is essential}: there
+$E_{\mathrm{Adam}}-E_{\mathrm{SR}}$ is large and positive (e.g.\ $+2.9$ at
+$N=6,\omega=1$), because the importance weights make the objective badly
+conditioned and plain Adam fails to converge it.
+
+The honest verdict is therefore not ``SR wins'' or ``SR ties'' but \textbf{SR
+matters precisely when the tangent metric is ill-conditioned}. Its value is a
+function of $\kappa(S)$, set by the ansatz and the sampling measure, not an intrinsic
+property of the optimiser---which is exactly why an earlier low-$\omega$ VMC sweep
+saw a modest SR advantage that never grew into a decisive win.
+
+% =====================================================================
+\section{Q3 --- Paradigm: the sampling measure sets conditioning, variance, and reach}
+\label{sec:kernel-q3}
+
+Between $|\Psi|^2$-VMC and importance-sampled collocation the wavefunction family is
+identical; only the measure that defines the loss changes. Three consequences, one
+statement.
+
+\paragraph{$|\Psi|^2$ is self-preconditioning; the covering proposal is not.}
+Sampling from $|\Psi|^2$ makes the estimator of $S$ and of the gradient share the
+same measure, which conditions the update. A fixed covering proposal instead drives
+a monotone \emph{ESS collapse} as $N$ and $1/\omega$ grow: at $N=6,\omega=0.01$ the
+effective sample size falls to $0.11$. When ESS collapses the gradient estimator is
+degenerate---a hard limit, not undertraining.
+
+\paragraph{Same state, until the sampling loses the target.} We test whether the two
+paradigms reach the same \emph{state} (not merely the same energy) via the symmetric
+overlap
+$\mathcal{S}^2=\langle\Psi_B/\Psi_A\rangle_{|\Psi_A|^2}
+\langle\Psi_A/\Psi_B\rangle_{|\Psi_B|^2}$. At $N=2$ they are identical
+($\mathcal{S}^2>0.997$ for every $\omega$, both optimisers, both seeds): the paradigm
+is efficiency-only, collocation paying $\sim\!5\times$ the variance for the same
+wavefunction. At $N=6$ they \emph{diverge}: under Adam $\mathcal{S}^2$ falls
+$0.85\to0.77\to\approx0$ from $\omega=1$ to $0.01$ (both seeds), tracking the ESS
+collapse; SR partially rescues it ($\mathcal{S}^2\!\approx\!0.95$) but does not close
+the gap. Weak-form collocation thus has a \textbf{domain of validity}---equivalent to
+VMC when the importance sampling is healthy, degrading as correlation strengthens.
+This couples Q3 to Q2: the paradigm that needs SR is the one that breaks down at
+scale. An adaptive proposal that tracks $|\Psi|^2$ is the natural remedy, pursued in
+\S\ref{sec:kernel-q3-frontier}.
+
+\paragraph{The weak form discards the Laplacian's zero variance.} The strong-form
+local energy uses the Laplacian, whose contribution has zero variance for an exact
+eigenstate; the weak (first-derivative) form trades that exact cancellation for a
+Laplacian-free estimator and so carries irreducibly higher variance. This is why the
+importance-sampled energy readout $E_{\mathrm{weak}}$ is biased and must not be used
+as the convergence criterion---overlap and $\Var(E_L)$ are.
+
+% =====================================================================
+\section{The collocation frontier: a physics-informed proposal for the Wigner regime}
+\label{sec:kernel-q3-frontier}
+
+The ESS collapse of \S\ref{sec:kernel-q3} is a limitation of the \emph{proposal}, not
+of collocation itself, and it can be substantially pushed back. This section reports a
+physics-informed proposal that extends MCMC-free collocation deep into the Wigner
+regime, the mechanism that limits it, and the wall that remains.
+
+\subsection{The origin-centred proposal misses the Wigner shell}
+Every proposal in the standard pipeline is a mixture of \emph{origin-centred} Gaussians
+$q(\mathbf{R})=\frac1K\sum_k \mathcal{N}(\mathbf{R};0,\sigma_{f,k}^2/\omega)$. But as
+$\omega\to0$ the electrons localise into a Wigner molecule on a \emph{shell} far from the
+origin: the classical $N=6$ minimum is the $(1,5)$ configuration (one central electron,
+five on a ring at radius $1.334\,\omega^{-2/3}$), which in oscillator units sits at
+$1.96/2.87/4.22\,\ell$ for $\omega=0.1/0.01/0.001$---moving outward as the trap weakens,
+past the reach of a width-$2\ell$ origin Gaussian. The proposal aims where $|\Psi|^2$ has
+no mass; hence the collapse.
+
+\subsection{The Wigner-ring proposal}
+We replace the origin mixture with a \emph{Wigner-ring} proposal: a radial Gaussian at the
+shell radius times an angular distribution for the ring electrons, plus a central Gaussian.
+On trusted states this lifts the effective sample size by $15$--$47\times$ over the origin
+mixture (Table~\ref{tab:ring-ess}), turning a collapsed sampler into a usable one---without
+any training, a cheap decisive test. Fitting the ring to $|\Psi|^2$ samples (the simplest
+adaptive form) doubles the ESS again; a $(1,5)+(0,6)$ mixture \emph{hurts} at $N=6$, since
+the state is $(1,5)$ and the extra channel dilutes the proposal mass.
+
+\begin{table}[htbp]\centering
+\caption{ESS (of 4096) against a trusted $N=6,\omega=0.01$ state. The origin mixture is
+already collapsed; the ring proposal covers the shell.}
+\label{tab:ring-ess}
+\begin{tabular}{lc}
+\hline
+proposal & ESS \\
+\hline
+origin-Gaussian mixture (standard) & $1.5$ \\
+Wigner ring $(1,5)$, hand-tuned & $22.5$ \\
+Wigner ring $(1,5)$, fitted to $|\Psi|^2$ & $47.5$ \\
+\hline
+\end{tabular}
+\end{table}
+
+\subsection{Angular crystallisation is the deep-Wigner wall}
+Why does the ring work at $\omega=0.01$ but fail at $\omega=0.001$? The molecule
+\emph{crystallises angularly} as the trap weakens. The nearest-neighbour angular-gap
+standard deviation of the five ring electrons is $40.8^\circ/33.3^\circ/25.5^\circ/6.7^\circ$
+at $\omega=1/0.1/0.01/0.001$: a ``ring liquid'' at moderate coupling becomes an angular
+crystal (electrons pinned near $72^\circ$ apart) at $\omega=0.001$. A proposal with
+independent, uniform angles almost never lands on the crystalline configuration---so the
+angular distribution must crystallise too. This is captured MCMC-free by modelling the five
+gaps (which sum to $2\pi$) as $\mathrm{Dirichlet}(\alpha)$: an exact tractable density whose
+single concentration $\alpha$ interpolates liquid ($\alpha$ small) to crystal ($\alpha$
+large), fitted to the measured gap variance. This diagnosis \emph{explains} the collocation
+wall that is otherwise only observed.
+
+\subsection{An MCMC-free cascade reaches $\omega=0.0035$}
+Combining the ring proposal (radial Gaussian $\times$ Dirichlet gaps) with importance
+oversampling, a \emph{continuous} adaptive re-fit of the proposal to the current
+importance-weighted batch (every few steps, no MCMC), and a gentle $\omega$-cascade
+seeded from a converged $\omega=0.01$ state, MCMC-free collocation produces states that
+lie on the Wigner energy-scaling curve down to $\omega=0.0035$---four cascade rungs, with
+heavy-VMC energies within $1$--$2\%$ of the scaling estimate (Table~\ref{tab:cascade}),
+well past where the origin proposal collapses ($\mathrm{ESS}\!\sim\!1$ even at
+$\omega=0.01$). The essential ingredient is the continuous re-fit: it keeps ESS healthy
+($\sim\!10^2$) \emph{while} the energy descends, where a static or slowly-updated proposal
+collapses to $\mathrm{ESS}\!\sim\!1$ as the wavefunction moves away from it.
+
+\begin{table}[htbp]\centering
+\caption{MCMC-free Wigner-ring cascade, $N=6$: heavy-VMC energy vs.\ the Wigner-scaling
+estimate $E(\omega)\approx 0.690\,(\omega/0.01)^{0.689}$. Good to $\omega=0.0035$.}
+\label{tab:cascade}
+\begin{tabular}{lccc}
+\hline
+$\omega$ & $E$ & scaling est. & ratio \\
+\hline
+0.0077 & 0.577 & 0.577 & 1.00 \\
+0.0059 & 0.481 & 0.480 & 1.00 \\
+0.0045 & 0.400 & 0.398 & 1.01 \\
+0.0035 & 0.340 & 0.335 & 1.02 \\
+\hline
+\end{tabular}
+\end{table}
+
+\subsection{The remaining wall: a fine-tuned Slater--Jastrow balance, not the sampler}
+Below $\omega=0.0035$ the cascade becomes unstable, and---informatively---the instability
+is \emph{non-monotonic} across proposal variants: wide-exploratory, tempered-tracking, and
+outward-anchored proposals each converge some rungs and diverge others. That pattern
+locates the obstacle not in the proposal but in the warm-start, and four transfer diagnostics
+(taking the converged $\omega=0.0035$ rung down to $\omega=0.0027$, a $23\%$ step) pin down
+its mechanism precisely.
+
+First, the frontier state is genuine: at its own $\omega=0.0035$ the rung is a bona-fide
+Wigner molecule, with radial density peaked at $3.34\ell$ (classical ring $3.42\ell$) and a
+\emph{single} basin---initialising the sampler on the shell converges to the same $3.34\ell$.
+Transferred to $\omega=0.0027$, however, the wavefunction collapses to $\sim\!1\ell$, and two
+tests show \emph{where} the collapse lives. It is not the sampler: initialising the Metropolis
+walkers directly on the classical shell ($3.57\ell$) still relaxes inward to $1.1\ell$, so the
+collapsed density is a property of the ansatz, not of sampler initialisation. And it is not the
+backflow: its displacement is small ($|\Delta\mathbf{x}|\approx0.13\ell$, radially inward) and
+essentially \emph{preserved} across the transfer ($0.15\ell\!\to\!0.13\ell$)---it scales
+correctly with $\ell$ but is far too small to bridge the $2.4\ell$ gap between the Slater core
+($\sim\!1\ell$) and the Wigner shell.
+
+The mechanism is a delicate cancellation. The bare harmonic-oscillator determinant suppresses
+the shell by $\exp(-\omega r^2/2)\!\sim\!\exp(-5.6)$ in amplitude ($\sim\!10^{-5}$ in density);
+the Wigner peak exists only because the Jastrow amplifies it back by a comparable factor, with
+the backflow contributing a small inward nudge. A $23\%$ change in $\omega$ perturbs both the
+Slater confinement and the Jastrow correlation length, the fine-tuned balance tips, and the
+density falls back to the non-interacting shell---from which the collocation re-fit cannot
+reliably climb out (hence the non-monotonic proposal behaviour). This rules out the natural fix
+of an $\omega$-robust warm-start by coordinate rescaling: because the ansatz relaxes inward even
+when handed shell configurations, no coordinate transform can preserve the state. Reaching
+$\omega<0.0035$ would require per-$\omega$ re-optimisation against a shell-\emph{amplitude}-anchored
+objective, or a genuinely $\ell$-covariant parametrisation---a distinct problem left to future
+work. The contribution here is concrete: a physics-informed proposal that carries MCMC-free
+collocation from the origin-proposal wall down to a verified Wigner molecule at $\omega=0.0035$,
+and a precise account of the angular-crystallisation and Slater--Jastrow-balance effects that
+bound it.
+
+% =====================================================================
+\section{Synthesis and discussion}
+\label{sec:synthesis}
+
+The three axes are one geometry. \textbf{Architecture} sets the shape of the tangent
+space: message passing compresses it (Jastrow) and keeps it from collapsing
+(backflow), because it supplies the relational channel the physics needs.
+\textbf{Optimiser} is about inverting the metric on that space: SR pays off exactly
+when the metric is ill-conditioned. \textbf{Paradigm} is about which measure defines
+the metric and the gradient: $|\Psi|^2$ self-preconditions and stays on target, the
+covering proposal loses conditioning and eventually the state. The single
+cross-cutting discriminator, robust where dimension and rank are not, is
+$\Var(E_L)$---lower for the message-passing ansatz at every $\omega$.
+
+\paragraph{A gauge caveat, itself a result.} Component-level quantities---backflow
+rank, displacement magnitude $|\Delta\mathbf{x}|$, per-component
+$d_{\mathrm{eff}}$---are \textbf{gauge-like}. The Jastrow and backflow are
+substitutes, so how correlation is split between them is a nearly-flat,
+path-dependent direction of the loss; those quantities depend on the training route,
+not on the state. Every claim that reversed during this project was of that kind
+(the retracted $d_{\mathrm{eff}}$ inversion at the crystal; a mislabelled backflow;
+an artefactual rank collapse from joint-from-scratch training). The reliable
+measurements---energy, state overlap, and ablation (delete a component, price it in
+energy)---are invariant to the gauge, and the conclusions above rest only on those.
+
+\section{Conclusions}
+Message passing is not a uniformly ``better network''; it buys one specific thing, a
+relational channel, whose value the tangent kernel makes precise. In the Jastrow that
+channel compresses the ground state onto the few collective modes the Hamiltonian
+couples; in the backflow it sustains a full-rank, relative displacement where a
+per-particle network can only shift everyone together and its energy fails---at the
+Wigner crystal, and by capturing Coulomb rather than kinetic correlation. The
+optimiser and paradigm choices around this ansatz are governed by the same geometry:
+SR is needed only for the ill-conditioned collocation objective, and collocation
+equals VMC only until its importance sampling loses the target at scale. What message
+passing, natural-gradient preconditioning, and $|\Psi|^2$ sampling have in common is
+that each keeps the variational optimisation aligned with the low-dimensional,
+physically-collective structure of the problem.

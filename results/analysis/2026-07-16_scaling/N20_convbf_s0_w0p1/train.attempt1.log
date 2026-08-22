@@ -1,0 +1,43 @@
+0
+[phase] N=20 omega=0.1 arch=pinn  ->  /itf-fi-ml/home/aleksns/Thesis/results/analysis/2026-07-16_scaling/N20_convbf_s0_w0p1
+0
+[phase] params=105,136 device=cuda:0 ref_energy=29.9779
+
+=== stage 1/4: Jastrow alone (backflow detached) ===
+[adam 00000] E=64.623612 var=2.9071e+01 sig=0.182 acc~0.5 n=256
+[adam 00100] E=69.111668 var=1.9971e+01 sig=0.165 acc~0.5 n=256
+[adam 00200] E=69.155638 var=1.8543e+01 sig=0.168 acc~0.5 n=256
+[adam 00300] E=66.765751 var=1.6770e+01 sig=0.170 acc~0.5 n=256
+[adam 00400] E=63.278826 var=1.3391e+01 sig=0.178 acc~0.5 n=256
+[adam 00500] E=57.837510 var=1.3071e+01 sig=0.193 acc~0.5 n=256
+[adam 00600] E=50.974324 var=9.7868e+00 sig=0.217 acc~0.5 n=256
+[adam 00700] E=40.921810 var=5.1502e+00 sig=0.270 acc~0.5 n=256
+[adam 00749] E=35.425545 var=2.4710e+00 sig=0.320 acc~0.5 n=256
+
+=== stage 2/4: cusp pre-train SKIPPED (thesis 'bf_then_joint' variant) ===
+
+=== stage 3/4: backflow only (Jastrow frozen) ===
+[adam 00000] E=35.115980 var=2.5018e+00 sig=0.339 acc~0.5 n=256 |dx|/ell=0.3129
+[adam 00100] E=34.827032 var=2.1011e+00 sig=0.334 acc~0.5 n=256 |dx|/ell=0.3059
+[adam 00200] E=34.757199 var=2.2050e+00 sig=0.330 acc~0.5 n=256 |dx|/ell=0.2941
+[adam 00300] E=34.746040 var=2.1284e+00 sig=0.335 acc~0.5 n=256 |dx|/ell=0.2863
+[adam 00400] E=34.743259 var=2.1776e+00 sig=0.334 acc~0.5 n=256 |dx|/ell=0.2758
+[adam 00500] E=34.731433 var=2.2413e+00 sig=0.333 acc~0.5 n=256 |dx|/ell=0.2694
+[adam 00600] E=34.656226 var=2.3973e+00 sig=0.335 acc~0.5 n=256 |dx|/ell=0.2626
+[adam 00700] E=34.680784 var=2.0115e+00 sig=0.334 acc~0.5 n=256 |dx|/ell=0.2567
+[adam 00749] E=34.636440 var=2.2212e+00 sig=0.334 acc~0.5 n=256 |dx|/ell=0.2543
+
+=== stage 4/4: joint (Jastrow released at lr*0.1) ===
+[adam 00000] E=35.007739 var=2.7446e+00 sig=0.339 acc~0.5 n=256 |dx|/ell=0.2542
+[adam 00100] E=30.262405 var=1.0942e-01 sig=0.457 acc~0.5 n=256 |dx|/ell=0.2465
+[adam 00200] E=30.166225 var=8.3874e-02 sig=0.444 acc~0.5 n=256 |dx|/ell=0.2426
+[adam 00300] E=30.166096 var=6.4548e-02 sig=0.435 acc~0.5 n=256 |dx|/ell=0.2378
+[adam 00400] E=30.102759 var=4.8967e-02 sig=0.429 acc~0.5 n=256 |dx|/ell=0.2318
+[adam 00500] E=30.119682 var=4.6865e-02 sig=0.422 acc~0.5 n=256 |dx|/ell=0.2306
+[adam 00600] E=30.105566 var=4.2335e-02 sig=0.421 acc~0.5 n=256 |dx|/ell=0.2255
+[adam 00700] E=30.132828 var=4.9329e-02 sig=0.414 acc~0.5 n=256 |dx|/ell=0.2236
+[adam 00800] E=30.084535 var=6.1460e-02 sig=0.414 acc~0.5 n=256 |dx|/ell=0.2198
+[adam 00900] E=30.086594 var=5.7299e-02 sig=0.410 acc~0.5 n=256 |dx|/ell=0.2171
+[adam 00999] E=30.099104 var=5.4684e-02 sig=0.413 acc~0.5 n=256 |dx|/ell=0.2151
+[phase] training done in 134.9 min
+[adam 00000] E=30.089447 var=5.8452e-02 sig=0.427 acc~0.5 n=4096 |dx|/ell=0.2151

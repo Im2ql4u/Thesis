@@ -207,7 +207,17 @@ def _lap_log_hvp_hutch(psi_log_fn, x, probes=16):
     return acc / float(max(1, int(probes)))
 
 
-def _lap_log_exact(psi_log_fn, x):
+def _lap_log_exact(psi_log_fn, x, chunk: int = 128):
+    """Exact Laplacian of log|psi|, summed per walker.
+
+    The autograd graph held across the N*d second-derivative passes scales with the batch, and for a
+    message-passing backflow it includes the B x N x N edge tensors — that is what OOM'd N>=12 in the
+    SR polish. The Laplacian is a per-walker independent sum, so processing the batch in chunks is
+    mathematically identical and only caps peak memory. Chunk over B; recurse per slice.
+    """
+    if x.shape[0] > chunk:
+        return torch.cat([_lap_log_exact(psi_log_fn, x[s : s + chunk], chunk)
+                          for s in range(0, x.shape[0], chunk)], dim=0)
     x = x.detach().requires_grad_(True)
     with torch.set_grad_enabled(True):
         l = psi_log_fn(x)  # (B,)

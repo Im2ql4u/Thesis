@@ -1,0 +1,20 @@
+0
+  PINN+conv-bf s0 w0.01  err=+0.592% | bf buys dE=+0.0002 (dT=+0.0009 dVc=+0.0011, +0.02w) | msg dE=+nan (dT=+nan dVc=+nan) | d_eff=1.10 BFrank=1.0 |dx|=0.138
+  PINN+conv-bf s0 w0.1   err=+0.248% | bf buys dE=+0.0176 (dT=+0.0527 dVc=+0.0694, +0.18w) | msg dE=+nan (dT=+nan dVc=+nan) | d_eff=9.62 BFrank=10.1 |dx|=0.139
+  PINN+conv-bf s0 w1.0   err=+0.074% | bf buys dE=+0.0736 (dT=+0.6118 dVc=-0.0459, +0.07w) | msg dE=+nan (dT=+nan dVc=+nan) | d_eff=6.59 BFrank=10.5 |dx|=0.067
+  PINN+conv-bf s1 w0.01  err=+0.566% | bf buys dE=+0.0011 (dT=+0.0002 dVc=-0.0030, +0.11w) | msg dE=+nan (dT=+nan dVc=+nan) | d_eff=1.13 BFrank=1.0 |dx|=0.154
+  PINN+conv-bf s1 w0.1   err=+0.202% | bf buys dE=+0.0241 (dT=+0.0540 dVc=+0.0642, +0.24w) | msg dE=+nan (dT=+nan dVc=+nan) | d_eff=10.68 BFrank=10.2 |dx|=0.148
+  PINN+conv-bf s1 w1.0   err=+0.075% | bf buys dE=+0.0936 (dT=+0.6662 dVc=-0.1359, +0.09w) | msg dE=+nan (dT=+nan dVc=+nan) | d_eff=6.14 BFrank=10.6 |dx|=0.077
+  PINN+ctnn-bf s0 w0.01  err=-0.047% | bf buys dE=+0.0116 (dT=-0.0010 dVc=+0.0167, +1.16w) | msg dE=+0.0116 (dT=-0.0040 dVc=+0.0082) | d_eff=10.30 BFrank=9.9 |dx|=0.090
+  PINN+ctnn-bf s0 w0.1   err=-0.031% | bf buys dE=+0.0299 (dT=+0.0615 dVc=+0.1417, +0.30w) | msg dE=+0.0348 (dT=+0.0093 dVc=+0.0105) | d_eff=7.70 BFrank=7.5 |dx|=0.142
+  PINN+ctnn-bf s0 w1.0   err=-0.035% | bf buys dE=+0.0510 (dT=-0.2770 dVc=-0.0547, +0.05w) | msg dE=+0.0552 (dT=-0.3406 dVc=-0.0739) | d_eff=4.20 BFrank=9.1 |dx|=0.120
+  PINN+ctnn-bf s1 w0.01  err=-0.000% | bf buys dE=+0.0110 (dT=+0.0003 dVc=+0.0156, +1.10w) | msg dE=+0.0127 (dT=-0.0018 dVc=+0.0082) | d_eff=9.24 BFrank=9.8 |dx|=0.084
+  PINN+ctnn-bf s1 w0.1   err=-0.057% | bf buys dE=+0.0399 (dT=+0.0494 dVc=+0.1211, +0.40w) | msg dE=+0.0272 (dT=+0.0192 dVc=+0.0268) | d_eff=7.92 BFrank=7.8 |dx|=0.137
+  PINN+ctnn-bf s1 w1.0   err=-0.004% | bf buys dE=+0.0733 (dT=+0.2049 dVc=-0.1016, +0.07w) | msg dE=+0.0991 (dT=+0.0328 dVc=+0.0498) | d_eff=4.21 BFrank=9.1 |dx|=0.120
+
+[contrast] PINN + CTNN-backflow vs PINN + conventional-backflow (seed-avg):
+     w |   err% ctnn/conv |  d_eff ctnn/conv | BFrank ctnn/conv |     msg dE/dT/dVc (ctnn)
+   1.0 | -0.020/+0.075 | 4.20/6.37 | 9.1/10.5 | +0.0771/-0.1539/-0.0121
+   0.1 | -0.044/+0.225 | 7.81/10.15 | 7.6/10.1 | +0.0310/+0.0142/+0.0187
+  0.01 | -0.023/+0.579 | 9.77/1.11 | 9.9/1.0 | +0.0121/-0.0029/+0.0082
+-> results/analysis/2026-07-11_pinn_ansatz_v3/master.csv

@@ -21,6 +21,9 @@ texput.log
 src/QuantumDot_ExampleRun.ipynb
 src/PMM.ipynb
 
+# Jupyter checkpoints
+.ipynb_checkpoints/
+
 # Python cache
 __pycache__/
 *.py[cod]
@@ -44,3 +47,20 @@ results/arch_colloc/diagnostics/
 
 # ML-Agents installer backups
 .agentic-backup/
+
+# Reproducible analysis binaries (checkpoints already ignored via *.pt) — keep only text records
+results/analysis/**/*.npz
+results/analysis/**/*.npy
+results/analysis/**/*.png
+results/analysis/**/*.zip
+results/analysis/**/plot_data.npz
+
+# Large data binaries anywhere (regenerable from scripts + tracked text records) — GitHub also
+# rejects files >100MB, and several of these exceed it. Figures (*.png) are kept, per request.
+*.npz
+*.npy
+*.zip
+
+# Exploratory notebooks are not canonical (CLAUDE.md); keep them off the repo
+src/*.ipynb
+*-Copy*.ipynb

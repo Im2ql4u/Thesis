@@ -395,3 +395,40 @@ All energies verified against on-disk data. All commits pushed.
 **Citations:** NTK -> JacotEtAl2018-NTK (added to bib w/ arXiv), Deep Sets -> Zaheer2017-DeepSets (already in bib), classical (1,5) -> schweigert1994/Kong_2002. All TODO/CHECK/[kilde]/[Ref.]/CITE-NEEDED markers removed.
 
 **FLAGGED for author (not auto-fixed):** (1) cusp trap-unit sqrt(omega) units presentation; (2) backflow naming clash method(BackflowNet=message-passing) vs results(BackflowNet=conventional, CTNNBackflowNet=message-passing) + conventional baseline not described in method; (3) content redundancy: structural-diagnostics described in both theory and method; (4) British/American spelling ~50/50 mixed, needs one careful global pass; (5) citation CONTENT verification (sources not inspected); (6) rendered figures not visually inspectable.
+
+---
+
+## 2026-08-22 (cont. 4) — Final targeted cleanup, verified against source code
+
+**Cusp (Case B: implementation correct, equation wrong).** Read CuspMixin (src/jastrow_architectures.py):
+u = sum gamma_ij * r_ij * exp(-r_ij/ell), ell=1/sqrt(omega), computed on RAW PHYSICAL x (forward calls
+_compute_cusps(x), not x_sc). So slope du/dr|0 = gamma = the Kato condition (1 and 1/3 in 2D) -- CORRECT.
+The method's eq:cusp wrongly used scaled r-tilde as the linear prefactor (physical slope gamma*sqrt(omega)).
+Corrected eq:cusp to u(r)=gamma*r*exp(-r/a_ho) matching the code; trap-unit form given as (gamma/sqrt(omega))*r-tilde*exp(-r-tilde). Ansatz eqs now use u(r_ij).
+
+**Architecture naming (code-verified).** BackflowNet AND CTNNBackflowNet are BOTH message-passing.
+BackflowNet.forward: msg_in=cat[x_i,x_j,r_ij,...] over all pairs -> aggregate -> node update (single round,
+pairwise). CTNNBackflowNet: "Copresheaf/graph-style", explicit node+edge features, bidirectional transport
+rho_v_to_e/rho_e_to_v. DeepSetJastrow="pair-level encoder + multi-head pooling"; CTNNJastrowVCycle="Copresheaf
+CTNN with V-cycle". => the baselines are NOT per-particle; all use pairwise info. Corrected the false
+"per-particle / no relative channel / can only shift everyone together" claim across abstract, intro,
+results, results_kernel, discussion, conclusion to the accurate "single-round pairwise messages vs iterated
+copresheaf transport". Empirical results (rank collapse, d_eff, ablation) unchanged.
+
+**CTNN expansion.** Code says "copresheaf" everywhere (CTNNJastrow/VCycle/BackflowNet docstrings), NOT
+"continuous-time". Removed the "continuous-time" misnomer (was inferred from a stray results.tex phrase);
+introduced CTNN as the copresheaf message-passing model WITHOUT asserting an acronym expansion (letters'
+meaning not established in code/repo).
+
+**Fisher/QGT.** Confirmed F=4S is stated and no F=S survives anywhere.
+
+**British spelling.** Protected conversion (96 prose lines) skipping any \label/\ref/\cite/\url/\texttt line
+and references.bib; verified all labels (sec:optimization etc.) intact. "centre" not converted (60 occ,
+ambiguous) -- flagged.
+
+**Structural-diagnostics redundancy.** Label collision already fixed; added a theory->Analysis cross-ref
+noting the division (theory=concept, method=computation). Content NOT deleted -- left as author decision.
+
+**Could NOT do:** no LaTeX toolchain installed -> no compile, no rendered-figure inspection, no overfull-box
+check. Citation CONTENT not inspected (Pederiva2000/Mazars2008 support of specific values = source
+verification required; Jacot2018/Zaheer2017 are standard landmark refs, metadata present).

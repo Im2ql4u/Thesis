@@ -1,6 +1,6 @@
 \graphicspath{{../results/figures/results/}}
 
-\chapter{Quantum Dots}
+\chapter{Quantum dots: energies, representations, and Wigner molecules}
 \label{ch:results}
 
 This chapter is about what the trained wavefunction \emph{is}, and what it lets us
@@ -50,9 +50,14 @@ switch to the DMC reference energy (and optionally add a variance penalty).
 The SR phase then uses on the order of $10^3$--$3\times10^3$ iterations with
 batches of $\sim 3{\times}10^3$ samples per iteration.
 
-The architecture size is identical for all $N$: the base PINN has
-$\approx\!54\text{k}$ parameters, the conventional BackflowNet adds
-$\approx\!83\text{k}$ (total PINN+BF $\approx\!137\text{k}$), and the
+We compare two backflow architectures throughout. The \emph{conventional}
+\textsc{BackflowNet} predicts an independent per-particle displacement, whereas the
+\emph{message-passing} continuous-time neural network (\textsc{CTNN}), realised as the
+\textsc{CTNNBackflowNet}, lets the particles exchange learned messages on a graph before
+the displacement is read out; the contrast between them is the subject of the backflow
+analysis in Chapter~\ref{ch:kernel}. The architecture size is identical for all $N$: the
+base PINN correlator has $\approx\!54\text{k}$ parameters, the conventional BackflowNet
+adds $\approx\!83\text{k}$ (total PINN+BF $\approx\!137\text{k}$), and the
 CTNNBackflowNet adds $\approx\!182\text{k}$ (total PINN+CTNN
 $\approx\!236\text{k}$). All components are fully trainable;
 the parameter count is independent of $N$ because particle
@@ -171,7 +176,8 @@ numerically tame from the shallowest trap to the tightest.
 We probe the internal representations of the CTNN-augmented wavefunction across
 $N\in\{2,6,12,20\}$ and $\omega\in\{10^{-3},10^{-2},0.1,0.5,1.0\}$.
 The analysis targets three objects:
-the \emph{correlator head} $f_{\mathrm{net}}$ (whose input concatenates the orbital, pair, and auxiliary branches
+the neural correlator $W_\theta$ (the ``correlator head'' of
+Chapter~\ref{ch:trial_wavefunction}, whose input concatenates the orbital, pair, and auxiliary branches
 $\overline\phi\|\overline\psi\|\mathbf{g}$),
 the \emph{backflow displacement field} $\Delta\mathbf{x}$ produced by the CTNN,
 and the \emph{coupling} between these two components.
@@ -431,7 +437,7 @@ At $\omega \leq 0.01$, the PINN and CTNN are weakly coupled:
 $\langle\cos\rangle \sim 0.1$--$0.2$, the alignment fraction is well below unity,
 and backflow barely affects the PINN output ($|\delta f|/\sigma_f < 0.07$).
 In this regime the CTNN operates in a subspace largely orthogonal to the PINN's gradient---it
-modifies the wavefunction in directions that $f_{\mathrm{net}}$ is insensitive to,
+modifies the wavefunction in directions that $W_\theta$ is insensitive to,
 consistent with its role being to adjust the Slater determinant's orbital positions rather than
 the correlator.
 
@@ -463,7 +469,7 @@ further correlation-hole deepening.
 The representation analysis supports a coherent picture of how the CTNN-augmented architecture
 partitions the variational problem across its components.
 
-The \textbf{correlator head} $f_{\mathrm{net}}$ forms a $\sim$\,1--3 dimensional manifold whose
+The \textbf{correlator head} $W_\theta$ forms a $\sim$\,1--3 dimensional manifold whose
 leading axis tracks the dominant global coordinate of the electron cloud.
 The identity of that coordinate shifts across regimes:
 pair correlations ($\psi$ branch) dominate at moderate-to-weak coupling ($\omega \gtrsim 0.1$),

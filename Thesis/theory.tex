@@ -582,7 +582,7 @@ For electron–nucleus coalescence ($\mu_{eA}\!\approx\!1$, $Z_i Z_j=-Z_A$):
 These conditions ensure the kinetic energy’s $r^{-1}$ singularity cancels the Coulomb $r^{-1}$
 term so that $E_L$ remains finite as particles coalesce. Enforcing the cusp explicitly improves conditioning.
 \section{Structural diagnostics and Wigner markers}
-\label{sec:analysis-struct}
+\label{sec:wigner-markers-theory}
 
 Unless stated otherwise, curves are accumulated in \emph{trap units} 
 $\tilde{\mathbf r}=\sqrt{\omega}\,\mathbf r$ so that length scales align across $\omega$, 
@@ -591,7 +591,7 @@ Production chains are thinned; we split samples into halves for stability checks
 (acceptance window, JSD between halves, reproducibility under restarts).
 
 \subsection{Pair distribution $g(r)$, $P(r)$, and width markers}
-\label{subsec:gr-pr}
+\label{subsec:gr-pr-theory}
 
 We estimate the (spin-summed) pair distribution $g(r)$ via a shell‐area corrected histogram in trap units,
 \begin{equation}
@@ -609,7 +609,7 @@ and report the mode $r_{\mathrm{mode}}$, mean $\bar r$, standard deviation $\sig
 A compact width–to–scale marker is
 \begin{equation}
 \gamma \;=\; \sigma_r / r_{\mathrm{mode}},
-\label{eq:gamma}
+\label{eq:gamma-theory}
 \end{equation}
 which decreases as correlations stiffen (narrow distribution around a larger typical radius).\footnote{For $N{=}2$, $\gamma$ is complemented by the pair–distance Lindemann $\gamma_{r_{12}}=\mathrm{std}(r_{12})/\mathrm{mode}(r_{12})$, cf.\ Sec.~\ref{subsec:n2-scaling}.}
 
@@ -620,7 +620,7 @@ $\int_0^{0.25\,r_{\mathrm{mode}}}\!\rho_1(r)\,dr$ and
 $\Pr(r_{12}\!\le 0.25\,\mathrm{mode}(r_{12}))$, both $\ll 1$ as required by the cusp and strong repulsion.
 
 \subsection{Automatic shell detection and topology labeling}
-\label{subsec:shells}
+\label{subsec:shells-theory}
 
 For each frame we sort single‐particle radii $\tilde s_1\le\cdots\le \tilde s_N$ (trap units),
 compute gaps $g_k=\tilde s_{k+1}-\tilde s_k$, and flag a frame as \emph{two‐shell} if
@@ -652,7 +652,7 @@ For classical references to shellings and near-degeneracies in parabolic/cluster
 Schweigert–Peeters and Kong–Partoens–Peeters.\cite{schweigert1994spectralpropertieschargedparticles,Kong_2002}
 
 \subsection{Orientational order and angular “Lindemann”}
-\label{subsec:orient}
+\label{subsec:orient-theory}
 
 After recentring each detected ring (inner/outer) to remove global rotations, with angles $\{\phi_k\}_{k=1}^n$, we use the bond–orientational order
 \begin{equation}
@@ -688,7 +688,7 @@ by linear regression in $\big(\log\omega,\log r_{\mathrm{mode}}\big)$ and compar
 At $\omega\!=\!10^{-3}$ the $r_{12}$ histogram is sharply peaked and the near-origin mass in $\rho_1$ and $p(r_{12})$ is $\ll 1$, validating the cusp implementation while confirming deep Wigner localization (see also Ref.~\cite{Egger_1999} for the crossover criterion in dots).
 
 \subsection{Reporting and stability checks}
-\label{subsec:analysis-sanity}
+\label{subsec:sanity-theory}
 
 For all scalars and histograms we report standard errors from block averages over thinned frames.
 We verify: 
@@ -971,15 +971,18 @@ the per-sample log-derivatives---the \emph{score}---of an ansatz $\Psi_\theta$ a
   O_{ki} = \frac{\partial \log|\Psi_\theta(\mathbf{x}_k)|}{\partial \theta_i},
   \qquad k=1,\dots,B,\;\; i=1,\dots,P,
 \end{equation}
-for a batch of $B$ configurations drawn from $|\Psi_\theta|^2$ and $P$ parameters. Its
-centred Gram matrices define two dual objects. The \emph{quantum geometric tensor}
-(QGT), or Fisher metric of the state,
+for a batch of $B$ configurations drawn from $|\Psi_\theta|^2$ and $P$ parameters
+$\theta$ (here $\theta$ collects \emph{all} variational parameters). Its centred Gram
+matrices define two dual objects. The \emph{quantum geometric tensor} (QGT),
 \begin{equation}
   S = \tfrac{1}{B}\,O^{\!\top}O \in \mathbb{R}^{P\times P},
 \end{equation}
-is exactly the $F(\theta)$ above specialised to $p_\theta=|\Psi_\theta|^2$; stochastic
-reconfiguration is natural-gradient descent under this metric, $\dot\theta =
--S^{-1}\nabla_\theta E$~\cite{BeccaSorella2017-QMCBook,StokesEtAl2020-QuantumNaturalGradient}.
+is the Fisher--Rao metric of the state written in terms of the amplitude score. It is
+proportional to the Fisher matrix $F(\theta)$ of the previous subsection specialised to
+$p_\theta=|\Psi_\theta|^2$: because $\nabla_\theta\log|\Psi_\theta|^2 = 2\,\nabla_\theta\log|\Psi_\theta|$,
+one has $F = 4S$, the factor of four being a convention absorbed into the learning
+rate. Stochastic reconfiguration is natural-gradient descent under this metric,
+$\dot\theta = -S^{-1}\nabla_\theta E$~\cite{BeccaSorella2017-QMCBook,StokesEtAl2020-QuantumNaturalGradient}.
 Its Gram dual, the \emph{neural tangent kernel} (NTK)~\cite{JacotEtAl2018-NTK},
 \begin{equation}
   K = O O^{\!\top} \in \mathbb{R}^{B\times B},

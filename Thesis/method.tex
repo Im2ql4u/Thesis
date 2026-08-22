@@ -55,7 +55,8 @@ neural residual, while optionally evaluating the Slater determinant on backflowe
 \end{align}
 Here $\mathrm{SD}$ enforces antisymmetry; $u$ hard-wires the Kato cusp; $W_\theta$ (the NQS correlator) learns smooth
 medium/long-range structure; and $\Delta_\beta$ (backflow) adjusts the nodes by smoothly warping the coordinates used
-inside the determinants. We deliberately feed the NQS with $\tilde{R}$ (not $\tilde{R}'$) to avoid self-reinforcing feedback
+inside the determinants; its per-particle displacements $\Delta_{\beta,i}$ are written
+$\Delta\mathbf{x}_i$ in the results chapters. We deliberately feed the NQS with $\tilde{R}$ (not $\tilde{R}'$) to avoid self-reinforcing feedback
 and keep local-energy variance low.
 
 \paragraph{Design principles.}
@@ -110,7 +111,7 @@ suppresses learned responses \emph{at} coalescence, we use $\chi\,\mathbf h^\psi
 
 \subsection{Analytic short-range cusp}
 \label{subsec:cusp}
-Due to the nesseccity of the safe features in the pair branch, the NQS cannot represent the Kato cusp condition exactly. 
+Because the safe features are necessary in the pair branch, the NQS cannot represent the Kato cusp condition exactly. 
 We therefore add an analytic cusp term to the exponent in~\eqref{eq:ansatz-overall}. 
 We enforce the electron–electron cusp in trap units via
 \begin{equation}
@@ -123,7 +124,12 @@ We enforce the electron–electron cusp in trap units via
   \label{eq:cusp}
 \end{equation}
 Equivalently, in physical units $r$, $u(r)=\gamma_{\sigma\sigma'}\,(r/a_{\rm ho})\,\exp[-(r/a_{\rm ho})]$.
-The linear coefficient yields the Kato slope at contact in general $d$; the exponential taper suppresses long-range interference, which means the NQS need not unlearn cusp structure at medium/long range.
+The linear coefficient sets the Kato slope at contact in general $d$; for $d=2$ this gives
+$\gamma_{\uparrow\downarrow}=1$ and $\gamma_{\uparrow\uparrow}=\tfrac13$, the standard
+two-dimensional quantum-dot values, derived---including the parallel-spin case, where
+antisymmetry already forces a linear node---in Appendix~\ref{app:coulomb:cusp}. The
+exponential taper suppresses long-range interference, so the NQS need not unlearn cusp
+structure at medium and long range.
 
 
 \subsection{Global readout}
@@ -436,7 +442,7 @@ This procedure keeps the early dynamics variance–dominated and sampler–aware
 \chapter{Analysis}
 \label{ch:analysis}
 
-This chapter describes \emph{what} we measure on fresh $|\Psi_\theta|^2$ samples, \emph{how} we compute the diagnostics, and \emph{why} each quantity is informative. Results and numbers are presented in Sec.~\ref{ch:results}.
+This chapter describes \emph{what} we measure on fresh $|\Psi_\theta|^2$ samples, \emph{how} we compute the diagnostics, and \emph{why} each quantity is informative. Results and numbers are presented in Chapter~\ref{ch:results}.
 \section{Structural diagnostics and Wigner markers}
 \label{sec:analysis-struct}
 

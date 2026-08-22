@@ -371,3 +371,27 @@ memory bottleneck (Jastrow-only +1.32/+2.74/+5.53%, BF +18% reversal), not a lim
 
 **Remaining:** one [CITE NEEDED] (NTK/Jacot); two red [TODO] figure notes in results.tex (author's markers).
 All energies verified against on-disk data. All commits pushed.
+
+---
+
+## 2026-08-22 (cont. 3) — Implemented the examiner review: submission-prep edits
+
+**Scientific corrections (verified, not guessed):**
+- Fixed a factor error I had introduced in theory tangent-kernel: S is NOT "exactly F"; since grad log|Psi|^2 = 2 grad log|Psi|, F = 4S. Stated explicitly.
+- Cusp coefficients gamma_ud=1/(d-1), gamma_uu=1/(d+1) VERIFIED correct (match app:coulomb:cusp derivation: 2D -> 1 and 1/3; reduce to known 3D 1/2, 1/4). Added method->appendix cross-ref + 2D values. FLAGGED (not edited): the trap-unit slope of u carries a sqrt(omega) factor vs the physical-unit cusp slope=1; DMC-quality energies imply the computation is right, so this is a units-presentation gap for the author to reconcile against code.
+- Fisher/score convention now stated once (theta = all params; F=4S).
+
+**Consistency:**
+- Correlator notation unified to W_theta (was f_net in results/discussion/conclusion, "f" in kernel). First-use identification added.
+- CTNN defined at first use (results.tex arch paragraph): conventional per-particle BackflowNet vs message-passing continuous-time neural network (CTNN)/CTNNBackflowNet.
+- Backflow Delta_beta identified with Delta_x (results) at method first use.
+- Two \chapter{Quantum Dots} -> "Quantum dots: energies, representations, and Wigner molecules" (results) and "Discussion". Fixed Sec.->Chapter ref to ch:results.
+- Duplicate LaTeX labels (6, structural-diagnostics section duplicated theory<->method) resolved by renaming the theory copies (no active refs pointed to them).
+
+**Abstract:** rewritten to cover the actual thesis (N=20; message passing/relational channel; tangent kernel; SR/optimiser; MCMC-free collocation to 0.0035; Wigner physics; unifying insight). r_mode corrected 63.3 -> 64.3 a0 (matches tab:two_e_summary). "conditioning not depth" scoped to "at least as important as depth within the investigated regime".
+
+**Introduction:** added a relational-architecture foreshadowing paragraph (message passing motivated by correlation being relational) without revealing conclusions.
+
+**Citations:** NTK -> JacotEtAl2018-NTK (added to bib w/ arXiv), Deep Sets -> Zaheer2017-DeepSets (already in bib), classical (1,5) -> schweigert1994/Kong_2002. All TODO/CHECK/[kilde]/[Ref.]/CITE-NEEDED markers removed.
+
+**FLAGGED for author (not auto-fixed):** (1) cusp trap-unit sqrt(omega) units presentation; (2) backflow naming clash method(BackflowNet=message-passing) vs results(BackflowNet=conventional, CTNNBackflowNet=message-passing) + conventional baseline not described in method; (3) content redundancy: structural-diagnostics described in both theory and method; (4) British/American spelling ~50/50 mixed, needs one careful global pass; (5) citation CONTENT verification (sources not inspected); (6) rendered figures not visually inspectable.

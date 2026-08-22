@@ -14,8 +14,8 @@
 \label{ch:kernel}
 
 Our ansatz is a closed-shell Slater determinant dressed by two learnable objects:
-a \emph{Jastrow} correlator $f$, which reshapes the amplitude, and a coordinate
-\emph{backflow} $\Delta\mathbf{x}$, which reshapes the nodes. Each can be built in
+a \emph{Jastrow}-type neural correlator $W_\theta$, which reshapes the amplitude, and a
+coordinate \emph{backflow} $\Delta\mathbf{x}$, which reshapes the nodes. Each can be built in
 one of two ways---as a \emph{separable} network that treats every particle on its
 own, or as a \emph{message-passing} (CTNN) network in which the particles first
 exchange learned messages on a graph and only then read out a quantity. The

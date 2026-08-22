@@ -71,6 +71,14 @@ which as much known structure as possible—antisymmetry, cusp conditions,
 scaling, and symmetries—is built into the ansatz and its coordinates, and the
 network is used to learn the remaining correlation corrections.
 
+A further ingredient concerns not \emph{what} structure is imposed but \emph{how}
+the network represents the electrons. Correlation is intrinsically relational—what
+one electron should do depends on where the others are—so architectures that let
+particles exchange information (message passing), rather than processing each
+coordinate independently, are a natural candidate for the correlator and for the
+backflow that deforms the nodes. How much this relational capacity actually buys,
+and why, is one of the questions this thesis takes up.
+
 \paragraph{Quantum dots as a controlled testbed.}
 Two-dimensional parabolic quantum dots provide a clean and tunable setting in
 which to explore such ideas. They offer a simple route from Fermi-liquid–like

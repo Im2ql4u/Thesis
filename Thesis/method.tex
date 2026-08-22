@@ -82,7 +82,7 @@ statistics, all in $\tilde{R}$. A core safety requirement is that pair channels 
 so that $W_\theta$ never injects spurious $1/\tilde r$ terms into $\nabla\log\Psi$ or $\Delta\log\Psi$.
 
 \subsection{Particle branch (DeepSets).}
-This part of the network is typically referred to as Deep Sets [kilde]. The permutation invariance of quantum many-body mechanics is naturally captured by this architecture. 
+This part of the network is typically referred to as Deep Sets~\cite{Zaheer2017-DeepSets}. The permutation invariance of quantum many-body mechanics is naturally captured by this architecture. 
 A neural network $\phi$ creates a latent embedding for each particle individually. All embeddings are pooled together to form a global representation, which is used later in the readout. Formally, we have
 \[
   \mathbf h_i^\phi=\phi(\tilde{\mathbf x}_i)\in\mathbb R^{d_L},\qquad

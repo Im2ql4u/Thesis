@@ -13,15 +13,19 @@
 \chapter{Architecture, optimiser, and paradigm through the tangent kernel}
 \label{ch:kernel}
 
-Our ansatz is a closed-shell Slater determinant dressed by two learnable
-objects: a \emph{Jastrow} correlator $f$ and a coordinate \emph{backflow}
-$\Delta\mathbf{x}$. Both can be built as a separable, per-particle network or as a
-\emph{message-passing} (CTNN) network in which particles exchange learned messages
-on a graph before a quantity is read out. The previous chapter established that the
-message-passing ansatz reaches diffusion-Monte-Carlo (DMC) quality across the
-$(N,\omega)$ grid. This chapter asks \emph{why} message passing helps, and answers
-it for both objects through a single lens, then extends the same lens to the
-optimiser and the training paradigm.
+Our ansatz is a closed-shell Slater determinant dressed by two learnable objects:
+a \emph{Jastrow} correlator $f$, which reshapes the amplitude, and a coordinate
+\emph{backflow} $\Delta\mathbf{x}$, which reshapes the nodes. Each can be built in
+one of two ways---as a \emph{separable} network that treats every particle on its
+own, or as a \emph{message-passing} (CTNN) network in which the particles first
+exchange learned messages on a graph and only then read out a quantity. The
+previous chapter showed that the message-passing ansatz reaches diffusion Monte
+Carlo (DMC) quality wherever a DMC reference exists ($\omega\ge0.1$), and matches
+our own variational gold standard in the strongly correlated regime below it, where
+no DMC benchmark is available. That settles \emph{whether} the ansatz works and
+leaves the question worth a chapter: \emph{why} message passing helps at all. We
+answer it for both learnable objects through a single lens, and then turn the same
+lens on the optimiser and on the training paradigm.
 
 \paragraph{One idea, one lens.} The thesis of this chapter is that message passing
 buys one thing---a \textbf{relational channel}, a way to condition each particle's
@@ -60,7 +64,15 @@ model's own $|\Psi|^2$); we report only participation ratios converged in the
 sample count $B$; and we anchor the tooling on the analytic two-electron ground
 state, where the ansatz reproduces $E=3.000127$~Ha ($+0.004\%$) with squared
 overlap $1.000000$. Backflow comparisons are seeded ($\ge 2$ seeds) and held at
-DMC-quality energies.
+reference quality. One point of honesty about that reference is worth stating
+plainly, because every relative error in this chapter depends on it: an external
+DMC benchmark exists only for $\omega\ge0.1$. In the strongly correlated regime
+below, we quote errors against our own converged variational energies (the
+$|\Psi|^2$-sampled SR result), and, in the deep-Wigner cascade of
+\S\ref{sec:kernel-q3-frontier}, cross-check against the physical energy-scaling law
+rather than any ground truth. Relative errors below $\omega=0.1$ are therefore
+measures of internal consistency, not of absolute accuracy, and we read them as
+such.
 
 \paragraph{Headline findings.}
 \textbf{(Q1a, Jastrow)} A message-passing correlator compresses the ground state
@@ -144,9 +156,9 @@ the CTNN error at $N=20,\omega=0.01$ ($+0.69\%$ vs.\ $+0.12\%$).
  & \multicolumn{2}{c|}{$N=6$} & \multicolumn{2}{c|}{$N=12$} & \multicolumn{2}{c}{$N=20$}\\
 $\omega$ & CTNN & conv & CTNN & conv & CTNN & conv \\
 \hline
-1.0  & $-0.03$ & $+0.06$ & $-0.02$ & $+0.06$ & $+0.03$ & $+0.05$ \\
-0.1  & $-0.04$ & $+0.19$ & $+0.01$ & $+0.16$ & $+0.00$ & $+0.18$ \\
-0.01 & $-0.04$ & $+0.56$ & $-0.00$ & $+0.54$ & $+0.12$ & $+0.69$ \\
+1.0  & $-0.03$ & $+0.06$ & $-0.01$ & $+0.04$ & $+0.06$ & $+0.07$ \\
+0.1  & $-0.05$ & $+0.16$ & $+0.01$ & $+0.16$ & $+0.02$ & $+0.18$ \\
+0.01 & $-0.04$ & $+0.58$ & $-0.01$ & $+0.54$ & $+0.12$ & $+0.69$ \\
 \hline
 \end{tabular}
 \end{table}
@@ -161,7 +173,7 @@ full rank $\sim\!N$ (Table~\ref{tab:bf_rank}); the collapse sharpens with size
 the same story from the other side: toward Wigner $d_{\mathrm{eff}}$ grows for CTNN
 ($\sim\!4\!\to\!10$) and collapses for the conventional backflow
 ($\sim\!6\!\to\!1$). The collapse to \emph{exactly} rank~1 is seed-robust at every size, and the CTNN
-backflow holds full rank $\sim\!N$ throughout ($\sim\!10/20/35$ at $N=6/12/20$).
+backflow holds full rank $\sim\!N$ throughout ($\sim\!10/21/36$ at $N=6/12/20$).
 
 \begin{table}[htbp]\centering
 \caption{Q1b. Backflow displacement rank (participation ratio), seed-averaged.}
@@ -171,9 +183,9 @@ backflow holds full rank $\sim\!N$ throughout ($\sim\!10/20/35$ at $N=6/12/20$).
  & \multicolumn{2}{c|}{$N=6$} & \multicolumn{2}{c|}{$N=12$} & \multicolumn{2}{c}{$N=20$}\\
 $\omega$ & CTNN & conv & CTNN & conv & CTNN & conv \\
 \hline
-1.0  & $8.8$ & $10.4$ & $20.8$ & $22.2$ & $35.1$ & $35.4$ \\
+1.0  & $8.8$ & $10.4$ & $20.8$ & $22.2$ & $36.9$ & $35.4$ \\
 0.1  & $7.7$ & $10.4$ & $18.2$ & $21.7$ & $33.8$ & $37.6$ \\
-0.01 & $9.6$ & $\mathbf{1.0}$ & $20.6$ & $\mathbf{1.0}$ & $35.2$ & $\mathbf{1.0}$ \\
+0.01 & $9.8$ & $\mathbf{1.0}$ & $20.8$ & $\mathbf{1.0}$ & $35.2$ & $\mathbf{1.0}$ \\
 \hline
 \end{tabular}
 \end{table}
@@ -228,6 +240,13 @@ function of $\kappa(S)$, set by the ansatz and the sampling measure, not an intr
 property of the optimiser---which is exactly why an earlier low-$\omega$ VMC sweep
 saw a modest SR advantage that never grew into a decisive win.
 
+One boundary of this claim deserves to be drawn explicitly. The VMC equivalence of
+Adam and SR is established here at $N=2$ and $N=6$; we have not verified that it
+survives to $N=12$ and $N=20$, where the conditioning of the VMC metric could in
+principle worsen with dimension. The mechanism we propose---that $|\Psi|^2$ sampling
+keeps $\kappa(S)$ moderate and so lets Adam's diagonal preconditioning suffice---is a
+prediction there, not yet a measurement, and testing it is the obvious extension.
+
 % =====================================================================
 \section{Q3 --- Paradigm: the sampling measure sets conditioning, variance, and reach}
 \label{sec:kernel-q3}
@@ -279,9 +298,10 @@ regime, the mechanism that limits it, and the wall that remains.
 Every proposal in the standard pipeline is a mixture of \emph{origin-centred} Gaussians
 $q(\mathbf{R})=\frac1K\sum_k \mathcal{N}(\mathbf{R};0,\sigma_{f,k}^2/\omega)$. But as
 $\omega\to0$ the electrons localise into a Wigner molecule on a \emph{shell} far from the
-origin: the classical $N=6$ minimum is the $(1,5)$ configuration (one central electron,
-five on a ring at radius $1.334\,\omega^{-2/3}$), which in oscillator units sits at
-$1.96/2.87/4.22\,\ell$ for $\omega=0.1/0.01/0.001$---moving outward as the trap weakens,
+origin: the classical $N=6$ minimum is the $(1,5)$ configuration---one central electron,
+five on a ring at radius $1.334\,\omega^{-2/3}$~[CITE NEEDED: classical few-electron
+Wigner-molecule ground-state configurations]---which in oscillator units sits at
+$1.96/2.87/4.22\,\ell$ for $\omega=0.1/0.01/0.001$, moving outward as the trap weakens,
 past the reach of a width-$2\ell$ origin Gaussian. The proposal aims where $|\Psi|^2$ has
 no mass; hence the collapse.
 

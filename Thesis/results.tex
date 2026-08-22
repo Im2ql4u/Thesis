@@ -69,7 +69,8 @@ smooths convergence.
 \begin{table}[h!]
 \centering
 \caption{Ground-state energies (Hartree) for two electrons in a harmonic trap
-using \emph{residual-only} training. DMC references as in [Ref.]. Parentheses
+using \emph{residual-only} training. DMC references from
+\cite{Pederiva2000-QD-DMC}. Parentheses
 denote $1\sigma$ on the last digits.}
 \label{tab:Residual}
 \begin{tabular}{c c c c}
@@ -495,6 +496,11 @@ It means the base correlator can robustly learn compact collective coordinates a
 while backflow provides an optional, fine-grained correction channel
 whose character---independent adjustment versus cooperative refinement---adapts
 automatically to the strength of electron--electron correlation.
+These regularities are, once again, features of one well-trained solution rather than
+theorems about every possible one. What the companion chapter supplies is their
+invariant counterpart: the same division of labour priced in energy, where deleting
+the backflow's inter-particle messages costs as much as deleting the displacement
+field entirely (Chapter~\ref{ch:kernel}, \S\ref{sec:kernel-q1b}).
 
 
 \section{Wigner--molecule crossover}
@@ -891,6 +897,17 @@ all coincide within the same narrow $\omega$ window, providing a sharp
 quantitative trajectory from localized Wigner molecule to the denser,
 more weakly ordered liquid
 state~\cite{Egger_1999,Filinov_2001,schweigert1994spectralpropertieschargedparticles,Kong_2002}.
+
+\paragraph{From physics back to method.}
+These structural facts are also what make part of the method possible. The shell
+radius that grows as $\omega^{-2/3}$ and the angular order that sharpens as the trap
+weakens are exactly the quantities a sampler must respect to reach the Wigner regime
+without MCMC. Chapter~\ref{ch:kernel} uses them directly: an origin-centred proposal
+aims where the wavefunction no longer has any mass, whereas a proposal built from the
+measured shell radius and angular order tracks it, and carries MCMC-free training far
+into the correlated regime (\S\ref{sec:kernel-q3-frontier}). What the trained model
+reveals about the physics is, in turn, what lets us train it more cheaply---the
+instrument and the method inform one another.
 
 
 %% ═══════════════════════════════════════════════════════════════════════

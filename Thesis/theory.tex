@@ -955,11 +955,54 @@ where $p_\theta$ denotes the model distribution. The natural gradient update is
 \begin{equation}
   \theta^{(t+1)} = \theta^{(t)} - \eta\, F(\theta^{(t)})^{-1}\,\nabla_\theta \hat{\mathcal{R}}(\theta^{(t)}).
 \end{equation}
-This preconditioning makes updates invariant to reparameterizations of $\theta$ 
-and often improves conditioning of the optimization. In practice, computing 
-$F^{-1}$ exactly is intractable, but approximations (e.g.\ stochastic reconfiguration 
-in variational Monte Carlo, Kronecker-factored approximations in deep learning) 
-make the method viable \cite{Pfau2020-FermiNet}. 
+This preconditioning makes updates invariant to reparameterizations of $\theta$
+and often improves conditioning of the optimization. In practice, computing
+$F^{-1}$ exactly is intractable, but approximations (e.g.\ stochastic reconfiguration
+in variational Monte Carlo, Kronecker-factored approximations in deep learning)
+make the method viable \cite{Pfau2020-FermiNet}.
+
+\subsection{The variational tangent space: geometric tensor, tangent kernel, and
+effective dimension}
+\label{sec:theory-tangent-kernel}
+For a variational quantum state the Fisher metric takes a particularly concrete form,
+and that form is the analytical lens used throughout the results of this thesis. Write
+the per-sample log-derivatives---the \emph{score}---of an ansatz $\Psi_\theta$ as
+\begin{equation}
+  O_{ki} = \frac{\partial \log|\Psi_\theta(\mathbf{x}_k)|}{\partial \theta_i},
+  \qquad k=1,\dots,B,\;\; i=1,\dots,P,
+\end{equation}
+for a batch of $B$ configurations drawn from $|\Psi_\theta|^2$ and $P$ parameters. Its
+centred Gram matrices define two dual objects. The \emph{quantum geometric tensor}
+(QGT), or Fisher metric of the state,
+\begin{equation}
+  S = \tfrac{1}{B}\,O^{\!\top}O \in \mathbb{R}^{P\times P},
+\end{equation}
+is exactly the $F(\theta)$ above specialised to $p_\theta=|\Psi_\theta|^2$; stochastic
+reconfiguration is natural-gradient descent under this metric, $\dot\theta =
+-S^{-1}\nabla_\theta E$~\cite{BeccaSorella2017-QMCBook,StokesEtAl2020-QuantumNaturalGradient}.
+Its Gram dual, the \emph{neural tangent kernel} (NTK)~[CITE NEEDED: Jacot et al.,
+neural tangent kernel],
+\begin{equation}
+  K = O O^{\!\top} \in \mathbb{R}^{B\times B},
+\end{equation}
+shares the nonzero spectrum $\{\lambda_a\}$ of $S$ and is cheaper to diagonalise when
+$B<P$.
+
+Two scalars read from that spectrum organise the analysis. The \emph{condition number}
+$\kappa(S)=\lambda_{\max}/\lambda_{\min}$ measures how anisotropic the tangent metric
+is, and therefore how far a natural-gradient step departs from a Euclidean one---the
+quantity that decides when SR is worth its cost. The \emph{effective dimension}
+\begin{equation}
+  d_{\mathrm{eff}}(S) = \frac{\left(\sum_a \lambda_a\right)^2}{\sum_a \lambda_a^2}
+\end{equation}
+is the participation ratio of the spectrum: it counts how many independent tangent
+directions carry appreciable Fisher weight at the solution, regardless of the raw
+parameter count $P$. A small $d_{\mathrm{eff}}$ means the state is reached along a few
+collective directions; a large one means the same solution is spread across many.
+Because these are properties of the tangent geometry rather than of the parameter
+count, and are stable across seeds and sampling measures for a given ansatz, they let
+us compare architectures, optimisers, and training paradigms on a common footing---
+which is exactly what the second results chapter (Chapter~\ref{ch:kernel}) does.
 
 \subsection{Optimization challenges in deep learning}
 Optimization in deep neural networks poses unique challenges:

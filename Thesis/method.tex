@@ -381,6 +381,42 @@ Implementation details:
 \end{itemize}
 Because our backflow only alters the Slater coordinates (and $W_\theta$ stays on safe features of $\tilde R$), the SR statistics remain well–behaved even when nodes shift.
 
+\section{Sampling paradigms and the weak-form collocation objective}
+\label{sec:method-collocation}
+The pipeline above draws its batches from an analytic proposal rather than a Markov
+chain, and it is worth making the choice of \emph{sampling measure} explicit, because
+the results treat it as a variable in its own right. Two paradigms appear in this
+thesis. In \emph{variational Monte Carlo} (VMC) the batch is drawn from
+$|\Psi_\theta|^2$ itself, usually by a Metropolis chain, so the estimators of the QGT
+and of the gradient share the very metric they are meant to precondition. In
+\emph{collocation} the batch is drawn from a fixed analytic proposal $q(\mathbf R)$ and
+reweighted to $|\Psi_\theta|^2$ by importance weights
+$w_i=|\Psi_\theta(\mathbf R_i)|^2/q(\mathbf R_i)$, so that no Markov chain is required at
+any point in training.
+
+For the collocation objective we use a \emph{weak form}: the local energy $E_L$ enters
+only as a reward in a score-function (REINFORCE) gradient,
+\begin{equation}
+  \nabla_\theta \langle E\rangle
+  = 2\,\mathbb{E}_{\mathbf R\sim|\Psi_\theta|^2}\!\big[(E_L(\mathbf R)-b)\,
+    \nabla_\theta \log|\Psi_\theta(\mathbf R)|\big],
+\end{equation}
+with a variance-reducing baseline $b$, and the Laplacian inside $E_L$ is never
+differentiated through. This is deliberate. Differentiating the Laplacian through a
+backflow-shifted determinant is the source of the nodal instability analysed in
+Appendix~\ref{app:catch22}; the weak form keeps the full local-energy signal as a
+reward while sidestepping that pathology.
+
+The quality of the reweighting is tracked by the effective sample size
+$\mathrm{ESS}=(\sum_i w_i)^2/\sum_i w_i^2$, which collapses toward~1 when $q$ ceases to
+overlap $|\Psi_\theta|^2$---the failure mode that bounds the paradigm at large $N$ and
+weak $\omega$. Where a naive origin-centred proposal fails in the Wigner regime, we
+replace it with a \emph{physics-informed} proposal built from the Wigner shell itself
+(a radial Gaussian at the classical ring radius times an angular distribution over the
+ring electrons), which restores a usable ESS and carries MCMC-free training deep into
+the correlated regime. Whether the two paradigms reach the same \emph{state}, and where
+they diverge, is one of the questions of Chapter~\ref{ch:kernel}.
+
 \section{Units, scaling, and batch construction}
 \label{sec:units-scaling}
 
@@ -656,8 +692,40 @@ to obtain 68\%/95\% CIs. Stability checks include:
 (iii) re-running analyses on independent sampler restarts.
 
 \paragraph{Reproducibility package.}
-All diagnostics consume the saved bundles 
+All diagnostics consume the saved bundles
 $\{\mathbf{X}_{\rm Bohr},\,r,\,g(r)\}$ and the model snapshot,
 and emit JSON/CSV tables with $r_{\rm eff}$, rel-MAE$(k)$ curves, block-power shares,
 $R^2$ probes, near-field shares, $r_{\rm eff}(\Delta x)$, and noBF/BF cosines.
 As in Sec.~\ref{sec:analysis-struct}, we log JSD/$\ell_2$ splits to confirm stationarity.
+
+\section{Tangent-kernel diagnostics}
+\label{sec:analysis-kernel}
+The representation diagnostics above describe the ansatz's \emph{features}; a second
+family, developed with the geometry of \S\ref{sec:theory-tangent-kernel}, describes its
+\emph{tangent space}, and it is these that carry the architecture, optimiser, and
+paradigm comparisons of Chapter~\ref{ch:kernel}. From a batch we assemble the centred
+score matrix $O_{ki}=\partial_{\theta_i}\log|\Psi_\theta(\mathbf x_k)|$ and form the
+quantum geometric tensor $S=O^{\!\top}O/B$ (or, when $B<P$, the tangent kernel
+$K=OO^{\!\top}$, which shares its nonzero spectrum). From the spectrum
+$\{\lambda_a\}$ we report the effective dimension
+$d_{\mathrm{eff}}=(\sum_a\lambda_a)^2/\sum_a\lambda_a^2$ and the condition number
+$\kappa(S)=\lambda_{\max}/\lambda_{\min}$. Cross-architecture comparisons of
+$d_{\mathrm{eff}}$ are made on a \emph{common probe set}---all models scored on the same
+configurations, not on each model's own $|\Psi|^2$---so that the comparison reflects the
+ansatz and not its sampling measure, and we report only participation ratios that have
+converged in the batch size.
+
+To ask whether two trained models are the \emph{same} state rather than merely equal in
+energy, we use a symmetric, importance-sampled squared overlap,
+\[
+  \mathcal{S}^2(A,B)
+  = \big\langle \Psi_B/\Psi_A\big\rangle_{|\Psi_A|^2}\;
+    \big\langle \Psi_A/\Psi_B\big\rangle_{|\Psi_B|^2},
+\]
+each factor evaluated by a log-sum-exp mean over samples of the corresponding state.
+It equals $1$ for identical states, and on the analytic two-electron ground state the
+trained ansatz reproduces $\mathcal{S}^2=1.000000$, which anchors the tooling. These
+quantities---together with the energetic price of ablating a component---are invariant
+to how correlation is divided between the Jastrow and the backflow, and it is on them,
+rather than on the gauge-dependent component ranks of the previous section, that the
+architectural conclusions of Chapter~\ref{ch:kernel} rest.

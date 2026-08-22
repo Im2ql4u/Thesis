@@ -237,9 +237,16 @@ The representation analysis in Sec.~\ref{sec:repr-analysis} reveals a
 surprisingly simple internal organization of the ansatz: the correlator
 $f_{\text{net}}$ lives on a low-dimensional manifold whose leading axes track
 global size and fluctuations of the electron cloud, while the BackflowNet
-implements a high-dimensional but predominantly local correction that becomes
-variationally inert in the deepest Wigner regimes. This mirrors the physical
-picture developed in Sec.~\ref{sec:wigner-molecule}.
+implements a high-dimensional but predominantly local correction whose net energy
+becomes small in the deepest Wigner regimes. This mirrors the physical
+picture developed in Sec.~\ref{sec:wigner-molecule}. One caution, developed at
+length in Chapter~\ref{ch:kernel}, applies throughout what follows: because the
+Jastrow and the backflow are partial substitutes, quantities that live on a single
+component---effective ranks, displacement magnitudes, per-branch loadings---are
+gauge-like, fixed by the training route rather than by the state. They are faithful
+descriptions of \emph{this} trained model, and we read them as such; the conclusions
+that must hold regardless of training route rest instead on the invariants (energy,
+overlap, and ablation).
 
 \paragraph{Low-dimensional correlator manifold.}
 Across all $(N,\omega)$, the entropy effective rank $r_{\rm eff}(Z)$ of the
@@ -297,7 +304,7 @@ to the displacement field, but the \emph{energetic leverage} of backflow is
 concentrated in short-distance configurations where small nodal adjustments
 have a large impact on the local energy.
 
-\paragraph{Deep Wigner limit: backflow switches off.}
+\paragraph{Deep Wigner limit: the backflow's net contribution shrinks.}
 The extreme Wigner points provide a clean limit. For $N{=}2$ at
 $\omega=10^{-3}$, the backflow correction to the energy is
 $\Delta E\sim 10^{-7}$\,Ha with comparable uncertainty, head--PC1 alignment
@@ -319,6 +326,19 @@ the Wigner-molecule regime and the static correlator has adjusted to the
 interaction-dominated landscape, there is simply little left for backflow to
 correct.
 
+Two qualifications keep this from being over-read, both from the tangent-kernel
+analysis of Chapter~\ref{ch:kernel}. First, ``idle'' describes the small \emph{net
+energy} of the message-passing backflow at these points, not the structure a backflow
+must supply: a \emph{conventional}, per-particle backflow does not fall idle so
+gracefully. It collapses to a single collective mode (rank $\to1$) and \emph{loses}
+accuracy at the Wigner crystal, because the residual correlation there is relative, and
+only the inter-particle messages can express it. Second, the ranks and displacement
+magnitudes quoted here are gauge-like: they record how this particular trained model
+divided the labour between Jastrow and backflow, and the statements that survive a
+change of training route are the energetic ones---the ablation price, and the gap
+between a per-particle and a message-passing backflow---not the component ranks
+themselves.
+
 \paragraph{Regime dependence and architectural implications.}
 Taken together, the representation results show a clear regime dependence:
 \begin{itemize}
@@ -329,11 +349,13 @@ Taken together, the representation results show a clear regime dependence:
         capacity to a reasonably wide BackflowNet with rich pairwise inputs,
         while keeping the correlator compact.
   \item In the \emph{deep Wigner} regime (ultra-weak traps such as
-        $\omega=10^{-3}$), the correlator alone captures both the global
-        size/shelling and the relevant near-field structure; backflow
-        becomes nearly variationally idle. Additional expressivity in
-        backflow does not translate into better energies or qualitatively
-        different correlations.
+        $\omega=10^{-3}$), the correlator alone captures most of the global
+        size/shelling and the relevant near-field structure, and the backflow's
+        \emph{net} energy contribution becomes small. Adding \emph{width} to an
+        already message-passing backflow buys little here; the architectural
+        \emph{kind} of backflow, however, still matters---a per-particle network
+        collapses and loses accuracy exactly where a message-passing one holds full
+        rank and does not (Chapter~\ref{ch:kernel}).
 \end{itemize}
 From a design perspective, this suggests that Slater--Jastrow PINNs with a
 small, smooth correlator and moderately wide backflow layers are a natural
@@ -407,6 +429,11 @@ That a simple Gaussian mixture with three width components can maintain
 usable overlap with $|\Psi|^2$ at such extreme aspect ratios
 speaks to the effectiveness of the $1/\omega$ scaling in the proposal
 width and to the robustness of the importance-resampling pipeline.
+The Gaussian mixture is only the first proposal one might try, however. Where it does
+eventually fail---the origin-centred form aims where a deep Wigner molecule no longer
+has any mass---Chapter~\ref{ch:kernel} replaces it with a proposal built from the
+Wigner shell itself and carries the same MCMC-free objective down to $\omega=0.0035$,
+a regime the Gaussian mixture cannot reach.
 
 
 \subsection{Why REINFORCE succeeds where residual losses fail}

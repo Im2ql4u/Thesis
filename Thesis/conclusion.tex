@@ -34,24 +34,45 @@ by these topologies and their combinatorics, with cosine similarities
 $\approx 1$ between reconstructed and global $g(r)$.
 
 On the \emph{representation} side, Sec.~\ref{sec:repr-discussion} shows that
-this rich real-space physics is compressed into a remarkably simple latent
-geometry. The correlator $f_{\text{net}}$ lives on a low-dimensional manifold
-($r_{\rm eff}(Z)\sim 1\text{--}2$) whose leading PCs behave as collective
-coordinates for global size and radial fluctuations, while finer angular and
-topological information resides in conditional distributions on this manifold.
-Backflow, in contrast, realizes a high-dimensional displacement field
-$r_{\rm eff}(\Delta x)\sim 10\text{--}20$ whose energetic leverage is
-concentrated in near-field configurations at intermediate traps and becomes
-negligible deep in the Wigner regime. In the ultra-weak limit, the optimizer
-effectively switches off backflow: the static Slater--Jastrow correlator
-saturates the physics, and the model reduces to a low-rank Wigner-molecule
-ansatz.
+this rich real-space physics is carried by a remarkably simple latent geometry.
+The correlator $f_{\text{net}}$ lives on a low-dimensional manifold
+($r_{\rm eff}(Z)\sim 1\text{--}2$) whose leading axes behave as collective
+coordinates for global size and radial fluctuations, with finer angular and
+topological information held in conditional distributions on that manifold; the
+identity of the leading axis shifts across regimes in a
+$\phi\leftrightarrow\psi$ recomposition rather than by growing in dimension.
+The backflow, by contrast, realises a high-dimensional displacement field whose
+energetic leverage sits in near-field configurations at intermediate traps. One
+earlier reading of the weak-trap limit---that the optimiser simply ``switches
+backflow off''---proves to be architecture-specific, and is corrected here: it is the
+\emph{conventional}, per-particle backflow that collapses to a single collective mode
+(rank $\to 1$) at the Wigner crystal, having no way to express relative positioning,
+whereas the message-passing backflow retains full rank and keeps its accuracy there
+(Chapter~\ref{ch:kernel}). How these internal numbers should be read is itself a
+result: quantities split between the Jastrow and the backflow are gauge-like, fixed by
+the training route rather than the state, so the load-bearing conclusions rest on the
+invariants---energy, overlap, and ablation---not on the component ranks themselves.
 
-Taken together, these findings support a physically meaningful decomposition
-of the neural ansatz into (i) a compact, smooth correlator that plays the
-role of a learned set of collective coordinates, and (ii) a local,
-many-body backflow channel that only activates where nodal refinements are
-energetically relevant. The quantum-dot results thus provide both a stringent
-validation of the method and a template for applying the same architecture to
-more complex finite fermion systems, where similar trade-offs between global
-structure, local correlations and representation rank are expected to arise.
+On the \emph{method} side, reading the ansatz through its tangent kernel
+(Chapter~\ref{ch:kernel}) connects these observations to the design choices that
+produced them. Message passing earns its cost by supplying a relational channel: it
+compresses the correlator onto fewer effective tangent directions and sustains a
+full-rank backflow where a separable network cannot, and at the Wigner crystal the
+inter-particle messages account for essentially the entire backflow contribution.
+Natural-gradient (SR) preconditioning helps in proportion to how ill-conditioned the
+tangent metric is---little for $|\Psi|^2$-sampled VMC, decisively for the collocation
+objective---and the same conditioning story explains why an MCMC-free,
+importance-sampled collocation scheme equals VMC when its sampling is healthy and, with
+a proposal built from the Wigner shell itself, reaches a genuine Wigner molecule at
+$\omega=0.0035$ without any Monte-Carlo sampling during training.
+
+Taken together, these findings converge on a single theme. What makes the difference
+across architecture, optimiser, and training paradigm is not raw capacity but alignment
+with the low-dimensional, physically collective structure of the problem---the same
+structure that, in real space, \emph{is} the Wigner molecule. A compact correlator
+supplies learned collective coordinates; a message-passing backflow supplies the
+relational corrections a per-particle network cannot; natural gradients and $|\Psi|^2$
+sampling keep the optimisation pointed along those directions. The quantum-dot results
+thus provide both a stringent validation of the method and a template for the same
+ideas in more complex finite fermion systems, where the trade-offs between global
+structure, local correlation, and representation are expected to recur.

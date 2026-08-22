@@ -3,34 +3,42 @@
 \chapter{Quantum Dots}
 \label{ch:results}
 
-This chapter presents the central results of the thesis.
-We apply the CTNN-augmented Slater--Jastrow ansatz developed in
-Chapter~\ref{ch:trial_wavefunction} to two-dimensional harmonic quantum
-dots---a numerically demanding benchmark due to the Coulomb singularity at
-short range, the second-order derivatives in the kinetic energy, and the
-wide dynamic range spanned by the confinement parameter.
-We study $N\in\{2,6,12,20\}$ electrons across trap frequencies
-$\omega\in\{1.0,\,0.5,\,0.1,\,0.01,\,0.001\}$, covering three decades of
-correlation strength.
+This chapter is about what the trained wavefunction \emph{is}, and what it lets us
+see. It is one half of a pair. Here we ask how accurately the ansatz of
+Chapter~\ref{ch:trial_wavefunction} solves the two-dimensional harmonic quantum dot,
+what its internal representation looks like, and what it reveals about the electrons
+themselves; the companion chapter (Chapter~\ref{ch:kernel}) asks the complementary
+question of \emph{why} the architecture, the optimiser, and the training paradigm
+behave as they do. The two chapters share one object and one aim: not merely to
+compute the ground state, but to understand it.
 
-The chapter is organized around three questions.
-First, \emph{how accurate is the method?}
-Section~\ref{sec:energy-overview} benchmarks variational energies against
-diffusion Monte Carlo (DMC) references, showing that the compact
-Slater--Jastrow PINN with soft-core pair features and an explicit analytic
-cusp achieves DMC-level accuracy across the full grid.
-Second, \emph{what does the network learn?}
-Section~\ref{sec:repr-analysis} dissects the internal representations of
-the trained wavefunction, revealing a remarkably low-dimensional correlator
-manifold whose content---but not dimensionality---reorganises across
-physical regimes, and a complementary backflow field that partitions labor
-with the correlator in a regime-dependent way.
-Third, \emph{can the learned wavefunction serve as a scientific instrument?}
-Section~\ref{sec:wigner-molecule} uses the trained models to map out the
-Wigner--molecule crossover in real space, establishing shell topologies,
-angular order, and melting trajectories from $N{=}2$ up to $N{=}20$ at
-confinements where electrons localize into geometric arrangements that
-minimize Coulomb repulsion while balancing the trap potential.
+The quantum dot is an unforgiving benchmark, and it is worth being clear about why.
+The Coulomb interaction is singular where two electrons meet; the kinetic energy
+carries second derivatives that magnify any error in the wavefunction's curvature;
+and the confinement $\omega$ sweeps the physics across three decades of correlation
+strength---from a compact, kinetic-energy-dominated droplet at $\omega=1$ to a
+dilute Wigner molecule at $\omega=10^{-3}$, in which the electrons settle tens of
+oscillator lengths apart and the Coulomb repulsion, not the trap, dictates the
+structure. We study $N\in\{2,6,12,20\}$ electrons across
+$\omega\in\{1.0,\,0.5,\,0.1,\,0.01,\,0.001\}$.
+
+Three questions organise the chapter. \emph{First, how accurate is the method?}
+Section~\ref{sec:energy-overview} benchmarks the variational energies against
+diffusion Monte Carlo (DMC) wherever a reference exists---for $\omega\ge0.1$---and is
+candid that below it no DMC benchmark is available for $N\ge6$, so the strongly
+correlated energies rest on internal variational consistency rather than an external
+ground truth. \emph{Second, what does the network learn?}
+Section~\ref{sec:repr-analysis} dissects the trained wavefunction's internal
+representation---a strikingly low-dimensional correlator whose \emph{content}, but
+not its dimensionality, reorganises across regimes, alongside a backflow field that
+shares the work in a regime-dependent way. One caveat, carried over from the
+companion chapter and stated here at the outset, governs how these internal
+quantities may be read: several of them are gauge-like, fixed by the training route
+rather than by the state, and we take care to separate those from the findings that
+are invariant. \emph{Third, can the learned wavefunction serve as a scientific
+instrument?} Section~\ref{sec:wigner-molecule} turns the trained models on the
+physics itself, mapping the Wigner-molecule crossover in real space---shell
+topologies, angular order, and melting---from $N{=}2$ up to $N{=}20$.
 
 \section{Training protocol and energy overview}
 \label{sec:energy-overview}
@@ -87,9 +95,12 @@ Fig.~\ref{fig:rel_error_vs_omega}).
 \begin{table}[htbp]
   \centering
   \caption{Residual-based pretraining + SR tail. Reference DMC and our PINN+BF
-  ground-state energies (Hartree) for selected $(N,\omega)$. Parentheses denote
-  $1\sigma$ on the last digit(s). The final column is the relative deviation
-  from DMC (\%).}
+  and PINN+CTNN ground-state energies (Hartree) for selected $(N,\omega)$.
+  Parentheses denote $1\sigma$ on the last digit(s); the \%\,err columns are
+  relative deviations from the DMC reference. A dash in the reference column marks
+  $(N,\omega)$ for which no published DMC value exists (all $\omega=0.001$, and
+  $\omega=0.01$ for $N\ge6$); the relative-error columns are correspondingly blank
+  there, as no external ground truth is available to score against.}
   \label{tab:energies}
   \begin{threeparttable}
     \begin{tabular}{c|c|c|cc|cc}
@@ -138,18 +149,21 @@ Fig.~\ref{fig:rel_error_vs_omega}).
 \end{figure}
 
 \paragraph{Summary.}
-A compact Slater--Jastrow PINN with soft-core pair features and an explicit
-analytic cusp achieves DMC-level accuracy for $N{=}2$ across all $\omega$, and for
-$N\!\in\!\{6,12\}$ reaches small, systematic relative deviations (roughly
-$0.01$–$0.08\%$ across the grid; Fig.~\ref{fig:rel_error_vs_omega}). In terms
-of sample efficiency, the SR tail uses on the order of $10^3$–$3\times10^3$
-iterations with $\sim 3{\times}10^3$ samples each; this is \emph{orders of
-magnitude fewer} training samples than some earlier neural approaches to
-quantum dots (see \S\ref{sec:energy-discussion} for a quantitative comparison).
-We attribute the stability to conditioning choices (trap-unit scaling,
-soft-core features with $ds/dr\!\to\!0$ at coalescence, and an explicit cusp),
-which keep both gradients and Laplacians numerically tame from shallow to tight
-traps.
+The pattern is clean wherever we can check it. For $N{=}2$ the ansatz reaches DMC
+accuracy at every $\omega$ for which a DMC number exists, and for $N\!\in\!\{6,12\}$
+the relative deviation stays within roughly $0.01$–$0.08\%$ across the benchmarked
+range ($\omega\ge0.1$; Fig.~\ref{fig:rel_error_vs_omega}). Below $\omega=0.1$ there
+is no DMC reference for $N\ge6$, and we make no claim of absolute accuracy there;
+what we can say is that the energies join smoothly onto the benchmarked regime and,
+in the deep-Wigner limit, follow the physical energy scaling derived in
+\S\ref{sec:wigner-energy}. The efficiency is as striking as the accuracy: the SR
+tail converges in $10^3$–$3\times10^3$ iterations of $\sim 3{\times}10^3$ samples
+each---far fewer training samples than earlier neural approaches to quantum dots have
+reported~[CITE NEEDED: sample counts from prior NQS quantum-dot studies, for the
+comparison]. We attribute this stability to a small set of conditioning choices---
+trap-unit scaling, soft-core pair features with $ds/dr\!\to\!0$ at coalescence, and
+an explicit analytic cusp---each of which keeps the gradients and the Laplacian
+numerically tame from the shallowest trap to the tightest.
 \textbf{\textcolor{red}{[TODO: Add convergence traces and ablation figures
 (activation, initialization, SR settings, backflow on/off)
 to an appendix and reference it here.]}}
@@ -883,11 +897,33 @@ Third, collocation exposes the optimisation geometry more
 directly, making it a useful laboratory for understanding which
 architectural and sampling choices are load-bearing.
 
-The key finding is that collocation training with the same
-Slater--Jastrow--backflow ansatz achieves near-DMC accuracy for
-$N\in\{6,12\}$ and establishes preliminary but improving results
-for $N{=}20$, while revealing a rich landscape of what works and
-what fails across regimes.
+Two ways of posing the collocation problem must be separated at the outset,
+because they behave very differently. The \emph{strong form} asks the
+wavefunction to satisfy the local Schr\"odinger equation pointwise: it
+minimises the variance of the local energy $E_L$, whose evaluation requires
+the Laplacian. The \emph{weak form} instead uses a score-function (REINFORCE)
+gradient in which the Laplacian enters only as a reward and is never
+differentiated through. The distinction is not cosmetic.
+Appendix~\ref{app:catch22} shows that the strong form meets a structural
+obstruction as soon as it is asked to train backflow: the learning signal
+lives at the nodal surface, but $E_L$ diverges there for any imperfect node,
+so no combination of sampling, loss, or preconditioning breaks an accuracy
+floor of $\sim\!0.3\%$---and that floor is set by the Jastrow alone, with the
+backflow contributing almost nothing. This is a property of the strong-form
+objective, not of the method as a whole; it is precisely why the experiments
+in this section use the weak form throughout, and why the $\sim\!0.3\%$
+number should not be read as the accuracy of collocation training.
+
+Read in that light, the finding is clean. The \emph{weak-form} objective, on
+the same Slater--Jastrow--backflow ansatz, recovers the variational energy to
+within DMC uncertainty at strong confinement and to a few tenths of a percent
+of our variational gold standard well into the correlated regime, for
+$N\in\{6,12\}$; $N{=}20$ remains harder. And in the deep-Wigner limit a
+physics-informed proposal carries the same MCMC-free objective all the way to
+$\omega=0.0035$ (Chapter~\ref{ch:kernel},
+\S\ref{sec:kernel-q3-frontier})---far past the point where a naive proposal
+collapses. What follows is an honest account of what makes the weak form
+work, and of where it, too, eventually breaks.
 
 
 \subsection{Training methodology}
@@ -1136,15 +1172,21 @@ training-time importance sampling.
   campaign was conducted for $N{=}12$).
   All values are VMC-evaluated (${\geq}20\text{k}$ samples) at the best
   checkpoint.
-  DMC references as in Table~\ref{tab:energies}; entries without DMC data
-  are marked ``---''.
+  The reference column is the DMC energy where one exists and, for
+  $(N,\omega)$ with no published DMC value ($N{=}6$ at $\omega\le0.01$;
+  see Table~\ref{tab:energies}), our own converged variational (PINN+CTNN)
+  energy; the corresponding \%\,err is then a measure of internal
+  consistency, not of absolute accuracy. The tabulated $N{=}6$ low-$\omega$
+  errors are the \emph{reliability-campaign} bests and are deliberately
+  conservative: the best single runs we observed reached $+0.06$--$0.13\%$ at
+  $\omega\le0.1$ (\S\ref{sec:colloc-reliability}).
   Architecture: J~=~Jastrow-only, BF~=~backflow+Jastrow.
   Parentheses denote $1\sigma$ statistical uncertainty on the last
   digit(s).}
   \label{tab:collocation}
   \begin{tabular}{c c c c c c c}
     \toprule
-    $N$ & $\omega$ & DMC (Ref.) & Multi-stage & Campaign (best) & \%\,err & Arch \\
+    $N$ & $\omega$ & Reference & Multi-stage & Campaign (best) & \%\,err & Arch \\
     \midrule
     6 & 1.0   & $20.15932(8)$  & $20.1613(23)$  & $20.1620(56)$  & $+0.013$ & BF \\
       & 0.5   & $11.78484(6)$  & $11.7847(20)$  & $11.7850(48)$  & $+0.002$ & BF \\
@@ -1163,15 +1205,17 @@ training-time importance sampling.
   \end{tabular}
 \end{table}
 
-\paragraph{$N{=}6$: near-DMC accuracy across all~$\omega$.}
-For six electrons, collocation training achieves DMC-level accuracy
-at $\omega\ge 0.5$ (errors $\lesssim 0.01\%$, within statistical
-uncertainty of DMC) and remains within $0.1$--$0.25\%$ of DMC even
-at the most extreme confinements $\omega\in\{0.01,0.001\}$ where
-electrons are separated by ${\sim}30$--$100$ oscillator lengths.
-The best result at $\omega{=}1.0$ is
-$E{=}20.1613\pm 0.0023$, corresponding to an error of $+0.009\%$,
-which is essentially indistinguishable from DMC.
+\paragraph{$N{=}6$: near-reference accuracy across all~$\omega$.}
+For six electrons, collocation training reaches DMC-level accuracy
+where DMC exists---at $\omega\ge 0.5$ the errors are $\lesssim 0.01\%$,
+inside the DMC statistical uncertainty. At the most extreme confinements,
+$\omega\in\{0.01,0.001\}$, where the electrons are separated by
+${\sim}30$--$100$ oscillator lengths and no DMC reference is available,
+the energies stay within $0.1$--$0.25\%$ of our converged variational gold
+standard; this is agreement between two independent training paradigms on
+the same ansatz, not a certificate of absolute accuracy. The best result at
+$\omega{=}1.0$ is $E{=}20.1613\pm 0.0023$, an error of $+0.009\%$,
+indistinguishable from DMC.
 
 These results are achieved entirely without MCMC during training.
 The only MCMC appears in the final heavy evaluation, where it

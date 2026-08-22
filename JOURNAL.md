@@ -1613,3 +1613,19 @@ Threads 3 (omega-robust warm-start for deep MCMC-free collocation) and 4 (N=12/2
 via the ring proposal) remain: genuine new research, coupled (4 needs 3), and already CHARACTERISED (the
 warm-start wall is documented). Not diminishing-returns proposal tuning but a distinct architecture
 thread (an ell-invariant / coordinate-rescaled warm-start).
+
+### [2026-08-19b] — Q1 CLOSED across three sizes at Wigner: N=20 omega=0.01 done
+
+N=20 at omega=0.01 (Wigner) completed, warm-started from omega=0.1. Energies (ref 6.14645):
+CTNN +0.09%/+0.16% (seed-avg +0.12%), conv +0.69%/+0.69% -- a ~6x gap, same pattern as N=6/12.
+Backflow rank (participation ratio of Delta_x), both seeds:
+  N=20 conv w=0.01: BFrank = 1.0, 1.0   (collapsed to a single collective mode)
+  N=20 ctnn w=0.01: BFrank = 35.3, 35.1 (holds full rank ~N)
+So the rank collapse is now confirmed at ALL THREE sizes at true Wigner: conv -> exactly 1.0 at
+N=6/12/20, while CTNN holds ~10/20/35. Seed-robust. This makes the Q1 rank-collapse claim airtight.
+results_kernel.tex tables (bf_energies, bf_rank) updated with the N=20 omega=0.01 rows; the "N=20 only
+to omega=0.1" caveats removed.
+
+Completeness status: Q1 CLOSED (3 sizes at Wigner). Q2 answered. Q3 answered + frontier to omega=0.0035
+with full diagnosis. Thread 2 (thesis-checkpoint) localised (confirmation-only). Threads 3/4 (omega-robust
+warm-start; N=12/20 deep collocation) = scoped future research.

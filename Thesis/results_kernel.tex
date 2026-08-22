@@ -133,12 +133,11 @@ fix everything but the backflow architecture (conventional per-particle vs.\ CTN
 and train both to a Woodbury-SR endpoint. At $\omega=1$ both reach reference
 quality, but they diverge as the trap weakens (Table~\ref{tab:bf_energies}): the
 CTNN backflow holds $\sim\!0.02\%$ error across all $N,\omega$, while the
-conventional backflow degrades to $+0.5\%$ at $N=6,\omega=0.01$ and $\sim\!10\times$
-the CTNN error already at $N=20,\omega=0.1$.
+conventional backflow degrades to $+0.5\%$ at $N=6,\omega=0.01$ and $\sim\!6\times$
+the CTNN error at $N=20,\omega=0.01$ ($+0.69\%$ vs.\ $+0.12\%$).
 
 \begin{table}[htbp]\centering
-\caption{Q1b. Relative energy error (\%), seed-averaged. ($N=20$ run only to
-$\omega=0.1$.)}
+\caption{Q1b. Relative energy error (\%), seed-averaged.}
 \label{tab:bf_energies}
 \begin{tabular}{l|cc|cc|cc}
 \hline
@@ -147,7 +146,7 @@ $\omega$ & CTNN & conv & CTNN & conv & CTNN & conv \\
 \hline
 1.0  & $-0.03$ & $+0.06$ & $-0.02$ & $+0.06$ & $+0.03$ & $+0.05$ \\
 0.1  & $-0.04$ & $+0.19$ & $+0.01$ & $+0.16$ & $+0.00$ & $+0.18$ \\
-0.01 & $-0.04$ & $+0.56$ & $-0.00$ & $+0.54$ & \multicolumn{2}{c}{---}\\
+0.01 & $-0.04$ & $+0.56$ & $-0.00$ & $+0.54$ & $+0.12$ & $+0.69$ \\
 \hline
 \end{tabular}
 \end{table}
@@ -158,24 +157,23 @@ independent directions the backflow moves electrons along). At large $\omega$ bo
 architectures use $\sim\!N$ modes. Toward Wigner the \emph{conventional} backflow
 collapses to a single collective mode (rank $\to1$), while the CTNN backflow retains
 full rank $\sim\!N$ (Table~\ref{tab:bf_rank}); the collapse sharpens with size
-($10\!\to\!1$ at $N=6$ becomes $22\!\to\!1$ at $N=12$). The tangent dimension tells
+($10\!\to\!1$ at $N=6$, $22\!\to\!1$ at $N=12$, $35\!\to\!1$ at $N=20$). The tangent dimension tells
 the same story from the other side: toward Wigner $d_{\mathrm{eff}}$ grows for CTNN
 ($\sim\!4\!\to\!10$) and collapses for the conventional backflow
-($\sim\!6\!\to\!1$). ($N=20$, run only to $\omega=0.1$, has not reached the collapse
-frequency; both hold rank $\sim\!36$, consistent with $N=6,12$ where the
-conventional rank is intact at $\omega=0.1$ and collapses only at $\omega=0.01$.)
+($\sim\!6\!\to\!1$). The collapse to \emph{exactly} rank~1 is seed-robust at every size, and the CTNN
+backflow holds full rank $\sim\!N$ throughout ($\sim\!10/20/35$ at $N=6/12/20$).
 
 \begin{table}[htbp]\centering
 \caption{Q1b. Backflow displacement rank (participation ratio), seed-averaged.}
 \label{tab:bf_rank}
-\begin{tabular}{l|cc|cc}
+\begin{tabular}{l|cc|cc|cc}
 \hline
- & \multicolumn{2}{c|}{$N=6$} & \multicolumn{2}{c}{$N=12$}\\
-$\omega$ & CTNN & conv & CTNN & conv \\
+ & \multicolumn{2}{c|}{$N=6$} & \multicolumn{2}{c|}{$N=12$} & \multicolumn{2}{c}{$N=20$}\\
+$\omega$ & CTNN & conv & CTNN & conv & CTNN & conv \\
 \hline
-1.0  & $8.8$ & $10.4$ & $20.8$ & $22.2$ \\
-0.1  & $7.7$ & $10.4$ & $18.2$ & $21.7$ \\
-0.01 & $9.6$ & $\mathbf{1.0}$ & $20.6$ & $\mathbf{1.0}$ \\
+1.0  & $8.8$ & $10.4$ & $20.8$ & $22.2$ & $35.1$ & $35.4$ \\
+0.1  & $7.7$ & $10.4$ & $18.2$ & $21.7$ & $33.8$ & $37.6$ \\
+0.01 & $9.6$ & $\mathbf{1.0}$ & $20.6$ & $\mathbf{1.0}$ & $35.2$ & $\mathbf{1.0}$ \\
 \hline
 \end{tabular}
 \end{table}

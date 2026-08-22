@@ -97,31 +97,46 @@ it is not well understood how modern neural ansätze internally represent these
 states.
 
 \paragraph{Scope and questions.}
-In this thesis, we revisit two-dimensional harmonic quantum dots using a
-Slater–Jastrow(+Backflow) ansatz implemented as a physics-informed neural
-network. The design is intended to be \emph{safe by construction} for
-Laplacian-based objectives: coordinates are scaled to trap units
-($\tilde R=\sqrt{\omega}R$), learned pair features are soft-core (avoiding
-spurious $1/r$ behaviour in derivatives), and the electron–electron cusp is
-enforced analytically rather than learned. A compact backflow network provides
-smooth nodal deformations on top of a Slater determinant built from harmonic
-oscillator orbitals.
+In this thesis we revisit two-dimensional harmonic quantum dots with a
+Slater–Jastrow(+backflow) ansatz implemented as a physics-informed neural network.
+The design is meant to be \emph{safe by construction} for Laplacian-based objectives:
+coordinates are scaled to trap units ($\tilde R=\sqrt{\omega}R$), learned pair
+features are soft-core (avoiding spurious $1/r$ behaviour in derivatives), and the
+electron–electron cusp is enforced analytically rather than learned. On top of a
+Slater determinant of harmonic-oscillator orbitals, two learnable objects carry the
+correlation: a Jastrow correlator, which reshapes the amplitude, and a coordinate
+backflow, which reshapes the nodes. Each can be built either as a \emph{separable}
+network that treats every particle independently, or as a \emph{message-passing}
+network in which the particles exchange learned messages before a quantity is read
+out.
 
-Within this setup, we focus on three questions:
+Once such an ansatz reaches reference accuracy—which, as we will see, a surprisingly
+compact one does—the questions worth a thesis are \emph{why} its parts behave as they
+do, and what it can tell us about the electrons. We pursue four. The first three we
+read through a single lens: the geometry of the wavefunction's log-derivatives,
+captured by the quantum geometric tensor and the neural tangent kernel.
 \begin{enumerate}
-  \item How much neural capacity is actually required once antisymmetry, cusp
-        conditions and basic conditioning are implemented analytically?
-        In particular, can a relatively small, well-conditioned network match
-        DMC energies across particle numbers and trap strengths?
-  \item What additional structure does backflow learn on top of a good
-        Slater–Jastrow correlator? Does it mainly act as a local, many-body
-        correction near electron–electron encounters, or does it significantly
-        reshape the global structure of the dot?
-  \item Can we extract detailed Wigner physics—shell occupancies, bond
-        order, and stiffness—from $|\Psi|^2$ samples with minimal modelling
-        bias, and relate these to the latent representations learned by the
-        network?
+  \item \textbf{Architecture.} What does message passing buy that a separable network
+        cannot? We find it supplies a \emph{relational channel}—a way to condition
+        each particle on where the others are—that compresses the correlator onto
+        fewer effective directions and keeps the backflow from collapsing to a single
+        collective mode in the strongly correlated limit.
+  \item \textbf{Optimiser.} When does natural-gradient (stochastic reconfiguration)
+        preconditioning actually change the result? Its value tracks the conditioning
+        of the tangent metric: negligible for well-conditioned, $|\Psi|^2$-sampled
+        VMC, decisive for the ill-conditioned collocation objective.
+  \item \textbf{Paradigm.} Can an accurate wavefunction be trained \emph{without}
+        Markov-chain Monte Carlo, using importance-sampled collocation instead—and how
+        far into the correlated regime does that reach before the sampling loses the
+        target?
+  \item \textbf{Physics.} Can the trained wavefunction serve as a scientific
+        instrument for Wigner-molecule physics—shell topologies, angular order, and
+        melting—and does its internal representation reflect that physics?
 \end{enumerate}
+These are not four separate stories. The same low-dimensional, physically collective
+structure that message passing captures is what natural gradients exploit, what
+$|\Psi|^2$ sampling stays aligned with, and what ultimately crystallises into the
+Wigner molecule itself.
 
 \paragraph{Diagnostics and relation to prior work.}
 To address these questions, we go beyond total energies. Alongside DMC
@@ -141,7 +156,11 @@ benchmarks, we use:
         effective ranks of correlator and backflow features, principal
         component ablations, and simple linear probes that relate latent axes
         to physical observables (global size, radial variance, near-origin
-        mass).
+        mass);
+  \item tangent-kernel diagnostics of the ansatz itself: the quantum geometric
+        tensor and neural tangent kernel, the effective dimension of the
+        variational tangent space, and symmetric state overlaps used to compare
+        architectures and training paradigms on an invariant footing.
 \end{itemize}
 All of these are applied as post-processing to $|\Psi|^2$ samples, so the same
 analysis could, in principle, be used to study classical, quantum-chemical, or
@@ -150,52 +169,67 @@ other neural wavefunctions on the same footing.
 \paragraph{Main contributions.}
 The main contributions of this thesis are:
 \begin{enumerate}
-  \item \textbf{Compact, conditioned accuracy.}  
-        A small Slater–Jastrow(+Backflow) ansatz in trap units achieves
-        DMC-level energies for $N{=}2$ and maintains
+  \item \textbf{Compact, conditioned accuracy.}
+        A small Slater–Jastrow(+backflow) ansatz in trap units reaches
+        DMC-level energies for $N{=}2$ and holds
         $\sim 10^{-2}\text{--}10^{-1}\%$ relative errors for
-        $N\in\{6,12\}$ across $\omega\in\{0.1,0.5,1.0\}$, while extrapolating
-        smoothly to ultra-weak traps ($\omega=10^{-3}$). The results indicate
-        that conditioning (trap units, analytic cusp, safe pair features) is
-        at least as important as network size for stability and accuracy in
-        these dots.
-  \item \textbf{Topology-resolved Wigner diagnostics.}  
-        Across $\omega\in[1,10^{-3}]$ we quantify the Wigner crossover using
-        two-shell probabilities and inner-ring occupancy histograms,
-        shell-mixture reconstructions of $g(r)$ with cosine similarity
-        $0.989$–$1.000$ to global data, and sector-resolved bond order and
-        Lindemann indices. At $\omega=10^{-3}$ the $N{=}6$ dot forms a
-        persistent single-ring Wigner molecule with a clear
-        $(1,5)\leftrightarrow(0,6)$ near-degeneracy, while the $N{=}12$ dot
-        forms a two-shell molecule with a commensurate $(3,9)$ split as the
-        dominant topology. These results provide quantitative, sector-resolved
-        benchmarks that complement classical and quantum studies of parabolic
+        $N\in\{6,12,20\}$ across $\omega\in\{0.1,0.5,1.0\}$, extrapolating
+        smoothly to ultra-weak traps ($\omega=10^{-3}$). Conditioning—trap
+        units, analytic cusp, safe pair features—matters at least as much as
+        network size for stability and accuracy in these dots.
+  \item \textbf{Message passing as a relational channel, made precise by the
+        tangent kernel.}
+        Read through the quantum geometric tensor, a message-passing correlator
+        represents the ground state in roughly half as many effective tangent
+        directions as a separable one, and a message-passing backflow retains full
+        rank exactly where a conventional, per-particle backflow collapses to a single
+        collective mode at the Wigner crystal and loses accuracy. The two effects are
+        one mechanism—a relational channel the physics requires—and both are invisible
+        in the total energy until weak confinement turns the geometric deficit into an
+        energetic one.
+  \item \textbf{Optimiser and paradigm, governed by the same geometry.}
+        Natural-gradient (SR) preconditioning helps precisely when the tangent metric
+        is ill-conditioned: negligibly for $|\Psi|^2$-VMC, decisively for collocation.
+        And an MCMC-free, importance-sampled collocation objective matches VMC when the
+        sampling is healthy and, with a physics-informed proposal built from the Wigner
+        shell, reaches a genuine Wigner molecule at $\omega=0.0035$ with no Monte-Carlo
+        sampling during training.
+  \item \textbf{Topology-resolved Wigner diagnostics.}
+        Across $\omega\in[1,10^{-3}]$ we quantify the crossover using two-shell
+        probabilities and inner-ring occupancy histograms, shell-mixture
+        reconstructions of $g(r)$ with cosine similarity $0.989$–$1.000$ to global
+        data, and sector-resolved bond order and Lindemann indices. At
+        $\omega=10^{-3}$ the $N{=}6$ dot forms a persistent single-ring Wigner molecule
+        with a clear $(1,5)\leftrightarrow(0,6)$ near-degeneracy, while the $N{=}12$ dot
+        forms a two-shell molecule with a commensurate $(3,9)$ split as the dominant
+        topology, complementing classical and quantum studies of parabolic
         dots~\cite{Egger_1999,Kong_2002,schweigert1994spectralpropertieschargedparticles,Filinov_2001}.
-  \item \textbf{Representation insight.}  
-        We show that the correlator features live on a low-dimensional
-        manifold (typically one to three principal directions) whose leading
-        axes act as collective coordinates for global size and radial
-        fluctuations, while finer angular structure is encoded conditionally
-        on shell topology. Backflow, by contrast, spans many local modes: its
-        entropy rank is higher, linear probes to global observables are
-        essentially null, and its energetic effect is concentrated in
-        near-field configurations at intermediate traps. Deep in the Wigner
-        regime, the optimizer effectively switches backflow off, and the model
-        reduces to a low-rank Wigner-molecule ansatz dominated by the
-        Slater–Jastrow correlator.
+  \item \textbf{Representation insight, with its gauge honestly drawn.}
+        The correlator features occupy a low-dimensional manifold (one to three
+        principal directions) whose leading axes act as collective coordinates for
+        global size and radial fluctuations, with a $\phi\leftrightarrow\psi$
+        recomposition across regimes, while backflow spans many local modes. We take
+        care to separate the parts of this picture that are \emph{gauge-like}—fixed by
+        how correlation is divided between the Jastrow and the backflow, two
+        substitutable channels—from the invariants (energy, state overlap, and the
+        energetic price of ablating a component) on which the architectural conclusions
+        actually rest.
 \end{enumerate}
 
 \paragraph{Thesis structure.}
-The remainder of the thesis is organised as follows. The next chapter
-introduces the theoretical background: the many-body Schrödinger equation in
-harmonic traps, basic properties of two-dimensional quantum dots, and the
-notion of Wigner molecules. A subsequent chapter reviews the machine-learning
-tools used here, with emphasis on neural function approximators,
-physics-informed training objectives and neural quantum states. We then
-present the concrete Slater–Jastrow(+Backflow) PINN ansatz, the optimization
-pipeline (residual-based pretraining followed by stochastic reconfiguration),
-and the numerical diagnostics used throughout. The central results chapter
-reports energy benchmarks, Wigner-molecule diagnostics and representation
-analyses for $N{=}2,6,12$ across trap strengths. Finally, the concluding
-chapter summarizes the main findings, discusses limitations, and outlines
-possible extensions to larger systems and more general many-body settings.
+The remainder of the thesis is organised as follows. The next chapter sets out the
+theoretical background: the many-body Schrödinger equation in harmonic traps, the
+electronic-structure methods we benchmark against, the physics of Wigner molecules,
+and the machine-learning tools used here—neural function approximators,
+physics-informed objectives, neural quantum states, and the tangent-kernel geometry
+(quantum geometric tensor and neural tangent kernel) that serves as the analytical
+lens for the results. A method chapter then presents the concrete
+Slater–Jastrow(+backflow) PINN ansatz in its separable and message-passing forms, the
+optimisation pipeline (residual pretraining, stochastic reconfiguration, and
+importance-sampled collocation), and the diagnostics used throughout. The results are
+given in two chapters. The first treats accuracy, the learned representation, and the
+Wigner-molecule physics for $N\in\{2,6,12,20\}$; the second reads the architecture,
+optimiser, and training paradigm through the tangent kernel. A discussion and a
+concluding chapter follow, and the appendices develop the conditioning theory
+(Laplacian and Coulomb) and the collocation–backflow catch-22 that motivated the
+weak-form objective.

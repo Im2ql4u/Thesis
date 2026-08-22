@@ -31,7 +31,7 @@ The comparison between PINN and PINN+BF in Table~\ref{tab:Residual} also
 confirms that backflow is \emph{not necessary} to reach DMC accuracy for
 two electrons. Energies with and without backflow agree within error bars
 at all traps, and the only visible effect of backflow in this case is a
-mild variance reduction and smoother optimization in shallow traps. For
+mild variance reduction and smoother optimisation in shallow traps. For
 $N{=}2$ the nodal structure is adequately captured by the Slater--Jastrow
 correlator alone.
 
@@ -54,7 +54,7 @@ Second, the same architecture and training protocol are used across all
 $(N,\omega)$, aside from trivial scaling in trap units. The fact that a
 single Slater--Jastrow+backflow ansatz maintains sub-$0.1\%$ accuracy
 across this grid suggests that the chosen combination of (i) trap-unit
-normalization, (ii) soft-core pair features, and (iii) an explicit analytic
+normalisation, (ii) soft-core pair features, and (iii) an explicit analytic
 cusp is robust with respect to both particle number and confinement.
 
 \paragraph{Ultra-weak traps and extrapolation to $\omega=10^{-3}$.}
@@ -109,7 +109,7 @@ provides a modest but systematic improvement over residual-only baselines
 $\mathcal{O}(10^{-2}\text{--}10^{-1})\%$ band. In the deepest Wigner cases
 ($\omega=10^{-3}$), however, the backflow correction becomes energetically
 tiny (Sec.~\ref{sec:repr-analysis}): the Slater--Jastrow correlator already
-captures the dominant structure and the optimizer effectively \emph{turns
+captures the dominant structure and the optimiser effectively \emph{turns
 off} backflow. This regime dependence is mirrored in the representation
 analysis, where backflow appears as a high-dimensional, predominantly local
 correction channel that is only variationally active away from the
@@ -222,7 +222,7 @@ that track classical ground-state expectations.
 
 All of this structure is obtained from samples drawn from the same
 variational neural ansatz whose energies match or closely track DMC
-benchmarks. This gives strong evidence that the states analyzed in
+benchmarks. This gives strong evidence that the states analysed in
 Sec.~\ref{sec:repr-analysis} are bona fide Wigner molecules, and not
 artefacts of an over-flexible wavefunction. The next section discusses how
 this rich real-space structure is compressed into a remarkably low-dimensional
@@ -312,7 +312,7 @@ and the ranks of $Z$ and $\Delta Z$ are both $\approx 1$. PC ablations of
 $\Delta x$ show that even though $r_{\rm eff}(\Delta x)$ can be nominally high,
 the field is effectively constant over the sampled manifold (PC ablation error
 $\sim 10^{-6}$), and near-field shares of both $\Delta E$ and
-$\|\Delta x\|^2$ are $\approx 1$. In this regime, the optimizer has
+$\|\Delta x\|^2$ are $\approx 1$. In this regime, the optimiser has
 effectively \emph{learned away} backflow: the Slater--Jastrow correlator alone
 is sufficient to represent the Wigner dimer.
 
@@ -328,15 +328,16 @@ correct.
 Two qualifications keep this from being over-read, both from the tangent-kernel
 analysis of Chapter~\ref{ch:kernel}. First, ``idle'' describes the small \emph{net
 energy} of the message-passing backflow at these points, not the structure a backflow
-must supply: a \emph{conventional}, per-particle backflow does not fall idle so
+must supply: a \emph{conventional} backflow does not fall idle so
 gracefully. It collapses to a single collective mode (rank $\to1$) and \emph{loses}
-accuracy at the Wigner crystal, because the residual correlation there is relative, and
-only the inter-particle messages can express it. Second, the ranks and displacement
+accuracy at the Wigner crystal, because the residual correlation there is relative and
+full-rank, and its single round of pairwise messages does not sustain it, whereas the
+CTNN's iterated copresheaf transport does. Second, the ranks and displacement
 magnitudes quoted here are gauge-like: they record how this particular trained model
 divided the labour between Jastrow and backflow, and the statements that survive a
 change of training route are the energetic ones---the ablation price, and the gap
-between a per-particle and a message-passing backflow---not the component ranks
-themselves.
+between a conventional and a copresheaf message-passing backflow---not the component
+ranks themselves.
 
 \paragraph{Regime dependence and architectural implications.}
 Taken together, the representation results show a clear regime dependence:
@@ -352,9 +353,9 @@ Taken together, the representation results show a clear regime dependence:
         size/shelling and the relevant near-field structure, and the backflow's
         \emph{net} energy contribution becomes small. Adding \emph{width} to an
         already message-passing backflow buys little here; the architectural
-        \emph{kind} of backflow, however, still matters---a per-particle network
-        collapses and loses accuracy exactly where a message-passing one holds full
-        rank and does not (Chapter~\ref{ch:kernel}).
+        \emph{kind} of backflow, however, still matters---a conventional
+        single-round-message network collapses and loses accuracy exactly where the
+        copresheaf CTNN holds full rank and does not (Chapter~\ref{ch:kernel}).
 \end{itemize}
 From a design perspective, this suggests that Slater--Jastrow PINNs with a
 small, smooth correlator and moderately wide backflow layers are a natural

@@ -7,7 +7,7 @@ ansatz, and they provide a controlled setting in which to study Wigner-molecule
 formation and the internal representations learned by the network.
 
 On the \emph{energy} side, the results in Sec.~\ref{sec:energy-discussion}
-show that a single, trap-unit–normalized architecture with soft-core pair
+show that a single, trap-unit–normalised architecture with soft-core pair
 features and an explicit cusp achieves DMC-level accuracy for two-electron
 dots and maintains sub-$0.1\%$ relative errors for $N\in\{6,12\}$ across
 $\omega\in\{0.1,0.5,1.0\}$. The same setup extrapolates smoothly to
@@ -45,9 +45,10 @@ The backflow, by contrast, realises a high-dimensional displacement field whose
 energetic leverage sits in near-field configurations at intermediate traps. One
 earlier reading of the weak-trap limit---that the optimiser simply ``switches
 backflow off''---proves to be architecture-specific, and is corrected here: it is the
-\emph{conventional}, per-particle backflow that collapses to a single collective mode
-(rank $\to 1$) at the Wigner crystal, having no way to express relative positioning,
-whereas the message-passing backflow retains full rank and keeps its accuracy there
+\emph{conventional} backflow that collapses to a single collective mode
+(rank $\to 1$) at the Wigner crystal---its single round of pairwise messages failing to
+sustain the relative displacement the crystal demands---whereas the copresheaf
+message-passing backflow retains full rank and keeps its accuracy there
 (Chapter~\ref{ch:kernel}). How these internal numbers should be read is itself a
 result: quantities split between the Jastrow and the backflow are gauge-like, fixed by
 the training route rather than the state, so the load-bearing conclusions rest on the
@@ -71,7 +72,7 @@ across architecture, optimiser, and training paradigm is not raw capacity but al
 with the low-dimensional, physically collective structure of the problem---the same
 structure that, in real space, \emph{is} the Wigner molecule. A compact correlator
 supplies learned collective coordinates; a message-passing backflow supplies the
-relational corrections a per-particle network cannot; natural gradients and $|\Psi|^2$
+relational corrections a single-round-message network cannot sustain; natural gradients and $|\Psi|^2$
 sampling keep the optimisation pointed along those directions. The quantum-dot results
 thus provide both a stringent validation of the method and a template for the same
 ideas in more complex finite fermion systems, where the trade-offs between global

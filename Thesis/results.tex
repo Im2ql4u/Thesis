@@ -50,11 +50,13 @@ switch to the DMC reference energy (and optionally add a variance penalty).
 The SR phase then uses on the order of $10^3$--$3\times10^3$ iterations with
 batches of $\sim 3{\times}10^3$ samples per iteration.
 
-We compare two backflow architectures throughout. The \emph{conventional}
-\textsc{BackflowNet} predicts an independent per-particle displacement, whereas the
-\emph{message-passing} continuous-time neural network (\textsc{CTNN}), realised as the
-\textsc{CTNNBackflowNet}, lets the particles exchange learned messages on a graph before
-the displacement is read out; the contrast between them is the subject of the backflow
+We compare two backflow architectures throughout. Both condition each particle's
+displacement on the interparticle coordinates, but they do so differently: the
+\emph{conventional} \textsc{BackflowNet} applies a single round of pairwise messages
+aggregated per particle, whereas the copresheaf \emph{message-passing} network
+(\textsc{CTNN}), realised as the \textsc{CTNNBackflowNet}, maintains explicit node and
+edge features and transports them across the graph over several rounds before the
+displacement is read out; the contrast between them is the subject of the backflow
 analysis in Chapter~\ref{ch:kernel}. The architecture size is identical for all $N$: the
 base PINN correlator has $\approx\!54\text{k}$ parameters, the conventional BackflowNet
 adds $\approx\!83\text{k}$ (total PINN+BF $\approx\!137\text{k}$), and the
@@ -348,7 +350,7 @@ At strong correlation ($\omega \leq 0.01$), displacements are small relative to 
 $\|\Delta\mathbf{x}\|/\ell \sim 0.02$--$0.05$.
 As the trap tightens and the system enters the moderate-to-weak correlation regime,
 the magnitude grows and saturates at $\sim$\,8--10\% of $\ell$ for $\omega \gtrsim 0.1$.
-The CTNN never produces large displacements---its $\tanh$ output bound and continuous-time architecture
+The CTNN never produces large displacements---its $\tanh$ output bound and copresheaf message-passing structure
 act as implicit regularisers, in contrast to the conventional BackflowNet which can exhibit
 displacements comparable to the system scale in poorly converged regimes
 (e.g.\ $\|\Delta\mathbf{x}\|/\ell \sim 0.95$ for $N{=}6$, $\omega{=}0.001$ with BackflowNet).
@@ -363,10 +365,10 @@ conditioned on the full configuration.
 This full-rank behaviour is a property of the \emph{message-passing} backflow
 specifically, and it is exactly the point at which the companion chapter finds the
 two architectures part ways: toward the Wigner crystal a \emph{conventional},
-per-particle backflow collapses to a single collective mode (rank~$\to 1$) and its
-energy degrades, because it has no channel through which to express relative
-positioning, whereas the CTNN retains its full rank precisely because the messages
-supply that channel (Chapter~\ref{ch:kernel},
+single-round-message backflow collapses to a single collective mode (rank~$\to 1$) and
+its energy degrades---its one round of pairwise messages failing to sustain the relative
+displacement the crystal demands---whereas the CTNN retains its full rank because its
+copresheaf edge-transport does sustain it (Chapter~\ref{ch:kernel},
 \S\ref{sec:kernel-q1b}). The high rank reported here is thus not incidental---it is
 the structural signature of the mechanism that makes message passing worth its cost.
 

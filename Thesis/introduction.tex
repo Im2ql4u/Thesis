@@ -37,7 +37,7 @@ sign problem limits direct simulations, fixed-node approximations inherit bias
 from the chosen trial nodes, and constructing high-quality trial wavefunctions
 is increasingly difficult as systems become more strongly correlated or
 inhomogeneous. In practice, a large part of the many-body problem becomes the
-problem of choosing an expressive, well-conditioned ansatz and optimizing it
+problem of choosing an expressive, well-conditioned ansatz and optimising it
 reliably.
 
 \paragraph{Machine learning and many-body wavefunctions.}
@@ -46,7 +46,7 @@ learning—has become a standard tool for representing complex, high-dimensional
 functions and fitting them to data. Neural networks now play a central role in
 domains such as computer vision, language modelling and reinforcement learning.
 They combine flexible parametric families with inductive biases (e.g.\ symmetry
-and locality), normalization, and optimization procedures that scale well with
+and locality), normalisation, and optimisation procedures that scale well with
 dimension.
 
 In physics, this has led to two broad uses of neural networks. In the first,
@@ -113,10 +113,10 @@ features are soft-core (avoiding spurious $1/r$ behaviour in derivatives), and t
 electron–electron cusp is enforced analytically rather than learned. On top of a
 Slater determinant of harmonic-oscillator orbitals, two learnable objects carry the
 correlation: a Jastrow correlator, which reshapes the amplitude, and a coordinate
-backflow, which reshapes the nodes. Each can be built either as a \emph{separable}
-network that treats every particle independently, or as a \emph{message-passing}
-network in which the particles exchange learned messages before a quantity is read
-out.
+backflow, which reshapes the nodes. Each can be built either without message
+passing---encoding and pooling per-particle and pairwise features in a single pass, as
+in a DeepSet---or as a \emph{message-passing} network in which the particles exchange
+and update information over several rounds before a quantity is read out.
 
 Once such an ansatz reaches reference accuracy—which, as we will see, a surprisingly
 compact one does—the questions worth a thesis are \emph{why} its parts behave as they
@@ -190,7 +190,7 @@ The main contributions of this thesis are:
         Read through the quantum geometric tensor, a message-passing correlator
         represents the ground state in roughly half as many effective tangent
         directions as a separable one, and a message-passing backflow retains full
-        rank exactly where a conventional, per-particle backflow collapses to a single
+        rank exactly where a conventional, single-round-message backflow collapses to a single
         collective mode at the Wigner crystal and loses accuracy. The two effects are
         one mechanism—a relational channel the physics requires—and both are invisible
         in the total energy until weak confinement turns the geometric deficit into an

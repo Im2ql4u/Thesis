@@ -16,9 +16,10 @@
 Our ansatz is a closed-shell Slater determinant dressed by two learnable objects:
 a \emph{Jastrow}-type neural correlator $W_\theta$, which reshapes the amplitude, and a
 coordinate \emph{backflow} $\Delta\mathbf{x}$, which reshapes the nodes. Each can be built in
-one of two ways---as a \emph{separable} network that treats every particle on its
-own, or as a \emph{message-passing} (CTNN) network in which the particles first
-exchange learned messages on a graph and only then read out a quantity. The
+one of two ways---without message passing, encoding and pooling per-particle and
+pairwise features in a single feed-forward pass (as in a DeepSet), or as a copresheaf
+\emph{message-passing} (CTNN) network that exchanges and updates node and edge features
+over several rounds before a quantity is read out. The
 previous chapter showed that the message-passing ansatz reaches diffusion Monte
 Carlo (DMC) quality wherever a DMC reference exists ($\omega\ge0.1$), and matches
 our own variational gold standard in the strongly correlated regime below it, where
@@ -142,15 +143,15 @@ directions are not abstract: an operator decomposition identifies them, to
 $R^2=1.00$, as the physical collective modes of $H$---a breathing mode
 ($\partial_\omega$), a correlation-hole mode, and the first relative excitation.
 The message-passing correlator finds the ground state by moving along the handful of
-coordinates the Hamiltonian actually couples; the separable network spreads the same
-solution over more directions because it must rebuild each pairwise correlation
-independently rather than route it through shared messages.
+coordinates the Hamiltonian actually couples; the DeepSet spreads the same
+solution over more directions because it pools independently-encoded pairs rather than
+routing them through shared, iterated messages.
 
 \subsection{Q1b --- In the backflow: message passing prevents rank collapse}
 \label{sec:kernel-q1b}
 
 The same relational channel is decisive, in a sharper form, in the backflow. Here we
-fix everything but the backflow architecture (conventional per-particle vs.\ CTNN)
+fix everything but the backflow architecture (conventional single-round messages vs.\ the copresheaf CTNN)
 and train both to a Woodbury-SR endpoint. At $\omega=1$ both reach reference
 quality, but they diverge as the trap weakens (Table~\ref{tab:bf_energies}): the
 CTNN backflow holds $\sim\!0.02\%$ error across all $N,\omega$, while the
@@ -205,23 +206,31 @@ parts gives two seed-stable facts. (i) A \textbf{kinetic$\to$Coulomb crossover}:
 $\omega=1$ the backflow buys kinetic energy; at $\omega=0.01$ the gain is entirely
 Coulomb ($\Delta V_{\mathrm{Coul}}\!\approx\!+0.017$, $\Delta T\!\approx\!0$).
 ``Message passing buys kinetic energy'' is a high-$\omega$ statement only.
-(ii) \textbf{At Wigner the messages \emph{are} the backflow}: zeroing the
-inter-particle maps ($\rho_{v\to e},\rho_{e\to v}$) costs as much as deleting the
-whole displacement. A per-particle backflow has no channel for relative positioning
----exactly what the crystal needs---so it can only shift everyone together (rank~1);
-the messages supply that channel.
+(ii) \textbf{At Wigner the iterated messages \emph{are} the backflow}: within the CTNN,
+zeroing the inter-particle transport maps ($\rho_{v\to e},\rho_{e\to v}$) costs as much
+as deleting the whole displacement. Both architectures condition each particle on the
+relative coordinates $\mathbf r_{ij}$, so neither is blind to inter-particle structure;
+the difference is that the conventional backflow uses a single round of pairwise
+messages aggregated per particle, whereas the CTNN maintains and transports explicit
+edge state across the graph. Empirically the single-round backflow does not
+\emph{sustain} a full-rank relative displacement at the crystal---it collapses to a
+rigid common shift (rank~1)---while the CTNN's copresheaf transport holds the full-rank
+response, and the ablation shows that this transport carries essentially the entire
+effect.
 
 \subsection{The unified reading of Q1}
-Q1a and Q1b are one statement. In both objects the separable network must rebuild
-each inter-particle relation independently, so it either spreads the solution over
-more tangent directions (Jastrow: larger $d_{\mathrm{eff}}$) or, when the physics
-demands a genuinely collective response, cannot represent it at all and collapses to
-the only relation it can express---a rigid common shift (backflow: rank~1). Message
-passing routes those relations through shared messages, which \emph{compresses} the
-correlation where a compact representation exists and \emph{sustains} it where a
-collective one is required. Both are visible only in the tangent-kernel geometry, not
-in the total energy, until the physics (weak confinement) makes the geometric deficit
-an energetic one.
+Q1a and Q1b are one statement about \emph{iterated} relational processing. The
+baselines are not blind to inter-particle structure---the DeepSet pools
+independently-encoded pairs, and the conventional backflow aggregates a single round of
+pairwise messages---but neither lets that relational information propagate across the
+graph. The copresheaf CTNN does: it maintains explicit edge state and transports it
+between nodes and edges over several rounds. Where a compact representation exists this
+\emph{compresses} the correlation onto fewer tangent directions (Jastrow: smaller
+$d_{\mathrm{eff}}$); where the physics demands a genuinely collective, full-rank
+response the single-round baseline instead collapses to a rigid common shift
+(backflow: rank~1), which the iterated transport avoids. Both effects are visible only
+in the tangent-kernel geometry, not in the total energy, until weak confinement makes
+the geometric deficit an energetic one.
 
 % =====================================================================
 \section{Q2 --- Optimiser: SR earns its keep where the metric is ill-conditioned}
@@ -446,8 +455,8 @@ Message passing is not a uniformly ``better network''; it buys one specific thin
 relational channel, whose value the tangent kernel makes precise. In the Jastrow that
 channel compresses the ground state onto the few collective modes the Hamiltonian
 couples; in the backflow it sustains a full-rank, relative displacement where a
-per-particle network can only shift everyone together and its energy fails---at the
-Wigner crystal, and by capturing Coulomb rather than kinetic correlation. The
+single-round-message network collapses to a rigid common shift and its energy fails---at
+the Wigner crystal, and by capturing Coulomb rather than kinetic correlation. The
 optimiser and paradigm choices around this ansatz are governed by the same geometry:
 SR is needed only for the ill-conditioned collocation objective, and collocation
 equals VMC only until its importance sampling loses the target at scale. What message

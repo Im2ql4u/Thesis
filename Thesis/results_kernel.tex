@@ -8,7 +8,7 @@
 %  the tangent kernel, and are merged here. All numbers are on the
 %  thesis ansatz at DMC-quality energies; seed counts are stated.
 % =====================================================================
-\graphicspath{{../results/figures/results/}{../results/figures/results/kernel/}}
+\graphicspath{{../results/figures/results/}{../results/figures/results/kernel/}{../results/figures/}}
 
 \chapter{Architecture, optimiser, and paradigm through the tangent kernel}
 \label{ch:kernel}
@@ -237,7 +237,7 @@ the geometric deficit an energetic one.
 \label{sec:kernel-q2}
 
 Stochastic reconfiguration preconditions the gradient by the inverse QGT,
-$\dot\btheta = -S^{-1}\nabla_\btheta E$; geometrically it \emph{whitens} the tangent
+$\btheta \leftarrow \btheta - \eta\, S^{-1}\nabla_{\btheta} E$; geometrically it \emph{whitens} the tangent
 kernel. At $N=2$ this is exact: the SR step aligns with the imaginary-time direction
 to numerical precision. The question is where whitening changes the outcome.
 

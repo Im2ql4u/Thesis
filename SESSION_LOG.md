@@ -432,3 +432,24 @@ noting the division (theory=concept, method=computation). Content NOT deleted --
 **Could NOT do:** no LaTeX toolchain installed -> no compile, no rendered-figure inspection, no overfull-box
 check. Citation CONTENT not inspected (Pederiva2000/Mazars2008 support of specific values = source
 verification required; Jacot2018/Zaheer2017 are standard landmark refs, metadata present).
+
+---
+
+## 2026-08-22 (cont. 5) — Built the thesis PDF (112 pp) and fixed the LaTeX errors that blocked it
+
+No LaTeX on the box and the EasyBuild texlive was stripped (no perl infra, couldn't build a format); used
+the tectonic single-binary engine (downloaded to scratch, bundle cached) instead.
+Compile errors fixed:
+  - graphicspath pointed at ../results/figures/results/ but the figures live in ../results/figures/;
+    added that dir to all three graphicspaths. 9 figures recovered.
+  - 4 figures were never committed (all_activations_shared_legend, N2/N6/N12_all_densities) -> created
+    clearly-labelled PLACEHOLDER pdfs in results/figures/ so the doc compiles; MUST be replaced with the
+    real figures. (These placeholders are *.pdf => gitignored, local only.)
+  - results_kernel: '\dot\btheta' and unbraced subscript '\nabla_\btheta' broke under bm/physics
+    (\btheta=\bm{\theta}); the unbraced subscript _\btheta made \bm's \begingroup scan fail. Fixed to
+    _{\btheta} and rewrote the SR line as a discrete update \btheta <- \btheta - eta S^{-1} grad E.
+  - references.bib: added the missing Vehtari2024 (PSIS) entry that was \nocite'd.
+Result: exit 0, 112 pages, NO undefined refs/citations, NO errors, NO multiply-defined labels; 105 overfull
+hboxes (cosmetic). NOTE: *.pdf is gitignored, so main.pdf and all figure pdfs are not normally tracked;
+force-added main.pdf per request. The figure .pdf source assets remain gitignored (pre-existing), so a clean
+clone will not rebuild without them.

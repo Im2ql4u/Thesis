@@ -308,3 +308,32 @@ warmstart_shellinit_test.py, warmstart_dxscale_test.py, source_state_check.py.
 several npz >100MB would have broken the GitHub push) and exploratory src notebooks (per CLAUDE.md).
 Figures (*.png) kept, per Aleksander's request. Everything else (tex, md/REPORTs, csv, log, json, py,
 scripts, journals) committed and pushed. Q3 called DONE; Aleksander will do the prose writeup locally.
+
+---
+
+## 2026-08-22 (cont.) — Energy audit + editorial/coherence pass on the results chapters
+
+**Energy audit (against real data on disk).** Traced every reported energy to source:
+  - VMC+SR gold standard (old tab:energies) = config.DMC_ENERGIES; below w=0.1 (N>=6) these ARE the
+    thesis's own PINN+CTNN values, not DMC (documented in config comments). Reference circularity confirmed.
+  - Backflow scaling (kernel tab:bf_energies/tab:bf_rank) = 2026-07-16_scaling/master.csv + n20_wigner.log.
+    Fixed rounding drifts to seed-means (N20 w1 CTNN +0.03->+0.06, rank 35.1->36.9; N12 w1; N6 w0.1 conv).
+  - Cascade (tab:cascade) matches JOURNAL per-rung heavy-VMC eval exactly.
+  - The "0.3%" the user distrusted = the STRONG-form catch-22 floor (N6 w0.5, Jastrow-only) and an
+    arch_colloc Jastrow-only run -- NOT the weak-form REINFORCE collocation, whose genuine bests are
+    +0.009% (w=1) down to +0.06-0.13% (N6 low w, per 2026-04-08 best-eval report).
+
+**Editorial pass (3 commits).**
+  - results_kernel.tex: table corrections, explicit reference hierarchy (DMC only w>=0.1), Q2 scope
+    limitation (Adam~SR verified only N=2,6), [CITE NEEDED] on classical (1,5) config, warmer intro voice.
+  - results.tex: intro repositioned as the physics half paired with the kernel 'why' chapter; reference
+    honesty in tab:energies + tab:collocation (relabelled "Reference", noted conservative reliability
+    bests); collocation strong/weak-form reconciliation fixing the 0.3% misattribution; [CITE NEEDED] on
+    sample-efficiency comparison.
+  - results.tex + appendix.tex: gauge caveat reconciliation (component metrics are path-dependent;
+    invariants are energy/overlap/ablation); old full-rank CTNN connected to kernel's conv-collapse;
+    catch-22 reframed as a strong-form negative baseline.
+
+**Not yet done / open:** full sentence-level voice pass on section BODIES (only framing/intros/syntheses
+done); a single explicit four-question spine statement; a complete [CITE NEEDED] sweep of physics claims.
+Awaiting Aleksander's steer on how far to push the prose (he intends a local writeup pass).

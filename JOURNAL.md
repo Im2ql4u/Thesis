@@ -1629,3 +1629,37 @@ to omega=0.1" caveats removed.
 Completeness status: Q1 CLOSED (3 sizes at Wigner). Q2 answered. Q3 answered + frontier to omega=0.0035
 with full diagnosis. Thread 2 (thesis-checkpoint) localised (confirmation-only). Threads 3/4 (omega-robust
 warm-start; N=12/20 deep collocation) = scoped future research.
+
+## 2026-08-22 — Thread 3 closed: the cross-omega collapse is a Slater-suppression/Jastrow-amplification balance, not a sampler or backflow artifact
+
+Question: why does warm-starting a Wigner rung to a lower omega collapse it (the deep-cascade wall)?
+Four diagnostics on w0.0035.pt (last good cascade rung), transferred to omega=0.0027 (a 23% step):
+
+1. **Component decomposition on warm-start** (warmstart_collapse_diag.py): at omega'=0.0027 all three
+   components sit at ~1 ell' — bare Slater 1.14, Slater x Jastrow 1.00, full (+backflow) 0.95. Nothing
+   reaches the classical ring (3.57 ell').
+2. **Sampler-basin test** (warmstart_shellinit_test.py): initialising the MCMC sampler ON the Wigner
+   shell (3.57 ell') still relaxes to 1.13 ell'. => the collapse is in the ANSATZ, not sampler init.
+   The "two-basin" hypothesis is REFUTED.
+3. **Backflow displacement scaling** (warmstart_dxscale_test.py): |dx| ~= 0.13-0.15 ell, radial-INWARD,
+   and essentially preserved across the transfer (0.148 ell @0.0035 -> 0.130 ell @0.0027). The backflow
+   scales fine with ell but is far too small (0.13 ell) to bridge the 2.4 ell core->shell gap. So the
+   backflow is NOT what makes (or breaks) the Wigner shell.
+4. **Source integrity** (source_state_check.py): w0.0035.pt at its OWN omega=0.0035 is a genuine Wigner
+   molecule — median 3.34 ell (classical 3.42 ell), and shell-init converges to the same 3.34 ell
+   (single robust basin). The cascade rung is legitimate.
+
+**Mechanism.** The bare HO Slater exp(-omega r^2/2) suppresses the shell (3.34 ell) by ~exp(-5.6) ~ 1e-2
+in amplitude (~1e-5 in |Psi|^2); the Wigner peak at the shell is therefore a delicate cancellation — a
+tiny Slater tail multiplied by a large Jastrow amplification (~1e5 in density) that carves the electrons
+outward, with the backflow contributing only a small (0.13 ell) inward nudge. A 23% change in omega
+perturbs both the Slater confinement and the Jastrow correlation length; the fine-tuned balance tips and
+the density collapses to the non-interacting shell (~1 ell). From that collapsed start the collocation
+re-fit cannot reliably climb back out (v1/v2/v3 were non-monotonic). This is the deep-cascade wall.
+
+**Consequence for the "ell-invariant warm-start" idea.** A coordinate rescale cannot fix it: test (2)
+shows the ansatz relaxes inward even when handed shell configs. The collapse is a property of the
+Slater x Jastrow balance, not of coordinates. Reaching omega < 0.0035 needs either per-omega
+re-optimisation from a shell-*amplitude*-anchored objective (not a warm-start), or an ell-covariant
+ansatz (architecture change) — both out of scope for "completeness". Honest thesis frontier stands at
+omega = 0.0035 (verified genuine Wigner molecule at 3.34 ell), MCMC-free.

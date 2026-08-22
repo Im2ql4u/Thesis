@@ -337,3 +337,37 @@ scripts, journals) committed and pushed. Q3 called DONE; Aleksander will do the 
 **Not yet done / open:** full sentence-level voice pass on section BODIES (only framing/intros/syntheses
 done); a single explicit four-question spine statement; a complete [CITE NEEDED] sweep of physics claims.
 Awaiting Aleksander's steer on how far to push the prose (he intends a local writeup pass).
+
+---
+
+## 2026-08-22 (cont. 2) — Whole-thesis coherence pass: intro/theory/method/discussion/conclusion + build fix
+
+**Build fix (critical):** main.tex did not \input{results_kernel} -- the entire four-question kernel chapter
+was absent from the thesis. Now included after results.tex (physics chapter, then the 'why' chapter).
+
+**Introduction:** rewritten to the tangent-kernel spine. Scope now names separable-vs-message-passing and
+the four questions read through the QGT/NTK; contributions replaced with message-passing-relational-channel,
+optimiser+paradigm (SR conditioning, MCMC-free collocation to 0.0035), Wigner diagnostics, and a
+gauge-honest representation item; 'optimizer switches backflow off' corrected to the architecture-specific
+conv-collapse; N=20 added; diagnostics + thesis-structure updated (two results chapters).
+
+**Conclusion:** added a 'method side' paragraph (relational channel, SR, MCMC-free collocation) and a
+unified closing theme; corrected switch-off; gauge caveat.
+
+**Discussion:** 'backflow switches off' retitled + qualified (net energy vs structure; conv collapses and
+loses accuracy; ranks gauge-like); design bullet corrected (width vs kind); representation intro gauge
+caveat; collocation bridged to the kernel Wigner-ring frontier.
+
+**Theory:** new subsection sec:theory-tangent-kernel (score O, QGT S = Fisher metric of |Psi|^2 tied to SR,
+NTK K Gram dual, d_eff participation ratio, kappa) grounding the kernel chapter. Cites BeccaSorella2017 +
+StokesEtAl2020; NTK marked [CITE NEEDED] (no Jacot key in references.bib -- the ONLY remaining tag).
+
+**Method:** (a) sec:method-collocation -- VMC vs importance-sampled collocation, weak-form REINFORCE
+(Laplacian as reward, avoids the catch-22), ESS, Wigner-ring proposal; (b) sec:analysis-kernel -- tangent
+kernel diagnostics (O, S/K, d_eff, kappa, common probe set, symmetric overlap^2) vs gauge-dependent ranks.
+
+**N=20 collocation:** moved from tab:collocation to Appendix postcatch22:frontier, framed as an O(N^2 h_bf)
+memory bottleneck (Jastrow-only +1.32/+2.74/+5.53%, BF +18% reversal), not a limit of the method.
+
+**Remaining:** one [CITE NEEDED] (NTK/Jacot); two red [TODO] figure notes in results.tex (author's markers).
+All energies verified against on-disk data. All commits pushed.

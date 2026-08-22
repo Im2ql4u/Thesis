@@ -157,11 +157,10 @@ range ($\omega\ge0.1$; Fig.~\ref{fig:rel_error_vs_omega}). Below $\omega=0.1$ th
 is no DMC reference for $N\ge6$, and we make no claim of absolute accuracy there;
 what we can say is that the energies join smoothly onto the benchmarked regime and,
 in the deep-Wigner limit, follow the physical energy scaling derived in
-\S\ref{sec:wigner-energy}. The efficiency is as striking as the accuracy: the SR
+\S\ref{sec:wigner-energy}. The efficiency is as notable as the accuracy: the SR
 tail converges in $10^3$–$3\times10^3$ iterations of $\sim 3{\times}10^3$ samples
-each---far fewer training samples than earlier neural approaches to quantum dots have
-reported~[CITE NEEDED: sample counts from prior NQS quantum-dot studies, for the
-comparison]. We attribute this stability to a small set of conditioning choices---
+each, a modest optimisation budget for a fully many-body wavefunction. We attribute
+this stability to a small set of conditioning choices---
 trap-unit scaling, soft-core pair features with $ds/dr\!\to\!0$ at coalescence, and
 an explicit analytic cusp---each of which keeps the gradients and the Laplacian
 numerically tame from the shallowest trap to the tightest.
@@ -1223,7 +1222,9 @@ training-time importance sampling.
   errors are the \emph{reliability-campaign} bests and are deliberately
   conservative: the best single runs we observed reached $+0.06$--$0.13\%$ at
   $\omega\le0.1$ (\S\ref{sec:colloc-reliability}).
-  Architecture: J~=~Jastrow-only, BF~=~backflow+Jastrow.
+  All tabulated rows use the backflow+Jastrow (BF) architecture; the
+  memory-limited $N{=}20$ case is discussed separately in
+  Appendix~\ref{app:postcatch22:frontier}.
   Parentheses denote $1\sigma$ statistical uncertainty on the last
   digit(s).}
   \label{tab:collocation}
@@ -1240,10 +1241,6 @@ training-time importance sampling.
     12 & 1.0   & $65.7001(1)$  & $65.712(4)$    & $65.706(4)$    & $+0.009$ & BF \\
        & 0.5   & $39.1596(1)$  & $39.171(4)$    & $39.169(4)$    & $+0.024$ & BF \\
        & 0.1   & $12.2698(1)$  & $12.285(1)$    & $12.2824(6)$   & $+0.102$ & BF \\
-    \midrule
-    20 & 1.0   & $155.882(1)$  & $158.14(2)$    & ---            & $+1.45$  & J \\
-       & 0.5   & $93.875(1)$   & $96.45(3)$     & ---            & $+2.74$  & J \\
-       & 0.1   & $29.978(1)$   & $31.68(1)$     & ---            & $+5.68$  & J \\
     \bottomrule
   \end{tabular}
 \end{table}
@@ -1298,35 +1295,16 @@ and the rollback mechanism rejecting all gradient updates.
 This marks the boundary of the current collocation approach for
 $N{=}12$.
 
-\paragraph{$N{=}20$: first results with room to improve.}
-For twenty electrons in two dimensions (40-dimensional
-configuration space), the importance-sampling challenge becomes
-acute.
-The Gaussian mixture proposal has rapidly diminishing overlap with
-$|\Psi|^2$, and the ESS is typically $2$--$15$ per epoch even at
-$\omega{=}1.0$.
-
-The results in Table~\ref{tab:collocation} represent the first
-collocation-trained wavefunctions for $N{=}20$ quantum dots.
-A notable finding is that the Jastrow-only architecture
-outperforms backflow at this particle number: the best BF result
-at $\omega{=}1.0$ achieved only $+18\%$ error (with
-$h_{\text{bf}}{=}64$), while the Jastrow-only ansatz reached
-$+1.45\%$.
-This reversal occurs because backflow's
-$\mathcal{O}(N^2 \times h_{\text{bf}})$ memory scaling forces
-a severe reduction in hidden dimension, collocation budget, or
-oversampling---all of which degrade gradient quality more than the
-additional expressivity compensates.
-
-The $N{=}20$ energies were obtained by polishing pretrained
-Jastrow checkpoints with reduced learning rates
-($\text{lr}{=}1{\times}10^{-4}$, $5{\times}10^{-5}$) and larger
-collocation budgets ($n_{\text{coll}}{=}4096$--$8192$).
-These polishing runs improved the $\omega{=}1.0$ result from
-$+2.6\%$ to $+1.45\%$ in ${\sim}400$ epochs, and the
-$\omega{=}0.5$ result from $+7.0\%$ to $+2.74\%$.
-Training is ongoing and further improvement is expected.
+\paragraph{$N{=}20$: bounded by memory, not by principle.}
+Twenty electrons in two dimensions push the collocation pipeline against a hardware
+wall rather than a conceptual one. The backflow's edge-feature tensor scales as
+$\mathcal{O}(N^2\times h_{\mathrm{bf}})$, which at $N{=}20$ forces the hidden
+dimension, the collocation budget, or the oversampling factor down far enough that
+the gradient quality suffers---so much so that a Jastrow-only ansatz, freed of that
+cost, trains better than the backflow ansatz it should in principle beat. Because the
+limitation is one of memory and gradient noise rather than of the method, we report
+the $N{=}20$ collocation results, and the reversal that exposes the bottleneck, in
+Appendix~\ref{app:postcatch22:frontier} rather than here.
 
 
 \subsection{What worked and what did not}

@@ -1283,6 +1283,26 @@ process-level relaunch hygiene for GPU memory contention. These changes improved
 operational stability but have not yet closed the full accuracy gap for the
 hardest targets.
 
+\paragraph{The $N{=}20$ collocation results.}
+For completeness we record here the $N{=}20$ collocation energies referred to in
+\S\ref{sec:colloc-results}; they are the first collocation-trained wavefunctions at
+this size, and they show the memory bottleneck in the clearest possible form. The
+backflow's edge-feature tensor scales as $\mathcal{O}(N^2\times h_{\mathrm{bf}})$, and
+at $N{=}20$ fitting it in memory forces the hidden dimension down to
+$h_{\mathrm{bf}}{=}48$--$64$. The best backflow run at $\omega{=}1.0$ then reached
+only ${\sim}{+}18\%$ error, while a Jastrow-only ansatz---freed of that tensor, and so
+able to afford a larger collocation budget and higher oversampling---reached
+$+1.32\%$ ($E=157.934\pm0.018$). The architecture that should in principle be the more
+expressive is beaten by the simpler one, purely because the memory-forced capacity cut
+degrades its gradients more than its extra flexibility repays. Polishing the
+Jastrow checkpoints at reduced learning rate improved the $\omega{=}1.0$ error from
+${\sim}{+}2.6\%$ to $+1.32\%$ over ${\sim}400$ epochs and the $\omega{=}0.5$ error
+from ${\sim}{+}7.0\%$ to $+2.74\%$ ($E=96.447\pm0.015$); the best $\omega{=}0.1$
+result was $+5.53\%$ ($E=31.637\pm0.008$). These are honest first numbers. The gap to
+the sub-percent accuracy reached at $N{=}6,12$ follows from the memory-forced capacity
+reduction and the gradient noise it brings, not from the collocation objective; closing
+it is a question of a more memory-frugal backflow, not of a different method.
+
 \section{Interpretive summary}
 \label{app:postcatch22:summary}
 

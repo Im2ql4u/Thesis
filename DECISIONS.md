@@ -22,6 +22,38 @@ Each entry answers: what was decided, what the alternatives were, why this was c
 
 ## Decisions
 
+### [2026-08-22] — Merge conflict on `tab:collocation`: data over editorial prose
+
+**Decision:** Resolve the `Thesis/results.tex` merge conflict in favour of `origin/main` for both
+hunks of `tab:collocation` — the N=12 Campaign(best) row values and the table caption.
+**Alternatives considered:** Keep the local editorial caption (shorter, matches the 2026-05 pass's
+voice) and hand-merge only the numbers; or keep local wholesale and re-derive the N=12 column later.
+**Reasoning:** The local caption asserted that the Campaign column came from "a shorter 30-run
+campaign" for every N. That was true for N=6 and false for N=12, where the entry is the best across
+all independent runs and no reliability campaign was run. Keeping local prose would have attached a
+false provenance claim to newly-arrived data. The remote caption also carries the only definition of
+the `Arch` column (J / BF) anywhere in the chapter.
+**Constraints introduced:** The 2026-05 editorial voice does not apply to this caption; if the
+chapter is re-styled, the per-N provenance distinction and the arch legend must survive the rewrite.
+The typo "accross" from the local caption is gone with it.
+**Confidence:** high
+
+---
+
+### [2026-08-22] — Log-file conflicts resolved by union, not by choosing a side
+
+**Decision:** `DECISIONS.md`, `JOURNAL.md`, and `SESSION_LOG.md` conflicts resolved by keeping both
+sides in full, remote block first (its entries are newer).
+**Alternatives considered:** Take one side; or re-sort every entry strictly by date.
+**Reasoning:** These are append-only records; discarding either side destroys the record, which is
+the point of the files. Strict re-sorting was rejected because the existing files are already not
+strictly monotone and a global re-sort would rewrite history for no gain.
+**Constraints introduced:** The 2026-05 entries now sit below July/August entries rather than in
+strict date order. Read these files by date, not by position.
+**Confidence:** high
+
+---
+
 ### [2026-07-02c] — New spine: the Grand Mechanism Program (what the CTNN computes and why it wins); dimension is now one probe among many
 
 **Decision:** Refocus the thesis analysis from the tangent-dimension diagnostic onto the **mechanism**:

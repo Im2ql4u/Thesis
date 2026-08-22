@@ -191,6 +191,23 @@ Third, PINN and CTNN switch from operating independently at strong correlation
 to cooperating tightly at moderate-to-weak correlation, with a sharp transition near $\omega\approx 0.1$
 that coincides with the physical crossover in $\Gamma = V_{\mathrm{int}}/T$ (\S\ref{sec:repr-coupling}).
 
+\paragraph{How these quantities should be read.}
+One caveat frames everything that follows, and it is better stated plainly than
+discovered later. The Jastrow and the backflow are partial substitutes---correlation
+that one does not capture, the other can---so how the labour is divided between them
+is a soft, almost flat direction of the loss, settled by the training route rather
+than by the state itself. Quantities that live on a single component---the backflow's
+rank and displacement magnitude, the per-branch loadings, the coupling between the
+two networks---are therefore \emph{gauge-like} in the precise sense developed in
+Chapter~\ref{ch:kernel}: reproducible and meaningful for a given trained model, but
+descriptive of how \emph{this} network chose to organise itself, not of an invariant
+that every optimal ansatz must share. The invariant backbone---total energy, state
+overlap, and the energetic price of ablating a component---is the business of the
+companion chapter. Read in that light, the anatomy below is not weakened by being
+gauge-dependent; it is a faithful dissection of one high-quality solution, and the
+regularities it shows across regimes are the more telling for being ones the network
+was free \emph{not} to adopt.
+
 %% ──────────────────────────────────────────────────────────────────────
 \subsection{Correlator geometry: a compact manifold that reorganises}
 \label{sec:repr-geom}
@@ -340,6 +357,15 @@ saturating the available spatial degrees of freedom modulo centre-of-mass conser
 The backflow transformation is not a low-rank collective mode
 such as a breathing or rigid rotation; each particle receives a genuinely independent correction
 conditioned on the full configuration.
+This full-rank behaviour is a property of the \emph{message-passing} backflow
+specifically, and it is exactly the point at which the companion chapter finds the
+two architectures part ways: toward the Wigner crystal a \emph{conventional},
+per-particle backflow collapses to a single collective mode (rank~$\to 1$) and its
+energy degrades, because it has no channel through which to express relative
+positioning, whereas the CTNN retains its full rank precisely because the messages
+supply that channel (Chapter~\ref{ch:kernel},
+\S\ref{sec:kernel-q1b}). The high rank reported here is thus not incidental---it is
+the structural signature of the mechanism that makes message passing worth its cost.
 
 Yet the CKA between correlator features with and without backflow exceeds 0.99 in nearly all cases
 (and exceeds 0.979 everywhere).

@@ -537,16 +537,27 @@ statistical difficulty of SR through heavy-tailed local-energy fluctuations
 \label{app:catch22}
 
 This appendix formalizes a structural difficulty encountered when training
-backflow transformations under collocation (strong residual) objectives
-and presents extensive numerical evidence for the $N{=}6$, $\omega{=}0.5$
-quantum dot.
+backflow transformations under the \emph{strong-form} collocation objective---the
+one that minimises the variance of the pointwise local energy $E_L$---and presents
+extensive numerical evidence for the $N{=}6$, $\omega{=}0.5$ quantum dot.
 The core observation is a \emph{catch-22}: backflow's learning signal is
 concentrated near the nodal surface, but
 the local energy diverges there for any imperfect wavefunction, and any
 sampling strategy that includes these points produces
 gradients with unbounded variance.
-The result is an irreducible accuracy floor that is absent
-under VMC\,+\,SR training of the same ansatz.
+The result is an irreducible accuracy floor---roughly $0.3\%$, set by the Jastrow
+alone---that is absent under VMC\,+\,SR training of the same ansatz.
+
+Two things about the scope of this result should be stated before the details, so
+the floor is not misread. First, it is a property of the \emph{strong form}
+specifically: the weak-form (score-function / REINFORCE) collocation objective used
+for the results in the main text never differentiates through the Laplacian and does
+not inherit this pathology, which is why it trains the same ansatz to far below the
+$0.3\%$ floor. The value here is therefore a diagnosis of one objective's limits, not
+a measure of what MCMC-free training can achieve. Second, the analysis is what
+motivated the shift to the weak form in the first place; it is presented as a
+worked negative result---the kind that redirects a research programme---rather than
+as a headline number.
 
 \section{Setup and notation}
 \label{app:catch22:setup}

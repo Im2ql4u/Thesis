@@ -452,13 +452,17 @@ The REINFORCE formulation resolves this by construction.
 The Laplacian enters only through the \emph{reward} (the local energy
 in Eq.~\ref{eq:el}), and gradients act exclusively on the score
 function $\nabla_\theta \log|\Psi|$.
-The score function is typically smooth even near nodes (where $\Psi$
-changes sign but $\log|\Psi|$ merely diverges logarithmically, and the
-gradient $\nabla_\theta \log|\Psi|$ remains bounded for the neural
-architectures used).
-This decoupling---using the Laplacian for \emph{signal} but not for
-\emph{gradient flow}---is what allows the collocation pipeline to train
-backflow and Jastrow parameters stably in regimes where direct residual
+The stability is subtler than the score simply being bounded. For a
+\emph{parameter-dependent} (backflow) node the score itself can diverge---
+$\nabla_\theta\log|\Psi|\supset(\nabla_\theta D)/D$ grows like $1/d_\theta$ as the learned
+determinant $D\!\to\!0$ near its node. What matters is that this divergence is
+\emph{integrable} under the $|\Psi|^2$ sampling measure, which weights it by
+$|\Psi|^2\sim d_\theta^2$ (and the near-node points are further suppressed by the
+importance screening). REINFORCE avoids the \emph{stronger}, non-integrable divergence
+of the strong-form residual, in which the Laplacian term $\nabla^2 D/D$ enters the
+gradient directly (Appendix~\ref{app:catch22}). Keeping the Laplacian in the
+\emph{reward} but out of the \emph{gradient flow} is what lets the collocation pipeline
+train backflow and Jastrow parameters stably in regimes where direct residual
 minimisation fails.
 
 The superiority of pure REINFORCE ($\beta{=}0$) over the hybrid

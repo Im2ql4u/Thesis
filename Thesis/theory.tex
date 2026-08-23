@@ -1,10 +1,10 @@
 \graphicspath{{../results/figures/theory/}{../results/figures/}}
-This section will lay the foundation for which everything preceding will rely on. First, focusing on quantum mechanics, we will introduce the mathematical framework of quantum mechanics.
- We will then discuss the challenges of many-body systems and how second quantization provides a more tractable approach. 
+This chapter lays the foundation on which the rest of the thesis rests. We first introduce the mathematical framework of quantum mechanics.
+ We then discuss the challenges of many-body systems and how second quantization provides a more tractable approach.
 Then, we will introduce the model systems that will be used throughout this thesis to benchmark and test our methods. Following this, we will present the Hartree-Fock method, a fundamental mean-field approach to approximate many-body wavefunctions.
  Finally, we will discuss Full Configuration Interaction (FCI) theory, which provides an exact solution to the many-body problem within a finite basis set, and Variational Monte Carlo (VMC), a stochastic method for approximating ground-state properties of quantum systems.
 
- The focus will then shift, and proceeds to introduce the essential concepts of machine learning, covering statistical learning theory, optimisation techniques, neural networks and Physics informed neural networks (PINNS). This section will provide the theoretical underpinnings necessary for understanding how machine learning can be applied to quantum many-body problems.
+ The focus then shifts to the essential concepts of machine learning, covering statistical learning theory, optimisation techniques, neural networks, and physics-informed neural networks (PINNs). This section will provide the theoretical underpinnings necessary for understanding how machine learning can be applied to quantum many-body problems.
 
 \chapter{Quantum Theory}
 \label{sec:theory}
@@ -559,20 +559,27 @@ number (electron $Z=-1$, nucleus $Z=+Z_A$), and $D$ the spatial dimension. Then
 \;=\; \frac{2\,\mu_{ij}\,Z_i Z_j}{D-1}
 \quad\text{(s-wave / opposite-spin channel)}.
 \]
-For \emph{identical fermions} the s-wave is excluded; the leading channel is $p$-wave and the
-effective cusp is halved:
+For \emph{identical fermions} the s-wave is excluded; the leading channel is $p$-wave
+($\ell=1$), and the wavefunction carries a linear node at coalescence. The general
+like-spin cusp is then
 \[
 \left.\frac{\partial}{\partial r_{ij}}\ln \overline{\Psi}\right|_{r_{ij}\to 0}
-\;=\; \frac{\mu_{ij}\,Z_i Z_j}{D-1}
-\quad\text{(like-spin)}.
+\;=\; \frac{2\,\mu_{ij}\,Z_i Z_j}{2\ell + D - 1}
+\;=\; \frac{2\,\mu_{ij}\,Z_i Z_j}{D+1}
+\quad\text{(like-spin, $\ell=1$)}.
 \]
 
 \paragraph{Specializing to 2D electrons (atomic units).}
 With $m_e=1$ and $\mu_{ee}=1/2$:
 \[
 \boxed{\ a_{ee}^{\uparrow\downarrow}=\left.\frac{\partial}{\partial r_{ij}}\ln \overline{\Psi}\right|_{0}=1\ ,\qquad
-a_{ee}^{\uparrow\uparrow}=\tfrac12\ .\ }
+a_{ee}^{\uparrow\uparrow}=\tfrac13\ .\ }
 \]
+The like-spin value follows from the $p$-wave (linear-node) analysis carried out in full
+in Appendix~\ref{app:coulomb:cusp}, the canonical derivation used throughout this thesis;
+it gives the familiar $\tfrac14$ in three dimensions and $\tfrac13$ here in two. The 2D
+like-spin cusp is therefore \emph{not} simply half the opposite-spin value---a
+coincidence that holds only in 3D---and the implemented value is $1/(D+1)=\tfrac13$.
 For electron–nucleus coalescence ($\mu_{eA}\!\approx\!1$, $Z_i Z_j=-Z_A$):
 \[
 \boxed{\ a_{eA}=\left.\frac{\partial}{\partial r_{iA}}\ln \overline{\Psi}\right|_{0}=-2 Z_A\ .\ }

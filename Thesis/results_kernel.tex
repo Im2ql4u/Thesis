@@ -214,7 +214,7 @@ the difference is that the conventional backflow uses a single round of pairwise
 messages aggregated per particle, whereas the CTNN maintains and transports explicit
 edge state across the graph. Empirically the single-round backflow does not
 \emph{sustain} a full-rank relative displacement at the crystal---it collapses to a
-rigid common shift (rank~1)---while the CTNN's copresheaf transport holds the full-rank
+single collective displacement mode (rank~1)---while the CTNN's copresheaf transport holds the full-rank
 response, and the ablation shows that this transport carries essentially the entire
 effect.
 
@@ -227,7 +227,7 @@ graph. The copresheaf CTNN does: it maintains explicit edge state and transports
 between nodes and edges over several rounds. Where a compact representation exists this
 \emph{compresses} the correlation onto fewer tangent directions (Jastrow: smaller
 $d_{\mathrm{eff}}$); where the physics demands a genuinely collective, full-rank
-response the single-round baseline instead collapses to a rigid common shift
+response the single-round baseline instead collapses to a single collective displacement mode
 (backflow: rank~1), which the iterated transport avoids. Both effects are visible only
 in the tangent-kernel geometry, not in the total energy, until weak confinement makes
 the geometric deficit an energetic one.
@@ -258,7 +258,19 @@ function of $\kappa(S)$, set by the ansatz and the sampling measure, not an intr
 property of the optimiser---which is exactly why an earlier low-$\omega$ VMC sweep
 saw a modest SR advantage that never grew into a decisive win.
 
-One boundary of this claim deserves to be drawn explicitly. The VMC equivalence of
+The claim needs one sharpening, because ``more ill-conditioned $\Rightarrow$ more
+useful SR'' cannot hold without bound: inverting $S$ requires $S$ itself to be
+\emph{reliably estimated}. SR helps when the tangent metric is anisotropic but its
+empirical estimate is trustworthy; once the sampling that builds $S$ collapses---as the
+importance weights do deep in the Wigner regime---the empirical $S$ becomes noisy and
+rank-deficient, and preconditioning by its inverse amplifies that noise rather than the
+signal. This is exactly the behaviour seen at ultra-weak confinement, where CG-SR on the
+collocation objective becomes unstable (Chapter~\ref{ch:results},
+\S\ref{sec:colloc-negatives}): not a counterexample to the conditioning story but its
+completion---SR pays off in the window where the metric is both ill-conditioned and
+estimable, and fails once estimation itself breaks down.
+
+One further boundary deserves to be drawn explicitly. The VMC equivalence of
 Adam and SR is established here at $N=2$ and $N=6$; we have not verified that it
 survives to $N=12$ and $N=20$, where the conditioning of the VMC metric could in
 principle worsen with dimension. The mechanism we propose---that $|\Psi|^2$ sampling
@@ -296,12 +308,16 @@ This couples Q3 to Q2: the paradigm that needs SR is the one that breaks down at
 scale. An adaptive proposal that tracks $|\Psi|^2$ is the natural remedy, pursued in
 \S\ref{sec:kernel-q3-frontier}.
 
-\paragraph{The weak form discards the Laplacian's zero variance.} The strong-form
-local energy uses the Laplacian, whose contribution has zero variance for an exact
-eigenstate; the weak (first-derivative) form trades that exact cancellation for a
-Laplacian-free estimator and so carries irreducibly higher variance. This is why the
-importance-sampled energy readout $E_{\mathrm{weak}}$ is biased and must not be used
-as the convergence criterion---overlap and $\Var(E_L)$ are.
+\paragraph{The weak form gives up the zero-variance property.} For an exact eigenstate
+the strong-form local energy $E_L=\hat H\Psi/\Psi$ is constant over configuration space,
+so $\Var(E_L)\to0$ as the ansatz approaches the ground state---the zero-variance
+principle, and the reason $\Var(E_L)$ is a sharp quality measure. That cancellation is a
+property of the \emph{full} local energy, in which the Laplacian (kinetic) and potential
+terms combine to a constant; it is not a property of the Laplacian term alone. The weak
+(first-derivative) form never forms $E_L$: it replaces the Laplacian-bearing estimator by
+a Laplacian-free one, forgoing the exact cancellation and so carrying irreducibly higher
+variance. This is why the importance-sampled energy readout $E_{\mathrm{weak}}$ is biased
+and must not be used as the convergence criterion---overlap and $\Var(E_L)$ are.
 
 % =====================================================================
 \section{The collocation frontier: a physics-informed proposal for the Wigner regime}
@@ -455,7 +471,7 @@ Message passing is not a uniformly ``better network''; it buys one specific thin
 relational channel, whose value the tangent kernel makes precise. In the Jastrow that
 channel compresses the ground state onto the few collective modes the Hamiltonian
 couples; in the backflow it sustains a full-rank, relative displacement where a
-single-round-message network collapses to a rigid common shift and its energy fails---at
+single-round-message network collapses to a single collective displacement mode and its energy fails---at
 the Wigner crystal, and by capturing Coulomb rather than kinetic correlation. The
 optimiser and paradigm choices around this ansatz are governed by the same geometry:
 SR is needed only for the ill-conditioned collocation objective, and collocation

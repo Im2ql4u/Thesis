@@ -453,3 +453,39 @@ Result: exit 0, 112 pages, NO undefined refs/citations, NO errors, NO multiply-d
 hboxes (cosmetic). NOTE: *.pdf is gitignored, so main.pdf and all figure pdfs are not normally tracked;
 force-added main.pdf per request. The figure .pdf source assets remain gitignored (pre-existing), so a clean
 clone will not rebuild without them.
+
+---
+
+## 2026-08-23 — Regenerated the 4 missing figures + fixed real errors from external review
+
+**Figures (the "PLACEHOLDER" boxes):** the 4 were never committed. Data DID exist:
+N{2,6,12}_all_densities from the saved |Psi|^2 sample bundles (results/tables/**/gr_N*.{npz,pt};
+N=2 higher-omega were .pt, which my earlier .npz-only glob missed). Wrote scripts/make_missing_figures.py
+to compute P(r) across omega from samples_X_bohr, and all_activations_shared_legend from the activation
+functions directly. Verified N=6 renders correctly (peak marches 2->114 Bohr as omega 1->1e-3, matches
+Table 6.4). Real figures now embedded (main.pdf 112 pp).
+
+**Real errors fixed (from ChatGPT + Claude reviews, each verified against source/code):**
+- CUSP: theory.tex gave 2D like-spin cusp = 1/2 (a 3D "halving" heuristic); appendix, method, and CODE
+  (gamma_para=1/(d+1)) all use 1/3. Corrected theory to the p-wave value 1/(D+1)=1/3, made appendix canonical.
+- "no Monte-Carlo sampling" -> "without Markov-chain Monte Carlo" (abstract/intro/conclusion): collocation
+  IS Monte Carlo (importance sampling + resampling), just not a Markov chain.
+- Added a precise 3-way distinction (MCMC-free / reference-use / reference-free) in the discussion: the
+  higher-omega collocation uses E_DMC as a stage-I target + rollback signal, so it is MCMC-free but not
+  reference-free; only the deep-Wigner cascade (no DMC below 0.1) is both.
+- "Laplacian's zero variance" corrected: zero-variance is a property of the TOTAL local energy, not the
+  Laplacian term alone (results_kernel Q3).
+- "rigid common shift" -> "single collective displacement mode" (x3): COM projection removes literal
+  translation, so rank-1 collapse is a collective mode, not a common shift.
+- SR nuance added to Q2: SR helps when the metric is ill-conditioned AND reliably estimable; once sampling
+  collapses the empirical S is noise/rank-deficient and inverting it harms -- reconciles Q2 with the CG-SR
+  ultra-low-omega instability (Ch6).
+- theory opening grammar ("preceding"->rest; unfinished "focus will then shift" sentence).
+
+**Abstract:** rewritten tighter (Hawking-clear), MCMC-precise, with the collocation N<=12 vs VMC N=20 scope
+caveat; fixed r_mode (N=6 ring approx 114 a0; the prior approx 64 was N=2's value mis-attached).
+
+**NOT done (recommend, flagged to user):** bibliography is thin (34 refs) vs the novelty claims -- add
+Carleo&Troyer 2017, Luo&Clark backflow-NQS, Hermann PauliNet, GNN-NQS, non-MCMC VMC; consider a more
+specific title. Figure .pdf assets remain gitignored (*.pdf); force-added main.pdf + the 4 regenerated
+figures only.

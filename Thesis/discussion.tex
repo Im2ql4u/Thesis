@@ -705,6 +705,22 @@ This opens the door to fully parallel training pipelines that
 scale efficiently on modern hardware, particularly GPUs with
 large batch sizes.
 
+\paragraph{What ``MCMC-free'' does and does not mean.}
+Three distinctions are worth stating precisely, since they are easily conflated.
+(i)~The pipeline is \emph{Markov-chain-free}: no configuration is ever drawn from a
+Markov chain during training---samples come from an analytic proposal $q(\mathbf R)$ and
+are importance-reweighted. It is not free of Monte Carlo in the broader sense:
+importance sampling and multinomial resampling are themselves Monte-Carlo operations.
+(ii)~It is not, in general, \emph{reference-free}. Where a DMC energy exists
+($\omega\ge0.1$), the residual pretraining anneals its target toward $E_{\rm DMC}$ and
+the instability-rollback monitors the relative error against it; the DMC value therefore
+enters the training signal, so those runs should be read as ``trained without a Markov
+chain,'' not as an unsupervised solution of the Schr\"odinger equation.
+(iii)~The deep-Wigner cascade of Chapter~\ref{ch:kernel} is the one regime that is both
+Markov-chain-free \emph{and} reference-free: below $\omega=0.1$ no DMC value exists, so
+the cascade is guided only by the variational objective and cross-checked against the
+physical energy-scaling law, never against an external benchmark.
+
 \paragraph{The proposal distribution is the bottleneck.}
 The systematic pattern of ESS collapse with increasing $N$ and
 decreasing $\omega$ identifies the proposal distribution as the

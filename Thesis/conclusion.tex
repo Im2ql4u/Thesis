@@ -1,153 +1,79 @@
-\section{Conclusions}
-\label{sec:conclusions}
+\section{Conclusions for quantum dots}
+\label{sec:qd-conclusions}
 
-This thesis set out to answer a concrete question: what must a practitioner decide
-when applying physics-informed neural networks to the quantum many-body Schrödinger
-equation, and what do those decisions cost?
-The answer, worked out on two-dimensional harmonic quantum dots, is organized into
-three layers that correspond to the chronological order in which the decisions arise.
-This section returns to each, states what was learned, and identifies what remains open.
+The quantum-dot benchmarks in this chapter serve a dual purpose: they test the
+numerical stability and expressivity of the Slater--Jastrow PINN+backflow
+ansatz, and they provide a controlled setting in which to study Wigner-molecule
+formation and the internal representations learned by the network.
 
-\paragraph{Layer 1\,---\,The ansatz: physical constraints before optimization.}
-The first decision---what wavefunction to parameterize---is prior to training and
-shapes everything that follows.
-Antisymmetry is non-negotiable: the Slater determinant enforces it exactly.
-Permutation equivariance of the correlator is guaranteed by the Deep Sets
-architecture of the particle branch, but particle-only pooling cannot represent
-two-body correlations; the pairwise branch is not optional for correlated systems.
-The Kato cusp must be encoded analytically: learning it wastes capacity and the
-optimizer cannot be trusted to discover the correct singular behavior under
-noisy gradient estimates.
-Working in trap-unit coordinates---$\tilde{\mathbf{r}} = \sqrt{\omega}\,\mathbf{r}$---aligns
-the input dynamic range across the full $(N,\omega)$ grid and keeps the soft-core
-pair features and backflow gates consistent across three decades of confinement.
+On the \emph{energy} side, the results in Sec.~\ref{sec:energy-discussion}
+show that a single, trap-unit–normalised architecture with soft-core pair
+features and an explicit cusp achieves DMC-level accuracy for two-electron
+dots and maintains sub-$0.1\%$ relative errors for $N\in\{6,12\}$ across
+$\omega\in\{0.1,0.5,1.0\}$. The same setup extrapolates smoothly to
+ultra-weak traps at $\omega=10^{-3}$, where no DMC data are available, with
+internal consistency checks (scaling exponents, virial ratios and structural
+diagnostics) supporting the reliability of the resulting variational
+predictions. Crucially, these accuracies are obtained with a relatively
+modest SR tail on top of a residual-based pretraining stage, emphasizing that
+conditioning and inductive bias matter at least as much as raw sample count.
 
-These are not hyperparameter choices.
-They are the answer to the question ``what do the physical laws of the problem
-demand from the parameterization?'', and the correct answer to that question must
-be established before the first gradient step.
-The consequence of getting it right is that a compact ansatz---fewer than
-$50\text{k}$ parameters---reaches near-DMC accuracy for $N\in\{2,6,12\}$ across
-the full $\omega$ grid.
-The consequence of getting it wrong is that instabilities are misattributed to
-the optimizer or the training paradigm, and no amount of tuning resolves them.
+On the \emph{structural} side, Sec.~\ref{sec:wigner-molecule} establishes that
+the weak-trap states are genuine Wigner molecules rather than vaguely
+``strongly correlated'' dots. As $\omega$ decreases, all three systems
+$(N=2,6,12)$ undergo a smooth crossover in which (i) radii and localization
+ratios evolve towards large, stiff configurations, (ii) the energy
+partitioning approaches the nearly classical virial form
+$V_{\rm int}\approx 2V_{\rm trap}$, and (iii) shell structures and bond
+orders emerge that match classical Coulomb-cluster topologies. For $N{=}6$,
+the dot forms a single rotating Wigner ring with a quantum mixture of
+$(1,5)$ and $(0,6)$ sectors; for $N{=}12$, a robust two-shell Wigner molecule
+with a commensurate $(3,9)$ split becomes modal. Shell-resolved
+reconstructions of $g(r)$ confirm that the full pair structure is explained
+by these topologies and their combinatorics, with cosine similarities
+$\approx 1$ between reconstructed and global $g(r)$.
 
-Representation analysis reveals a further structural fact: the Jastrow correlator
-and the backflow displacement field live in qualitatively different function spaces.
-The correlator operates on a low-dimensional manifold ($r_{\rm eff} \lesssim 3$)
-whose leading axis reorganizes its content across regimes without expanding its
-rank.
-The backflow field has intrinsic dimension an order of magnitude larger, consistent
-with the theoretical expectation that a field encoding all pairwise displacements
-in $Nd$-dimensional space requires a richer representation.
-This separation has a practical implication: at large $N$, the memory cost of
-backflow ($\mathcal{O}(N^2 \times h_{\rm bf})$) competes directly with the batch
-size needed for reliable gradient estimates, and the correct response is to allocate
-that memory to oversampling rather than to network capacity.
+On the \emph{representation} side, Sec.~\ref{sec:repr-discussion} shows that
+this rich real-space physics is carried by a remarkably simple latent geometry.
+The correlator $W_\theta$ lives on a low-dimensional manifold
+($r_{\rm eff}(Z)\sim 1\text{--}2$) whose leading axes behave as collective
+coordinates for global size and radial fluctuations, with finer angular and
+topological information held in conditional distributions on that manifold; the
+identity of the leading axis shifts across regimes in a
+$\phi\leftrightarrow\psi$ recomposition rather than by growing in dimension.
+The backflow, by contrast, realises a high-dimensional displacement field whose
+energetic leverage sits in near-field configurations at intermediate traps. One
+earlier reading of the weak-trap limit---that the optimiser simply ``switches
+backflow off''---proves to be architecture-specific, and is corrected here: it is the
+\emph{conventional} backflow that collapses to a single collective mode
+(rank $\to 1$) at the Wigner crystal---its single round of pairwise messages failing to
+sustain the relative displacement the crystal demands---whereas the copresheaf
+message-passing backflow retains full rank and keeps its accuracy there
+(Chapter~\ref{ch:kernel}). How these internal numbers should be read is itself a
+result: quantities split between the Jastrow and the backflow are gauge-like, fixed by
+the training route rather than the state, so the load-bearing conclusions rest on the
+invariants---energy, overlap, and ablation---not on the component ranks themselves.
 
-\paragraph{Layer 2\,---\,The training paradigm: where neural QMC fits.}
-The second decision is how to compute energies and train.
-The hierarchy of established methods---HF, FCI, and DMC---provides the frame
-against which this decision can be evaluated.
-HF misses correlation; FCI is exact but exponentially expensive.
+On the \emph{method} side, reading the ansatz through its tangent kernel
+(Chapter~\ref{ch:kernel}) connects these observations to the design choices that
+produced them. Message passing earns its cost by supplying a relational channel: it
+compresses the correlator onto fewer effective tangent directions and sustains a
+full-rank backflow where a separable network cannot, and at the Wigner crystal the
+inter-particle messages account for essentially the entire backflow contribution.
+Natural-gradient (SR) preconditioning helps in proportion to how ill-conditioned the
+tangent metric is---little for $|\Psi|^2$-sampled VMC, decisively for the collocation
+objective---and the same conditioning story explains why an MCMC-free,
+importance-sampled collocation scheme equals VMC when its sampling is healthy and, with
+a proposal built from the Wigner shell itself, reaches a genuine Wigner molecule at
+$\omega=0.0035$ without any Markov-chain Monte Carlo during training.
 
-Neural VMC with MCMC sampling reaches near-DMC accuracy for the quantum dots
-studied here, at a computational cost far below FCI, with the additional property
-that it is differentiable
-end-to-end and can be trained on any $(N,\omega)$ combination without precomputed
-basis expansions.
-The MCMC-free collocation pipeline is the methodological contribution: a training
-procedure with no Markov chain at any stage, which achieves $+0.009\%$ relative
-error at $(N{=}6,\,\omega{=}1.0)$ and sub-$0.25\%$ across all five confinement
-strengths for $N{=}6$.
-This directly challenges the assumption that accurate neural wavefunction
-optimization requires equilibrated Markov chains.
-The binding constraint is the effective sample size (ESS) of the
-importance-weighted batch, which degrades as $e^{-cNd}$ as confinement weakens.
-No amount of oversampling prevents eventual ESS collapse; the fundamental
-scaling limit of the MCMC-free approach is set by the dimensionality of
-the configuration space and the mismatch between the Gaussian proposal and
-the Wigner-molecule geometry of $|\Psi|^2$.
-
-Physical validation confirms that accuracy against DMC is not the only criterion.
-The Wigner-molecule diagnostics---shell topology, bond-orientational order,
-Lindemann ratios, and shell-mixture reconstruction of $g(r)$---establish that
-the trained states are physically correct across the full Fermi-liquid-to-Wigner
-crossover, not merely energetically competitive.
-
-\paragraph{Layer 3\,---\,The optimization: matching the method to the regime.}
-The third decision is how to minimize the energy given the chosen paradigm.
-Two choices are not interchangeable: the gradient estimator and the optimizer.
-
-The REINFORCE estimator is a structural requirement, not a numerical convenience.
-Direct backpropagation through the Laplacian near nodal surfaces and
-electron-electron coalescence produces pathological gradients; the training signal
-is largest precisely where the gradient path is most unstable.
-REINFORCE treats the local energy as a scalar reward, bypasses the Laplacian
-in the gradient computation, and produces gradients that act only through the
-score function $\nabla_\theta\log|\Psi_\theta|$, which is smooth near the
-singularities even when the Laplacian is not.
-Pure REINFORCE ($\beta = 0$) is strictly superior to hybrid objectives; the
-direct weak-form term provides a cheaper energy proxy that interferes with
-the variational signal rather than reinforcing it.
-
-The optimizer must be matched to the regime.
-Stochastic reconfiguration (SR) is the natural-gradient update on the variational
-manifold; it accelerates convergence dramatically when the Fisher information
-estimate is reliable---that is, when the ESS is high and the proposal achieves
-good overlap with $|\Psi|^2$.
-When ESS collapses, the Fisher estimate is dominated by a handful of high-weight
-samples, and SR amplifies noise rather than curvature.
-Below $\omega \lesssim 0.01$ or beyond $N \approx 12$, Adam's per-parameter
-schedule is more robust.
-This handoff is not a tuning parameter; it follows directly from the geometry
-of the sampling problem.
-The Langevin refinement experiment---applying overdamped Langevin dynamics to
-move samples toward $|\Psi|^2$ before importance resampling---was a clean
-negative result: a $+153\%$ energy error at $N{=}20$, $\omega{=}0.1$, caused by
-non-equilibrium samples that invalidated the importance weights.
-Any strategy that modifies samples before resampling must account for the changed
-effective proposal, or the weights are simply wrong.
-
-\paragraph{Open questions.}
-Three questions remain concretely open.
-First, the ESS scaling wall: the fundamental limit of the MCMC-free approach
-is the exponential degradation of ESS with $Nd$.
-Normalizing flows or diffusion-model proposals trained concurrently with the
-wavefunction are natural candidates for breaking this limit.
-Second, warm-started backflow at $N{=}20$: the evidence now clearly supports
-a freeze-then-unfreeze strategy---training a memory-efficient backflow head
-on top of the converged Jastrow checkpoint---and the gradient-quality argument
-for why this ordering matters is now much cleaner than it was at the time of
-the original decision.
-Third, the Fisher matrix under partial overlap: the SR-to-Adam regime boundary
-is currently determined empirically; a principled criterion for when the Fisher
-estimate is too noisy to be useful would make the optimizer choice automatable
-rather than regime-specific.
-
-\paragraph{Broader implications.}
-The three-layer decomposition is not specific to quantum dots.
-Any neural-network variational calculation on a fermionic system in continuous
-space must make the same three decisions: what to parameterize (Layer~1),
-how to compute energies and train (Layer~2), and how to optimize (Layer~3).
-The quantum dot setting made these decisions legible by providing DMC references,
-known structural diagnostics, and a clean $(N,\omega)$ grid across which each
-choice's consequences are visible.
-The specific resolutions found here---physical constraints by construction,
-MCMC-free training with REINFORCE, SR where it helps and Adam where it does
-not---represent transferable principles rather than system-specific workarounds.
-Whether the same framework extends to three-dimensional atoms, molecular crystals,
-or the Hubbard model at finite doping is the natural next question.
-The three layers suggest it will, and the engineering record here suggests what
-each extension will require.
-
-The variational principle guarantees one thing: the energy computed is an upper
-bound.
-One knows, at all times, when one is wrong.
-The record assembled here---the Langevin failure, the SR-to-Adam handoff, the
-ESS collapse, the function-space separation of correlator and backflow---is most
-useful not as a list of solutions but as a map of where the upper bound stops
-improving and why.
-Any practitioner who builds the next version of this system will encounter the
-same geometry.
-The map is the contribution.
+Taken together, these findings converge on a single theme. What makes the difference
+across architecture, optimiser, and training paradigm is not raw capacity but alignment
+with the low-dimensional, physically collective structure of the problem---the same
+structure that, in real space, \emph{is} the Wigner molecule. A compact correlator
+supplies learned collective coordinates; a message-passing backflow supplies the
+relational corrections a single-round-message network cannot sustain; natural gradients and $|\Psi|^2$
+sampling keep the optimisation pointed along those directions. The quantum-dot results
+thus provide both a stringent validation of the method and a template for the same
+ideas in more complex finite fermion systems, where the trade-offs between global
+structure, local correlation, and representation are expected to recur.

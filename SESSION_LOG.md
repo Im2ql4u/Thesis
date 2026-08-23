@@ -360,6 +360,187 @@ scripts, journals) committed and pushed. Q3 called DONE; Aleksander will do the 
 
 ---
 
+## 2026-08-22 (cont.) — Energy audit + editorial/coherence pass on the results chapters
+
+**Energy audit (against real data on disk).** Traced every reported energy to source:
+  - VMC+SR gold standard (old tab:energies) = config.DMC_ENERGIES; below w=0.1 (N>=6) these ARE the
+    thesis's own PINN+CTNN values, not DMC (documented in config comments). Reference circularity confirmed.
+  - Backflow scaling (kernel tab:bf_energies/tab:bf_rank) = 2026-07-16_scaling/master.csv + n20_wigner.log.
+    Fixed rounding drifts to seed-means (N20 w1 CTNN +0.03->+0.06, rank 35.1->36.9; N12 w1; N6 w0.1 conv).
+  - Cascade (tab:cascade) matches JOURNAL per-rung heavy-VMC eval exactly.
+  - The "0.3%" the user distrusted = the STRONG-form catch-22 floor (N6 w0.5, Jastrow-only) and an
+    arch_colloc Jastrow-only run -- NOT the weak-form REINFORCE collocation, whose genuine bests are
+    +0.009% (w=1) down to +0.06-0.13% (N6 low w, per 2026-04-08 best-eval report).
+
+**Editorial pass (3 commits).**
+  - results_kernel.tex: table corrections, explicit reference hierarchy (DMC only w>=0.1), Q2 scope
+    limitation (Adam~SR verified only N=2,6), [CITE NEEDED] on classical (1,5) config, warmer intro voice.
+  - results.tex: intro repositioned as the physics half paired with the kernel 'why' chapter; reference
+    honesty in tab:energies + tab:collocation (relabelled "Reference", noted conservative reliability
+    bests); collocation strong/weak-form reconciliation fixing the 0.3% misattribution; [CITE NEEDED] on
+    sample-efficiency comparison.
+  - results.tex + appendix.tex: gauge caveat reconciliation (component metrics are path-dependent;
+    invariants are energy/overlap/ablation); old full-rank CTNN connected to kernel's conv-collapse;
+    catch-22 reframed as a strong-form negative baseline.
+
+**Not yet done / open:** full sentence-level voice pass on section BODIES (only framing/intros/syntheses
+done); a single explicit four-question spine statement; a complete [CITE NEEDED] sweep of physics claims.
+Awaiting Aleksander's steer on how far to push the prose (he intends a local writeup pass).
+
+---
+
+## 2026-08-22 (cont. 2) — Whole-thesis coherence pass: intro/theory/method/discussion/conclusion + build fix
+
+**Build fix (critical):** main.tex did not \input{results_kernel} -- the entire four-question kernel chapter
+was absent from the thesis. Now included after results.tex (physics chapter, then the 'why' chapter).
+
+**Introduction:** rewritten to the tangent-kernel spine. Scope now names separable-vs-message-passing and
+the four questions read through the QGT/NTK; contributions replaced with message-passing-relational-channel,
+optimiser+paradigm (SR conditioning, MCMC-free collocation to 0.0035), Wigner diagnostics, and a
+gauge-honest representation item; 'optimizer switches backflow off' corrected to the architecture-specific
+conv-collapse; N=20 added; diagnostics + thesis-structure updated (two results chapters).
+
+**Conclusion:** added a 'method side' paragraph (relational channel, SR, MCMC-free collocation) and a
+unified closing theme; corrected switch-off; gauge caveat.
+
+**Discussion:** 'backflow switches off' retitled + qualified (net energy vs structure; conv collapses and
+loses accuracy; ranks gauge-like); design bullet corrected (width vs kind); representation intro gauge
+caveat; collocation bridged to the kernel Wigner-ring frontier.
+
+**Theory:** new subsection sec:theory-tangent-kernel (score O, QGT S = Fisher metric of |Psi|^2 tied to SR,
+NTK K Gram dual, d_eff participation ratio, kappa) grounding the kernel chapter. Cites BeccaSorella2017 +
+StokesEtAl2020; NTK marked [CITE NEEDED] (no Jacot key in references.bib -- the ONLY remaining tag).
+
+**Method:** (a) sec:method-collocation -- VMC vs importance-sampled collocation, weak-form REINFORCE
+(Laplacian as reward, avoids the catch-22), ESS, Wigner-ring proposal; (b) sec:analysis-kernel -- tangent
+kernel diagnostics (O, S/K, d_eff, kappa, common probe set, symmetric overlap^2) vs gauge-dependent ranks.
+
+**N=20 collocation:** moved from tab:collocation to Appendix postcatch22:frontier, framed as an O(N^2 h_bf)
+memory bottleneck (Jastrow-only +1.32/+2.74/+5.53%, BF +18% reversal), not a limit of the method.
+
+**Remaining:** one [CITE NEEDED] (NTK/Jacot); two red [TODO] figure notes in results.tex (author's markers).
+All energies verified against on-disk data. All commits pushed.
+
+---
+
+## 2026-08-22 (cont. 3) — Implemented the examiner review: submission-prep edits
+
+**Scientific corrections (verified, not guessed):**
+- Fixed a factor error I had introduced in theory tangent-kernel: S is NOT "exactly F"; since grad log|Psi|^2 = 2 grad log|Psi|, F = 4S. Stated explicitly.
+- Cusp coefficients gamma_ud=1/(d-1), gamma_uu=1/(d+1) VERIFIED correct (match app:coulomb:cusp derivation: 2D -> 1 and 1/3; reduce to known 3D 1/2, 1/4). Added method->appendix cross-ref + 2D values. FLAGGED (not edited): the trap-unit slope of u carries a sqrt(omega) factor vs the physical-unit cusp slope=1; DMC-quality energies imply the computation is right, so this is a units-presentation gap for the author to reconcile against code.
+- Fisher/score convention now stated once (theta = all params; F=4S).
+
+**Consistency:**
+- Correlator notation unified to W_theta (was f_net in results/discussion/conclusion, "f" in kernel). First-use identification added.
+- CTNN defined at first use (results.tex arch paragraph): conventional per-particle BackflowNet vs message-passing continuous-time neural network (CTNN)/CTNNBackflowNet.
+- Backflow Delta_beta identified with Delta_x (results) at method first use.
+- Two \chapter{Quantum Dots} -> "Quantum dots: energies, representations, and Wigner molecules" (results) and "Discussion". Fixed Sec.->Chapter ref to ch:results.
+- Duplicate LaTeX labels (6, structural-diagnostics section duplicated theory<->method) resolved by renaming the theory copies (no active refs pointed to them).
+
+**Abstract:** rewritten to cover the actual thesis (N=20; message passing/relational channel; tangent kernel; SR/optimiser; MCMC-free collocation to 0.0035; Wigner physics; unifying insight). r_mode corrected 63.3 -> 64.3 a0 (matches tab:two_e_summary). "conditioning not depth" scoped to "at least as important as depth within the investigated regime".
+
+**Introduction:** added a relational-architecture foreshadowing paragraph (message passing motivated by correlation being relational) without revealing conclusions.
+
+**Citations:** NTK -> JacotEtAl2018-NTK (added to bib w/ arXiv), Deep Sets -> Zaheer2017-DeepSets (already in bib), classical (1,5) -> schweigert1994/Kong_2002. All TODO/CHECK/[kilde]/[Ref.]/CITE-NEEDED markers removed.
+
+**FLAGGED for author (not auto-fixed):** (1) cusp trap-unit sqrt(omega) units presentation; (2) backflow naming clash method(BackflowNet=message-passing) vs results(BackflowNet=conventional, CTNNBackflowNet=message-passing) + conventional baseline not described in method; (3) content redundancy: structural-diagnostics described in both theory and method; (4) British/American spelling ~50/50 mixed, needs one careful global pass; (5) citation CONTENT verification (sources not inspected); (6) rendered figures not visually inspectable.
+
+---
+
+## 2026-08-22 (cont. 4) — Final targeted cleanup, verified against source code
+
+**Cusp (Case B: implementation correct, equation wrong).** Read CuspMixin (src/jastrow_architectures.py):
+u = sum gamma_ij * r_ij * exp(-r_ij/ell), ell=1/sqrt(omega), computed on RAW PHYSICAL x (forward calls
+_compute_cusps(x), not x_sc). So slope du/dr|0 = gamma = the Kato condition (1 and 1/3 in 2D) -- CORRECT.
+The method's eq:cusp wrongly used scaled r-tilde as the linear prefactor (physical slope gamma*sqrt(omega)).
+Corrected eq:cusp to u(r)=gamma*r*exp(-r/a_ho) matching the code; trap-unit form given as (gamma/sqrt(omega))*r-tilde*exp(-r-tilde). Ansatz eqs now use u(r_ij).
+
+**Architecture naming (code-verified).** BackflowNet AND CTNNBackflowNet are BOTH message-passing.
+BackflowNet.forward: msg_in=cat[x_i,x_j,r_ij,...] over all pairs -> aggregate -> node update (single round,
+pairwise). CTNNBackflowNet: "Copresheaf/graph-style", explicit node+edge features, bidirectional transport
+rho_v_to_e/rho_e_to_v. DeepSetJastrow="pair-level encoder + multi-head pooling"; CTNNJastrowVCycle="Copresheaf
+CTNN with V-cycle". => the baselines are NOT per-particle; all use pairwise info. Corrected the false
+"per-particle / no relative channel / can only shift everyone together" claim across abstract, intro,
+results, results_kernel, discussion, conclusion to the accurate "single-round pairwise messages vs iterated
+copresheaf transport". Empirical results (rank collapse, d_eff, ablation) unchanged.
+
+**CTNN expansion.** Code says "copresheaf" everywhere (CTNNJastrow/VCycle/BackflowNet docstrings), NOT
+"continuous-time". Removed the "continuous-time" misnomer (was inferred from a stray results.tex phrase);
+introduced CTNN as the copresheaf message-passing model WITHOUT asserting an acronym expansion (letters'
+meaning not established in code/repo).
+
+**Fisher/QGT.** Confirmed F=4S is stated and no F=S survives anywhere.
+
+**British spelling.** Protected conversion (96 prose lines) skipping any \label/\ref/\cite/\url/\texttt line
+and references.bib; verified all labels (sec:optimization etc.) intact. "centre" not converted (60 occ,
+ambiguous) -- flagged.
+
+**Structural-diagnostics redundancy.** Label collision already fixed; added a theory->Analysis cross-ref
+noting the division (theory=concept, method=computation). Content NOT deleted -- left as author decision.
+
+**Could NOT do:** no LaTeX toolchain installed -> no compile, no rendered-figure inspection, no overfull-box
+check. Citation CONTENT not inspected (Pederiva2000/Mazars2008 support of specific values = source
+verification required; Jacot2018/Zaheer2017 are standard landmark refs, metadata present).
+
+---
+
+## 2026-08-22 (cont. 5) — Built the thesis PDF (112 pp) and fixed the LaTeX errors that blocked it
+
+No LaTeX on the box and the EasyBuild texlive was stripped (no perl infra, couldn't build a format); used
+the tectonic single-binary engine (downloaded to scratch, bundle cached) instead.
+Compile errors fixed:
+  - graphicspath pointed at ../results/figures/results/ but the figures live in ../results/figures/;
+    added that dir to all three graphicspaths. 9 figures recovered.
+  - 4 figures were never committed (all_activations_shared_legend, N2/N6/N12_all_densities) -> created
+    clearly-labelled PLACEHOLDER pdfs in results/figures/ so the doc compiles; MUST be replaced with the
+    real figures. (These placeholders are *.pdf => gitignored, local only.)
+  - results_kernel: '\dot\btheta' and unbraced subscript '\nabla_\btheta' broke under bm/physics
+    (\btheta=\bm{\theta}); the unbraced subscript _\btheta made \bm's \begingroup scan fail. Fixed to
+    _{\btheta} and rewrote the SR line as a discrete update \btheta <- \btheta - eta S^{-1} grad E.
+  - references.bib: added the missing Vehtari2024 (PSIS) entry that was \nocite'd.
+Result: exit 0, 112 pages, NO undefined refs/citations, NO errors, NO multiply-defined labels; 105 overfull
+hboxes (cosmetic). NOTE: *.pdf is gitignored, so main.pdf and all figure pdfs are not normally tracked;
+force-added main.pdf per request. The figure .pdf source assets remain gitignored (pre-existing), so a clean
+clone will not rebuild without them.
+
+---
+
+## 2026-08-23 — Regenerated the 4 missing figures + fixed real errors from external review
+
+**Figures (the "PLACEHOLDER" boxes):** the 4 were never committed. Data DID exist:
+N{2,6,12}_all_densities from the saved |Psi|^2 sample bundles (results/tables/**/gr_N*.{npz,pt};
+N=2 higher-omega were .pt, which my earlier .npz-only glob missed). Wrote scripts/make_missing_figures.py
+to compute P(r) across omega from samples_X_bohr, and all_activations_shared_legend from the activation
+functions directly. Verified N=6 renders correctly (peak marches 2->114 Bohr as omega 1->1e-3, matches
+Table 6.4). Real figures now embedded (main.pdf 112 pp).
+
+**Real errors fixed (from ChatGPT + Claude reviews, each verified against source/code):**
+- CUSP: theory.tex gave 2D like-spin cusp = 1/2 (a 3D "halving" heuristic); appendix, method, and CODE
+  (gamma_para=1/(d+1)) all use 1/3. Corrected theory to the p-wave value 1/(D+1)=1/3, made appendix canonical.
+- "no Monte-Carlo sampling" -> "without Markov-chain Monte Carlo" (abstract/intro/conclusion): collocation
+  IS Monte Carlo (importance sampling + resampling), just not a Markov chain.
+- Added a precise 3-way distinction (MCMC-free / reference-use / reference-free) in the discussion: the
+  higher-omega collocation uses E_DMC as a stage-I target + rollback signal, so it is MCMC-free but not
+  reference-free; only the deep-Wigner cascade (no DMC below 0.1) is both.
+- "Laplacian's zero variance" corrected: zero-variance is a property of the TOTAL local energy, not the
+  Laplacian term alone (results_kernel Q3).
+- "rigid common shift" -> "single collective displacement mode" (x3): COM projection removes literal
+  translation, so rank-1 collapse is a collective mode, not a common shift.
+- SR nuance added to Q2: SR helps when the metric is ill-conditioned AND reliably estimable; once sampling
+  collapses the empirical S is noise/rank-deficient and inverting it harms -- reconciles Q2 with the CG-SR
+  ultra-low-omega instability (Ch6).
+- theory opening grammar ("preceding"->rest; unfinished "focus will then shift" sentence).
+
+**Abstract:** rewritten tighter (Hawking-clear), MCMC-precise, with the collocation N<=12 vs VMC N=20 scope
+caveat; fixed r_mode (N=6 ring approx 114 a0; the prior approx 64 was N=2's value mis-attached).
+
+**NOT done (recommend, flagged to user):** bibliography is thin (34 refs) vs the novelty claims -- add
+Carleo&Troyer 2017, Luo&Clark backflow-NQS, Hermann PauliNet, GNN-NQS, non-MCMC VMC; consider a more
+specific title. Figure .pdf assets remain gitignored (*.pdf); force-added main.pdf + the 4 regenerated
+figures only.
+
+---
+
 ## Session 2026-05-25 — Oral-exam notes clarity pass + slide trims
 
 **Tasks completed:**

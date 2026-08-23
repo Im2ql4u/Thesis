@@ -47,6 +47,18 @@ growth in error with either particle number or trap strength. The worst
 relative deviations occur at intermediate $\omega$ and remain safely below
 the percent level.
 
+One subtlety is worth stating precisely, because the message-passing (CTNN) ansatz
+occasionally sits \emph{below} the quoted DMC reference (for example $N{=}12$,
+$\omega{=}1$: $65.6956$ vs.\ $65.7001$\,Ha). This does not violate the variational
+principle, which bounds the energy only from below by the \emph{exact} ground state,
+$E_{\rm VMC}\ge E_0$. The DMC benchmarks are \emph{fixed-node} calculations and therefore
+carry their own nodal (systematic) bias; a neural ansatz with a better nodal surface can
+legitimately lie below a fixed-node DMC value obtained with poorer nodes. We therefore do
+not treat sitting above the published DMC number as a requirement, and where the CTNN
+falls below it we read this as a plausibly improved nodal structure rather than an error
+--- though establishing that rigorously would require the DMC trial nodes and a matched
+uncertainty analysis, which we have not undertaken.
+
 This is non-trivial for two reasons. First, the grid spans qualitatively
 different physical regimes: compact, kinetic-dominated states at
 $\omega=1.0$ and swollen, interaction-dominated states at $\omega=0.1$.
@@ -125,6 +137,19 @@ crossover, in a sense that goes beyond the loose label ``strongly
 correlated''. Three strands of evidence support this: (i) localization and
 energy partitioning, (ii) shell geometry and bond order, and
 (iii) topology statistics and reconstruction of $g(r)$.
+
+\paragraph{A caveat on total spin.}
+Our reference states are the closed-shell singlets of the non-interacting problem, with
+$N_\uparrow=N_\downarrow$ held fixed throughout. This is safe at weak coupling, but in the
+deep-Wigner regime the ground-state \emph{spin} can change: for parabolic dots the
+interaction can drive spin transitions as it strengthens (for instance an
+$S=0\!\to\!S=1$ change for $N=6$ at strong coupling)~\cite{Egger_1999}. Fixing
+$N_\uparrow=N_\downarrow$ does not by itself pin the total spin, since an $S=1$ state also
+has an $S_z=0$ component. We do not scan total spin here, so the weak-trap energies and
+structures below should be read as the lowest states we find \emph{within the fixed
+spin-projection sector}, not as proven global-spin ground states. Determining the true
+spin ordering across the crossover, by comparing sectors of different $S$, is left to
+future work.
 
 \paragraph{Localization and energy partitioning.}
 On the one-body level, the weak-trap radial laws $P(r)$ are sharply peaked

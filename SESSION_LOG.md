@@ -752,3 +752,17 @@ Clean build, 116 pp, no undefined references/citations.
 
 **Still to do (bucket 3):** correct the N=20 DMC source (Pederiva only goes to N<=13; verify Høgberget 2013
 UiO thesis); add the total-spin-ground-state limitation (#6) and the CTNN-below-DMC / fixed-node caveat (#40).
+
+## 2026-08-23 (cont. 4) — bucket 3: spin & fixed-node caveats; DMC-source scope
+
+- #40: added a caveat in the energy discussion that the CTNN occasionally sits below the quoted (fixed-node)
+  DMC (e.g. N=12,w=1: 65.6956 vs 65.7001) and that this is consistent with variationality (DMC nodal bias),
+  not an error; corrected the "always slightly higher" overstatement (true for PINN+BF, not CTNN).
+- #6: added a total-spin caveat to the Wigner discussion (closed-shell N_up=N_down fixed; spin transitions
+  can occur deep in the Wigner regime per Egger; results are lowest within the fixed spin-projection sector,
+  not proven global-spin ground states).
+- #5/#39 DMC source: VERIFIED Pederiva spans only N<=13, so it cannot source the N=20 references; tab:energies
+  caption now cites Pederiva for N<=12 and states N=20 comes from a separate DMC calculation. IMPORTANT
+  UNRESOLVED: the thesis N=20 values (e.g. 155.8822 at w=1) do NOT match the published Hogberget values
+  (157.904 in Frontiers 2023), so I did NOT cite Hogberget. The true N=20 source must be confirmed by the
+  author (own VMC? a different Hogberget table? another DMC?).

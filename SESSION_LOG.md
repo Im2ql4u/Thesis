@@ -717,3 +717,38 @@ integrable); only my last unpushed commit (citations/title/related-work) was mis
     Passing, and Wigner Molecules".
 Discarded my data-regenerated figures in favour of the author's originals (results/figures/results/). Clean
 build 113 pp, no undefined citations, real figures embedded.
+
+---
+
+## 2026-08-23 (cont. 3) — Theory: added the missing architecture section; implemented the adversarial-review fixes
+
+**Theory (user: "ctnn part missing, we removed too much; ctnn is just an example").** Added
+\section{Architectures for many-body wavefunctions} (permutation symmetry/equivariance; DeepSets as the
+separable baseline; message passing / graph networks; the CTNN as ONE copresheaf-style instance, with the
+detailed equations deferred to Methods; relevance to the ansatz). Cited Zaheer, Gilmer (MPNN, web-verified),
+Battaglia (graph networks, web-verified), Pescia, Kim. Fixed the FFNN opener (was about activations) and
+renamed the vague "Modern mathematics" section to "Expressivity, approximation, and generalization".
+
+**Review fixes implemented (each verified vs code/source first):**
+- #1 eq:local-energy rewritten to the PHYSICAL form the code uses (½ω²r², Coulomb 1/r); trap-unit form
+  given parenthetically with the correct ω / √ω factors. Code confirmed correct; was a manuscript typo.
+- #2 Metropolis proposal ratio corrected (T(R'->R)/T(R->R')); quantum force -> 2∇ln|Ψ|.
+- #3 backflow<->correlator contradiction fixed (method: Δx enters ONLY the determinant; correlator sees R̃).
+- #4 overlap sign convention documented (modulus overlap; accurate here since both states share the Slater
+  sign and the correlator is a positive exponential; upper bound when states diverge).
+- #5/#8 d_eff reparameterization caveat added (theory + Q1a): not a coordinate-free dimension; comparison
+  valid under matched parameterization + common probe.
+- #11/#23 weak-form terminology fixed: collocation is REINFORCE (forms E_L, Laplacian in detached reward,
+  NOT Laplacian-free); what is given up is the |Ψ|² measure -> biased readout.
+- #13 ESS "0.11" -> "0.11% of the batch (~5 of 4096)".
+- #14 "30-100 oscillator lengths" -> Bohr with correct ℓ conversion (a few ℓ).
+- #16 abs-error "few 1e-4 Ha" -> "1e-3 to 1e-2 Ha".
+- #17 removed the leaked ":contentReference[oaicite...]" artifact.
+- #20 backflow rank table: 2N -> 2N-2 (COM) in header, caption, and values.
+- #30/#32/#34 Appendix B/C: "log-integrable" (divergent) -> "logarithmically divergent"; App C variance
+  integrand is finite (O(ε)), instability enters in the parameter gradient; "never sampled" -> "strongly
+  suppressed (∝ ε^3)"; #33 "cannot be resolved" -> "none of the tested strategies overcame it".
+Clean build, 116 pp, no undefined references/citations.
+
+**Still to do (bucket 3):** correct the N=20 DMC source (Pederiva only goes to N<=13; verify Høgberget 2013
+UiO thesis); add the total-spin-ground-state limitation (#6) and the CTNN-below-DMC / fixed-node caveat (#40).

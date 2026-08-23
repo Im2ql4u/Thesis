@@ -743,11 +743,12 @@ P(\mathbf{R}) = \frac{|\Psi_T(\mathbf{R})|^2}{\int |\Psi_T(\mathbf{R})|^2\, d\ma
 \]
 and configurations are sampled using the Metropolis-Hastings algorithm, initially described in \cite{Metropolis1953}, with acceptance probability
 \[
-A(\mathbf{R} \to \mathbf{R}') = \min\!\left(1, \frac{|\Psi_T(\mathbf{R}')|^2}{|\Psi_T(\mathbf{R})|^2}\, \frac{T(\mathbf{R} \to \mathbf{R}')}{T(\mathbf{R}' \to \mathbf{R})}\right).
+A(\mathbf{R} \to \mathbf{R}') = \min\!\left(1, \frac{|\Psi_T(\mathbf{R}')|^2}{|\Psi_T(\mathbf{R})|^2}\, \frac{T(\mathbf{R}' \to \mathbf{R})}{T(\mathbf{R} \to \mathbf{R}')}\right),
 \]
-A \emph{quantum force},
+where $T$ is the proposal density (for a symmetric proposal the ratio is unity and the
+acceptance reduces to the Metropolis form). When a drift is added, a \emph{quantum force}
 \[
-\mathbf{F}(\mathbf{R}) = 2\, \nabla \ln \Psi_T(\mathbf{R}),
+\mathbf{F}(\mathbf{R}) = 2\, \nabla \ln |\Psi_T(\mathbf{R})|,
 \]
 further guides the sampling toward regions of high probability. This leads to what is known as importance sampling. A more precise discussion of this is found in \cite{Chin1990-QuadraticDMC,VanKampen1992-StochasticProcesses}.
 
@@ -1013,10 +1014,22 @@ is the participation ratio of the spectrum: it counts how many independent tange
 directions carry appreciable Fisher weight at the solution, regardless of the raw
 parameter count $P$. A small $d_{\mathrm{eff}}$ means the state is reached along a few
 collective directions; a large one means the same solution is spread across many.
-Because these are properties of the tangent geometry rather than of the parameter
+Because these are properties of the tangent geometry rather than of the raw parameter
 count, and are stable across seeds and sampling measures for a given ansatz, they let
 us compare architectures, optimisers, and training paradigms on a common footing---
 which is exactly what the second results chapter (Chapter~\ref{ch:kernel}) does.
+
+One caveat must be kept in view. The participation ratio $d_{\mathrm{eff}}$ is computed
+from the QGT eigenvalues in the ordinary Euclidean parameter coordinates, and those
+eigenvalues are \emph{not} invariant under an arbitrary reparameterization: rescaling a
+single parameter $\theta_1\mapsto c\,\theta_1$ leaves the physical state untouched but
+changes $d_{\mathrm{eff}}$ (for a diagonal metric it moves from $2$ toward $1$ as
+$c\to\infty$). $d_{\mathrm{eff}}$ is therefore \emph{not} a coordinate-free intrinsic
+dimension of the wavefunction; it is a property of the (architecture, parameterization,
+normalization) triple. We use it accordingly---as a comparison between fixed
+architectures under matched conventions and a common probe measure---and read a smaller
+$d_{\mathrm{eff}}$ as ``this architecture concentrates its Fisher weight into fewer active
+directions,'' not as an absolute manifold dimension.
 
 \subsection{Optimisation challenges in deep learning}
 Optimisation in deep neural networks poses unique challenges:
@@ -1038,14 +1051,15 @@ inductive biases and generalisation behaviour of neural networks. In the followi
 we build on this foundation by examining neural network expressivity, activation functions, 
 and initialization strategies in detail.
 
-\section{Feed forward Neural Networks}
+\section{Feed-forward neural networks}
 \label{sec:FFNN}
 
-Activation functions are the nonlinear components of neural networks that 
-enable them to approximate complex functions. Without nonlinearities, 
-a stack of affine transformations would collapse to a single linear map, 
-regardless of depth. The choice of activation function therefore plays a 
-central role in the expressivity, optimisation, and stability of a network.  
+Feed-forward neural networks are the basic building block from which the architectures
+of this thesis are assembled. They compose affine maps with elementwise nonlinearities
+to represent functions that linear models cannot. We first define the feed-forward map,
+and then discuss the two design choices that most affect its behaviour in
+physics-informed settings, where gradients and Laplacians of the network enter the loss:
+the activation function and the weight initialization.
 
 \subsection{From linear models to nonlinear function classes}
 Classical regression models are linear in their parameters: 
@@ -1245,11 +1259,103 @@ Key takeaways include:
   but essential for stable computation of derivatives.  
 \end{itemize}
 
-Initialization and activation choice thus form an inseparable pair: together 
+Initialization and activation choice thus form an inseparable pair: together
 they determine whether information propagates stably through the network. This will be discussed further in the context of physics-informed models in Chapter~\ref{ch:trial_wavefunction}.
 
 
-\section{Modern mathematics}
+\section{Architectures for many-body wavefunctions}
+\label{sec:architectures}
+
+The feed-forward network of the previous section maps a fixed-size input vector to an
+output. A many-body wavefunction is not a generic function of such a vector: identical
+particles impose a permutation symmetry, and correlation is intrinsically
+\emph{relational}---what one particle should do depends on where the others are. A plain
+multilayer perceptron acting on the concatenated coordinates
+$(\mathbf x_1,\dots,\mathbf x_N)$ respects neither property; it would have to learn the
+symmetry from data, and its parameter count would grow with $N$. This section introduces
+the two architecture classes that build the required structure in---permutation-invariant
+pooling and message passing---and situates the specific message-passing network used in
+this thesis as one instance of the latter.
+
+\subsection{Permutation symmetry and equivariance}
+For identical particles the modulus $|\Psi|$ is invariant under exchange (the sign is
+carried by the antisymmetric Slater reference of Chapter~\ref{ch:trial_wavefunction}).
+The two learnable objects of the ansatz therefore have distinct symmetry requirements.
+A scalar \emph{correlator} $f$ must be permutation-\emph{invariant},
+\[
+  f(P_\sigma R)=f(R),
+\]
+while a per-particle \emph{backflow} displacement field $\mathbf g=(\mathbf g_1,\dots,\mathbf g_N)$
+must be permutation-\emph{equivariant},
+\[
+  \mathbf g(P_\sigma R)=P_\sigma\,\mathbf g(R),
+\]
+for any permutation $\sigma$ (here $P_\sigma$ relabels the particles). Enforcing these by
+construction is both more data-efficient than learning them and yields a parameter count
+independent of $N$, because the same shared maps are applied to every particle and pair.
+
+\subsection{Permutation-invariant pooling: DeepSets}
+The simplest way to build an invariant function is to embed each particle independently
+and pool the embeddings symmetrically. This is the DeepSets
+construction~\cite{Zaheer2017-DeepSets}: any suitably regular permutation-invariant
+function admits the form
+\[
+  f(R)=\rho\!\Big(\textstyle\sum_i \phi(\mathbf x_i)\Big),
+\]
+with a per-particle embedding $\phi$, a symmetric pool $\sum_i$, and a readout $\rho$. A
+two-body extension encodes pairs, $\phi(\mathbf x_i,\mathbf x_j)$, and pools over them,
+capturing pairwise correlation. What characterises this class is that each particle---or
+pair---is embedded \emph{independently} and only then pooled: no information is exchanged
+between particles before the pool. We refer to such networks as \emph{separable}, and
+they serve as the non-message-passing baseline for the correlator.
+
+\subsection{Message passing and graph networks}
+To let a particle's representation depend on the others' in an iterated, higher-order
+way, one places the particles on a graph---nodes are particles, edges are
+pairs---and passes learned messages along the edges~\cite{Gilmer2017-MPNN,Battaglia2018-GraphNetworks}.
+In a generic round $\ell$, each edge gathers information from its endpoint nodes and each
+node aggregates its incoming edge messages,
+\[
+  \mathbf m_{ij}^{(\ell)} = \phi_e\!\big(\mathbf h_i^{(\ell)},\mathbf h_j^{(\ell)},\mathbf e_{ij}^{(\ell)}\big),
+  \qquad
+  \mathbf h_i^{(\ell+1)} = \phi_v\!\Big(\mathbf h_i^{(\ell)},\ \textstyle\operatorname*{Agg}_{j\neq i}\mathbf m_{ij}^{(\ell)}\Big),
+\]
+with shared maps $\phi_e,\phi_v$ and a symmetric aggregation $\operatorname{Agg}$, so that
+permutation equivariance holds by construction; a final readout produces an invariant
+scalar (correlator) or an equivariant field (backflow). Both DeepSets and message passing
+use pairwise information, but only message passing lets that information
+\emph{propagate}: after several rounds a particle's representation reflects not just its
+neighbours but their neighbours' responses. This iterated propagation is what we call the
+\emph{relational channel}, and asking what it buys---in the correlator and in the
+backflow---is one of the central questions of this thesis. Message passing has been used
+in exactly this spirit for neural quantum states of extended fermion
+systems~\cite{Pescia2024-MessagePassingNQS,KimEtAl2023-UltracoldFermiNQS}.
+
+\subsection{The CTNN: one message-passing instance}
+\label{sec:ctnn-theory}
+The message-passing correlator and backflow studied here are realised by a particular
+network we refer to as the \emph{CTNN}: a copresheaf-style message-passing network that
+maintains explicit \emph{node and edge} features and transports them between nodes and
+edges over several rounds, rather than recomputing one-shot messages. Its concrete update
+equations, hidden dimensions, number of rounds, and parameter counts are specified in the
+Methods chapter (\S\ref{subsec:backflow-method}). Two points of framing matter for the
+rest of the thesis. First, the CTNN is \emph{one} concrete realisation of the
+message-passing class defined above; the conclusions we draw about the value of message
+passing concern the class, with the CTNN as the instance actually studied. Wherever we
+contrast a ``message-passing'' network with a ``separable'' one, the separable member is
+a DeepSets-type network and the message-passing member is the CTNN. Second, we write
+``copresheaf-\emph{style}'' deliberately: the name reflects the node/edge transport
+structure of the updates, not a claim to a formal sheaf-theoretic construction.
+
+\subsection{Relevance to the ansatz}
+Both learnable objects of the ansatz---the Jastrow correlator and the coordinate
+backflow---can be built in either form: as a separable DeepSets-type network, or as the
+message-passing CTNN. Holding everything else fixed and varying only this choice isolates
+the effect of the relational channel, which Chapter~\ref{ch:kernel} analyses through the
+geometry of the tangent kernel introduced in \S\ref{sec:theory-tangent-kernel}.
+
+
+\section{Expressivity, approximation, and generalization}
 \label{sec:nn_approximation}
 
 The central reason neural networks have become the dominant model class in machine 
@@ -1296,7 +1402,7 @@ Classical approximation theory predicts that uniformly approximating a generic
 $f:\mathbb{R}^d\!\to\!\mathbb{R}$ requires resources that grow exponentially in $d$—the
 \emph{curse of dimensionality} (CoD). This perspective cannot explain the strong
 empirical performance of deep networks on very high–dimensional tasks, prompting
-a search for structural conditions under which the CoD does \emph{not} apply.:contentReference[oaicite:0]{index=0}
+a search for structural conditions under which the CoD does \emph{not} apply.
 
 A first resolution is \emph{low effective dimension}: if the data (and loss) live on a
 $d'\!\ll\!d$ manifold $M$ and error is measured in $L^p(\mu)$ with $\mathrm{supp}\,\mu\subset M$,

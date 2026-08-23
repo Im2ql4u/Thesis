@@ -91,7 +91,7 @@ kernel; its value tracks $\kappa(S)$---negligible for the well-conditioned VMC
 metric, decisive for the ill-conditioned collocation objective.
 \textbf{(Q3)} VMC and collocation reach the \emph{same state} when the importance
 sampling is healthy ($N=2$: overlap $>0.997$) and \emph{diverge} when it is not
-($N=6$ Wigner: ESS $\to 0.11$, overlap $\to 0$ under Adam). A cross-cutting caveat,
+($N=6$ Wigner: ESS $\to 0.11\%$ of the batch, overlap $\to 0$ under Adam). A cross-cutting caveat,
 itself a result: component-level quantities (rank, $|\Delta\mathbf{x}|$) are
 gauge-like; energy, overlap, and ablation are the invariants.
 
@@ -119,7 +119,11 @@ needs $d_{\mathrm{eff}}\approx2.9$--$3.6$---a factor of $\sim\!2$. The gap is ro
 to the probe measure ($\lesssim0.2$ whether scored on CTNN, DeepSet, or pooled
 points) and does not shrink as the DeepSet is given more capacity (the $164$k
 DeepSet sits at $2.9$, no lower than the $20$k one). The compression is
-architectural, not a matter of size or sampling mass.
+architectural, not a matter of size or sampling mass. It is also a well-posed comparison
+despite $d_{\mathrm{eff}}$ not being a reparameterization-invariant absolute dimension
+(\S\ref{sec:theory-tangent-kernel}): both families are compared under matched
+normalization conventions and a common probe measure, so the factor-of-two gap reflects
+how each architecture spends its tangent directions, not a change of coordinates.
 
 One subtlety should be dispatched here, because the synthesis
 (\S\ref{sec:synthesis}) will caution that quantities split between the Jastrow and
@@ -289,7 +293,7 @@ statement.
 Sampling from $|\Psi|^2$ makes the estimator of $S$ and of the gradient share the
 same measure, which conditions the update. A fixed covering proposal instead drives
 a monotone \emph{ESS collapse} as $N$ and $1/\omega$ grow: at $N=6,\omega=0.01$ the
-effective sample size falls to $0.11$. When ESS collapses the gradient estimator is
+effective sample size falls to $0.11\%$ of the batch (about $5$ of $4096$ points). When ESS collapses the gradient estimator is
 degenerate---a hard limit, not undertraining.
 
 \paragraph{Same state, until the sampling loses the target.} We test whether the two
@@ -308,16 +312,20 @@ This couples Q3 to Q2: the paradigm that needs SR is the one that breaks down at
 scale. An adaptive proposal that tracks $|\Psi|^2$ is the natural remedy, pursued in
 \S\ref{sec:kernel-q3-frontier}.
 
-\paragraph{The weak form gives up the zero-variance property.} For an exact eigenstate
-the strong-form local energy $E_L=\hat H\Psi/\Psi$ is constant over configuration space,
-so $\Var(E_L)\to0$ as the ansatz approaches the ground state---the zero-variance
-principle, and the reason $\Var(E_L)$ is a sharp quality measure. That cancellation is a
-property of the \emph{full} local energy, in which the Laplacian (kinetic) and potential
-terms combine to a constant; it is not a property of the Laplacian term alone. The weak
-(first-derivative) form never forms $E_L$: it replaces the Laplacian-bearing estimator by
-a Laplacian-free one, forgoing the exact cancellation and so carrying irreducibly higher
-variance. This is why the importance-sampled energy readout $E_{\mathrm{weak}}$ is biased
-and must not be used as the convergence criterion---overlap and $\Var(E_L)$ are.
+\paragraph{Why the collocation energy readout is biased.} For an exact eigenstate the
+local energy $E_L=\hat H\Psi/\Psi$ is constant over configuration space, so
+$\Var(E_L)\to0$ as the ansatz approaches the ground state---the zero-variance principle,
+and the reason $\Var(E_L)$ is a sharp quality measure. That cancellation is a property of
+the \emph{full} local energy, in which the kinetic (Laplacian) and potential terms combine
+to a constant; it is not a property of the Laplacian term alone. The collocation objective
+does \emph{not} discard the Laplacian: it is a score-function (REINFORCE) estimator that
+\emph{forms} the full $E_L$ as a detached reward and differentiates only $\log|\Psi|$
+(\S\ref{sec:colloc-method}). What it gives up is the \emph{measure}: the reward is averaged
+over the analytic proposal with importance weights (and, in the hardest regimes, tempered
+weights), so the importance-sampled energy \emph{readout} is a biased estimate of
+$\langle E_L\rangle_{|\Psi|^2}$ and must not be used as the convergence criterion. The
+reliable criteria are $\Var(E_L)$ and the state overlap, both evaluated on $|\Psi|^2$
+samples.
 
 % =====================================================================
 \section{The collocation frontier: a physics-informed proposal for the Wigner regime}

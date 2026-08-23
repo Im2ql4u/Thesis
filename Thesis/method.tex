@@ -274,15 +274,21 @@ E(\theta)
 \qquad
 \pi_\theta(\tilde{R})=\frac{|\Psi_\theta(\tilde{R})|^2}{\int |\Psi_\theta|^2}.
 \end{equation}
-With scaled coordinates $\tilde{\mathbf r}=\sqrt{\omega}\,\mathbf r$ the local energy reads
+The local energy is evaluated in \emph{physical} coordinates, consistently with the
+Hamiltonian~\eqref{eq:dot-h},
 \begin{equation}
 \label{eq:local-energy}
-E_L(\tilde{R})
-= -\tfrac12\sum_{i=1}^N\!\Big[\Delta_{\tilde{\mathbf r}_i}\ln\Psi_\theta + \|\nabla_{\tilde{\mathbf r}_i}\ln\Psi_\theta\|^2\Big]
-+\tfrac{1}{2}\sum_{i=1}^N \tilde r_i^2
-+\sum_{i<j}\frac{\sqrt{\omega}}{\tilde r_{ij}},
+E_L(R)
+= -\tfrac12\sum_{i=1}^N\!\Big[\Delta_{\mathbf r_i}\ln\Psi_\theta + \|\nabla_{\mathbf r_i}\ln\Psi_\theta\|^2\Big]
++\tfrac{1}{2}\,\omega^2\sum_{i=1}^N r_i^2
++\sum_{i<j}\frac{1}{r_{ij}},
 \end{equation}
 and the zero–variance principle holds: $\mathrm{Var}_{\pi_\theta}[E_L]=0$ iff $\Psi_\theta$ is an eigenstate.
+The network \emph{features} are computed in trap units $\tilde{\mathbf r}=\sqrt{\omega}\,\mathbf r$
+for conditioning, but the local energy itself is formed in physical units, so no
+$\omega$ factors are absorbed into the kinetic, trap, or Coulomb terms. (In trap units
+the same operator reads $E_L=\omega\big[-\tfrac12\sum_i(\Delta_{\tilde{\mathbf r}_i}\ln\Psi_\theta+\|\nabla_{\tilde{\mathbf r}_i}\ln\Psi_\theta\|^2)+\tfrac12\sum_i\tilde r_i^2\big]+\sum_{i<j}\sqrt{\omega}/\tilde r_{ij}$;
+the kinetic and trap terms scale by $\omega$ and the Coulomb term by $\sqrt{\omega}$.)
 
 Our optimisation follows two stages that mirror the implementation:
 \begin{enumerate}
@@ -581,8 +587,10 @@ f_{\rm base}(z)=\rho_\theta(z)=w^\top z+b,
 \qquad
 f=f_{\rm base}+f_{\rm cusp}.
 \end{equation}
-Backflow returns a displacement field $\Delta x\in\mathbb{R}^{N\times d}$ applied before
-the Slater and correlator pipelines.
+Backflow returns a displacement field $\Delta x\in\mathbb{R}^{N\times d}$ that enters only the
+Slater determinant; the correlator and cusp are evaluated on the unshifted $\tilde R$
+(\S\ref{subsec:backflow-method}). The coupling diagnostics below additionally probe the
+correlator on the shifted coordinates as a counterfactual sensitivity.
 
 \subsection{Preprocessing and PCA}
 \label{subsec:repr-prep}
@@ -734,8 +742,18 @@ energy, we use a symmetric, importance-sampled squared overlap,
 \]
 each factor evaluated by a log-sum-exp mean over samples of the corresponding state.
 It equals $1$ for identical states, and on the analytic two-electron ground state the
-trained ansatz reproduces $\mathcal{S}^2=1.000000$, which anchors the tooling. These
-quantities---together with the energetic price of ablating a component---are invariant
-to how correlation is divided between the Jastrow and the backflow, and it is on them,
-rather than on the gauge-dependent component ranks of the previous section, that the
-architectural conclusions of Chapter~\ref{ch:kernel} rest.
+trained ansatz reproduces $\mathcal{S}^2=1.000000$, which anchors the tooling.
+
+One convention must be stated, because the ratio $\Psi_B/\Psi_A$ is signed for a
+fermionic state. We evaluate the ratios from $\log|\Psi|$, so the estimator is strictly a
+\emph{modulus} overlap, $\langle|\Psi_B/\Psi_A|\rangle\langle|\Psi_A/\Psi_B|\rangle$. For
+the comparisons made here this is an accurate proxy for the signed overlap: both states
+share the same Slater reference, and the correlator and cusp enter as a strictly positive
+exponential, so the sign of $\Psi$ is fixed by the determinant and the two states agree in
+sign except on the measure-suppressed set where their backflows carry a configuration
+across a node differently. Where the two states genuinely diverge the modulus overlap is
+an upper bound on the signed one, so a reported $\mathcal{S}^2\to0$ is if anything
+conservative. These quantities---together with the energetic price of ablating a
+component---are invariant to how correlation is divided between the Jastrow and the
+backflow, and it is on them, rather than on the gauge-dependent component ranks of the
+previous section, that the architectural conclusions of Chapter~\ref{ch:kernel} rest.

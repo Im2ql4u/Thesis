@@ -311,7 +311,7 @@ and the CKA similarity between the correlator features with and without backflow
 \caption{CTNN backflow geometry.
 $\|\Delta\mathbf{x}\|/\ell$: mean displacement magnitude normalised by harmonic length.
 Rank: effective rank of the displacement covariance.
-$2N$: maximum possible rank.
+$2N{-}2$: maximum possible rank after centre-of-mass projection.
 CKA: linear centred kernel alignment between correlator features with and without backflow
 (1.0 = identical feature manifolds).}
 \label{tab:backflow-geom}
@@ -319,28 +319,28 @@ CKA: linear centred kernel alignment between correlator features with and withou
 \setlength{\tabcolsep}{5pt}
 \begin{tabular}{rr cccc}
 \toprule
-$N$ & $\omega$ & $\|\Delta\mathbf{x}\|/\ell$ & Rank & $2N$ & CKA \\
+$N$ & $\omega$ & $\|\Delta\mathbf{x}\|/\ell$ & Rank & $2N{-}2$ & CKA \\
 \midrule
- 2 & 0.001 & 0.003  & 1.9  &  4 & 1.000 \\
- 2 & 1.0   & 0.029  & 2.0  &  4 & 1.000 \\
+ 2 & 0.001 & 0.003  & 1.9  &  2 & 1.000 \\
+ 2 & 1.0   & 0.029  & 2.0  &  2 & 1.000 \\
 \midrule
- 6 & 0.001 & 0.017  & 10.0 & 12 & 0.999 \\
- 6 & 0.01  & 0.035  & 9.9  & 12 & 0.998 \\
- 6 & 0.1   & 0.096  & 10.0 & 12 & 0.995 \\
- 6 & 0.5   & 0.093  & 10.0 & 12 & 0.991 \\
- 6 & 1.0   & 0.089  & 10.0 & 12 & 0.979 \\
+ 6 & 0.001 & 0.017  & 10.0 & 10 & 0.999 \\
+ 6 & 0.01  & 0.035  & 9.9  & 10 & 0.998 \\
+ 6 & 0.1   & 0.096  & 10.0 & 10 & 0.995 \\
+ 6 & 0.5   & 0.093  & 10.0 & 10 & 0.991 \\
+ 6 & 1.0   & 0.089  & 10.0 & 10 & 0.979 \\
 \midrule
-12 & 0.001 & 0.017  & 21.9 & 24 & 1.000 \\
-12 & 0.01  & 0.030  & 21.9 & 24 & 0.998 \\
-12 & 0.1   & 0.096  & 21.9 & 24 & 0.993 \\
-12 & 0.5   & 0.096  & 21.9 & 24 & 0.993 \\
-12 & 1.0   & 0.091  & 21.9 & 24 & 0.995 \\
+12 & 0.001 & 0.017  & 21.9 & 22 & 1.000 \\
+12 & 0.01  & 0.030  & 21.9 & 22 & 0.998 \\
+12 & 0.1   & 0.096  & 21.9 & 22 & 0.993 \\
+12 & 0.5   & 0.096  & 21.9 & 22 & 0.993 \\
+12 & 1.0   & 0.091  & 21.9 & 22 & 0.995 \\
 \midrule
-20 & 0.001 & 0.023  & 37.7 & 40 & 0.999 \\
-20 & 0.01  & 0.046  & 37.4 & 40 & 1.000 \\
-20 & 0.1   & 0.075  & 37.8 & 40 & 0.997 \\
-20 & 0.5   & 0.099  & 37.6 & 40 & 0.990 \\
-20 & 1.0   & 0.099  & 37.6 & 40 & 0.991 \\
+20 & 0.001 & 0.023  & 37.7 & 38 & 0.999 \\
+20 & 0.01  & 0.046  & 37.4 & 38 & 1.000 \\
+20 & 0.1   & 0.075  & 37.8 & 38 & 0.997 \\
+20 & 0.5   & 0.099  & 37.6 & 38 & 0.990 \\
+20 & 1.0   & 0.099  & 37.6 & 38 & 0.991 \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -393,7 +393,16 @@ We measure this through three diagnostics:
 between the PINN's gradient in configuration space and the CTNN displacement
 (gradient alignment implies the CTNN pushes along directions the PINN is sensitive to);
 (ii) the fraction of configurations where $\Delta\mathbf{x}$ is aligned with $\nabla f$;
-and (iii) $|\delta f|/\sigma_f$, the relative impact of backflow on the PINN output.
+and (iii) $|\delta f|/\sigma_f$, where $\delta f = f(\tilde R+\Delta\mathbf x)-f(\tilde R)$
+is the change in the correlator output when it is evaluated on the backflow-shifted
+coordinates, in units of the correlator's own standard deviation $\sigma_f$. Two
+cautions attach to this last quantity. It is a \emph{counterfactual sensitivity}: in the
+production ansatz the correlator sees the unshifted $\tilde R$ (only the determinant sees
+$\tilde R+\Delta\mathbf x$; \S\ref{subsec:backflow-method}), so $\delta f$ measures how
+much the correlator \emph{would} respond to the displacement, not an actual term in the
+wavefunction. And it is a typical relative change, not a variance decomposition:
+$|\delta f|/\sigma_f=0.7$ means the counterfactual change is $0.7$ standard deviations,
+not that $70\%$ of the variance is attributable to backflow.
 Table~\ref{tab:pinn-ctnn-coupling} reports these alongside the fraction of particles pushed
 toward their nearest neighbour.
 
@@ -445,7 +454,7 @@ the correlator.
 
 At $\omega \geq 0.1$, the picture changes qualitatively.
 The gradient cosine jumps to 0.5--0.8, the alignment fraction reaches 1.0 for $N\geq 6$,
-and backflow accounts for 25--69\% of the PINN's output variance.
+and the counterfactual output change reaches $|\delta f|/\sigma_f = 0.25$--$0.69$ (i.e.\ up to $\sim\!0.7$ standard deviations of the correlator).
 Here the CTNN acts as a cooperative refinement: it pushes configurations along
 directions the PINN is maximally sensitive to, systematically correcting the correlator's
 residual errors.
@@ -489,7 +498,7 @@ backflow adjusts orbital positions via the Slater determinant while the correlat
 tracks global structure.
 At moderate-to-weak correlation, the two components become tightly coupled:
 the CTNN's displacements align with the PINN's gradient ($\langle\cos\rangle \sim 0.5$--$0.8$),
-and backflow accounts for up to 70\% of the correlator's output variance.
+and the counterfactual output change reaches $|\delta f|/\sigma_f$ up to $0.70$ (about $0.7$ standard deviations of the correlator).
 The transition between these regimes is sharp and coincides with the physical crossover at
 $\omega \approx 0.1$.
 
@@ -1253,7 +1262,7 @@ For six electrons, collocation training reaches DMC-level accuracy
 where DMC exists---at $\omega\ge 0.5$ the errors are $\lesssim 0.01\%$,
 inside the DMC statistical uncertainty. At the most extreme confinements,
 $\omega\in\{0.01,0.001\}$, where the electrons are separated by
-${\sim}30$--$100$ oscillator lengths and no DMC reference is available,
+${\sim}30$--$120\,a_0^\ast$ (a few oscillator lengths) and no DMC reference is available,
 the energies stay within $0.1$--$0.25\%$ of our converged variational gold
 standard; this is agreement between two independent training paradigms on
 the same ansatz, not a certificate of absolute accuracy. The best result at
@@ -1559,10 +1568,10 @@ with $|\Psi_\theta|^2$.
 For the harmonic quantum dot, $|\Psi|^2$ concentrates on a manifold
 whose geometry depends on $\omega$:
 at $\omega{=}1.0$, electrons occupy a compact cloud of radius
-${\sim}1/\sqrt{\omega}$ oscillator lengths, and the three-component
+of order the oscillator length $\ell=1/\sqrt{\omega}$, and the three-component
 Gaussian mixture in Eq.~\eqref{eq:proposal} provides adequate coverage.
 At $\omega{=}0.001$, the electron cloud extends to
-${\sim}30$ oscillator lengths, the pair correlation function develops
+$\sim\!100\,a_0^\ast$ (several oscillator lengths, $\ell\approx31.6\,a_0^\ast$), the pair correlation function develops
 sharp shell structure (Section~\ref{sec:wigner-molecule}), and
 $|\Psi|^2$ concentrates on a thin correlated submanifold that the
 isotropic Gaussian proposal covers inefficiently.

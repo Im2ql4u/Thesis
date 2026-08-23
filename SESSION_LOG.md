@@ -701,3 +701,19 @@ figures only.
 
 ---
 
+
+---
+
+## 2026-08-23 (cont. 2) — Reconciled with the pushed images + upstream rewrite; applied citations & title
+
+Origin/main had advanced 9 commits (upstream editorial rewrite + preface + oral-exam materials + the REAL
+figures in results/figures/results/, and .gitignore now un-ignores figure PDFs). Verified the merge KEPT my
+correctness fixes (cusp 1/3, MCMC wording, single-collective-displacement, zero-variance, score-near-nodes
+integrable); only my last unpushed commit (citations/title/related-work) was missing. Reset local to origin
+(canonical) and re-applied just those three onto it:
+  - 4 web-verified NQS refs (Carleo2017-NQS, LuoClark2019-NeuralBackflow, Hermann2020-PauliNet,
+    Pescia2024-MessagePassingNQS) + intro "Where this work sits" paragraph.
+  - title -> "Physics-Informed Neural Quantum States for Quantum Dots: Tangent-Space Geometry, Message
+    Passing, and Wigner Molecules".
+Discarded my data-regenerated figures in favour of the author's originals (results/figures/results/). Clean
+build 113 pp, no undefined citations, real figures embedded.

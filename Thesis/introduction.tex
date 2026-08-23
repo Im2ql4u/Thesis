@@ -79,6 +79,25 @@ coordinate independently, are a natural candidate for the correlator and for the
 backflow that deforms the nodes. How much this relational capacity actually buys,
 and why, is one of the questions this thesis takes up.
 
+\paragraph{Where this work sits.}
+Representing a quantum state by a neural network and optimising it variationally was
+introduced by Carleo and Troyer~\cite{Carleo2017-NQS}; for continuum fermions the idea
+has since matured into highly accurate \emph{ab initio} solvers such as
+FermiNet~\cite{Pfau2020-FermiNet} and PauliNet~\cite{Hermann2020-PauliNet}, and into
+explicit neural \emph{backflow} transformations~\cite{LuoClark2019-NeuralBackflow}---the
+direct ancestor of the coordinate backflow used here. Message passing, the relational
+mechanism at the centre of this thesis, has recently been built into neural quantum
+states for extended fermion
+systems~\cite{Pescia2024-MessagePassingNQS,KimEtAl2023-UltracoldFermiNQS}. Against that
+backdrop the present work is deliberately narrow and complementary. Rather than pushing a
+new architecture to ever larger systems, it asks \emph{why} the relational channel helps,
+and uses the tangent-kernel geometry to make the answer precise; it focuses on the
+two-dimensional quantum-dot Wigner regime, where correlation is strongest and where
+topology-resolved structural diagnostics remain sparse; and it treats conditioning, the
+optimiser, and Markov-chain-free training as objects of study in their own right rather
+than fixed choices. To our knowledge these questions have not previously been addressed
+together for parabolic quantum dots.
+
 \paragraph{Quantum dots as a controlled testbed.}
 Two-dimensional parabolic quantum dots provide a clean and tunable setting in
 which to explore such ideas. They offer a simple route from Fermi-liquid–like

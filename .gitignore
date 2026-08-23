@@ -17,6 +17,10 @@
 *.synctex.gz
 *.toc
 *.pdf
+# ...but figure PDFs are thesis source, not build output. Without this the
+# originals silently fall out of the repo and a fresh clone builds the wrong
+# document (or fails on the figures that have no .png twin).
+!results/figures/**/*.pdf
 texput.log
 src/QuantumDot_ExampleRun.ipynb
 src/PMM.ipynb

@@ -78,11 +78,18 @@ The correlator reweights amplitudes \emph{within} nodal pockets; without backflo
 
 \section{Neural correlator $W_\theta$}
 \label{subsec:nqs}
-The NQS aggregates \emph{particlewise} and \emph{pairwise} embeddings with permutation-invariant pooling and appends two global
+As with the backflow, the correlator comes in two forms that we compare directly
+(Q1a, Chapter~\ref{ch:kernel}): a \emph{separable} network that encodes particle- and
+pair-features independently and pools them, and a copresheaf \emph{message-passing}
+(CTNN) network. We describe the separable network first---it is the baseline and also
+supplies the safe features and analytic cusp shared by both---and then the CTNN.
+
+\subsection{Separable correlator (DeepSets baseline)}
+The separable NQS aggregates \emph{particlewise} and \emph{pairwise} embeddings with permutation-invariant pooling and appends two global
 statistics, all in $\tilde{R}$. A core safety requirement is that pair channels satisfy $d s_k/d\tilde r \to 0$ as $\tilde r\to 0$
 so that $W_\theta$ never injects spurious $1/\tilde r$ terms into $\nabla\log\Psi$ or $\Delta\log\Psi$.
 
-\subsection{Particle branch (DeepSets).}
+\subsubsection{Particle branch (DeepSets).}
 This part of the network is typically referred to as Deep Sets~\cite{Zaheer2017-DeepSets}. The permutation invariance of quantum many-body mechanics is naturally captured by this architecture. 
 A neural network $\phi$ creates a latent embedding for each particle individually. All embeddings are pooled together to form a global representation, which is used later in the readout. Formally, we have
 \[
@@ -90,7 +97,7 @@ A neural network $\phi$ creates a latent embedding for each particle individuall
   \overline{\mathbf h}^{\phi}=N^{-1}\sum_i \mathbf h_i^\phi\in\mathbb R^{d_L}.
 \]
 
-\subsection{Pair branch (soft-core, even channels).}
+\subsubsection{Pair branch (soft-core, even channels).}
 Although the particle branch could theoretically produce pair correlations, in practice it struggles to represent sharp near-field structure. We therefore add a dedicated pair branch that builds features from interparticle distances.
 This network processes all pairs $(i,j), i\ne j$ individually and pools the resulting latent embeddings. 
 The problem is that raw distances $\tilde r_{ij}$ have unbounded derivatives at coalescence, which destabilizes Laplacian evaluations. We therefore build \emph{safe} pair features with bounded first and second derivatives as $\tilde r\to 0$.
@@ -109,9 +116,10 @@ An MLP $\psi$ maps $\mathbf u_{ij}\mapsto\mathbf h^{\psi}_{ij}\in\mathbb R^{d_L}
 \]
 suppresses learned responses \emph{at} coalescence, we use $\chi\,\mathbf h^\psi_{ij}$ downstream.
 
-\subsection{Analytic short-range cusp}
+\subsection{Analytic short-range cusp (shared)}
 \label{subsec:cusp}
-Because the safe features are necessary in the pair branch, the NQS cannot represent the Kato cusp condition exactly. 
+The analytic cusp below is shared by both correlator variants (and is independent of the
+backflow). Because the safe features are necessary in the pair branch, the NQS cannot represent the Kato cusp condition exactly.
 We therefore add an analytic cusp term to the exponent in~\eqref{eq:ansatz-overall},
 written in \emph{physical} coordinates so that its slope at contact is manifestly
 correct:
@@ -136,7 +144,7 @@ structure at medium and long range; in trap units ($\tilde r=\sqrt{\omega}\,r$) 
 term reads $u=(\gamma_{\sigma\sigma'}/\sqrt{\omega})\,\tilde r\,e^{-\tilde r}$.
 
 
-\subsection{Global readout}
+\subsection{Separable readout}
 With contributions from the particle and pair branches, we form a global representation for the final readout. In addition to the pooled embeddings $\overline{\mathbf h}^\phi$ and $\overline{\mathbf h}^\psi$, we also include two global statistics that help the network gauge overall system size and density.
 We average pairs by default or apply degree-normalised radial attention
 \[
@@ -158,6 +166,28 @@ are concatenated with $\overline{\mathbf h}^{\phi}$ and $\overline{\mathbf h}^{\
   \rho\!\Big(\overline{\mathbf h}^{\phi}\ \|\ \overline{\mathbf h}^{\psi}\ \|\ \mathbf g(\tilde{R})\Big).
   \label{eq:nqs-readout}
 \end{equation}
+
+\subsection{Message-passing correlator (CTNN)}
+\label{subsec:ctnn-correlator}
+The message-passing correlator (code: \texttt{CTNNJastrowVCycle}) keeps the same node/edge
+embeddings, safe pair features, and analytic cusp, but replaces the independent pooling of
+the separable network with the copresheaf transport of \S\ref{sec:ctnn-theory}: at each
+round the endpoint nodes are transported into an edge update and the updated edges are
+transported back and aggregated onto the nodes,
+\begin{equation}
+  \mathbf h_{ij} \mathrel{+}= F_e\!\big(\mathbf h_{ij}\,\|\,\rho_{v\to e}\mathbf h_i\,\|\,\rho_{v\to e}\mathbf h_j\big),
+  \qquad
+  \mathbf h_i \mathrel{+}= F_v\!\Big(\mathbf h_i\,\|\,\operatorname*{Agg}_{j\neq i} w_{ij}^{\rm spin}\,\rho_{e\to v}\mathbf h_{ij}\Big),
+  \label{eq:ctnn-corr-step}
+\end{equation}
+with residual updates and per-round transport maps. Unlike the single-round backflow, the
+correlator stacks these rounds in a multiscale ``V-cycle'': $n_{\downarrow}$ down-pass
+rounds, a linear coarsening to a bottleneck width, then $n_{\uparrow}$ up-pass rounds with
+skip connections back to the down-pass features (defaults $n_{\downarrow}=n_{\uparrow}=2$).
+A permutation-invariant readout over the final node and edge statistics returns the scalar
+$W_\theta(\tilde R)$, exactly as in~\eqref{eq:nqs-readout}. Holding the Slater reference,
+cusp, and training fixed and swapping only the separable readout for this V-cycle isolates
+the relational channel studied in Q1a (Chapter~\ref{ch:kernel}).
 
 \section{Backflow}
 \label{subsec:backflow-method}

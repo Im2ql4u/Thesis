@@ -438,3 +438,24 @@ the sampler/backflow exclusions are each independently checked).
 
 ---
 
+
+## 2026-08-24 — Manuscript describes the CTNN as one copresheaf round (backflow) vs V-cycle (correlator)
+
+**Decision:** In all chapters, the defining feature of the CTNN is "maintained/transported
+explicit edge state via learned maps (rho_v_to_e, rho_e_to_v)", NOT "several rounds". The
+CTNN *backflow* (CTNNBackflowNet) applies a single copresheaf round; only the CTNN
+*correlator* (CTNNJastrowVCycle) iterates, over a V-cycle. Earlier text conflated the two by
+attributing "several rounds" to the backflow.
+
+**Why:** Verified against the code — CTNNBackflowNet.forward runs one edge-update +
+one node-update; CTNNJastrowVCycle stacks n_down/n_up rounds. Accuracy over slogan.
+
+## 2026-08-24 — Haas N=20 references are correlated-level (DMC-quality), not Hartree-Fock
+
+**Decision:** The N=20 reference energies (from Haas's MSc thesis) are labelled
+correlated-level / DMC-quality, not HF, in the bib note and acknowledgement.
+
+**Why:** Our variational CTNN reaches 155.8738 vs the 155.8822 reference — 0.0024% below.
+A correlated variational method cannot sit 0.005% from an HF energy (HF misses ~0.5-1 Ha of
+correlation for 20 electrons; the CTNN dipping just below is consistent with a fixed-node
+DMC-quality reference, per the CTNN-below-fixed-node-DMC caveat already in the discussion).

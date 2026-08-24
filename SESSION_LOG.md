@@ -766,3 +766,32 @@ UiO thesis); add the total-spin-ground-state limitation (#6) and the CTNN-below-
   UNRESOLVED: the thesis N=20 values (e.g. 155.8822 at w=1) do NOT match the published Hogberget values
   (157.904 in Frontiers 2023), so I did NOT cite Hogberget. The true N=20 source must be confirmed by the
   author (own VMC? a different Hogberget table? another DMC?).
+
+## 2026-08-24 — Accurate network write-up in Methods; Haas N=20 = correlated-level
+
+- **Methods now describes what the networks actually do** (user directive: "write up what
+  our networks do, if it is not accurate enough, then we must rewrite it"). Read the code
+  (src/PINN.py, src/jastrow_architectures.py) before writing.
+- **Backflow**: the chapter had described only the conventional single-round BackflowNet as
+  if it were the main network, and the theory forward-referenced Methods for CTNN equations
+  that were absent. Split into two architectures — conventional BackflowNet (single round of
+  pairwise messages, no persistent edge state) and the production copresheaf CTNNBackflowNet
+  — with the real update equations (node/edge embeddings, rho_v_to_e / rho_e_to_v transport,
+  residual node update, dx head; eqs ctnn-edge/agg/node).
+- **Correlator**: same gap. Framed the DeepSets particle+pair network as the separable
+  baseline; added the CTNN correlator (CTNNJastrowVCycle) — copresheaf per-round update +
+  multiscale V-cycle (n_down down-pass, bottleneck, n_up up-pass with skips). Cusp marked as
+  shared by both variants.
+- **KEY accuracy fix**: the CTNN *backflow* is a SINGLE copresheaf round; only the
+  *correlator* iterates (V-cycle). Replaced "over several rounds" (used for the backflow) with
+  the true distinction — maintained/transported explicit edge state via learned maps — across
+  theory, results, results_kernel, introduction, discussion.
+- **Symmetry overclaim fixed (#19)**: the displacement head is not rotation-equivariant by
+  construction (reads a d-vector from raw coords); COM projection is a regulariser, not an
+  imposed symmetry (translation is not a trap symmetry).
+- **Haas N=20 = correlated-level, RESOLVED**: user confirmed source is Daniel Haas's MSc
+  thesis. Physics settles HF-vs-DMC: our CTNN (155.8738) sits only 0.0024% below the ref
+  (155.8822); a correlated variational energy cannot be 0.005% from HF (HF misses ~0.5-1 Ha
+  for 20 electrons). So these are correlated-level / DMC-quality references, NOT Hartree-Fock.
+  Relabelled the bib note and acknowledgement; "Reference (DMC)" column was already correct.
+- Build: tectonic, 117 pages, 0 undefined refs. Commits 286f861, 0f8c764.

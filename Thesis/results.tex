@@ -55,8 +55,8 @@ displacement on the interparticle coordinates, but they do so differently: the
 \emph{conventional} \textsc{BackflowNet} applies a single round of pairwise messages
 aggregated per particle, whereas the copresheaf \emph{message-passing} network
 (\textsc{CTNN}), realised as the \textsc{CTNNBackflowNet}, maintains explicit node and
-edge features and transports them across the graph over several rounds before the
-displacement is read out; the contrast between them is the subject of the backflow
+edge features and transports information between them through learned maps (a single
+copresheaf round) before the displacement is read out; the contrast between them is the subject of the backflow
 analysis in Chapter~\ref{ch:kernel}. The architecture size is identical for all $N$: the
 base PINN correlator has $\approx\!54\text{k}$ parameters, the conventional BackflowNet
 adds $\approx\!83\text{k}$ (total PINN+BF $\approx\!137\text{k}$), and the
@@ -104,9 +104,10 @@ Fig.~\ref{fig:rel_error_vs_omega}).
   \centering
   \caption{Residual-based pretraining + SR tail. Reference DMC and our PINN+BF
   and PINN+CTNN ground-state energies (Hartree) for selected $(N,\omega)$.
-  DMC references for $N\le12$ are from \cite{Pederiva2000-QD-DMC}, whose study spans
-  $N\le13$; the $N=20$ reference energies lie beyond that range and are taken from a
-  separate diffusion Monte Carlo calculation for the same Hamiltonian.
+The reference column collects the best available benchmark for each size: DMC from
+  \cite{Pederiva2000-QD-DMC} (whose study spans $N\le13$) for $N\le12$, and the reference
+  energies tabulated in the master's thesis of Daniel Haas~\cite{HaasHFQD} for $N=20$,
+  which lies beyond the range of \cite{Pederiva2000-QD-DMC}.
   Parentheses denote $1\sigma$ on the last digit(s); the \%\,err columns are
   relative deviations from the reference. A dash in the reference column marks
   $(N,\omega)$ for which no published DMC value exists (all $\omega=0.001$, and

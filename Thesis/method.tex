@@ -174,44 +174,90 @@ The correlator $W_\theta$ and cusp $u$ are evaluated on $\tilde R$ to avoid feed
 This choice cleanly separates (i) amplitude reweighting within nodal pockets (handled by $u+W_\theta$) from (ii) nodal \emph{geometry} (handled by backflow).
 
 \paragraph{Design goals.}
-(i) \emph{Stability near coalescence:} messages use mollified radii and short-range gates so that $\partial \Delta_\beta/\partial \tilde r$ remains bounded; \\
-(ii) \emph{Symmetries:} permutation invariance by construction; near translation invariance by centering/projection; rotation equivariance via vector messages; \\
-(iii) \emph{Close to identity at initialization:} zero-initialized last layer and a positive, learnable scale keep $\Delta_\beta\!\approx\!0$ at start.
+(i) \emph{Stability near coalescence:} messages are built from mollified radii and
+short-range gates so that $\partial \Delta_\beta/\partial \tilde r$ stays bounded;
+(ii) \emph{Permutation symmetry:} permutation equivariance holds by construction (shared
+maps and symmetric aggregation);
+(iii) \emph{Close to identity at initialization:} a zero-initialised last layer and a
+positive learnable scale keep $\Delta_\beta\!\approx\!0$ at the start.
+Rotational symmetry, by contrast, is only \emph{approximate}: the displacement head reads
+out a $d$-vector from node features that include the raw coordinates, so the map is not
+rotation-equivariant by construction, and it is encouraged instead by the
+geometry-based edge features and by rotationally-augmented sampling. A global translation
+is not a symmetry of the trap in any case; the zero-mean projection~\eqref{eq:bf-com} is a
+regulariser that removes a spurious centre-of-mass drift, not an imposed physical symmetry.
 
-\subsection{Message–passing construction}
-We use a minimal two-stage message–passing update. For each ordered pair $(i,j)$ with $i\neq j$, form a message
-\begin{align}
+We study \emph{two} backflow architectures. Both map the configuration to a per-particle
+displacement field and share the output bounding, spin masking, and centre-of-mass
+projection below; they differ only in how a particle's displacement is made to depend on
+the others. The conventional network is the baseline of the architecture comparison in
+Chapter~\ref{ch:kernel}; the copresheaf \textsc{CTNN} is the production ansatz.
+
+\subsection{Conventional backflow (single-round messages)}
+The baseline (code: \texttt{BackflowNet}) uses a single round of pairwise messages. For
+each ordered pair $(i,j)$ with $i\neq j$,
+\begin{equation}
   \mathbf m_{ij}
-  &= \phi_\beta\!\Big(
-      \underbrace{\tilde{\mathbf x}_i}_{\text{node $i$}},\;
-      \underbrace{\tilde{\mathbf x}_j}_{\text{neighbor $j$}},\;
-      \underbrace{\mathbf r_{ij}}_{\tilde{\mathbf x}_i-\tilde{\mathbf x}_j},\;
-      \underbrace{\tilde r_{ij}^{\rm soft}}_{\sqrt{\tilde r_{ij}^2+\varepsilon^2}},\;
-      \underbrace{(\tilde r_{ij}^{\rm soft})^2}_{\text{scale}}
-    \Big)\cdot w_{ij}^{\rm spin},
+  = \phi_\beta\!\big(
+      \tilde{\mathbf x}_i,\ \tilde{\mathbf x}_j,\ \mathbf r_{ij},\
+      \tilde r_{ij}^{\rm soft},\ (\tilde r_{ij}^{\rm soft})^2
+    \big)\cdot w_{ij}^{\rm spin},
+  \qquad \tilde r_{ij}^{\rm soft}=\sqrt{\tilde r_{ij}^2+\varepsilon^2},
   \label{eq:bf-message}
-\end{align}
-where $\phi_\beta$ is a tiny MLP and $\varepsilon\!\ll\!1$ (trap units) mollifies the norm.\footnote{In code: \texttt{BackflowNet.phi} takes $(3d+2)$ inputs: $(\tilde{\mathbf x}_i,\tilde{\mathbf x}_j,\mathbf r_{ij},\tilde r_{ij}^{\rm soft},(\tilde r_{ij}^{\rm soft})^2)$.}
-Spin enters through a light‐weight mask $w_{ij}^{\rm spin}\in\{0,1\}$ (same‐spin only or all pairs).
+\end{equation}
+with $\phi_\beta$ a small MLP and $w_{ij}^{\rm spin}\in\{0,1\}$ a spin mask (same-spin only
+or all pairs). Messages are aggregated to a node state and a node network returns the
+displacement,
+\begin{equation}
+  \mathbf m_i = \operatorname*{Agg}_{j\neq i}\mathbf m_{ij},
+  \qquad
+  \delta\tilde{\mathbf x}_i = \psi_\beta\!\big(\tilde{\mathbf x}_i \,\|\, \mathbf m_i\big),
+  \qquad \mathrm{Agg}\in\{\mathrm{sum},\mathrm{mean},\mathrm{max}\}.
+\end{equation}
+There is no persistent edge state: each message is recomputed from the raw geometry and
+discarded after aggregation.
 
-Messages are aggregated into a node state
+\subsection{CTNN backflow (copresheaf)}
+\label{subsec:ctnn-backflow}
+The message-passing architecture (code: \texttt{CTNNBackflowNet}) instead maintains
+explicit \emph{node and edge} features and transports information between them through
+learned linear maps---the copresheaf-style step of \S\ref{sec:ctnn-theory}. Node features
+are embedded from the position and a spin scalar, edge features from the relative geometry,
 \begin{equation}
-  \mathbf m_i \;=\; \mathrm{Agg}_{j\neq i}\,\mathbf m_{ij},\quad
-  \mathrm{Agg}\in\{\mathrm{sum},\,\mathrm{mean},\,\mathrm{max}\},
+  \mathbf h_i^{(0)} = W_v\,[\tilde{\mathbf x}_i,\, s_i],
+  \qquad
+  \mathbf h_{ij}^{(0)} = \mathrm{MLP}_e\!\big(\mathbf r_{ij},\, |\mathbf r_{ij}|,\, |\mathbf r_{ij}|^2\big).
 \end{equation}
-and a node/update network $\psi_\beta$ returns a displacement
-\begin{equation}
-  \delta\tilde{\mathbf x}_i \;=\; \psi_\beta\!\big(\tilde{\mathbf x}_i \ \| \ \mathbf m_i\big)
-  \;\in\;\mathbb{R}^d.
-\end{equation}
-To keep displacements bounded and start near identity we apply
+A node-to-edge transport $\rho_{v\to e}$ feeds the endpoint nodes into an edge update; an
+edge-to-node transport $\rho_{e\to v}$ returns the updated edges to the nodes, which are
+refined by a residual node update; a linear head reads out the displacement:
+\begin{align}
+  \mathbf h_{ij}' &= \mathrm{MLP}_e'\!\big(\mathbf h_{ij}^{(0)}\,\|\,\rho_{v\to e}\mathbf h_i^{(0)}\,\|\,\rho_{v\to e}\mathbf h_j^{(0)}\big),
+  \label{eq:ctnn-edge}\\
+  \mathbf m_i &= \operatorname*{Agg}_{j\neq i} w_{ij}^{\rm spin}\,\rho_{e\to v}\big(\mathbf h_{ij}'\big),
+  \label{eq:ctnn-agg}\\
+  \mathbf h_i &= \mathbf h_i^{(0)} + \mathrm{MLP}_v\!\big(\mathbf h_i^{(0)}\,\|\,\mathbf m_i\big),
+  \qquad
+  \delta\tilde{\mathbf x}_i = W_{\!\Delta}\,\mathbf h_i.
+  \label{eq:ctnn-node}
+\end{align}
+The learned transport maps $\rho_{v\to e},\rho_{e\to v}$ are the channel whose ablation
+collapses the backflow at the Wigner crystal (Chapter~\ref{ch:kernel}). The backflow uses a
+single copresheaf round; the message-passing \emph{correlator} of the architecture
+comparison (\texttt{CTNNJastrowVCycle}) iterates the same style of update over a down/up
+``V-cycle''.
+
+\subsection{Shared output, scaling, and initialization}
+Both variants take inputs in trap units ($\tilde{\mathbf x}=\sqrt{\omega}\,\mathbf x$),
+bound the displacement, and start at the Slater nodes,
 \begin{equation}
   \Delta_\beta(\tilde R)\;=\;\tanh\!\big(\delta\tilde X\big)\cdot s_\beta,
   \qquad s_\beta=\mathrm{softplus}(s_\beta^{\rm raw})>0,
   \label{eq:bf-bound-scale}
 \end{equation}
-with the last linear layer of $\psi_\beta$ zero‐initialized.
-Empirically, this parameterization stabilizes SR/energy tails and protects Laplacians.
+with the last linear layer ($\psi_\beta$ or $W_{\!\Delta}$) zero-initialised so that
+$\Delta_\beta\!\approx\!0$ initially. Empirically this parameterization stabilises the
+SR/energy tails and protects the Laplacian.
 
 \subsection{Short-range behaviour and gates}
 As $\tilde r_{ij}\!\to\!0$, raw $1/\tilde r$ factors can make $\nabla\!\cdot\!\Delta_\beta$ spiky.
@@ -251,10 +297,17 @@ Zero-initializing the last layer of $\psi_\beta$ makes the ansatz start exactly 
 The compute/memory cost scales as $O\!\big(BN^2(d+H)\big)$ for batch size $B$ and hidden width $H$.
 
 \subsection{Mapping to implementation}
-The networks $\phi_\beta$ and $\psi_\beta$ correspond to \texttt{BackflowNet.phi} (message MLP) and \texttt{BackflowNet.psi} (node/update MLP).
-Aggregation is selectable: \texttt{sum|mean|max}. Spin handling (\texttt{use\_spin}, \texttt{same\_spin\_only}) produces the mask $w_{ij}^{\rm spin}$.
-Output control matches~\eqref{eq:bf-bound-scale} via \texttt{out\_bound="tanh"} and $s_\beta=\mathrm{softplus}(\texttt{bf\_scale\_raw})$.
-To enforce~\eqref{eq:bf-com} in practice, subtract the batchwise mean of the predicted $\Delta_\beta$ before forming $\tilde R'$.
+In the conventional network, $\phi_\beta$ and $\psi_\beta$ correspond to
+\texttt{BackflowNet.phi} (message MLP) and \texttt{BackflowNet.psi} (node/update MLP).
+In the copresheaf network, the embeddings, transport maps, and update MLPs of
+\eqref{eq:ctnn-edge}--\eqref{eq:ctnn-node} correspond to \texttt{CTNNBackflowNet}'s
+\texttt{node\_embed}/\texttt{edge\_embed}, \texttt{rho\_v\_to\_e}/\texttt{rho\_e\_to\_v},
+\texttt{edge\_update}/\texttt{node\_update}, and \texttt{dx\_head}.
+For both, aggregation is selectable (\texttt{sum|mean|max}); spin handling
+(\texttt{use\_spin}, \texttt{same\_spin\_only}) produces the mask $w_{ij}^{\rm spin}$;
+output control matches~\eqref{eq:bf-bound-scale} via \texttt{out\_bound="tanh"} and
+$s_\beta=\mathrm{softplus}(\texttt{bf\_scale\_raw})$; and \eqref{eq:bf-com} is enforced by
+subtracting the batchwise mean of the predicted $\Delta_\beta$ before forming $\tilde R'$.
 
 \paragraph{Summary.}
 Backflow provides a compact, symmetry-respecting way to move the Slater nodes toward the true correlated nodes. With mollified distances, optional short-range gates/attention, zero-mean projection, and bounded outputs, it integrates cleanly with the analytic cusp and smooth NQS correlator, reducing fixed-node error without inflating local-energy variance.

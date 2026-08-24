@@ -1335,10 +1335,12 @@ systems~\cite{Pescia2024-MessagePassingNQS,KimEtAl2023-UltracoldFermiNQS}.
 \label{sec:ctnn-theory}
 The message-passing correlator and backflow studied here are realised by a particular
 network we refer to as the \emph{CTNN}: a copresheaf-style message-passing network that
-maintains explicit \emph{node and edge} features and transports them between nodes and
-edges over several rounds, rather than recomputing one-shot messages. Its concrete update
-equations, hidden dimensions, number of rounds, and parameter counts are specified in the
-Methods chapter (\S\ref{subsec:backflow-method}). Two points of framing matter for the
+maintains explicit \emph{node and edge} features and transports information between them
+through learned maps, rather than recomputing and discarding one-shot messages. The
+correlator iterates this exchange over a down/up ``V-cycle''; the backflow applies a
+single such copresheaf round. Its concrete update equations, hidden dimensions, and
+parameter counts are specified in the Methods chapter
+(\S\ref{subsec:ctnn-backflow}, Eqs.~\eqref{eq:ctnn-edge}--\eqref{eq:ctnn-node}). Two points of framing matter for the
 rest of the thesis. First, the CTNN is \emph{one} concrete realisation of the
 message-passing class defined above; the conclusions we draw about the value of message
 passing concern the class, with the CTNN as the instance actually studied. Wherever we

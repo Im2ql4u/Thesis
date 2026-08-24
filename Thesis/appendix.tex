@@ -399,7 +399,7 @@ Thus both channels generate $1/r$ spikes unless the cusp is satisfied.
 
 \paragraph{Why squaring is especially dangerous in 2D.}
 A $1/r$ defect in $E_L$ (or in $(\hat H-E)\Psi$) is concentrated near coalescence.
-But in 2D the squared singularity is only \emph{log-integrable}:
+But in 2D the squared singularity is not integrable---it diverges logarithmically:
 \[
 \int_{r<\varepsilon}\Big(\frac{1}{r}\Big)^2\, d^2\mathbf r
 =
@@ -694,7 +694,7 @@ d_\theta^2\cdot d_\theta^{-2}\cdot dd_\theta
 = dd_\theta,
 \label{eq:c22:integrand}
 \end{equation}
-which is just integrable (logarithmically).
+which integrates to $\mathcal{O}(\varepsilon)$ and is therefore \emph{finite}: a simple node does not, by itself, make $\mathrm{Var}[E_L]$ diverge under the $|\Psi|^2$ measure. The instability enters one derivative later, in the \emph{parameter gradient}.
 But the key observation is that this is the \emph{best case}.
 In practice, the mismatch between $\mathcal N_\theta$ and $\mathcal N^*$
 is not uniform: there exist regions where the surfaces cross at angles,
@@ -765,8 +765,7 @@ accuracy floor set by the Jastrow (PINN) quality alone.}
 
 Under VMC, the sampling distribution \emph{is} $|\Psi_\theta|^2$, which
 assigns vanishing measure to the nodal surface.
-Near-node configurations are never sampled, eliminating the $D^{-1}$
-singularity from the gradient estimator.
+Near-node configurations are strongly \emph{suppressed}---for a simple node the probability of lying within a distance $\epsilon$ scales as $\epsilon^3$---rather than strictly absent, which is enough to keep the $D^{-1}$ singularity out of the gradient estimator in practice.
 However, VMC \emph{still optimises the node position} through a
 subtle mechanism:
 
@@ -796,9 +795,10 @@ VMC obtains nodal information \emph{indirectly} through a well-conditioned
 integral (the covariance $g_i$ is finite because $E_L$ is sampled away
 from the node); collocation tries to obtain it \emph{directly} through
 a divergent pointwise quantity ($E_L$ evaluated near the node).
-This asymmetry is fundamental and cannot be resolved by
-sampling tricks, loss modifications, or gradient preconditioning
-within the collocation framework.
+None of the sampling, loss, or preconditioning strategies we tested
+(\S\ref{app:catch22:experiments}) overcame this asymmetry within the strong-form
+collocation framework; we present it as a structural obstruction of the tested pipeline
+rather than a theorem that no collocation method can ever avoid it.
 
 
 \section{Experimental evidence}

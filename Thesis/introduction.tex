@@ -134,8 +134,8 @@ Slater determinant of harmonic-oscillator orbitals, two learnable objects carry 
 correlation: a Jastrow correlator, which reshapes the amplitude, and a coordinate
 backflow, which reshapes the nodes. Each can be built either without message
 passing---encoding and pooling per-particle and pairwise features in a single pass, as
-in a DeepSet---or as a \emph{message-passing} network in which the particles exchange
-and update information over several rounds before a quantity is read out.
+in a DeepSet---or as a \emph{message-passing} network in which the particles exchange and
+update information through explicit, transported edge state before a quantity is read out.
 
 Once such an ansatz reaches reference accuracy—which, as we will see, a surprisingly
 compact one does—the questions worth a thesis are \emph{why} its parts behave as they

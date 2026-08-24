@@ -18,8 +18,10 @@ a \emph{Jastrow}-type neural correlator $W_\theta$, which reshapes the amplitude
 coordinate \emph{backflow} $\Delta\mathbf{x}$, which reshapes the nodes. Each can be built in
 one of two ways---without message passing, encoding and pooling per-particle and
 pairwise features in a single feed-forward pass (as in a DeepSet), or as a copresheaf
-\emph{message-passing} (CTNN) network that exchanges and updates node and edge features
-over several rounds before a quantity is read out. The
+\emph{message-passing} (CTNN) network that maintains explicit node and edge features and
+transports information between them through learned maps before a quantity is read out
+(the correlator iterates this exchange over a V-cycle; the backflow applies a single
+round). The
 previous chapter showed that the message-passing ansatz reaches diffusion Monte
 Carlo (DMC) quality wherever a DMC reference exists ($\omega\ge0.1$), and matches
 our own variational gold standard in the strongly correlated regime below it, where
@@ -210,7 +212,7 @@ parts gives two seed-stable facts. (i) A \textbf{kinetic$\to$Coulomb crossover}:
 $\omega=1$ the backflow buys kinetic energy; at $\omega=0.01$ the gain is entirely
 Coulomb ($\Delta V_{\mathrm{Coul}}\!\approx\!+0.017$, $\Delta T\!\approx\!0$).
 ``Message passing buys kinetic energy'' is a high-$\omega$ statement only.
-(ii) \textbf{At Wigner the iterated messages \emph{are} the backflow}: within the CTNN,
+(ii) \textbf{At Wigner the transport maps \emph{are} the backflow}: within the CTNN,
 zeroing the inter-particle transport maps ($\rho_{v\to e},\rho_{e\to v}$) costs as much
 as deleting the whole displacement. Both architectures condition each particle on the
 relative coordinates $\mathbf r_{ij}$, so neither is blind to inter-particle structure;
@@ -223,16 +225,18 @@ response, and the ablation shows that this transport carries essentially the ent
 effect.
 
 \subsection{The unified reading of Q1}
-Q1a and Q1b are one statement about \emph{iterated} relational processing. The
+Q1a and Q1b are one statement about how relational information is \emph{routed}. The
 baselines are not blind to inter-particle structure---the DeepSet pools
 independently-encoded pairs, and the conventional backflow aggregates a single round of
-pairwise messages---but neither lets that relational information propagate across the
-graph. The copresheaf CTNN does: it maintains explicit edge state and transports it
-between nodes and edges over several rounds. Where a compact representation exists this
-\emph{compresses} the correlation onto fewer tangent directions (Jastrow: smaller
-$d_{\mathrm{eff}}$); where the physics demands a genuinely collective, full-rank
-response the single-round baseline instead collapses to a single collective displacement mode
-(backflow: rank~1), which the iterated transport avoids. Both effects are visible only
+pairwise messages---but neither maintains a persistent, transported edge representation:
+each pairwise term is computed and discarded. The copresheaf CTNN does maintain one, and
+moves it back and forth between nodes and edges through learned transport maps
+($\rho_{v\to e},\rho_{e\to v}$); the message-passing correlator iterates this exchange over
+a V-cycle, while the backflow applies a single such copresheaf round. Where a compact
+representation exists this \emph{compresses} the correlation onto fewer tangent directions
+(Jastrow: smaller $d_{\mathrm{eff}}$); where the physics demands a genuinely collective,
+full-rank response the single-round baseline instead collapses to a single collective
+displacement mode (backflow: rank~1), which the copresheaf transport avoids. Both effects are visible only
 in the tangent-kernel geometry, not in the total energy, until weak confinement makes
 the geometric deficit an energetic one.
 

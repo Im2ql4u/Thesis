@@ -459,3 +459,11 @@ correlated-level / DMC-quality, not HF, in the bib note and acknowledgement.
 A correlated variational method cannot sit 0.005% from an HF energy (HF misses ~0.5-1 Ha of
 correlation for 20 electrons; the CTNN dipping just below is consistent with a fixed-node
 DMC-quality reference, per the CTNN-below-fixed-node-DMC caveat already in the discussion).
+
+## 2026-08-27 — Collocation split; single source of truth for reference numbers
+
+- Collocation mechanics live in Methods (sec:method-collocation + subsec:colloc-proposal
+  + subsec:colloc-wigner); the results chapter points to them and reports only outcomes.
+- Chose per-cell provenance tablenotes on tab:energies over a separate master
+  reference-energy table: duplicating the reference numbers would create two sources of
+  truth, an accuracy hazard. Flagged to user; standalone table available on request.

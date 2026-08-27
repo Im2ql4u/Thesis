@@ -795,3 +795,29 @@ UiO thesis); add the total-spin-ground-state limitation (#6) and the CTNN-below-
   for 20 electrons). So these are correlated-level / DMC-quality references, NOT Hartree-Fock.
   Relabelled the bib note and acknowledgement; "Reference (DMC)" column was already correct.
 - Build: tectonic, 117 pages, 0 undefined refs. Commits 286f861, 0f8c764.
+
+## 2026-08-27 — Consolidation pass: collocation, theory cleanup, SR/errors/hyperparams, kernel figures
+
+Scope agreed with user (via decision prompt): collocation mechanics->Methods /
+results->one section; theory cleanup+citations (keep structure); kernel figures from
+existing assets; add error subsection + hyperparameter/reference provenance.
+
+- Theory (2ea3338): merged the duplicated "Hilbert Spaces" subsection, removed 8 dead
+  commented subsections (83 lines), moved the orphaned two-chapter roadmap to a proper
+  opening under \chapter{Quantum Theory}.
+- Methods (a0202bd): cited SR (Sorella/Amari/Stokes/Becca-Sorella) and named the three
+  optimiser variants (Adam / plain SR / CG-SR); cited collocation (Williams REINFORCE,
+  Kalos/Kong IS, Vehtari Pareto-k); folded the collocation mechanics in and added a
+  dedicated Wigner-ring proposal subsection; new sec:uncertainties (blocking
+  Flyvbjerg-Petersen/Jonsson + block bootstrap + seed spread); new tab:hyperparams
+  (matched-capacity vs production, sourced to scripts). Added Sorella1998-SR,
+  Williams1992-REINFORCE to bib.
+- Results (95c706d): replaced the ~180-line duplicated "Training methodology" block with
+  a pointer to Methods (kept the Adam/CG-SR and cascade findings); repointed dangling
+  refs; added per-cell reference provenance to tab:energies via threeparttable tablenotes
+  (chose this over a duplicate reference table to keep one source of truth).
+- Kernel figures (d1c9e34): added four figures (Q1a fair_dimension, Q1b message_ablation,
+  Q2 sr_vs_adam_trend, Q3 ess_collapse) captioned from inspected content.
+
+Build throughout: tectonic, ended at 118 pages, 0 undefined refs.
+Open item deferred: deeper theory citation fill-out and a Wigner g(r)/topology figure pass.

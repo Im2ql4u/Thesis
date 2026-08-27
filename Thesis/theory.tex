@@ -1,22 +1,37 @@
 \graphicspath{{../results/figures/theory/}{../results/figures/}}
-This chapter lays the foundation on which the rest of the thesis rests. We first introduce the mathematical framework of quantum mechanics.
- We then discuss the challenges of many-body systems and how second quantization provides a more tractable approach.
-Then, we will introduce the model systems that will be used throughout this thesis to benchmark and test our methods. Following this, we will present the Hartree-Fock method, a fundamental mean-field approach to approximate many-body wavefunctions.
- Finally, we will discuss Full Configuration Interaction (FCI) theory, which provides an exact solution to the many-body problem within a finite basis set, and Variational Monte Carlo (VMC), a stochastic method for approximating ground-state properties of quantum systems.
-
- The focus then shifts to the essential concepts of machine learning, covering statistical learning theory, optimisation techniques, neural networks, and physics-informed neural networks (PINNs). This section will provide the theoretical underpinnings necessary for understanding how machine learning can be applied to quantum many-body problems.
-
 \chapter{Quantum Theory}
 \label{sec:theory}
+
+This chapter lays the foundation on which the rest of the thesis rests. We first introduce
+the mathematical framework of quantum mechanics, then discuss the challenges of many-body
+systems and how second quantization provides a more tractable approach. We then introduce
+the model systems used throughout this thesis to benchmark and test our methods, and present
+the Hartree--Fock method, a fundamental mean-field approach to approximating many-body
+wavefunctions. Finally, we discuss Full Configuration Interaction (FCI), which provides an
+exact solution to the many-body problem within a finite basis set, and Variational Monte
+Carlo (VMC), a stochastic method for approximating ground-state properties. The following
+chapter then shifts to machine learning---statistical learning theory, optimisation, neural
+networks, and physics-informed neural networks---providing the underpinnings for how these
+methods apply to quantum many-body problems.
 
 \section{Mathematical Foundations}
 At the center of quantum mechanics lies a rich mathematical framework built upon linear algebra and functional analysis. This section introduces the essential mathematical concepts and notations that underpin quantum theory, including Dirac notation, operators, Hilbert spaces, and the representation of quantum states and observables.
 \subsection{Hilbert Spaces and Function Representations}
-In essence, quantum mechanics is formulated in complex vector spaces, specifically infinite-dimensional Hilbert spaces, where vectors generalise to square-integrable functions. The inner product becomes:  
+In essence, quantum mechanics is formulated in complex vector spaces---specifically
+\emph{Hilbert spaces}: complex inner-product spaces that are \emph{complete} in the norm
+induced by their inner product, so that every Cauchy sequence converges within the space and
+limits and basis expansions are well defined~\cite{Rudin1976-Analysis}. For square-integrable
+functions the inner product is
 \[
-\braket{\psi_i|\psi_j} = \int \psi_i^*(x)\psi_j(x) dx = \delta_{ij}.
+\braket{\phi|\psi} = \int \phi^*(x)\,\psi(x)\, dx,
 \]
-A function \(a(x)\) expands in a basis \(\{\psi_i(x)\}\):  
+which, in the physics convention (linear in the second slot), obeys conjugate symmetry
+$\braket{\phi|\psi}=\braket{\psi|\phi}^*$, linearity in the ket
+$\braket{\phi|\alpha\psi_1+\beta\psi_2}=\alpha\braket{\phi|\psi_1}+\beta\braket{\phi|\psi_2}$,
+and positivity $\braket{\psi|\psi}\ge 0$ (with equality iff $\ket{\psi}=0$); it induces the
+norm $\|\psi\|=\sqrt{\braket{\psi|\psi}}$. An orthonormal basis $\{\psi_i\}$ satisfies
+$\braket{\psi_i|\psi_j}=\delta_{ij}$.
+A function \(a(x)\) expands in a basis \(\{\psi_i(x)\}\):
 \[
 a(x) = \sum_i \psi_i(x) a_i, \quad a_i = \int \psi_i^*(x)a(x) dx.
 \]
@@ -29,7 +44,7 @@ where \(a_i = \braket{i|a}\) are complex coefficients. The completeness relation
 \[
 I = \sum_i \ket{i}\bra{i},
 \]
-ensures the basis spans \(\mathcal{H}\). Vectors in Dirac notation have dual "bra" counterparts \(\bra{a} = \ket{a}^\dagger\), enabling inner products \(\braket{a|b}\) and outer products \(\ket{a}\bra{b}\). A more complete discussion on hilbert spaces are found in \cite{Rudin1976-Analysis}. 
+ensures the basis spans \(\mathcal{H}\). Vectors in Dirac notation have dual "bra" counterparts \(\bra{a} = \ket{a}^\dagger\), enabling inner products \(\braket{a|b}\) and outer products \(\ket{a}\bra{b}\).
 
 \subsection{Operators and Matrix Representations}
 Linear operators \(\hat{\mathcal{O}}\) map vectors to vectors: \(\hat{\mathcal{O}}\ket{a} = \ket{b}\). Their adjoints \(\hat{\mathcal{O}}^\dagger\) satisfy \(\bra{a}\hat{\mathcal{O}}^\dagger = \bra{b}\). Hermitian operators (\(\hat{\mathcal{O}}^\dagger = \hat{\mathcal{O}}\)) represent observables, while unitary operators (\(\hat{\mathcal{O}}^\dagger = \hat{\mathcal{O}}^{-1}\)) preserve inner products \cite{BereraDelDebbio2021-QuantumMechanics,GriffithsSchroeter2018-IntroQM}.
@@ -41,22 +56,6 @@ Non-commutativity of operators is quantified by the commutator:
 \[
 [\hat{A}, \hat{B}] = \hat{A}\hat{B} - \hat{B}\hat{A}.
 \]
-
-\subsection{Hilbert Spaces}
-
-In quantum mechanics a state is a vector $\ket{\psi}$ in a complex Hilbert space $\mathcal H$.
-A Hilbert space is a complex inner-product space that is \emph{complete} in the norm induced by
-the inner product. Using the physics convention (linear in the second slot),
-the inner product $\braket{\phi|\psi}$ obeys
-\begin{align*}
-\text{conjugate symmetry:}\quad & \braket{\phi|\psi}=\braket{\psi|\phi}^*,\\
-\text{linearity in kets:}\quad & \braket{\phi|\alpha\psi_1+\beta\psi_2}
-= \alpha\,\braket{\phi|\psi_1}+\beta\,\braket{\phi|\psi_2},\\
-\text{positivity:}\quad & \braket{\psi|\psi}\ge 0 \text{ with equality iff } \ket{\psi}=0.
-\end{align*}
-These allow us to define the norm $\|\psi\|=\sqrt{\braket{\psi|\psi}}$. \emph{Completeness} means every Cauchy sequence in this metric
-converges to a vector in $\mathcal H$, ensuring limits and expansions are well defined. For a more detailed explaination, refer to \cite{BereraDelDebbio2021-QuantumMechanics,GriffithsSchroeter2018-IntroQM}.
-
 
 \subsection{States in Hilbert Space}
 
@@ -289,8 +288,6 @@ basis expansions and variational ansätze.
 % poorly constrained short-range behaviour, or highly correlated parameters; remedies include larger
 % batches, stronger damping, parameter tying, or revising the ansatz architecture.
 
-
-
 \section{Second Quantization}
 
 \subsection{Motivation: Why first-quantized wavefunctions don’t scale}
@@ -336,59 +333,13 @@ $\langle pq\Vert rs\rangle=\langle pq|v|rs\rangle-\langle pq|v|sr\rangle$ denote
 antisymmetrized integral. In this form, operator algebra and particle indistinguishability
 are handled by the CAR, independent of $N$.
 
-% \subsection{Many-body Hamiltonian for quantum dots}
-% For $N$ electrons in $d$ dimensions with harmonic confinement and Coulomb repulsion,
-% \[
-% H \;=\; \sum_{i=1}^N \Big(-\tfrac12 \nabla_{\mathbf r_i}^2 + \tfrac12 \omega^2 r_i^2 \Big)
-% \;+\; \sum_{i<j} \frac{1}{|\mathbf r_i-\mathbf r_j|}.
-% \]
-% In a chosen one-particle basis $\{\ket{p}\}$ (e.g.\ Fock–Darwin/H.O.\ orbitals with spin),
-% this becomes
-% \[
-% H \;=\; \sum_{pq} t_{pq}\, a_p^\dagger a_q
-% \;+\; \frac14 \sum_{pqrs} \langle pq \Vert rs \rangle \, a_p^\dagger a_q^\dagger a_s a_r,
-% \]
-% with
-% \[
-% t_{pq}=\!\int\! \phi_p^*(\mathbf r)\Big(-\tfrac12\nabla^2+\tfrac12\omega^2 r^2\Big)\phi_q(\mathbf r)\,d\mathbf r,
-% \quad
-% \langle pq|v|rs\rangle=\!\iint\! \frac{\phi_p^*(\mathbf r)\phi_q^*(\mathbf r')\phi_r(\mathbf r)\phi_s(\mathbf r')}
-% {|\mathbf r-\mathbf r'|}\,d\mathbf r\,d\mathbf r'.
-% \]
-% Indices $p,q,\dots$ run over spin-orbitals; spin is included in the labels and integrals.
-
 % \paragraph{Why this helps.}
 % Second quantization (i) encodes antisymmetry algebraically, (ii) yields compact operator forms
 % that do not change with $N$, (iii) maps Slater determinants to bitstrings amenable to fast
 % updates, and (iv) cleanly supports truncations (active spaces) and unitary basis rotations used
 % throughout the rest of this thesis.
 
-
 \section{Model Systems}
-% \subsection{One-Dimensional Spinless Fermions}
-% For \(N\) fermions in a harmonic trap with Gaussian interactions:  
-% \[
-% \hat{H} = \sum_{i=1}^N \left(-\frac{1}{2} \nabla_i^2 + \frac{1}{2} x_i^2 \right) + \frac{V_0}{\sigma_0 \sqrt{2\pi}} \sum_{i<j} e^{-(x_i - x_j)^2/(2\sigma_0^2)}.
-% \]
-% \begin{itemize}
-%     \item \textbf{Non-interacting limit:} The ground state is a Slater determinant of Hermite polynomials:  
-%     \[
-%     \phi_n(x) = \frac{H_n(x)e^{-x^2/2}}{\sqrt{2^n n! \sqrt{\pi}}}.
-%     \]
-%     Energy: \(E_{\text{gs}} = \frac{N^2}{2}\) (in \(\hbar\omega\) units).
-%     \item \textbf{Interacting case:} Attractive (\(V_0 < 0\)) or repulsive (\(V_0 > 0\)) interactions modify spatial correlations and energy spectra (see Fig.~\ref{fig:interactions}).
-% \end{itemize}
-
-% \subsection{Two-Dimensional Quantum Dots}
-% For fermions in a 2D harmonic trap with Coulomb repulsion:  
-% \[
-% \hat{H} = \sum_{i=1}^N \left(-\frac{1}{2} \nabla_i^2 + \frac{1}{2} \omega^2 r_i^2 \right) + \sum_{i<j} \frac{1}{|\bm{r}_i - \bm{r}_j|}.
-% \]
-% \begin{itemize}
-%     \item \textbf{Closed-shell configurations:} Magic numbers \(N = 2\binom{n+2}{2}\) arise from filling degenerate orbitals with spin-up/down pairs.
-%     \item \textbf{Trap frequency \(\omega\):} Lower \(\omega\) increases spatial spread and enhances correlation effects (Fig.~\ref{fig:omega_dependence}).
-% \end{itemize}
-
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Hartree--Fock (HF)}
@@ -530,19 +481,6 @@ natural starting point for correlated ansätze.
 % or a minimal multi-determinant for open shells) and capture residual correlation with a Jastrow/PINN
 % correlation factor.
 
-% \subsection{Occupation representation (for later use)}
-% Let $a^\dagger_{p\sigma}$ create $\ket{\phi_p\sigma}$. A closed shell is the bitstring
-% $\prod_{p\le K\text{ shell}} a^\dagger_{p\uparrow} a^\dagger_{p\downarrow}\ket{0}$.
-% Open shells occupy a subset of the top-shell spin–orbitals consistent with the target $(S,S_z)$;
-% Hund-like choices (maximizing spin within the degenerate shell) often lower the mean-field energy
-% via exchange and provide better trial nodes for correlated methods.
-
-% \subsection{Why this split matters}
-% Closed shells provide a unique, symmetry-singlet reference with well-conditioned SCF and typically
-% smoother local energies. Open shells require an explicit choice of spin and angular-momentum sector
-% and (if single-determinant) may have higher variance and more delicate conditioning; this motivates
-% either spin-adapted references or adding a minimal set of top-shell configurations before applying
-% our Slater–Jastrow/PINN optimisation.
 \subsection{Kato’s Cusp Conditions (2D Coulomb systems)}
 
 For Coulomb interactions the potential diverges as $1/r$ at coalescence. Finiteness of the
@@ -722,7 +660,6 @@ provide the theoretical backdrop for reading these plots.
 
 % ------------------------------------------------------------
 
-
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Variational Methods}
 
@@ -873,14 +810,6 @@ where $f^\ast(x)$ is the true regression function and $\sigma^2$ the intrinsic
 noise of the data. Complex models tend to have low bias but high variance, while 
 simple models have the opposite. Successful learning algorithms balance these two 
 contributions. This is discussed in more detail in \cite{HastieTibshiraniFriedman2009-ESL}.
-
-% \subsection{Statistical learning in the context of neural networks}
-% For neural networks, the hypothesis space $\{f_\theta:\theta\in\Theta\}$ is vast 
-% and highly expressive, often capable of interpolating the data exactly. Yet, 
-% empirical evidence shows that heavily overparameterized networks can still generalise 
-% well. This paradox has motivated intensive research into implicit regularization, 
-% inductive biases, and the dynamics of optimisation --- topics that will be central 
-% in the subsequent sections.  
 
 \section{Optimisation}
 \label{sec:ml_optimization}
@@ -1098,7 +1027,6 @@ Despite their smoothness, these functions suffer from the
 approach zero, causing gradients to vanish during backpropagation in deep 
 networks. As a result, learning becomes prohibitively slow.  
 
-
 To address vanishing gradients, the \emph{Rectified Linear Unit} (ReLU) 
 was introduced:
 \begin{equation}
@@ -1135,12 +1063,6 @@ preserving gradient flow while avoiding non-differentiable kinks.
 Empirically, GELU, SiLU/Swish, and Mish improve optimisation stability 
 and generalisation across a wide range of tasks.  
 
-% \subsection{Spectral bias and smoothness}
-% Recent theory has highlighted the \emph{spectral bias} of gradient-based 
-% training: neural networks tend to learn low-frequency components of a 
-% function first, and high-frequency details later. The choice of activation 
-% function influences this inductive bias.  
-
 % Smooth activations (e.g.\ tanh, GELU, SiLU) yield better approximation 
 % in Sobolev spaces, where not only function values but also derivatives 
 % must be accurate. In contrast, piecewise-linear activations (ReLU) 
@@ -1152,23 +1074,11 @@ and generalisation across a wide range of tasks.
 % well-defined and numerically stable, reducing variance in physical 
 % losses involving differential operators.  
 
-% \subsection{Choosing an activation in practice}
-% Theoretical and empirical considerations suggest:
-% \begin{itemize}
-%   \item For generic tasks such as image classification, ReLU and its variants 
-%   remain popular due to simplicity and efficiency.  
-%   \item For scientific computing, PINNs, and variational wavefunction models, 
-%   smooth activations such as SiLU, GELU, or Mish are strongly preferable.  
-%   \item Tanh remains a robust choice when boundedness is desirable or when 
-%   inputs are normalised to small ranges.  
-% \end{itemize}
-
 % The activation function thus encodes an implicit inductive bias, influencing 
 % both optimisation dynamics and the type of functions that can be efficiently 
 % represented. In the next section, we turn to the equally critical issue of 
 % \emph{weight initialization}, which determines how activations and gradients 
 % propagate at the start of training.  
-
 
 \subsection{Initialization}
 \label{sec:initialization}
@@ -1236,7 +1146,6 @@ scaling are generally inferior: they do not respect the scaling needs of
 different architectures or activation functions, and often result in 
 unstable training.  
 
-
 % For physics-informed networks, stable gradient propagation is crucial: 
 % losses often involve higher-order derivatives, and exploding Hessians 
 % can render training unstable. Empirically, Glorot initialization with 
@@ -1261,7 +1170,6 @@ Key takeaways include:
 
 Initialization and activation choice thus form an inseparable pair: together
 they determine whether information propagates stably through the network. This will be discussed further in the context of physics-informed models in Chapter~\ref{ch:trial_wavefunction}.
-
 
 \section{Architectures for many-body wavefunctions}
 \label{sec:architectures}
@@ -1355,7 +1263,6 @@ backflow---can be built in either form: as a separable DeepSets-type network, or
 message-passing CTNN. Holding everything else fixed and varying only this choice isolates
 the effect of the relational channel, which Chapter~\ref{ch:kernel} analyses through the
 geometry of the tangent kernel introduced in \S\ref{sec:theory-tangent-kernel}.
-
 
 \section{Expressivity, approximation, and generalization}
 \label{sec:nn_approximation}

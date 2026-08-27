@@ -139,11 +139,17 @@ The reference column collects the best available benchmark for each size: DMC fr
       \midrule
       20 & 0.001 & ---          & --- & --- & $\mathbf{1.293033(6)}$ & --- \\
          & 0.01 & ---           & ---  & --- & $\mathbf{6.14645(5)}$ & --- \\
-         & 0.10 & $29.9779(1)$ & ---  & --- & $29.9888(2)$ & $+0.0364$ \\
-         & 0.50 & $93.8752(1)$  & ---  & --- & $\mathbf{93.8789(5)}$ & $+0.0040$ \\
-         & 1.00 & $155.8822(1)$  & ---   & --- & $\mathbf{155.8738(7)}$ & $-0.0024$ \\
+         & 0.10 & $29.9779(1)^{\mathrm{H}}$ & ---  & --- & $29.9888(2)$ & $+0.0364$ \\
+         & 0.50 & $93.8752(1)^{\mathrm{H}}$  & ---  & --- & $\mathbf{93.8789(5)}$ & $+0.0040$ \\
+         & 1.00 & $155.8822(1)^{\mathrm{H}}$  & ---   & --- & $\mathbf{155.8738(7)}$ & $-0.0024$ \\
       \bottomrule
     \end{tabular}
+    \begin{tablenotes}\footnotesize
+      \item[] Reference-energy provenance: values marked $^{\mathrm{H}}$ are from the
+      master's thesis of Daniel Haas~\cite{HaasHFQD} ($N=20$); all other reference
+      energies are diffusion Monte Carlo from Pederiva~\emph{et al.}~\cite{Pederiva2000-QD-DMC}
+      ($N\le12$, whose study spans $N\le13$). Dashes mark $(N,\omega)$ with no published value.
+    \end{tablenotes}
   \end{threeparttable}
 \end{table}
 
@@ -986,184 +992,20 @@ work, and of where it, too, eventually breaks.
 
 \subsection{Training methodology}
 \label{sec:colloc-method}
-
-\subsubsection{Objective function}
-
-The collocation objective replaces the VMC gradient estimator with
-a REINFORCE-style policy gradient that treats the local energy
-$E_L(\mathbf{R})$ as a reward signal:
-\begin{equation}
-\nabla_\theta \langle E \rangle
-\;=\; 2\,\EE_{\mathbf{R}\sim|\Psi_\theta|^2}\!\bigl[
-  \bigl(E_L(\mathbf{R})-b\bigr)\,
-  \nabla_\theta \log|\Psi_\theta(\mathbf{R})|\bigr],
-\label{eq:reinforce}
-\end{equation}
-where $b$ is a variance-reducing baseline (running mean of $E_L$),
-and the local energy is
-\begin{equation}
-E_L(\mathbf{R})
-= -\tfrac{1}{2}
-  \bigl[\Delta\log\Psi(\mathbf{R})
-       + \|\nabla\log\Psi(\mathbf{R})\|^2\bigr]
-  + V(\mathbf{R}).
-\label{eq:el}
-\end{equation}
-The crucial implementation choice is that the Laplacian
-$\Delta\log\Psi$ enters the \emph{reward} but is \emph{not}
-differentiated through: gradients $\nabla_\theta$ act only on
-the score function $\nabla_\theta\log|\Psi|$.
-This avoids the ill-conditioned second-derivative pathways
-identified in the catch-22 analysis (Appendix~\ref{app:catch22})
-while preserving the full local-energy signal for optimisation.
-
-Two robustness mechanisms stabilise the gradient:
-\begin{enumerate}
-\item \textbf{Local-energy clipping} (\texttt{clip\_el}).
-  Outlier local energies are clipped relative to a robust
-  location--scale estimate (median and MAD), with a typical
-  threshold of $5\sigma$.
-  This prevents rare pathological configurations (e.g.\ near
-  nodes or coalescence points) from dominating the gradient.
-\item \textbf{Reward quantile trimming} (\texttt{reward\_qtrim}).
-  The most extreme rewards are symmetrically trimmed before
-  computing the policy gradient, reducing sensitivity to
-  heavy-tailed noise.
-\end{enumerate}
-
-An optional direct weak-form term
-$\beta\,\EE[\tilde{E}]$ with
-$\tilde{E}=\tfrac{1}{2}\|\nabla\log\Psi\|^2+V$ was also explored,
-but the historically successful runs set $\beta=0$ (pure REINFORCE).
-A finite-difference collocation residual loss was additionally tested
-but proved more brittle and less competitive than the REINFORCE
-objective (see~\S\ref{sec:colloc-negatives}).
-
-
-\subsubsection{Proposal distribution and importance resampling}
-\label{sec:colloc-sampling}
-
-Because MCMC is avoided, the collocation points must be drawn from
-an analytic proposal distribution $q(\mathbf{R})$ and reweighted
-to approximate sampling from $|\Psi_\theta|^2$.
-The proposal is a mixture of isotropic Gaussians centered at the
-trap minimum:
-\begin{equation}
-q(\mathbf{R})
-= \frac{1}{K}\sum_{k=1}^{K}
-  \mathcal{N}\!\bigl(\mathbf{R};\,0,\,
-  \sigma_{f,k}^2/\omega\,\cdot\,I_{Nd}\bigr),
-\qquad
-\sigma_f \in \{0.8,\,1.3,\,2.0\},
-\label{eq:proposal}
-\end{equation}
-where the $1/\omega$ scaling ensures that the proposal width
-tracks the harmonic-oscillator length scale $\ell=1/\sqrt{\omega}$.
-The three components provide coverage of the inner core
-($\sigma_f{=}0.8$), the bulk ($1.3$), and the tails ($2.0$).
-
-From this proposal, $M = m \times n_{\text{coll}}$ candidate points
-are drawn (typically $m{=}8$--$16$), and importance weights are
-computed:
-\begin{equation}
-w_i = \frac{|\Psi_\theta(\mathbf{R}_i)|^2}{q(\mathbf{R}_i)},
-\qquad
-p_i = \frac{w_i}{\sum_j w_j}.
-\label{eq:is-weights}
-\end{equation}
-The final training batch of $n_{\text{coll}}$ points is obtained
-by multinomial resampling according to $\{p_i\}$.
-
-The quality of this procedure is monitored through the effective
-sample size (ESS):
-\begin{equation}
-\text{ESS}
-= \frac{\bigl(\sum_i w_i\bigr)^2}{\sum_i w_i^2},
-\label{eq:ess}
-\end{equation}
-which measures how many independent samples the importance-weighted
-batch is worth.
-When $q$ has poor overlap with $|\Psi|^2$---as happens at large~$N$
-or small~$\omega$---the ESS can collapse toward~1, concentrating all
-weight on a single sample and destroying the gradient signal.
-
-Two additional weight-space controls were developed to manage this:
-\begin{itemize}
-\item \textbf{Weight tempering.}
-  The importance weights are raised to a fractional power
-  $\alpha < 1$ before normalisation, flattening the weight
-  distribution and increasing the effective ESS at the cost of
-  introducing a controlled bias.
-\item \textbf{Log-weight clipping.}
-  The upper tail of $\log w$ is clipped at a specified quantile
-  (e.g.\ the 99th percentile), preventing a single extreme sample
-  from dominating the batch.
-\end{itemize}
-
-
-\subsubsection{ESS-adaptive oversampling}
-
-For difficult regimes where the ESS is persistently low, an adaptive
-mechanism was introduced: if the achieved ESS falls below a specified
-floor (e.g.\ $0.1\%$ of the batch), the oversampling multiplier~$m$ is
-increased in steps of~$2$ up to a maximum (typically~$16$),
-and the resampling is retried.
-This allows the system to automatically allocate more proposal
-samples when the overlap with $|\Psi|^2$ is poor, without manual
-tuning per regime.
-
-
-\subsubsection{Instability rollback}
-
-An instability-rollback mechanism monitors two quantities between
-successive checkpoints: the absolute relative error from the DMC
-reference, and the magnitude of energy jumps in units of the
-running standard deviation.
-If either exceeds a threshold, the model is reverted to the previous
-checkpoint and the learning rate is decayed by a factor
-(typically $0.85$--$0.92$).
-This prevents catastrophic divergence in regimes where gradient
-noise is high, at the cost of slower progress.
-
-
-\subsubsection{Optimiser comparison: Adam vs.\ CG-SR}
-
-Two optimiser families were compared extensively.
-\textbf{Adam} (with separate learning rates for the Jastrow and
-backflow parameters, typically $\text{lr}=5{\times}10^{-4}$ and
-$\text{lr}_{\text{jas}}=5{\times}10^{-5}$) provided stable
-convergence across all regimes and was the most robust default.
-
-\textbf{Conjugate-gradient stochastic reconfiguration}
-(CG-SR)---a natural-gradient method that preconditions the gradient
-with the inverse Fisher information matrix, solved approximately
-via conjugate gradients with Tikhonov damping---produced faster
-convergence and better final energies at moderate-to-strong
-confinement ($\omega \ge 0.1$).
-However, CG-SR was found to be catastrophically unstable for
-ultra-low~$\omega$ ($\le 0.01$): the Fisher matrix becomes
-extremely ill-conditioned in the weakly confined regime, causing
-parameter updates to diverge regardless of damping schedule
-(\S\ref{sec:colloc-negatives}).
-
-
-\subsubsection{Cascade warm-start}
-\label{sec:colloc-cascade}
-
-A crucial strategy for difficult regimes was \emph{cascade
-warm-starting}: networks trained at one confinement strength are
-used to initialise training at a neighboring, more difficult value.
-A typical cascade follows the sequence
-\begin{equation}
-\omega: 1.0 \;\to\; 0.5 \;\to\; 0.1 \;\to\; 0.01 \;\to\; 0.001,
-\end{equation}
-where each stage inherits both the Jastrow and (when applicable)
-backflow parameters from the converged checkpoint of the previous
-stage.
-This exploits the observation that the geometric correlation
-patterns learned at higher~$\omega$ transfer effectively to lower
-confinement, providing a far better starting point than random
-initialisation.
+The collocation training used here is exactly the MCMC-free pipeline specified in the
+Methods: a weak-form (REINFORCE) objective in which the local energy enters as a detached
+reward (\S\ref{sec:method-collocation}, Eq.~\eqref{eq:reinforce-method}), an analytic
+Gaussian-mixture proposal reweighted to $|\Psi_\theta|^2$ with ESS / Pareto-$\hat k$
+monitoring and tail controls (\S\ref{subsec:colloc-proposal}), and---in the Wigner
+regime---the physics-informed ring proposal with cascade warm-starting
+(\S\ref{subsec:colloc-wigner}). We do not repeat those definitions; this section reports what
+the pipeline achieves and where it fails. Two methodological findings shape the results
+below. First, among the optimisers (\S\ref{sec:sr-stage}), \textbf{Adam} was the robust
+default across all regimes, whereas \textbf{CG-SR} converged faster at $\omega\!\ge\!0.1$ but
+diverged for $\omega\!\le\!0.01$, where the geometric tensor becomes ill-conditioned.
+Second, \textbf{cascade warm-starting}---initialising each confinement from the converged
+checkpoint of a stronger one---was decisive for reaching the deep-Wigner regime, exploiting
+the transfer of correlation structure across $\omega$.
 
 
 \subsection{Architecture variants}
@@ -1283,7 +1125,7 @@ compared to the ${\sim}3{\times}10^3$ MCMC samples per step in the
 SR-based approach.
 
 The best $N{=}6$ result at $\omega{=}1.0$ was obtained through a
-three-stage continuation chain (see~\S\ref{sec:colloc-cascade}):
+three-stage continuation chain (see~\S\ref{subsec:colloc-wigner}):
 an initial BF+Jastrow joint REINFORCE run (900~epochs,
 $\text{lr}{=}5{\times}10^{-4}$), followed by a low-LR continuation
 (750~epochs, $\text{lr}{=}3{\times}10^{-4}$), and a final
@@ -1465,7 +1307,7 @@ Two training recipes are compared head-to-head:
   $\text{lr}{=}5{\times}10^{-4}$, $\text{lr}_{\text{jas}}{=}5{\times}10^{-5}$,
   4096 collocation points, $8{\times}$ oversampling, local-energy
   clipping at $5\sigma$, no reward normalisation, no rollback, fixed
-  Gaussian mixture proposal (Eq.~\ref{eq:proposal}).
+  Gaussian mixture proposal (Eq.~\eqref{eq:colloc-proposal}).
 
 \item \textbf{Config~B (robust):} Identical to Config~A plus four
   stabilisation mechanisms: $16{\times}$ oversampling (doubling the
@@ -1561,10 +1403,10 @@ We now explain each component and the evidence supporting each
 causal link.
 
 \paragraph{Step 1: proposal--target mismatch.}
-As described in~\S\ref{sec:colloc-sampling}, the REINFORCE estimator
-in Eq.~\eqref{eq:reinforce} requires samples from $|\Psi_\theta|^2$,
+As described in~\S\ref{subsec:colloc-proposal}, the REINFORCE estimator
+in Eq.~\eqref{eq:reinforce-method} requires samples from $|\Psi_\theta|^2$,
 but collocation draws from the analytic Gaussian mixture proposal
-$q(\mathbf{R})$ in Eq.~\eqref{eq:proposal} and reweights via importance
+$q(\mathbf{R})$ in Eq.~\eqref{eq:colloc-proposal} and reweights via importance
 sampling.
 The quality of this reweighting depends on how well $q$ overlaps
 with $|\Psi_\theta|^2$.
@@ -1573,7 +1415,7 @@ For the harmonic quantum dot, $|\Psi|^2$ concentrates on a manifold
 whose geometry depends on $\omega$:
 at $\omega{=}1.0$, electrons occupy a compact cloud of radius
 of order the oscillator length $\ell=1/\sqrt{\omega}$, and the three-component
-Gaussian mixture in Eq.~\eqref{eq:proposal} provides adequate coverage.
+Gaussian mixture in Eq.~\eqref{eq:colloc-proposal} provides adequate coverage.
 At $\omega{=}0.001$, the electron cloud extends to
 $\sim\!100\,a_0^\ast$ (several oscillator lengths, $\ell\approx31.6\,a_0^\ast$), the pair correlation function develops
 sharp shell structure (Section~\ref{sec:wigner-molecule}), and

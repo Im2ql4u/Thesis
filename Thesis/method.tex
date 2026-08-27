@@ -553,6 +553,7 @@ only as a reward in a score-function (REINFORCE) gradient~\cite{Williams1992-REI
   \nabla_\theta \langle E\rangle
   = 2\,\mathbb{E}_{\mathbf R\sim|\Psi_\theta|^2}\!\big[(E_L(\mathbf R)-b)\,
     \nabla_\theta \log|\Psi_\theta(\mathbf R)|\big],
+  \label{eq:reinforce-method}
 \end{equation}
 with a variance-reducing baseline $b$ (a running mean of $E_L$), and the Laplacian inside
 $E_L$ is never differentiated through. This is deliberate. Differentiating the Laplacian

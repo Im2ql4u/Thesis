@@ -475,7 +475,7 @@ pathological gradients that destabilise training.
 
 The REINFORCE formulation resolves this by construction.
 The Laplacian enters only through the \emph{reward} (the local energy
-in Eq.~\ref{eq:el}), and gradients act exclusively on the score
+in Eq.~\eqref{eq:local-energy}), and gradients act exclusively on the score
 function $\nabla_\theta \log|\Psi|$.
 The stability is subtler than the score simply being bounded. For a
 \emph{parameter-dependent} (backflow) node the score itself can diverge---

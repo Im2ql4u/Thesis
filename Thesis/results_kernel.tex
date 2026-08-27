@@ -127,6 +127,18 @@ despite $d_{\mathrm{eff}}$ not being a reparameterization-invariant absolute dim
 normalization conventions and a common probe measure, so the factor-of-two gap reflects
 how each architecture spends its tangent directions, not a change of coordinates.
 
+\begin{figure}[htbp]\centering
+  \includegraphics[width=0.95\textwidth]{fair_dimension.png}
+  \caption{Message passing compresses the correlator (Q1a, $N{=}6$, $\omega{=}1$).
+  \emph{Left:} the effective rank of the quantum geometric tensor on a common pooled probe,
+  converged in the number of probe samples. \emph{Right:} the same pooled measure per model.
+  The CTNN (blue) reaches the ground state in $d_{\mathrm{eff}}\!\approx\!1.2$--$1.7$, while
+  every DeepSet (red) needs $\approx\!2.9$--$3.6$---and the gap does not close as the DeepSet
+  is scaled from $20$k to $164$k parameters. The compression is architectural, not a matter
+  of capacity.}
+  \label{fig:q1a-fairdim}
+\end{figure}
+
 One subtlety should be dispatched here, because the synthesis
 (\S\ref{sec:synthesis}) will caution that quantities split between the Jastrow and
 the backflow are gauge-like. That caution does not reach this comparison: it is
@@ -224,6 +236,17 @@ single collective displacement mode (rank~1)---while the CTNN's copresheaf trans
 response, and the ablation shows that this transport carries essentially the entire
 effect.
 
+\begin{figure}[htbp]\centering
+  \includegraphics[width=0.72\textwidth]{message_ablation.png}
+  \caption{What message passing buys, by ablation (trained networks, $N{=}6$; energy
+  relative to the full model). Removing the backflow (orange) costs almost nothing deep in
+  the Wigner regime ($\omega{=}0.01$) but $\sim\!6\%$ at $\omega{=}1$, while removing the
+  Jastrow messages (red) or all message passing (blue) is expensive throughout. The gain
+  from message passing is a high-$\omega$, kinetic-energy statement; at the crystal the
+  relational work has moved into the backflow's transport maps.}
+  \label{fig:q1b-ablation}
+\end{figure}
+
 \subsection{The unified reading of Q1}
 Q1a and Q1b are one statement about how relational information is \emph{routed}. The
 baselines are not blind to inter-particle structure---the DeepSet pools
@@ -259,6 +282,17 @@ directions. \textbf{For weak-form collocation, SR is essential}: there
 $E_{\mathrm{Adam}}-E_{\mathrm{SR}}$ is large and positive (e.g.\ $+2.9$ at
 $N=6,\omega=1$), because the importance weights make the objective badly
 conditioned and plain Adam fails to converge it.
+
+\begin{figure}[htbp]\centering
+  \includegraphics[width=0.95\textwidth]{sr_vs_adam_trend.png}
+  \caption{Under $|\Psi|^2$ sampling, SR and Adam are statistically indistinguishable
+  ($N{=}2$, 4 seeds, $\pm1$\,s.d.). \emph{Left:} relative energy error---the two optimisers
+  overlap within error bars at every $\omega$. \emph{Right:} distance to the exact state, where
+  SR is consistently but marginally lower. The whitening SR performs is redundant here
+  because the VMC metric is already well conditioned; its decisive advantage appears only for
+  the ill-conditioned weak-form collocation objective.}
+  \label{fig:q2-sradam}
+\end{figure}
 
 The honest verdict is therefore not ``SR wins'' or ``SR ties'' but \textbf{SR
 matters precisely when the tangent metric is ill-conditioned}. Its value is a
@@ -299,6 +333,17 @@ same measure, which conditions the update. A fixed covering proposal instead dri
 a monotone \emph{ESS collapse} as $N$ and $1/\omega$ grow: at $N=6,\omega=0.01$ the
 effective sample size falls to $0.11\%$ of the batch (about $5$ of $4096$ points). When ESS collapses the gradient estimator is
 degenerate---a hard limit, not undertraining.
+
+\begin{figure}[htbp]\centering
+  \includegraphics[width=0.62\textwidth]{ess_collapse.png}
+  \caption{The naive collocation proposal collapses in the Wigner regime ($N{=}6$). The
+  effective sample size (as a percentage of the batch) falls by more than an order of
+  magnitude from $\omega{=}1$ to $\omega{=}0.01$, where it reaches $\sim\!0.1\%$---about five
+  usable points in a batch of $4096$. This is a property of the sampling measure, not of
+  optimisation, and it is what the physics-informed ring proposal
+  (\S\ref{sec:kernel-q3-frontier}) is designed to repair.}
+  \label{fig:q3-ess}
+\end{figure}
 
 \paragraph{Same state, until the sampling loses the target.} We test whether the two
 paradigms reach the same \emph{state} (not merely the same energy) via the symmetric

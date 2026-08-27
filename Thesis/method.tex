@@ -342,6 +342,42 @@ subtracting the batchwise mean of the predicted $\Delta_\beta$ before forming $\
 \paragraph{Summary.}
 Backflow provides a compact, symmetry-respecting way to move the Slater nodes toward the true correlated nodes. With mollified distances, optional short-range gates/attention, zero-mean projection, and bounded outputs, it integrates cleanly with the analytic cusp and smooth NQS correlator, reducing fixed-node error without inflating local-energy variance.
 
+\section{Architecture sizes and hyperparameters}
+\label{sec:hyperparameters}
+Table~\ref{tab:hyperparams} collects the representative settings, so that the architecture
+claims of Chapter~\ref{ch:kernel} can be read as matched-capacity comparisons rather than
+size effects. The controlled correlator/backflow study fixes each pair of variants at the
+same capacity tier; the reported ground-state energies use the wider production networks. A
+key point is that the message-passing and separable variants are held at comparable
+parameter counts, so a difference in outcome cannot be attributed to one simply being
+larger. All settings below are those of the accompanying code
+(\texttt{scripts/run\_depth\_analysis.py} for the comparison tiers;
+\texttt{scripts/source\_state\_check.py} for the production widths).
+
+\begin{table}[htbp]\centering
+\caption{Representative architecture and training hyperparameters. Widths are hidden
+dimensions; ``rounds'' are message-passing steps ($n_\downarrow{+}n_\uparrow$ for the
+V-cycle). The two correlator variants (and the two backflow variants) are matched in
+capacity within the comparison tier.}
+\label{tab:hyperparams}
+\small
+\begin{tabular}{llll}
+\hline
+Component & Variant & Comparison tier & Production \\
+\hline
+Correlator & CTNN (V-cycle) & node/edge $32$, bottleneck $16$, rounds $2{+}2$ & width $128$, $2$ layers \\
+           & DeepSet        & pair-MLP $64\times4$, out $32$                 & width $128$, $2$ layers \\
+Backflow   & CTNN (copresheaf) & node/edge $64$, $1$ round                   & width $128$, $3$ layers \\
+           & Conventional      & msg $64$, node-MLP $64\times3$              & width $128$, $3$ layers \\
+Readout    & (correlator)   & hidden $64$, $2$--$3$ layers, SiLU            & --- \\
+\hline
+Optimiser  & Adam           & $\mathrm{lr}=5\times10^{-4}$ (BF), $5\times10^{-5}$ (Jastrow) & \\
+           & CG-SR          & Tikhonov damping $\lambda$, trust-region cap, CG restarts & \\
+Batch      & collocation    & $n_{\rm coll}\sim3\times10^3$, oversample $m=8$--$16$ & \\
+\hline
+\end{tabular}
+\end{table}
+
 
 \chapter{Optimisation}
 \label{ch:optimization}
@@ -465,13 +501,17 @@ We average a small number of probes (2–16 in ablations), and trim quantiles be
 \section{Stochastic Reconfiguration (stage II)}
 \label{sec:sr-stage}
 
-SR uses the covariance form of the energy gradient
+Stochastic reconfiguration~\cite{Sorella1998-SR,BeccaSorella2017-QMCBook} preconditions the
+energy gradient with the (inverse) quantum geometric tensor, and is the imaginary-time /
+natural-gradient step for a variational state~\cite{Amari1998-NaturalGradient,StokesEtAl2020-QuantumNaturalGradient}.
+It uses the covariance form of the energy gradient
 \begin{equation}
-\partial_{\theta_k}E 
+\partial_{\theta_k}E
 = 2\,\mathrm{Cov}_\pi\!\big(E_L, O_k\big)
 = 2\Big(\langle E_L O_k\rangle - \langle E_L\rangle\,\langle O_k\rangle\Big),
 \end{equation}
-and approximates a natural–gradient step by solving $(S+\lambda I)\Delta\theta=-g$.
+and approximates a natural–gradient step by solving $(S+\lambda I)\Delta\theta=-g$ with the
+quantum geometric tensor $S$ of~\S\ref{sec:theory-tangent-kernel}.
 Implementation details:
 \begin{itemize}
   \item \textbf{Centering/whitening.} We center $O$ per batch and whiten by the diagonal of $S$ before CG to improve conditioning.
@@ -479,6 +519,20 @@ Implementation details:
   \item \textbf{Damping.} A small $\lambda$ (code: \texttt{damping}) stabilizes low–variance directions.
 \end{itemize}
 Because our backflow only alters the Slater coordinates (and $W_\theta$ stays on safe features of $\tilde R$), the SR statistics remain well–behaved even when nodes shift.
+
+\paragraph{Optimiser variants compared.}
+Three first-order updates appear in the results, and the comparison between them is itself a
+finding (Chapter~\ref{ch:kernel}, \S\ref{sec:kernel-q2}):
+(i) \textbf{Adam}~\cite{KingmaBa2015-Adam}, a diagonal adaptive step used as the robust
+default, with separate learning rates for the Jastrow and backflow blocks;
+(ii) \textbf{plain SR}, the natural-gradient step above with a fixed diagonal damping
+$\lambda$; and
+(iii) \textbf{CG-SR}, the same step solved matrix-free by (preconditioned) conjugate
+gradients with Tikhonov damping and a trust-region cap, which converges faster where $S$ is
+well conditioned but becomes unstable in the weak-confinement regime where $S$ is nearly
+singular. Under $|\Psi|^2$ sampling the Adam and SR \emph{fixed points} coincide; they differ
+in conditioning and in the collocation regime, which is the subject of
+\S\ref{sec:kernel-q2}.
 
 \section{Sampling paradigms and the weak-form collocation objective}
 \label{sec:method-collocation}
@@ -494,27 +548,59 @@ $w_i=|\Psi_\theta(\mathbf R_i)|^2/q(\mathbf R_i)$, so that no Markov chain is re
 any point in training.
 
 For the collocation objective we use a \emph{weak form}: the local energy $E_L$ enters
-only as a reward in a score-function (REINFORCE) gradient,
+only as a reward in a score-function (REINFORCE) gradient~\cite{Williams1992-REINFORCE},
 \begin{equation}
   \nabla_\theta \langle E\rangle
   = 2\,\mathbb{E}_{\mathbf R\sim|\Psi_\theta|^2}\!\big[(E_L(\mathbf R)-b)\,
     \nabla_\theta \log|\Psi_\theta(\mathbf R)|\big],
 \end{equation}
-with a variance-reducing baseline $b$, and the Laplacian inside $E_L$ is never
-differentiated through. This is deliberate. Differentiating the Laplacian through a
-backflow-shifted determinant is the source of the nodal instability analysed in
-Appendix~\ref{app:catch22}; the weak form keeps the full local-energy signal as a
-reward while sidestepping that pathology.
+with a variance-reducing baseline $b$ (a running mean of $E_L$), and the Laplacian inside
+$E_L$ is never differentiated through. This is deliberate. Differentiating the Laplacian
+through a backflow-shifted determinant is the source of the nodal instability analysed in
+Appendix~\ref{app:catch22}; the weak form keeps the full local-energy signal as a reward
+while sidestepping that pathology. Two robustness controls stabilise the reward: local
+energies are clipped to a robust median/MAD location--scale band ($\sim\!5\sigma$), and the
+most extreme rewards are quantile-trimmed before the gradient is formed.
 
-The quality of the reweighting is tracked by the effective sample size
-$\mathrm{ESS}=(\sum_i w_i)^2/\sum_i w_i^2$, which collapses toward~1 when $q$ ceases to
-overlap $|\Psi_\theta|^2$---the failure mode that bounds the paradigm at large $N$ and
-weak $\omega$. Where a naive origin-centred proposal fails in the Wigner regime, we
-replace it with a \emph{physics-informed} proposal built from the Wigner shell itself
-(a radial Gaussian at the classical ring radius times an angular distribution over the
-ring electrons), which restores a usable ESS and carries MCMC-free training deep into
-the correlated regime. Whether the two paradigms reach the same \emph{state}, and where
-they diverge, is one of the questions of Chapter~\ref{ch:kernel}.
+\subsection{Analytic proposal and importance resampling}
+\label{subsec:colloc-proposal}
+The collocation points are drawn from an analytic mixture of isotropic Gaussians centred at
+the trap minimum and reweighted to $|\Psi_\theta|^2$~\cite{KalosLevesqueVerlet1974-ImportanceSampling,Kong_2002},
+\begin{equation}
+  q(\mathbf R)=\frac{1}{K}\sum_{k=1}^{K}\mathcal N\!\big(\mathbf R;\,0,\,\sigma_{f,k}^2/\omega\;I_{Nd}\big),
+  \quad \sigma_f\in\{0.8,1.3,2.0\},
+  \qquad
+  w_i=\frac{|\Psi_\theta(\mathbf R_i)|^2}{q(\mathbf R_i)},
+  \label{eq:colloc-proposal}
+\end{equation}
+where the $1/\omega$ scaling ties the proposal width to the oscillator length
+$\ell=1/\sqrt\omega$ and the three components cover core, bulk, and tails. A batch of
+$n_{\rm coll}$ points is obtained by multinomial resampling on $p_i=w_i/\sum_j w_j$ from
+$m\,n_{\rm coll}$ candidates ($m\!\approx\!8$--$16$). Reweighting quality is tracked by the
+effective sample size $\mathrm{ESS}=(\sum_i w_i)^2/\sum_i w_i^2$ and, as a heavier-tailed
+diagnostic, the Pareto $\hat k$ of the weights~\cite{Vehtari2024}; both degrade when $q$
+ceases to overlap $|\Psi_\theta|^2$, the failure mode that bounds the paradigm at large $N$
+and weak $\omega$. Three controls manage the tails: weight tempering ($w\!\to\!w^{\alpha}$,
+$\alpha<1$), log-weight clipping at an upper quantile, and ESS-adaptive oversampling that
+raises $m$ when the achieved ESS falls below a floor. An instability-rollback reverts to the
+last good checkpoint and decays the learning rate if the energy jumps beyond a threshold.
+
+\subsection{Physics-informed proposal for the Wigner regime}
+\label{subsec:colloc-wigner}
+The origin-centred proposal~\eqref{eq:colloc-proposal} places its mass where a Wigner
+molecule has almost none: at strong correlation the density collapses onto a shell at the
+classical ring radius $r_0$, and $|\Psi_\theta|^2$ has essentially no support near the
+origin, so the ESS collapses. We therefore replace $q$ by a proposal built from the Wigner
+shell itself---a radial Gaussian centred at $r_0$ (set by balancing confinement against
+Coulomb repulsion) times an angular distribution over the ring, so that proposed
+configurations resemble electrons spread around the ring rather than clustered at the
+centre. This restores a usable ESS and carries MCMC-free training to $\omega\approx0.0035$
+(Chapter~\ref{ch:kernel}, \S\ref{sec:kernel-q3-frontier}), far past where the naive proposal
+collapses; the remaining wall is \emph{angular} crystallisation, analysed there. Difficult
+confinements are reached by \emph{cascade warm-starting}: parameters converged at one
+$\omega$ initialise the next, following $\omega:1.0\!\to\!0.5\!\to\!0.1\!\to\!0.01\!\to\!0.001$.
+Whether the two paradigms reach the same \emph{state}, and where they diverge, is one of the
+questions of Chapter~\ref{ch:kernel}.
 
 \section{Units, scaling, and batch construction}
 \label{sec:units-scaling}
@@ -531,6 +617,29 @@ All features are computed in trap units $\tilde{\mathbf x}=\sqrt{\omega}\,\mathb
   \item \textbf{Stage II (SR).} Form $S$ and $g$, solve $(S+\lambda I)\Delta\theta=-g$, apply a trust–region step.
 \end{enumerate}
 This procedure keeps the early dynamics variance–dominated and sampler–aware, then transitions to a geometry–aware natural–gradient refinement. Empirically it yields stable convergence across $(N,\omega)$, including weak traps where shell/dimer coverage and permutation–respecting stratification are essential.
+
+\section{Statistical uncertainties}
+\label{sec:uncertainties}
+Every energy and observable we report carries a statistical error, and because our samples
+are correlated---within an MCMC chain, and across the score-function updates that shape the
+final ensemble---a naive standard error over $B$ samples understates it. We therefore
+estimate the error on a scalar mean $\bar A=\frac1B\sum_i A(\mathbf R_i)$ by
+\emph{blocking}: successive samples are averaged into blocks of growing size and the
+plateau of the block standard error as the block size exceeds the autocorrelation time is
+taken as the uncertainty~\cite{FlyvbjergPetersen1989-Blocking,Jonsson2018-BlockingSE}. For
+the final ground-state energy this is the dominant reported error; a parenthetical digit,
+e.g.\ $155.8738(7)$, denotes one standard error on the last quoted figure.
+
+For quantities that are \emph{nonlinear} functions of sample statistics---participation
+ratios, effective ranks, PCA cosines, and the coupling diagnostics of
+Chapter~\ref{ch:results}---a blocked standard error is not available in closed form, and we
+use a \emph{block bootstrap} instead: blocks (of the plateau size above) are resampled with
+replacement, the statistic is recomputed on each resample, and its spread across resamples
+is the reported error~(\S\ref{subsec:repr-uncertainty}). Where a number is quoted as a
+seed average, we additionally report the spread across independent random seeds, which
+captures optimisation---not just sampling---variability; the two are distinguished in the
+captions. Reference energies drawn from the literature carry the uncertainties quoted by
+their sources.
 
 \chapter{Analysis}
 \label{ch:analysis}

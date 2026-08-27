@@ -283,17 +283,6 @@ $E_{\mathrm{Adam}}-E_{\mathrm{SR}}$ is large and positive (e.g.\ $+2.9$ at
 $N=6,\omega=1$), because the importance weights make the objective badly
 conditioned and plain Adam fails to converge it.
 
-\begin{figure}[htbp]\centering
-  \includegraphics[width=0.95\textwidth]{sr_vs_adam_trend.png}
-  \caption{Under $|\Psi|^2$ sampling, SR and Adam are statistically indistinguishable
-  ($N{=}2$, 4 seeds, $\pm1$\,s.d.). \emph{Left:} relative energy error---the two optimisers
-  overlap within error bars at every $\omega$. \emph{Right:} distance to the exact state, where
-  SR is consistently but marginally lower. The whitening SR performs is redundant here
-  because the VMC metric is already well conditioned; its decisive advantage appears only for
-  the ill-conditioned weak-form collocation objective.}
-  \label{fig:q2-sradam}
-\end{figure}
-
 The honest verdict is therefore not ``SR wins'' or ``SR ties'' but \textbf{SR
 matters precisely when the tangent metric is ill-conditioned}. Its value is a
 function of $\kappa(S)$, set by the ansatz and the sampling measure, not an intrinsic

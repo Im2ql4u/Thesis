@@ -1678,3 +1678,23 @@ Slater x Jastrow balance, not of coordinates. Reaching omega < 0.0035 needs eith
 re-optimisation from a shell-*amplitude*-anchored objective (not a warm-start), or an ell-covariant
 ansatz (architecture change) — both out of scope for "completeness". Honest thesis frontier stands at
 omega = 0.0035 (verified genuine Wigner molecule at 3.34 ell), MCMC-free.
+
+## 2026-08-28 — High-omega correlation detector + Q1a/Q1b unification (correlation-probe)
+
+Extended the mode-naming to a seed-checked omega-sweep + N=12 (run_mode_naming_scan.py) and
+added a correlation-structure probe (run_correlation_probe.py), well-trained checkpoints only.
+
+- DETECTOR (user's hypothesis, confirmed): non-physical tangent mass = eigenvalue-weighted
+  tangent variance outside the physical-operator span. DeepSet excess ~0.3-0.5 at EVERY omega
+  (0.44 vs CTNN 0.06 at omega=1, where energy err ~0.001% and leading-R2 ~0.99 are tied). The
+  separable network estimates the correlation energy without representing correlation;
+  disguised at high omega because correlation is a small energy fraction. N=12 CTNN ~0.003.
+- Q1a/Q1b UNIFICATION: holding the (conventional) backflow fixed, the correlator's
+  correlation-hole capture and the backflow rank collapse at the SAME omega -- DeepSet ~0.05,
+  CTNN ~0.01. One phenomenon.
+- Causal transport-ablation: NEGATIVE (ablation simplifies the CTNN, does not reproduce the
+  DeepSet). Dropped from the thesis per the user; the claim is stated correlationally.
+
+Written into results_kernel.tex Q1 (fig:mode-naming, fig:nonphys, fig:q1-unify). 119 pages.
+Pending: N=12 DeepSet contrast point (training, converged at -0.01%), N=2 collocation rows
+at omega=0.5 and 0.001 (training).

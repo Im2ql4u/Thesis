@@ -156,14 +156,55 @@ $\Var(E_L)$. A single-seed dimension ``inversion'' at the crystal, reported in a
 earlier draft, did \emph{not} survive seeding and is retracted here as a worked
 cautionary result (see \S\ref{sec:synthesis}).
 
-\paragraph{Naming the manifold.} At the exact $N=2$ anchor the leading tangent
-directions are not abstract: an operator decomposition identifies them, to
+\paragraph{Naming the manifold, at every size.} The leading tangent directions are not
+abstract. At the exact $N=2$ anchor an operator decomposition identifies them, to
 $R^2=1.00$, as the physical collective modes of $H$---a breathing mode
-($\partial_\omega$), a correlation-hole mode, and the first relative excitation.
-The message-passing correlator finds the ground state by moving along the handful of
-coordinates the Hamiltonian actually couples; the DeepSet spreads the same
-solution over more directions because it pools independently-encoded pairs rather than
-routing them through shared, iterated messages.
+($\partial_\omega$), a correlation-hole mode, and the first relative excitation. This is not
+special to two bodies. Projecting the leading tangent mode of trained correlators onto a
+dictionary of physical operators (breathing/monopole, quadrupole, correlation-hole,
+pair-linear), seed-averaged over well-trained checkpoints (energy within $1.5\%$ of
+reference), the CTNN reaches $R^2\!\gtrsim\!0.93$ at $N=6$ and $R^2\!\approx\!1.00$ at $N=12$
+across the whole confinement range $\omega\in[0.01,1]$, and both architectures reproduce the
+$N=2$ naming at strong confinement (Fig.~\ref{fig:mode-naming}). The message-passing
+correlator finds the ground state by moving along the handful of coordinates the Hamiltonian
+actually couples.
+
+\begin{figure}[htbp]\centering
+  \includegraphics[width=0.8\textwidth]{mode_naming_scan.png}
+  \caption{The leading tangent mode is a nameable physical mode. $R^2$ of the correlator's
+  leading tangent-kernel eigenmode onto the physical-operator dictionary, seed-averaged over
+  well-trained checkpoints. The CTNN stays physical at every $\omega$ and both sizes; the
+  DeepSet matches it down to $\omega\!\approx\!0.1$ and then loses the leading mode entirely
+  in the deep-Wigner regime. Three seeds at $\omega=0.01$.}
+  \label{fig:mode-naming}
+\end{figure}
+
+\paragraph{The missing correlation channel is visible at \emph{high} $\omega$ too.} The
+leading-mode score is generous to the DeepSet: at $\omega=1$ it is nominally the more physical
+of the two ($R^2\!\approx\!0.996$ vs.\ $0.991$), with energies identical to four figures. Yet
+a correlation-specific probe exposes a deficit the leading mode hides. Write the
+eigenvalue-weighted fraction of the top tangent modes lying \emph{outside} the
+physical-operator span as the \emph{non-physical tangent mass}. The DeepSet carries a large
+excess at \emph{every} confinement---$0.44$ against the CTNN's $0.06$ at $\omega=1$, a gap of
+$\sim\!0.3$--$0.5$ that persists from the strongly-confined limit down to the crystal
+(Fig.~\ref{fig:nonphys}). The reading is that a separable network can \emph{estimate} the
+correlation energy---a small fraction of the total at strong confinement, so the energy looks
+converged---without \emph{representing} correlation: it spends nearly half its tangent budget
+on directions that correspond to no physical response. The deficiency is intrinsic and present
+throughout; weak confinement merely removes the disguise, because there correlation \emph{is}
+the energy. At $N=12$ the CTNN's non-physical mass stays $\lesssim\!0.02$ throughout.
+
+\begin{figure}[htbp]\centering
+  \includegraphics[width=0.72\textwidth]{nonphys_mass.png}
+  \caption{A limitation visible where the energy cannot see it. Non-physical tangent mass---the
+  eigenvalue-weighted tangent variance outside the physical-operator span---versus $\omega$. At
+  $\omega=1$ the two correlators are indistinguishable in energy ($-0.001\%$) and in
+  leading-mode physicality, yet the DeepSet already spends $44\%$ of its tangent variance on
+  physically-uninterpretable directions against the CTNN's $6\%$. The excess is roughly constant
+  in $\omega$: the correlation deficit is intrinsic, disguised at high $\omega$ only because
+  correlation is a small slice of the energy there.}
+  \label{fig:nonphys}
+\end{figure}
 
 \subsection{Q1b --- In the backflow: message passing prevents rank collapse}
 \label{sec:kernel-q1b}
@@ -262,6 +303,29 @@ full-rank response the single-round baseline instead collapses to a single colle
 displacement mode (backflow: rank~1), which the copresheaf transport avoids. Both effects are visible only
 in the tangent-kernel geometry, not in the total energy, until weak confinement makes
 the geometric deficit an energetic one.
+
+\paragraph{The two channels fail together.} That last sentence is not a metaphor: the
+correlator deficit and the backflow deficit collapse at the \emph{same} confinement. Holding
+the backflow architecture fixed (the conventional network, in both cases) and varying only the
+correlator, we track the correlator's correlation-hole capture and the backflow's displacement
+rank down the $\omega$-sweep (Fig.~\ref{fig:q1-unify}). With a DeepSet correlator both give way
+together at $\omega\!\approx\!0.05$---the hole capture falls from $0.68$ to $0.07$ as the
+backflow rank drops from $\sim\!10$ to $1$. With a CTNN correlator both hold until
+$\omega\!\approx\!0.01$. The correlator's grip on the physical correlation modes and the
+backflow's ability to sustain a full-rank displacement are the same capability seen from two
+sides: when the amplitude model can no longer represent the correlation hole, the nodal
+deformation can no longer stay high-rank, and a better correlator postpones \emph{both}. Q1a
+and Q1b are one phenomenon.
+
+\begin{figure}[htbp]\centering
+  \includegraphics[width=\textwidth]{q1_unification.png}
+  \caption{Correlator physicality and backflow rank collapse together ($N=6$; the backflow
+  architecture is held fixed, only the correlator changes). For each correlator, the
+  correlation-hole capture (left axis) and the backflow displacement rank (right axis) give way
+  at the same $\omega$: $\omega\!\approx\!0.05$ for the DeepSet, $\omega\!\approx\!0.01$ for the
+  CTNN. A correlator that keeps its physical structure lets the backflow keep its rank.}
+  \label{fig:q1-unify}
+\end{figure}
 
 % =====================================================================
 \section{Q2 --- Optimiser: SR earns its keep where the metric is ill-conditioned}

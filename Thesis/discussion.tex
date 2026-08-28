@@ -391,6 +391,23 @@ only where near-field physics is delicate. In the Wigner limit, the model
 naturally reduces to a static Wigner-molecule ansatz with low-rank latent
 geometry.
 
+\paragraph{Compression is physical alignment, and it is one deficit.}
+The low-rank latent geometry above says \emph{how many} directions the correlator uses; the
+tangent-kernel analysis of Chapter~\ref{ch:kernel} adds \emph{which} directions, and the
+distinction turns out to matter. Naming the leading tangent modes against a dictionary of
+physical operators shows that the message-passing correlator's dominant directions are the
+Hamiltonian's own collective modes---breathing, correlation-hole, relative excitation---to
+$R^2\!\approx\!1$ across $\omega$ and up to $N{=}12$, whereas a separable network of matched
+(or larger) capacity spends nearly half of its tangent budget on directions of no physical
+response. This is the precise sense in which a separable network \emph{estimates} the
+correlation energy without \emph{representing} correlation: the deficit is present at every
+confinement and is merely disguised at strong confinement, where correlation is a small slice
+of the energy and the two networks are indistinguishable in energy and even in leading-mode
+physicality. It is also a \emph{single} deficit rather than two---holding the backflow fixed
+and varying only the correlator, the correlator's loss of physical alignment and the
+backflow's rank collapse set in at the same confinement, the one relational capability seen
+once in the amplitude and once in the nodes.
+
 \paragraph{Connection to the physical picture.}
 Finally, the learned representations dovetail with the structural analysis in
 Sec.~\ref{sec:wigner-molecule}. The same correlator that reproduces shell

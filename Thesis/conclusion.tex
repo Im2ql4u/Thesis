@@ -59,7 +59,15 @@ On the \emph{method} side, reading the ansatz through its tangent kernel
 produced them. Message passing earns its cost by supplying a relational channel: it
 compresses the correlator onto fewer effective tangent directions and sustains a
 full-rank backflow where a separable network cannot, and at the Wigner crystal the
-inter-particle messages account for essentially the entire backflow contribution.
+inter-particle messages account for essentially the entire backflow contribution. The
+sharper statement is about physical structure, not dimension count: message passing keeps
+the correlator's leading tangent modes aligned with the physical collective modes of the
+Hamiltonian, whereas a separable network \emph{estimates} the correlation energy without
+\emph{representing} it---spending nearly half its tangent capacity on directions of no
+physical response. That deficit is intrinsic and present at every confinement, disguised at
+strong confinement only because correlation is then a small slice of the energy; and it is
+one deficit, not two, since the correlator's loss of physical alignment and the backflow's
+rank collapse occur at the same confinement.
 Natural-gradient (SR) preconditioning helps in proportion to how ill-conditioned the
 tangent metric is---little for $|\Psi|^2$-sampled VMC, decisively for the collocation
 objective---and the same conditioning story explains why an MCMC-free,

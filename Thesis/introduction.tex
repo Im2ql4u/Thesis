@@ -146,8 +146,13 @@ captured by the quantum geometric tensor and the neural tangent kernel.
   \item \textbf{Architecture.} What does message passing buy that a separable network
         cannot? We find it supplies a \emph{relational channel}—a way to condition
         each particle on where the others are—that compresses the correlator onto
-        fewer effective directions and keeps the backflow from collapsing to a single
-        collective mode in the strongly correlated limit.
+        fewer effective directions, keeps the correlator's leading tangent modes aligned
+        with the physical collective modes of the Hamiltonian, and keeps the backflow
+        from collapsing to a single collective mode in the strongly correlated limit. A
+        separable network, by contrast, \emph{estimates} the correlation energy without
+        \emph{representing} it—a deficit already measurable at strong confinement, where
+        the energies are identical—and the two failures, correlator and backflow, prove
+        to be one.
   \item \textbf{Optimiser.} When does natural-gradient (stochastic reconfiguration)
         preconditioning actually change the result? Its value tracks the conditioning
         of the tangent metric: negligible for well-conditioned, $|\Psi|^2$-sampled

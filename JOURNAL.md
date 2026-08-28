@@ -1698,3 +1698,15 @@ added a correlation-structure probe (run_correlation_probe.py), well-trained che
 Written into results_kernel.tex Q1 (fig:mode-naming, fig:nonphys, fig:q1-unify). 119 pages.
 Pending: N=12 DeepSet contrast point (training, converged at -0.01%), N=2 collocation rows
 at omega=0.5 and 0.001 (training).
+
+## 2026-08-28 (cont.) — N=12 DeepSet contrast completed; coherence pass
+
+- Trained a matched N=12 DeepSet to +0.2% (after 3 attempts lost to the pipeline's
+  OOM-prone polish tail; fix: --polish-steps 0 + tiny eval tail on a free GPU). Probe:
+  N=12 omega=1 nonphys_mass CTNN ~0.003 vs DeepSet ~0.766 -- contrast widens with N.
+  Added to fig:nonphys and the detector text (lighter training noted as indicative).
+- N=2 collocation completed for omega=0.5 (+0.023%) and 0.001 (+0.154%); rows added to
+  tab:collocation. 6.1 kept (collocation is +0.01-0.02%, not within DMC uncertainty).
+- Coherence pass: threaded the estimate-vs-represent mechanism + single-deficit statement
+  through abstract, intro, discussion (new "Compression is physical alignment" paragraph),
+  conclusion, and the Q1 headline. 121 pages, 0 undefined refs. All pushed.

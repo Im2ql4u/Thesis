@@ -1070,6 +1070,9 @@ training-time importance sampling.
   (Table~\ref{tab:reliability}), and the best result across all
   independent training runs for $N{=}12$ (no dedicated reliability
   campaign was conducted for $N{=}12$).
+  The $N{=}2$ rows report a single collocation run each (the zero-variance-extrapolated
+  energy under Multi-stage; the campaign column does not apply), reaching DMC accuracy for
+  $\omega\ge0.01$ and degrading only in the deep-Wigner limit ($+0.15\%$ at $\omega=0.001$).
   All values are VMC-evaluated (${\geq}20\text{k}$ samples) at the best
   checkpoint.
   The reference column is the DMC energy where one exists and, for
@@ -1089,6 +1092,12 @@ training-time importance sampling.
   \begin{tabular}{c c c c c c c}
     \toprule
     $N$ & $\omega$ & Reference & Multi-stage & Campaign (best) & \%\,err & Arch \\
+    \midrule
+    2 & 1.0   & $3.00000$      & $3.00035$      & ---            & $+0.012$ & BF \\
+      & 0.5   & $1.65977(1)$   & $1.66014$      & ---            & $+0.023$ & BF \\
+      & 0.1   & $0.44079(1)$   & $0.44077$      & ---            & $-0.004$ & BF \\
+      & 0.01  & $0.073839(2)$  & $0.073840$     & ---            & $+0.002$ & BF \\
+      & 0.001 & $0.013778$     & $0.013799$     & ---            & $+0.154$ & BF \\
     \midrule
     6 & 1.0   & $20.15932(8)$  & $20.1613(23)$  & $20.1620(56)$  & $+0.013$ & BF \\
       & 0.5   & $11.78484(6)$  & $11.7847(20)$  & $11.7850(48)$  & $+0.002$ & BF \\

@@ -78,7 +78,7 @@ $\{\ket{i}\}$ and $\{\ket{\alpha}\}$,
 U_{\alpha i}=\braket{\alpha|i}, \qquad U^\dagger U=\mathbb I .
 \]
 This freedom is exploited to match the physics (symmetry, locality, boundary conditions),
-e.g.\ harmonic-oscillator/Fock–Darwin orbitals for confined charges or plane waves for
+e.g.\ harmonic-oscillator orbitals for confined charges or plane waves for
 periodic systems, leading to sparser representations and faster convergence.
 
 For $N$ particles the Hilbert space factorizes as
@@ -390,9 +390,8 @@ contributions ($\mathcal O(M^4)$) and diagonalization ($\mathcal O(M^3)$).
 
 \paragraph{Remarks for quantum dots.}
 For parabolic confinement $V_\mathrm{ext}=\tfrac12\omega^2 r^2$ we typically choose
-2D harmonic-oscillator orbitals as the one-particle basis (Cartesian in our
-implementation, or the equivalent polar Fock--Darwin functions), which respect the shell
-structure and accelerate convergence. Closed shells admit restricted HF (RHF); spin-polarized
+2D harmonic-oscillator orbitals as the one-particle basis (the Cartesian orbitals used in
+our implementation), which respect the shell structure and accelerate convergence. Closed shells admit restricted HF (RHF); spin-polarized
 cases may require UHF. Koopmans’ theorem (orbital energies as removal/addition estimates)
 can provide a rough diagnostic but is not used for final energetics here.
 
@@ -424,7 +423,7 @@ eigensolvers without forming $\mathbf H$ explicitly.
 
 \subsection{Diagonalization and symmetry reduction}
 In practice one targets the lowest eigenpairs with Davidson or Lanczos iterations. Symmetries
-($N$, $S_z$, total spin $S$ if spin-adapted CSFs are used, and $L_z$ for Fock--Darwin bases)
+($N$, $S_z$, total spin $S$ if spin-adapted CSFs are used, and $L_z$ in an angular-momentum-adapted basis)
 block-diagonalize the problem and dramatically shrink the working space and memory. For
 few-electron quantum dots (e.g.\ $N=2,6$) this makes high-accuracy FCI feasible for moderate
 $M$; for larger $N$ the determinant growth becomes the bottleneck.
@@ -451,8 +450,8 @@ the \emph{Cartesian} 2D-HO eigenstates $\{\phi_{n_x n_y}(\mathbf r)\chi_\sigma\}
 energies $E_{n_x n_y}=\omega (n_x+n_y+1)$ and spin $\sigma\in\{\uparrow,\downarrow\}$.
 The principal index $k=n_x+n_y$ labels a shell of $(k{+}1)$ degenerate spatial states, each
 twofold spin-degenerate; for the closed shells studied here this Cartesian basis spans the
-same filled subspace as the polar Fock--Darwin basis, so the reference determinant is
-identical in either. Filling from the bottom yields the \emph{closed-shell} electron numbers
+same filled subspace as any complete basis of those shells, so the reference determinant is
+basis-independent. Filling from the bottom yields the \emph{closed-shell} electron numbers
 \[
 N_{\mathrm{closed}}=(K{+}1)(K{+}2), \quad K=0,1,2,\dots \quad (2,6,12,20,30,\dots).
 \]

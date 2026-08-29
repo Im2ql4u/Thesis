@@ -34,9 +34,11 @@ Open shells introduce a degenerate manifold and additional choices for the refer
 to brief remarks only where needed.
 
 \paragraph{Spin–orbitals and basis.}
-One-particle spatial orbitals are Fock–Darwin functions $\{\phi_{nm}(\mathbf r)\}$ with
-$E_{nm}=\omega(2n+|m|+1)$, $n\in\mathbb N_0$, $m\in\mathbb Z$. Spin–orbitals are
-$\varepsilon_\alpha(x)=\phi_{nm}(\mathbf r)\chi_\sigma(s)$, $\sigma\in\{\uparrow,\downarrow\}$.
+One-particle spatial orbitals are the Cartesian two-dimensional harmonic-oscillator
+eigenstates $\{\phi_{n_x n_y}(\mathbf r)\}$ with $E_{n_x n_y}=\omega(n_x+n_y+1)$,
+$n_x,n_y\in\mathbb N_0$ (the basis used in the implementation; for the closed shells studied
+it spans the same filled shells as the equivalent polar Fock--Darwin basis). Spin–orbitals
+are $\varepsilon_\alpha(x)=\phi_{n_x n_y}(\mathbf r)\chi_\sigma(s)$, $\sigma\in\{\uparrow,\downarrow\}$.
 
 % ==========================================================
 

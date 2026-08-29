@@ -376,7 +376,9 @@ In a fixed orthonormal one-particle basis $\{\ket{\mu}\}$ these become the matri
 F_{\mu\nu}=h_{\mu\nu}+\sum_{\lambda\sigma} P_{\lambda\sigma}
 \Big[(\mu\nu|\lambda\sigma)-\tfrac12(\mu\lambda|\nu\sigma)\Big],
 \]
-with density matrix $P_{\lambda\sigma}=\sum_{i\in\mathrm{occ}} C_{\lambda i} C_{\sigma i}^*$.
+with the closed-shell density matrix $P_{\lambda\sigma}=2\sum_{i\in\mathrm{occ}} C_{\lambda i} C_{\sigma i}^*$
+(sum over occupied \emph{spatial} orbitals; the factor $2$ is the double occupancy that makes the
+$\tfrac12$ exchange coefficient correct).
 (For a non-orthogonal basis $S$, use $\mathbf F\mathbf C=\mathbf S\mathbf C\boldsymbol\varepsilon$.)
 
 \paragraph{Self-consistency (SCF).}
@@ -388,7 +390,8 @@ contributions ($\mathcal O(M^4)$) and diagonalization ($\mathcal O(M^3)$).
 
 \paragraph{Remarks for quantum dots.}
 For parabolic confinement $V_\mathrm{ext}=\tfrac12\omega^2 r^2$ we typically choose
-Fock--Darwin (2D HO) spin–orbitals as the one-particle basis, which respect angular-momentum
+2D harmonic-oscillator orbitals as the one-particle basis (Cartesian in our
+implementation, or the equivalent polar Fock--Darwin functions), which respect the shell
 structure and accelerate convergence. Closed shells admit restricted HF (RHF); spin-polarized
 cases may require UHF. Koopmans’ theorem (orbital energies as removal/addition estimates)
 can provide a rough diagnostic but is not used for final energetics here.
@@ -443,10 +446,13 @@ Spin does not appear in $H$ (spin–independent), so the many-body eigenstates c
 products of a spatial wavefunction and a spin function with well-defined $S$ and $S_z$.
 
 \subsection{One–particle structure and shell filling}
-We use Fock–Darwin (2D harmonic–oscillator) spin–orbitals $\{\ket{n m \sigma}\}$,
-with spatial energies $E_{n m}=\omega (2n+|m|+1)$ and spin $\sigma\in\{\uparrow,\downarrow\}$.
-For each \emph{principal} index $k=2n+|m|$ there are $(k{+}1)$ spatial states, each
-twofold spin-degenerate. Filling from the bottom yields the \emph{closed-shell} electron numbers
+We use two-dimensional harmonic-oscillator spin–orbitals. In the implementation these are
+the \emph{Cartesian} 2D-HO eigenstates $\{\phi_{n_x n_y}(\mathbf r)\chi_\sigma\}$ with
+energies $E_{n_x n_y}=\omega (n_x+n_y+1)$ and spin $\sigma\in\{\uparrow,\downarrow\}$.
+The principal index $k=n_x+n_y$ labels a shell of $(k{+}1)$ degenerate spatial states, each
+twofold spin-degenerate; for the closed shells studied here this Cartesian basis spans the
+same filled subspace as the polar Fock--Darwin basis, so the reference determinant is
+identical in either. Filling from the bottom yields the \emph{closed-shell} electron numbers
 \[
 N_{\mathrm{closed}}=(K{+}1)(K{+}2), \quad K=0,1,2,\dots \quad (2,6,12,20,30,\dots).
 \]

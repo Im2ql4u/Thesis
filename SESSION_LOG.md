@@ -821,3 +821,24 @@ existing assets; add error subsection + hyperparameter/reference provenance.
 
 Build throughout: tectonic, ended at 118 pages, 0 undefined refs.
 Open item deferred: deeper theory citation fill-out and a Wigner g(r)/topology figure pass.
+
+## 2026-08-29 — Editorial revision pass (senior-editor brief)
+
+Full-thesis editorial pass per the revision brief. Concrete changes (all committed/pushed):
+- STRUCTURE: conclusion.tex promoted \section -> \chapter (was absorbed into Discussion);
+  now chapter 9. Added "Limitations and outlook". Renamed kernel chapter's "Conclusions"
+  section -> "Chapter summary" (removed duplicate TOC entry).
+- PROSE: rewrote the introduction opening (removed the "quantum mechanics is a central
+  pillar" platitude, added momentum); tightened the theory ML "Summary and Outlook" recap;
+  fixed a "not only...but also"; de-clustered abstract em-dashes (8->5).
+- CONSISTENCY: defined NQS at first use; verified r_eff(Z) vs d_eff(S) never conflated;
+  DeepSet/DeepSets distinction judged intentional and left.
+- CITATIONS: removed a miscited Kong_2002 (classical Wigner-cluster paper) from the
+  importance-sampling citation in method.tex; cleaned Python-wrapper cruft from references.bib.
+- LATEX: broke the 94pt-overfull eq:chain into two lines; added \emergencystretch; fixed a
+  33pt slash-list; overfull >15pt boxes 7 -> 1 (a 24pt residual).
+- DELIVERABLE: REVISION_REPORT.md (structural changes, scientific issues + AUTHOR CHECKs,
+  citation audit, results-thread map, examiner's assessment with 10 likely questions).
+
+Final: tectonic 2-pass, 120 pages, 0 undefined refs. Honest scope note: focused high-value
+pass, not an exhaustive line-by-line re-verification; AUTHOR CHECKs flagged in the report.

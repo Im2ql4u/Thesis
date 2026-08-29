@@ -76,22 +76,31 @@ chapter by chapter. All are correct:
   derivatives at coalescence as claimed; the SR energy gradient 2·Cov(E_L,O_k) is the standard
   log-derivative form.
 
-**Three minor items (none load-bearing, none an outright error in a used result):**
-1. **AUTHOR CHECK — RHF Fock-matrix convention** (theory, Roothaan–Hall). The exchange is
-   written with a ½, `[(μν|λσ)−½(μλ|νσ)]`, with `P_λσ=Σ_{i∈occ} C_λi C_σi*`. The ½ is correct
-   only if P carries the factor of 2 (sum over spin-orbitals, or P=2·Σ_spatial). If "occ" is
-   spatial orbitals without the 2, the exchange coefficient should be 1 (and Coulomb 2).
-   Clarify the P convention. HF is background/reference-only here, so this does not touch any
-   result.
-2. **Consistency note** — the energy gradient is written 2·Cov(E_L,O) in Methods but Cov(E_L,O)
-   in Appendix A (eq:lap:sr). Both are valid (the 2 is absorbed into the learning rate); a
-   single convention would read more cleanly.
-3. **Trivial** — the *illustrative* Padé–Jastrow `exp[−a r/(1+βr)]` in the VMC background models
-   repulsion only for a<0 (the thesis's own cusp uses +γ). It is a throwaway example, used
-   nowhere.
+**Code-consistency check (verified against `src/`).**
+- **Orbital basis — FIXED.** Theory (×2) and Methods described the reference determinant as
+  built from **Fock–Darwin** (polar, E=ω(2n+|m|+1)) orbitals, but `src/analysis/system.py`
+  actually uses the **Cartesian** 2D-HO basis (E=ω(nx+ny+1); `_closed_shell_occupation` selects
+  "the n_occ lowest 2D-HO Cartesian orbitals"). Corrected the text to describe the Cartesian
+  basis actually used, with a note that for the **closed shells studied (N=2,6,12,20)** the two
+  bases span the same filled subspace, so the determinant — and every result — is identical.
+  This is the kind of theory↔code mismatch an examiner would catch; now resolved.
+- **HF is background only — confirmed.** There is **no SCF / Roothaan–Hall / two-electron-integral
+  code anywhere**; HF is never computed, and neither HF nor FCI energies are used as references
+  in the results (those are DMC and Haas). The HF/FCI theory sections are standard exposition
+  (which supports report item G1: consider condensing them, since the results never invoke them).
+- **RHF Fock convention — FIXED.** Because HF is exposition, I made it textbook-correct rather
+  than leaving it flagged: the density is now `P_λσ = 2·Σ_{i∈occ} C_λi C_σi*` (closed-shell
+  double occupancy), which makes the `[(μν|λσ)−½(μλ|νσ)]` exchange coefficient consistent.
 
-Net: across the theory, methods, and appendix derivations, **no error was found in any equation
-that feeds a result.** The mathematical content is sound.
+**Two remaining trivial items (used nowhere, cosmetic):**
+1. The energy gradient is written 2·Cov(E_L,O) in Methods but Cov(E_L,O) in Appendix A; both
+   valid (the 2 is a learning-rate convention).
+2. The *illustrative* Padé–Jastrow `exp[−a r/(1+βr)]` in the VMC background models repulsion only
+   for a<0. Throwaway example, used nowhere.
+
+Net: across theory, methods, and appendix derivations — including a check against the code —
+**no error was found in any equation that feeds a result**, and the one genuine theory↔code
+discrepancy (orbital basis) has been corrected. The mathematical content is sound.
 
 ## B. Scientific issues discovered
 

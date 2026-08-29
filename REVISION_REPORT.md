@@ -28,6 +28,43 @@ overfull box now exceeds ~25 pt).
    ("We began… We then… Finally…") — replaced with a shorter forward-linking bridge that keeps
    the orientation and drops the re-teaching (~35 lines → ~12).
 
+## B0. Formula and derivation verification (checked line-by-line)
+
+I re-derived the load-bearing mathematics independently. **Every derivation checked is
+correct**, and the earlier corrections (cusp 1/3, 2D non-integrability, variance-finite-under-|Ψ|²)
+are consistent with the re-derivation.
+
+- **2D cusp conditions** (theory §"Kato" + Appendix B). Opposite-spin
+  ∂_r lnΨ|₀ = 2μZ_iZ_j/(D−1) = 1; like-spin (p-wave, linear node) = 2μZ_iZ_j/(2ℓ+D−1) =
+  1/(D+1) = 1/3. I verified the (2k+d−1) factor from −ΔD/D − ΔJ/J − 2∇D·∇J/(DJ) with a linear
+  node D∼η·r: it gives −3u′/r ⟹ u′(0)=1/3. The 3D values (1/2, 1/4) and the note that "like =
+  half opposite" is a **3D-only coincidence** are correct; the 2D electron–nucleus value −2Z_A
+  is right *for D=2*. **Correct.**
+- **Local energy** (Methods, eq:local-energy). −½Σ[Δlnψ+‖∇lnψ‖²] + ½ω²Σr² + Σ1/r_ij matches
+  H = −½Σ∇²+½ω²r²+Σ1/r; and the trap-unit rescaling (kinetic and trap ∝ω, Coulomb ∝√ω under
+  r̃=√ω r) is dimensionally correct. **Correct.**
+- **Tangent kernel** (theory §sec:theory-tangent-kernel). S = OᵀO/B, **F = 4S** because
+  ∇log|Ψ|² = 2∇log|Ψ|, K = OOᵀ shares the nonzero spectrum, d_eff = (Σλ)²/Σλ². **Correct.**
+- **Appendix A — Laplacian conditioning.** The Gauss–Newton normal matrix A = J*J,
+  A_ij = ⟨Lq_i,Lq_j⟩, and GD contraction (I−ηA) are standard and right; the bi-Laplacian
+  scaling L≈−½Δ ⟹ L*L≈¼Δ², κ ∼ (k_max/k_min)⁴ is correctly derived in the eigenbasis.
+  **Correct.**
+- **Appendix B — Coulomb ill-conditioning.** Cusp-mismatch spikes −δa/r (antiparallel),
+  −3δb/r (parallel); the 2D non-integrability ∫_{r<ε}(1/r)² d²r = 2π∫dr/r = +∞ (contrast the
+  finite 3D integral) is correct and is what makes the strong squared residual dangerous in 2D.
+  **Correct.**
+- **Appendix C — the collocation–backflow catch-22.** E_L ⊃ ∇²D/D ∼ c/d_θ at a *mismatched*
+  node (∇²D finite there because d*≠0); Var[E_L] under |Ψ|² is **finite** (integrand
+  d_θ²·d_θ⁻²·dd_θ = dd_θ → O(ε)), but the *gradient* ∂E_L/∂θ carries a 1/D² pole and its
+  variance diverges; VMC+SR escapes because the SR force g_i = Cov(E_L,O_i) is a bulk
+  covariance that never forms ∂E_L/∂θ, and near-node configs have ∼ε³ probability. The hedge
+  ("structural obstruction of the tested pipeline, not a theorem") is appropriately calibrated.
+  **Correct.**
+
+I did **not** re-verify every displayed equation in the thesis (there are a few hundred), but
+the physics-critical and conditioning-critical ones above — the ones an examiner would probe —
+are sound.
+
 ## B. Scientific issues discovered
 
 1. **Citation error (fixed).** `Kong_2002` — actually *"Transition between ground state and

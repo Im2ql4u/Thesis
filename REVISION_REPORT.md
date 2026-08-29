@@ -176,23 +176,29 @@ never conflated across chapters.
   extended mode-naming, the N=2 collocation rows, and the coherence pass threading these
   through abstract/intro/discussion/conclusion.
 
-## G. Remaining author decisions (genuinely need your judgement or data)
+## G. Author decisions — all now resolved
 
-1. **Theory length.** Second Quantization / HF / FCI (≈140 lines together) are more textbook
-   than the rest of the thesis uses. FCI in particular is invoked only lightly later. Consider
-   condensing to what the results actually lean on, or moving background to an appendix. I did
-   not cut them because I could not be sure which parts you rely on in the defence.
-2. **Appendix D ("Post-catch-22 experimental history and philosophy").** It is referenced and
-   documents negative results transparently (good practice), but the "history and philosophy"
-   framing and campaign chronology read more like a lab notebook than the other appendices.
-   Keep as a transparency record, tighten, or fold the load-bearing parts into Appendix C —
-   your call.
-3. **Three discussion/synthesis layers** (kernel-chapter synthesis → Discussion chapter →
-   Conclusion chapter). Each has a distinct scope, but there is some restatement of the
-   "relational channel / alignment" theme across all three. If an examiner finds it repetitive,
-   the kernel-chapter synthesis is the one to trim.
-4. **Abstract citations** (C.2) — keep or move to the body.
-5. **`references.bib` header cruft** (C.3) — safe to delete.
+1. **Theory length (HF/FCI/2nd quant).** **DECISION: keep** the HF background theory as-is
+   (author's call; it is decent standard exposition). Verified HF is never computed and HF/FCI
+   are never used as result references (references are DMC + Haas), so this is background only.
+2. **Appendix D.** **DONE: tightened** — the philosophy/family-map/chronology (~90 lines) were
+   condensed to prose keeping every concrete number, and this session's completed **N=2
+   collocation set** was folded in. The externally-referenced `frontier` label is preserved.
+3. **Three synthesis layers.** **DONE: trimmed** the tangent-kernel chapter's synthesis and
+   removed its redundant "Chapter summary"; kept the unique gauge-caveat result and added a
+   forward-pointer to the Discussion.
+4. **Abstract citations.** **DONE: moved to the body** (removed the 6-citation cluster; the
+   references remain cited in the introduction and results).
+5. **`references.bib` header cruft.** **DONE: removed** (file now starts with the first
+   `@article`; 0 undefined citations).
+6. **Orbital basis / Fock–Darwin.** **DONE** — replaced the (incorrect) Fock–Darwin description
+   with the Cartesian 2D-HO basis the code actually uses; kept the closed-shell
+   basis-independence point without the name.
+7. **N=12 DeepSet detector point.** **DECISION: leave as-is** with the honest indicative caveat;
+   the rigorous anchor is the seed-checked N=6 sweep.
+
+No open decisions remain that block submission. The only standing recommendation is the routine
+final author pass on bibliographic fields (volume/page/DOI), which is normal before submission.
 
 ## H. Examiner's assessment
 

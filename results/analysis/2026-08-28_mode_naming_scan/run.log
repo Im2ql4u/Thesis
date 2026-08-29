@@ -1,0 +1,35 @@
+0
+/itf-fi-ml/home/aleksns/Thesis/src/analysis/system.py:200: FutureWarning: You are using `torch.load` with `weights_only=False` (the current default value), which uses the default pickle module implicitly. It is possible to construct malicious pickle data which will execute arbitrary code during unpickling (See https://github.com/pytorch/pytorch/blob/main/SECURITY.md#untrusted-models for more details). In a future release, the default value for `weights_only` will be flipped to `True`. This limits the functions that could be executed during unpickling. Arbitrary objects will no longer be allowed to be loaded via this mode unless they are explicitly allowlisted by the user via `torch.serialization.add_safe_globals`. We recommend you start setting `weights_only=True` for any use case where you don't have full control of the loaded file. Please open an issue on GitHub for any issues related to this experimental feature.
+  ck = torch.load(checkpoint_path, map_location="cpu")
+[OK ] N= 6 w=1.0   CTNN     s0  E=20.1591 err%=-0.001  R2_leading=0.991  top_op=pair_linear  
+/itf-fi-ml/home/aleksns/Thesis/src/analysis/system.py:200: FutureWarning: You are using `torch.load` with `weights_only=False` (the current default value), which uses the default pickle module implicitly. It is possible to construct malicious pickle data which will execute arbitrary code during unpickling (See https://github.com/pytorch/pytorch/blob/main/SECURITY.md#untrusted-models for more details). In a future release, the default value for `weights_only` will be flipped to `True`. This limits the functions that could be executed during unpickling. Arbitrary objects will no longer be allowed to be loaded via this mode unless they are explicitly allowlisted by the user via `torch.serialization.add_safe_globals`. We recommend you start setting `weights_only=True` for any use case where you don't have full control of the loaded file. Please open an issue on GitHub for any issues related to this experimental feature.
+  ck = torch.load(checkpoint_path, map_location="cpu")
+[OK ] N= 6 w=1.0   DeepSet  s0  E=20.1591 err%=-0.001  R2_leading=0.996  top_op=hole_sig1.0  
+[OK ] N= 6 w=0.5   CTNN     s0  E=11.7810 err%=-0.033  R2_leading=0.988  top_op=pair_linear  
+[OK ] N= 6 w=0.5   DeepSet  s0  E=11.7830 err%=-0.016  R2_leading=0.995  top_op=pair_linear  
+[OK ] N= 6 w=0.28  CTNN     s0  E=7.5987 err%=+nan  R2_leading=0.989  top_op=pair_linear  
+[OK ] N= 6 w=0.28  DeepSet  s0  E=7.5999 err%=+nan  R2_leading=0.983  top_op=pair_linear  
+[OK ] N= 6 w=0.1   CTNN     s0  E=3.5531 err%=-0.021  R2_leading=0.977  top_op=pair_linear  
+[OK ] N= 6 w=0.1   DeepSet  s0  E=3.5555 err%=+0.047  R2_leading=0.971  top_op=pair_linear  
+[OK ] N= 6 w=0.05  CTNN     s0  E=2.1531 err%=+nan  R2_leading=0.965  top_op=pair_linear  
+[OK ] N= 6 w=0.05  DeepSet  s0  E=2.1558 err%=+nan  R2_leading=0.893  top_op=pair_linear  
+[OK ] N= 6 w=0.03  CTNN     s0  E=1.4957 err%=+nan  R2_leading=0.955  top_op=pair_linear  
+[OK ] N= 6 w=0.03  DeepSet  s0  E=1.4968 err%=+nan  R2_leading=0.885  top_op=pair_linear  
+[OK ] N= 6 w=0.01  CTNN     s0  E=0.6899 err%=-0.060  R2_leading=0.947  top_op=pair_linear  
+[OK ] N= 6 w=0.01  DeepSet  s0  E=0.6910 err%=+0.088  R2_leading=0.013  top_op=quartic_r4   
+[OK ] N= 6 w=0.01  CTNN     s1  E=0.6900 err%=-0.057  R2_leading=0.917  top_op=pair_linear  
+[OK ] N= 6 w=0.01  DeepSet  s1  E=0.6905 err%=+0.026  R2_leading=0.021  top_op=pair_linear  
+[OK ] N= 6 w=0.01  CTNN     s2  E=0.6901 err%=-0.031  R2_leading=0.925  top_op=pair_linear  
+[OK ] N= 6 w=0.01  DeepSet  s2  E=0.6907 err%=+0.043  R2_leading=0.009  top_op=monopole_r2  
+[MISS] N=12 w=1.0 CTNN s0 2026-07-04_N12scaling/ctnn_w1
+[REJECT] N=12 w=1.0   DeepSet  s0  E=69.0546 err%=+5.106  R2_leading=0.876  top_op=monopole_r2  
+[OK ] N=12 w=1.0   CTNN     s0  E=65.6939 err%=-0.009  R2_leading=1.000  top_op=pair_linear  
+[OK ] N=12 w=1.0   CTNN     s1  E=65.7002 err%=+0.000  R2_leading=1.000  top_op=pair_linear  
+[OK ] N=12 w=0.5   CTNN     s0  E=39.1624 err%=+0.007  R2_leading=1.000  top_op=pair_linear  
+[OK ] N=12 w=0.5   CTNN     s1  E=39.1507 err%=-0.023  R2_leading=1.000  top_op=pair_linear  
+[OK ] N=12 w=0.1   CTNN     s0  E=12.2693 err%=-0.004  R2_leading=0.999  top_op=pair_linear  
+[OK ] N=12 w=0.1   CTNN     s1  E=12.2720 err%=+0.018  R2_leading=0.999  top_op=pair_linear  
+[OK ] N=12 w=0.01  CTNN     s0  E=2.4735 err%=-0.005  R2_leading=1.000  top_op=pair_linear  
+[OK ] N=12 w=0.01  CTNN     s1  E=2.4735 err%=-0.004  R2_leading=1.000  top_op=pair_linear  
+
+-> /itf-fi-ml/home/aleksns/Thesis/results/analysis/2026-08-28_mode_naming_scan  (27 checkpoints analysed)

@@ -1,0 +1,45 @@
+{
+  "N": 2,
+  "omega": 0.001,
+  "arch": "pinn",
+  "n_params": 236336,
+  "final": {
+    "E_mean": 0.013814475442738002,
+    "E_mean_raw": 0.013853284214214764,
+    "E_stderr": 5.011787386994117e-06,
+    "var_EL": 2.2754379423733697e-07,
+    "n_samples": 8192,
+    "frac_clipped": 0.013916015625,
+    "ref_energy": 0.013778,
+    "error_pct": 0.2647368466976474,
+    "error_sigma": 7.277930989781766
+  },
+  "energy_raw": 0.013853284214214764,
+  "error_pct_raw": 0.5464088707705335,
+  "energy_zv": 0.013814319425940762,
+  "error_pct_zv": 0.2636044849815776,
+  "zv_n_points": 5,
+  "spectrum": {
+    "lam_max": 51.106620376376725,
+    "lam_min_supported": 5.1203555638451774e-11,
+    "effective_rank": 1.3160914086527766,
+    "numerical_rank": 379,
+    "condition_number": 998106864633.3956,
+    "n_params": 236336,
+    "n_samples": 2048
+  },
+  "alignment": {
+    "cos_sr": 0.9999992467785275,
+    "cos_plain": 0.30868758272320684,
+    "rep_fraction": 0.9999992467785275,
+    "ntk_condition": 9709454242.975487,
+    "ntk_eff_rank": 1.3160914022586212,
+    "ntk_numerical_rank": 235
+  },
+  "n_align_samples": 2048,
+  "exact": {
+    "energy": 0.013767837349343108,
+    "cusp_slope": 0.992862092756613,
+    "overlap_sq": 0.9863328195753044
+  }
+}

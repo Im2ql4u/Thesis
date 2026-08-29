@@ -1,7 +1,7 @@
-\section{Conclusions for quantum dots}
-\label{sec:qd-conclusions}
+\chapter{Conclusions}
+\label{ch:conclusions}
 
-The quantum-dot benchmarks in this chapter serve a dual purpose: they test the
+The quantum-dot benchmarks in this thesis served a dual purpose: they test the
 numerical stability and expressivity of the Slater--Jastrow PINN+backflow
 ansatz, and they provide a controlled setting in which to study Wigner-molecule
 formation and the internal representations learned by the network.
@@ -74,6 +74,18 @@ objective---and the same conditioning story explains why an MCMC-free,
 importance-sampled collocation scheme equals VMC when its sampling is healthy and, with
 a proposal built from the Wigner shell itself, reaches a genuine Wigner molecule at
 $\omega=0.0035$ without any Markov-chain Monte Carlo during training.
+
+\paragraph{Limitations and outlook.} Three limits bound these conclusions. External
+ground truth reaches only to $\omega=0.1$; below it the accuracy statements are internal
+consistency rather than benchmarked error, and the deep-Wigner energies should be read as
+variational predictions supported by physical scaling, not as validated numbers. The
+architecture comparison is cleanest at $N=6$, where it is seeded; the $N=12$ contrast rests
+on fewer trained models and the $N=20$ analysis on a single production state, so the
+size-scaling of the tangent-space picture is indicative rather than settled. And the
+message-passing backflow that carries the crystal is quadratic in particle number---affordable
+at these sizes, but the first thing that must change to reach the hundreds of electrons where
+the same relational structure should matter most. None of these undermines the central
+finding; they mark where it has been established and where it remains to be pushed.
 
 Taken together, these findings converge on a single theme. What makes the difference
 across architecture, optimiser, and training paradigm is not raw capacity but alignment

@@ -1,21 +1,18 @@
 \chapter*{Introduction}
 
-Quantum mechanics is a central pillar of modern physics. It provides the
-framework in which we describe atoms, molecules, solids, and nanoscale
-structures, and it underlies much of today’s technology. At the same time, it
-leads directly to some of the most challenging computational problems we face.
-The main example is the \emph{many-body problem}: solving the Schrödinger
-equation for interacting particles and extracting physically meaningful
-quantities from the resulting wavefunction.
+A system of many interacting electrons is described completely by its wavefunction, and
+placed almost out of reach by it. The Schr\"odinger equation that fixes this wavefunction is
+known exactly; the whole difficulty is one of solving it, because the object it determines
+lives in a space whose dimension grows exponentially with the number of particles. This is the
+\emph{many-body problem}, the point at which quantum mechanics turns from a compact set of
+principles into one of the hardest computational challenges in physics.
 
-In principle, the many-body wavefunction contains complete information about
-the system. In practice, its dimension grows exponentially with the number of
-particles and the size of the single-particle basis. The competition between
-kinetic energy, which tends to delocalize particles, and interaction and
-external potentials, which drive localization and correlations, takes place in
-a configuration space that is far too large to handle naively. Nevertheless,
-we need accurate results—energies, correlation functions, and phase
-boundaries—to understand real materials and model strongly correlated systems.
+The competition that makes it hard is physical. Kinetic energy tends to delocalise the
+particles; interactions and external potentials drive localisation and correlation; and the
+balance between them plays out in a configuration space far too large to enumerate. Yet the
+quantities we need---energies, correlation functions, phase boundaries---are precisely the ones
+that depend on getting that balance right, so approximation is unavoidable and its quality is
+everything.
 
 A wide range of electronic-structure methods has been developed to address
 this. Mean-field approaches such as Hartree–Fock replace the full many-body

@@ -612,7 +612,7 @@ All features are computed in trap units $\tilde{\mathbf x}=\sqrt{\omega}\,\mathb
 \label{sec:opt-summary}
 
 \begin{enumerate}
-  \item \textbf{Sample collocation set} $X$ from the stratified capped–simplex mixture (center/tails/mixed/shells/dimers), then apply rotation and permutation; optionally inject hard examples.
+  \item \textbf{Sample collocation set} $X$ from the stratified capped–simplex mixture (centre, tails, mixed, shells, dimers), then apply rotation and permutation; optionally inject hard examples.
   \item \textbf{Compute} $E_L$ using the selected Laplacian backend; trim outliers.
   \item \textbf{Stage I (residual).} Minimize $\frac{1}{B}\sum_b(E_L(\tilde R_b)-E_{\rm eff}(\alpha))^2$ with $\alpha$ ramped from $0$ to $\alpha_{\rm end}$; update mixture/shell weights via EG.
   \item \textbf{Stage II (SR).} Form $S$ and $g$, solve $(S+\lambda I)\Delta\theta=-g$, apply a trust–region step.

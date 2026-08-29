@@ -975,10 +975,10 @@ Optimisation in deep neural networks poses unique challenges:
   better generalisation. SGD’s noise implicitly biases optimisation toward flatter minima.  
 \end{itemize}
 
-Optimisation thus provides not only the means of fitting a model, but also shapes the 
-inductive biases and generalisation behaviour of neural networks. In the following sections, 
-we build on this foundation by examining neural network expressivity, activation functions, 
-and initialization strategies in detail.
+Optimisation is therefore more than a means of fitting: the choice of update also shapes the
+inductive biases and generalisation behaviour of the trained network. The sections that follow
+examine the other ingredients that determine those biases---network expressivity, activation
+functions, and initialisation.
 
 \section{Feed-forward neural networks}
 \label{sec:FFNN}
@@ -1490,45 +1490,14 @@ Together, these measures turn inductive bias into concrete numerical stability a
 \section{Summary and Outlook}
 \label{sec:ml_summary}
 
-In this chapter we have developed the theoretical foundations of modern 
-machine learning, with particular emphasis on the aspects most relevant 
-to scientific applications and physics-informed modelling.  
-
-We began by framing machine learning as \emph{statistical learning}, 
-where the goal is to minimize population risk via empirical risk minimization. 
-This perspective highlights the central challenge of \emph{generalisation}, 
-formalized through the bias--variance tradeoff.  
-
-We then reviewed the role of \emph{optimisation}, from basic gradient descent 
-to stochastic and adaptive methods, as well as the natural gradient. 
-Optimisation not only fits models to data but also imposes an implicit bias 
-toward smooth and low-complexity solutions.  
-
-The expressivity of neural networks was established through universal 
-approximation theorems and the depth--width tradeoff, showing that deep, 
-nonlinear architectures efficiently capture compositional and structured 
-functions. Building on this, we examined two design choices that critically 
-affect stability: \emph{activation functions} and \emph{weight initialization}. 
-Smooth modern activations (e.g.\ SiLU, GELU, Mish) and principled 
-initializations (Glorot, Kaiming, orthogonal) ensure stable signal and 
-gradient propagation, which is essential for scientific applications 
-requiring accurate derivatives.  
-
-We introduced \emph{physics-informed neural networks (PINNs)} as a framework 
-for embedding differential equations and physical constraints into learning. 
-PINNs exemplify how universal approximation, smooth activations, and stable 
-initialization combine to produce function approximators that are not only 
-flexible but also consistent with governing laws.  
-
-Finally, we discussed \emph{generalisation mechanisms}, highlighting the 
-importance of algorithmic stability, implicit regularization from gradient-based 
-optimisation, and inductive biases encoded by architecture. For physics, 
-such biases often correspond to symmetries, conservation laws, or invariances 
-that dramatically reduce hypothesis complexity.  
-
-\paragraph{Outlook.} 
-The theoretical principles presented here provide the foundation for the 
-architectures and diagnostics developed in this thesis. As we turn to 
-applications in quantum systems, these ideas will guide the design of 
-networks that balance expressivity with stability, respect physical 
-constraints, and generalise beyond the training domain.  
+Three threads from this chapter carry into the rest of the thesis. Framing learning as
+empirical risk minimisation makes \emph{generalisation}---not fitting---the real problem, and
+locates it in the inductive bias of the model rather than in raw capacity. The optimisation
+view adds that the training \emph{trajectory} matters as much as the objective: gradient
+descent carries its own implicit bias, and the natural gradient re-expresses that trajectory
+in the geometry of the model's own outputs, the geometry we will later read directly through
+the tangent kernel. The physics-informed view supplies the binding constraint: a wavefunction
+ansatz must be differentiated twice, cleanly, to yield a local energy, so smooth activations,
+stable initialisation, and hard-wired symmetries are prerequisites rather than cosmetic
+choices. These are the principles that guide the architecture and diagnostics of the chapters
+that follow.

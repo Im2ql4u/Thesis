@@ -1,0 +1,45 @@
+0
+[phase] N=12 omega=0.5 arch=deepset_big  ->  results/analysis/2026-08-28_N12_deepset_cascade/N12_deepset_w0p5_s0
+0
+/itf-fi-ml/home/aleksns/Thesis/scripts/run_phase_analysis.py:178: FutureWarning: You are using `torch.load` with `weights_only=False` (the current default value), which uses the default pickle module implicitly. It is possible to construct malicious pickle data which will execute arbitrary code during unpickling (See https://github.com/pytorch/pytorch/blob/main/SECURITY.md#untrusted-models for more details). In a future release, the default value for `weights_only` will be flipped to `True`. This limits the functions that could be executed during unpickling. Arbitrary objects will no longer be allowed to be loaded via this mode unless they are explicitly allowlisted by the user via `torch.serialization.add_safe_globals`. We recommend you start setting `weights_only=True` for any use case where you don't have full control of the loaded file. Please open an issue on GitHub for any issues related to this experimental feature.
+  ck = torch.load(a.init, map_location=sysm.device)
+[phase] warm-started from results/analysis/2026-08-28_N12_deepset_cascade/N12_deepset_w1_s0/checkpoint.pt (omega 1.0 -> 0.5)
+[phase] params=216,757 device=cuda:0 ref_energy=39.1596
+[adam 00000] E=40.057072 var=1.1498e+00 sig=0.240 acc~0.5 n=1024 |dx|/ell=0.0743 sat=0.00 com_kill=0.79
+[adam 00052] E=39.175651 var=4.9302e-02 sig=0.254 acc~0.5 n=1024 |dx|/ell=0.0814 sat=0.00 com_kill=0.66
+[adam 00103] E=39.155783 var=3.8556e-02 sig=0.254 acc~0.5 n=1024 |dx|/ell=0.0952 sat=0.00 com_kill=0.66
+[seg 1/12] step=104 E_raw=39.15697 (+0.003%) var=3.838e-02 kappa(S)=1.72e+06 rank=511 cos_sr=1.000 cos_plain=0.153
+[adam 00000] E=39.170307 var=4.2953e-02 sig=0.257 acc~0.5 n=1024 |dx|/ell=0.0852 sat=0.00 com_kill=0.70
+[adam 00022] E=39.163404 var=3.6783e-02 sig=0.256 acc~0.5 n=1024 |dx|/ell=0.0871 sat=0.00 com_kill=0.72
+[adam 00043] E=39.150910 var=3.6210e-02 sig=0.255 acc~0.5 n=1024 |dx|/ell=0.0903 sat=0.00 com_kill=0.69
+[seg 2/12] step=148 E_raw=39.15681 (-0.005%) var=4.024e-02 kappa(S)=1.77e+06 rank=511 cos_sr=1.000 cos_plain=0.145
+[adam 00000] E=39.164674 var=3.7454e-02 sig=0.257 acc~0.5 n=1024 |dx|/ell=0.1010 sat=0.00 com_kill=0.65
+[adam 00031] E=39.162026 var=2.9085e-02 sig=0.254 acc~0.5 n=1024 |dx|/ell=0.0990 sat=0.00 com_kill=0.66
+[adam 00061] E=39.151193 var=3.7567e-02 sig=0.254 acc~0.5 n=1024 |dx|/ell=0.1024 sat=0.00 com_kill=0.64
+[seg 3/12] step=210 E_raw=39.14410 (-0.039%) var=4.079e-02 kappa(S)=1.55e+06 rank=511 cos_sr=1.000 cos_plain=0.152
+[adam 00000] E=39.157194 var=4.0766e-02 sig=0.259 acc~0.5 n=1024 |dx|/ell=0.0981 sat=0.00 com_kill=0.64
+[adam 00044] E=39.157356 var=3.7188e-02 sig=0.253 acc~0.5 n=1024 |dx|/ell=0.1027 sat=0.00 com_kill=0.63
+[adam 00088] E=39.153419 var=3.4059e-02 sig=0.254 acc~0.5 n=1024 |dx|/ell=0.1049 sat=0.00 com_kill=0.61
+[seg 4/12] step=299 E_raw=39.16747 (+0.014%) var=3.809e-02 kappa(S)=1.38e+06 rank=511 cos_sr=1.000 cos_plain=0.101
+[adam 00000] E=39.161423 var=3.8653e-02 sig=0.258 acc~0.5 n=1024 |dx|/ell=0.1053 sat=0.00 com_kill=0.58
+[adam 00063] E=39.148558 var=3.7602e-02 sig=0.253 acc~0.5 n=1024 |dx|/ell=0.1054 sat=0.00 com_kill=0.60
+[adam 00125] E=39.156110 var=3.7205e-02 sig=0.254 acc~0.5 n=1024 |dx|/ell=0.1081 sat=0.00 com_kill=0.59
+[seg 5/12] step=425 E_raw=39.15950 (+0.007%) var=3.734e-02 kappa(S)=1.14e+06 rank=511 cos_sr=1.000 cos_plain=0.173
+[adam 00000] E=39.159457 var=3.9207e-02 sig=0.255 acc~0.5 n=1024 |dx|/ell=0.1014 sat=0.00 com_kill=0.60
+[adam 00090] E=39.158977 var=3.5656e-02 sig=0.253 acc~0.5 n=1024 |dx|/ell=0.1059 sat=0.00 com_kill=0.60
+[adam 00179] E=39.154527 var=3.7355e-02 sig=0.255 acc~0.5 n=1024 |dx|/ell=0.1086 sat=0.00 com_kill=0.55
+[seg 6/12] step=605 E_raw=39.14927 (-0.024%) var=4.684e-02 kappa(S)=1.30e+06 rank=511 cos_sr=1.000 cos_plain=0.196
+[adam 00000] E=39.162036 var=3.7196e-02 sig=0.255 acc~0.5 n=1024 |dx|/ell=0.1158 sat=0.00 com_kill=0.50
+[adam 00127] E=39.155660 var=4.0227e-02 sig=0.252 acc~0.5 n=1024 |dx|/ell=0.1107 sat=0.00 com_kill=0.53
+[adam 00254] E=39.154786 var=3.5636e-02 sig=0.255 acc~0.5 n=1024 |dx|/ell=0.1072 sat=0.00 com_kill=0.53
+[seg 7/12] step=860 E_raw=39.15713 (+0.010%) var=4.603e-02 kappa(S)=1.02e+06 rank=511 cos_sr=1.000 cos_plain=0.408
+[adam 00000] E=39.155498 var=3.3338e-02 sig=0.256 acc~0.5 n=1024 |dx|/ell=0.1173 sat=0.00 com_kill=0.50
+[adam 00181] E=39.162010 var=3.7479e-02 sig=0.254 acc~0.5 n=1024 |dx|/ell=0.1101 sat=0.00 com_kill=0.52
+[adam 00362] E=39.148769 var=3.1673e-02 sig=0.253 acc~0.5 n=1024 |dx|/ell=0.1127 sat=0.00 com_kill=0.48
+[seg 8/12] step=1223 E_raw=39.17274 (+0.029%) var=3.931e-02 kappa(S)=1.09e+06 rank=511 cos_sr=1.000 cos_plain=0.139
+[adam 00000] E=39.153084 var=3.5802e-02 sig=0.256 acc~0.5 n=1024 |dx|/ell=0.1078 sat=0.00 com_kill=0.52
+[adam 00258] E=39.155783 var=3.3105e-02 sig=0.253 acc~0.5 n=1024 |dx|/ell=0.1147 sat=0.00 com_kill=0.44
+[adam 00515] E=39.143379 var=3.3694e-02 sig=0.253 acc~0.5 n=1024 |dx|/ell=0.1173 sat=0.00 com_kill=0.41
+[seg 9/12] step=1739 E_raw=39.14429 (-0.044%) var=3.634e-02 kappa(S)=9.89e+05 rank=511 cos_sr=1.000 cos_plain=0.180
+[adam 00000] E=39.152650 var=3.3621e-02 sig=0.258 acc~0.5 n=1024 |dx|/ell=0.1167 sat=0.00 com_kill=0.44
+[adam 00367] E=39.153140 var=2.8577e-02 sig=0.253 acc~0.5 n=1024 |dx|/ell=0.1173 sat=0.00 com_kill=0.37

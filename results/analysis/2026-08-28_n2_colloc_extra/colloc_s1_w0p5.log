@@ -1,0 +1,74 @@
+0
+[phase] N=2 omega=0.5 arch=pinn  ->  results/analysis/2026-08-28_n2_colloc_extra/N2_s1_w0p5_colloc_sr
+0
+/itf-fi-ml/home/aleksns/Thesis/scripts/run_phase_analysis.py:178: FutureWarning: You are using `torch.load` with `weights_only=False` (the current default value), which uses the default pickle module implicitly. It is possible to construct malicious pickle data which will execute arbitrary code during unpickling (See https://github.com/pytorch/pytorch/blob/main/SECURITY.md#untrusted-models for more details). In a future release, the default value for `weights_only` will be flipped to `True`. This limits the functions that could be executed during unpickling. Arbitrary objects will no longer be allowed to be loaded via this mode unless they are explicitly allowlisted by the user via `torch.serialization.add_safe_globals`. We recommend you start setting `weights_only=True` for any use case where you don't have full control of the loaded file. Please open an issue on GitHub for any issues related to this experimental feature.
+  ck = torch.load(a.init, map_location=sysm.device)
+[phase] warm-started from results/analysis/2026-08-28_n2_colloc_extra/base_N2_s1_w0p5/checkpoint.pt (omega 0.5 -> 0.5)
+[phase] params=236,336 device=cuda:0 ref_energy=1.65977
+[colloc-sr 00000] E_weak=1.661766 ESS=0.366 |dθ|=5.00e-03
+[colloc-sr 00037] E_weak=1.655862 ESS=0.387 |dθ|=5.00e-03
+[colloc-sr 00074] E_weak=1.678976 ESS=0.379 |dθ|=5.00e-03
+[seg 1/5] step=75 E_raw=1.66006 (-0.075%) var=4.432e-05 kappa(S)=9.81e+11 rank=769 cos_sr=1.000 cos_plain=0.293
+[colloc-sr 00000] E_weak=1.632236 ESS=0.393 |dθ|=5.00e-03
+[colloc-sr 00042] E_weak=1.724189 ESS=0.400 |dθ|=5.00e-03
+[colloc-sr 00083] E_weak=1.686156 ESS=0.376 |dθ|=5.00e-03
+[seg 2/5] step=159 E_raw=1.65990 (-0.150%) var=9.164e-05 kappa(S)=9.78e+11 rank=757 cos_sr=1.000 cos_plain=0.342
+[colloc-sr 00000] E_weak=1.683374 ESS=0.375 |dθ|=5.00e-03
+[colloc-sr 00088] E_weak=1.664451 ESS=0.375 |dθ|=5.00e-03
+[colloc-sr 00175] E_weak=1.664465 ESS=0.365 |dθ|=5.00e-03
+[seg 3/5] step=335 E_raw=1.65959 (-0.190%) var=2.303e-04 kappa(S)=9.83e+11 rank=773 cos_sr=1.000 cos_plain=0.294
+[colloc-sr 00000] E_weak=1.672397 ESS=0.377 |dθ|=5.00e-03
+[colloc-sr 00187] E_weak=1.637339 ESS=0.373 |dθ|=5.00e-03
+[colloc-sr 00373] E_weak=1.690833 ESS=0.401 |dθ|=5.00e-03
+[seg 4/5] step=709 E_raw=1.65988 (-0.261%) var=2.282e-04 kappa(S)=9.97e+11 rank=754 cos_sr=1.000 cos_plain=0.432
+[colloc-sr 00000] E_weak=1.649741 ESS=0.393 |dθ|=5.00e-03
+[colloc-sr 00395] E_weak=1.622069 ESS=0.388 |dθ|=5.00e-03
+[colloc-sr 00790] E_weak=1.620506 ESS=0.379 |dθ|=5.00e-03
+[seg 5/5] step=1500 E_raw=1.65800 (-0.310%) var=4.469e-04 kappa(S)=9.75e+11 rank=772 cos_sr=1.000 cos_plain=0.238
+[phase] training done in 128.8 min
+[phase] summary:
+{
+  "N": 2,
+  "omega": 0.5,
+  "arch": "pinn",
+  "n_params": 236336,
+  "final": {
+    "E_mean": 1.6547077171350189,
+    "E_mean_raw": 1.6612740797267538,
+    "E_stderr": 0.00023441281906211807,
+    "var_EL": 0.000457918430826387,
+    "n_samples": 8192,
+    "frac_clipped": 0.0380859375,
+    "ref_energy": 1.65977,
+    "error_pct": -0.30499905800087457,
+    "error_sigma": -21.595588864274696
+  },
+  "energy_raw": 1.6612740797267538,
+  "error_pct_raw": 0.09061976820606561,
+  "energy_zv": 1.6605221697461299,
+  "error_pct_zv": 0.045317709449496306,
+  "zv_n_points": 5,
+  "spectrum": {
+    "lam_max": 2.014720403736139,
+    "lam_min_supported": 2.0320053310554872e-12,
+    "effective_rank": 3.332292658427776,
+    "numerical_rank": 996,
+    "condition_number": 991493660447.057,
+    "n_params": 236336,
+    "n_samples": 2048
+  },
+  "alignment": {
+    "cos_sr": 0.9999798065486333,
+    "cos_plain": 0.26043749756015955,
+    "rep_fraction": 0.9999798065486333,
+    "ntk_condition": 9963585810.95519,
+    "ntk_eff_rank": 3.3322926346040553,
+    "ntk_numerical_rank": 616
+  },
+  "n_align_samples": 2048,
+  "exact": {
+    "energy": 1.659772146588871,
+    "cusp_slope": 0.9993131343097087,
+    "overlap_sq": 0.9996151525591271
+  }
+}

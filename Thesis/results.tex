@@ -1393,17 +1393,17 @@ most impact precisely where sampling is hardest.
 The reliability campaign exposes a simple causal chain that governs
 the quality of collocation-trained wavefunctions:
 \begin{equation}
-\boxed{
+\boxed{\;\begin{aligned}
   \text{proposal mismatch}
-  \;\xrightarrow{\text{causes}}\;
+  &\;\xrightarrow{\text{causes}}\;
   \hat{k}\text{ inflation}
   \;\xrightarrow{\text{causes}}\;
-  \text{gradient noise}
-  \;\xrightarrow{\text{causes}}\;
+  \text{gradient noise}\\
+  &\;\xrightarrow{\text{causes}}\;
   \text{optimisation stochasticity}
   \;\xrightarrow{\text{causes}}\;
   \text{run-to-run variance}
-}
+\end{aligned}\;}
 \label{eq:chain}
 \end{equation}
 Each link in this chain can be verified quantitatively from the

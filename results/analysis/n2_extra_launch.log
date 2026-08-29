@@ -1,0 +1,5 @@
+scripts/run_n2_colloc_extra.sh: line 13: 1629592 Killed                  $PY -u "$RUN" --N 2 --omega "$W" --arch pinn --backflow --backflow-arch ctnn --paradigm colloc --optimizer sr --bf-scale-init 0.7 --bf-zero-init-last 0 --steps 1500 --n-seg 5 --polish-steps 0 --sr-polish-steps 0 --batch 2048 --eval-samples 1024 --final-samples 8192 --align-samples 2048 --seed "$S" --init "$BASE/checkpoint.pt" --outdir "$CELL" > "$OUT/colloc_s${S}_w${WT}.log" 2>&1
+done N2 s0 w0.5
+done N2 s1 w0.5
+done N2 s0 w0.001
+done N2 s1 w0.001

@@ -564,15 +564,15 @@ bound it.
 \section{Synthesis and discussion}
 \label{sec:synthesis}
 
-The three axes are one geometry. \textbf{Architecture} sets the shape of the tangent
-space: message passing compresses it (Jastrow) and keeps it from collapsing
-(backflow), because it supplies the relational channel the physics needs.
-\textbf{Optimiser} is about inverting the metric on that space: SR pays off exactly
-when the metric is ill-conditioned. \textbf{Paradigm} is about which measure defines
-the metric and the gradient: $|\Psi|^2$ self-preconditions and stays on target, the
-covering proposal loses conditioning and eventually the state. The single
-cross-cutting discriminator, robust where dimension and rank are not, is
-$\Var(E_L)$---lower for the message-passing ansatz at every $\omega$.
+The three axes are one geometry. Architecture sets the shape of the tangent space
+(message passing compresses it in the Jastrow, and keeps it from collapsing in the backflow);
+the optimiser inverts the metric on that space (SR pays off only when it is ill-conditioned);
+and the paradigm chooses which measure defines the metric ($|\Psi|^2$ self-preconditions and
+stays on target, while the covering proposal loses conditioning and eventually the state). The
+single cross-cutting discriminator, robust where dimension and rank are not, is $\Var(E_L)$,
+lower for the message-passing ansatz at every $\omega$. What this geometry means for the
+physics, and how the threads combine, is taken up in the Discussion (Chapter~\ref{ch:discussion})
+and Conclusion.
 
 \paragraph{A gauge caveat, itself a result.} Component-level quantities---backflow
 rank, displacement magnitude $|\Delta\mathbf{x}|$, per-component
@@ -584,17 +584,3 @@ not on the state. Every claim that reversed during this project was of that kind
 an artefactual rank collapse from joint-from-scratch training). The reliable
 measurements---energy, state overlap, and ablation (delete a component, price it in
 energy)---are invariant to the gauge, and the conclusions above rest only on those.
-
-\section{Chapter summary}
-Message passing is not a uniformly ``better network''; it buys one specific thing, a
-relational channel, whose value the tangent kernel makes precise. In the Jastrow that
-channel compresses the ground state onto the few collective modes the Hamiltonian
-couples; in the backflow it sustains a full-rank, relative displacement where a
-single-round-message network collapses to a single collective displacement mode and its energy fails---at
-the Wigner crystal, and by capturing Coulomb rather than kinetic correlation. The
-optimiser and paradigm choices around this ansatz are governed by the same geometry:
-SR is needed only for the ill-conditioned collocation objective, and collocation
-equals VMC only until its importance sampling loses the target at scale. What message
-passing, natural-gradient preconditioning, and $|\Psi|^2$ sampling have in common is
-that each keeps the variational optimisation aligned with the low-dimensional,
-physically-collective structure of the problem.

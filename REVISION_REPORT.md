@@ -245,3 +245,30 @@ result (physical-alignment detector) are the two changes that most raise it from
 collection of experiments" toward "one argument." The main remaining soft spots are the
 size-scaling of the tangent-space claims (N=12/N=20) and the length/placement of the standard
 theory background — both are author judgements rather than errors.
+
+## I. Advisor-critique pass (claim calibration)
+
+A detailed advisor critique was investigated point-by-point (two points verified against the
+code) and **found well-grounded on every count**; all fixes implemented:
+
+1. **"Non-physical tangent mass" → "dictionary-orthogonal tangent mass".** A direction outside a
+   finite operator dictionary is not necessarily unphysical. Softened the abstract/conclusion
+   "estimates the correlation energy without representing it" and "directions of no physical
+   response" to the defensible claim (the CTNN's tangent space is far more completely accounted
+   for by a compact physical dictionary than the DeepSet's). Figure axis/title updated.
+2. **Four inconsistencies fixed:** r_eff "rarely exceeds 2" → "1–3" (Table 6.3 max = 3.08);
+   "tens of oscillator lengths" → "several" (r_mode/ℓ ≈ 3–4 at ω=10⁻³); deleted the backflow
+   "translation-invariant and rotation-equivariant" line contradicting the design goals; S and K
+   "same nonzero spectrum" → "up to the factor B".
+3. **"Q1a and Q1b are one phenomenon" → "a common relational bottleneck"** (coincident
+   transitions + intervention support coupling, not proven identity).
+4. **g(r) reconstruction reframed** as a decomposability / topology-adequacy test, not a
+   sampling-correctness proof (the sectors and total share samples); sampling correctness is
+   attributed to the independent restart/threshold/chain diagnostics.
+5. **MCMC-free claim made literally accurate (verified in code).** `evaluate_energy_vmc`, the
+   checkpoint-selection probe, is Metropolis MCMC (`sampler_burn_in=200`, `sampler_thin=5`,
+   `sampler_target_accept=0.45`). "No Markov chain at any point in training" → "no Markov chain
+   in the gradient training"; corrected "the only MCMC is in the final evaluation"; labelled the
+   VMC-best probe as Metropolis. Note for the author: selecting checkpoints by the IS estimate
+   you already compute (instead of the Metropolis probe) would make the *stronger* claim
+   literally true, if you prefer to keep it — that is a code change, not just wording.

@@ -61,9 +61,37 @@ are consistent with the re-derivation.
   ("structural obstruction of the tested pipeline, not a theorem") is appropriately calibrated.
   **Correct.**
 
-I did **not** re-verify every displayed equation in the thesis (there are a few hundred), but
-the physics-critical and conditioning-critical ones above — the ones an examiner would probe —
-are sound.
+**Full equation sweep (added pass).** I then went through the remaining displayed equations
+chapter by chapter. All are correct:
+- **Theory** — Schrödinger/spectral decomposition, many-body H (atomic units, V_ext=½ω²r²,
+  V_int=1/r); second quantization (CAR, one-/two-body operators with the standard ½ and ¼
+  antisymmetrized forms); HF energy Σh_ii+½Σ(ij‖ij), Fock ĥ₀+Σ(J−K), FCI/Slater–Condon
+  (Brillouin, doubles=(ij‖ab), C(M,N)); Fock–Darwin E=ω(2n+|m|+1), closed shells (K+1)(K+2)
+  ={2,6,12,20}, RHF normalization 1/(N/2)!; diagnostics Φ_m=(1/n)Σe^{imφ_k}, angular Lindemann,
+  and the two-body classical scaling **α=−2/3** (from ω²r=1/r²); VMC/DMC (variational principle,
+  Metropolis–Hastings acceptance with the correct T-ratio, quantum force **2∇ln|Ψ|**, DMC
+  branching e^{−(E_L−E_T)Δτ}, hydrogen zero-variance at α=1); momentum/Adam/Newton/natural
+  gradient; FFNN forward + variance-preserving initialization.
+- **Method** — the safe pair features (s₁,s₂,s₃,rbf) and gate χ all have bounded/vanishing
+  derivatives at coalescence as claimed; the SR energy gradient 2·Cov(E_L,O_k) is the standard
+  log-derivative form.
+
+**Three minor items (none load-bearing, none an outright error in a used result):**
+1. **AUTHOR CHECK — RHF Fock-matrix convention** (theory, Roothaan–Hall). The exchange is
+   written with a ½, `[(μν|λσ)−½(μλ|νσ)]`, with `P_λσ=Σ_{i∈occ} C_λi C_σi*`. The ½ is correct
+   only if P carries the factor of 2 (sum over spin-orbitals, or P=2·Σ_spatial). If "occ" is
+   spatial orbitals without the 2, the exchange coefficient should be 1 (and Coulomb 2).
+   Clarify the P convention. HF is background/reference-only here, so this does not touch any
+   result.
+2. **Consistency note** — the energy gradient is written 2·Cov(E_L,O) in Methods but Cov(E_L,O)
+   in Appendix A (eq:lap:sr). Both are valid (the 2 is absorbed into the learning rate); a
+   single convention would read more cleanly.
+3. **Trivial** — the *illustrative* Padé–Jastrow `exp[−a r/(1+βr)]` in the VMC background models
+   repulsion only for a<0 (the thesis's own cusp uses +γ). It is a throwaway example, used
+   nowhere.
+
+Net: across the theory, methods, and appendix derivations, **no error was found in any equation
+that feeds a result.** The mathematical content is sound.
 
 ## B. Scientific issues discovered
 

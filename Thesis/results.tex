@@ -17,7 +17,7 @@ The Coulomb interaction is singular where two electrons meet; the kinetic energy
 carries second derivatives that magnify any error in the wavefunction's curvature;
 and the confinement $\omega$ sweeps the physics across three decades of correlation
 strength---from a compact, kinetic-energy-dominated droplet at $\omega=1$ to a
-dilute Wigner molecule at $\omega=10^{-3}$, in which the electrons settle tens of
+dilute Wigner molecule at $\omega=10^{-3}$, in which the electrons settle several
 oscillator lengths apart and the Coulomb repulsion, not the trap, dictates the
 structure. We study $N\in\{2,6,12,20\}$ electrons across
 $\omega\in\{1.0,\,0.5,\,0.1,\,0.01,\,0.001\}$.
@@ -820,10 +820,14 @@ At $\omega=10^{-3}$ shelling becomes ubiquitous
 frames), with strong bond order on both rings:
 $|\Phi_3|=0.687\pm0.229$ (Lind$_{\rm in}=0.223$),
 $|\Phi_9|=0.526\pm0.194$ (Lind$_{\rm out}=0.224$).
-A shell-resolved $g(r)$ reconstruction (II/IO/OO mixture with combinatorial
-weights $0.045{:}0.409{:}0.545$) reproduces the global $g(r)$ with cosine
-similarity $0.9982$ (Fig.~\ref{fig:N12_w0001_decomposition}), confirming that
-the observed structure is geometric rather than a sampling artifact.
+A shell-resolved $g(r)$ reconstruction (II/IO/OO mixture with the combinatorial
+weights $0.045{:}0.409{:}0.545$ of the ideal $(3,9)$ topology) reproduces the global $g(r)$
+with cosine similarity $0.9982$ (Fig.~\ref{fig:N12_w0001_decomposition}). Since the sector
+histograms and the total are built from the same samples, this is a test of \emph{decomposability}
+rather than of sampling correctness: it shows the pair structure is cleanly explained by the
+identified shell sectors and, because the weights are the idealised $(3,9)$ combinatorics and not
+empirical sector fractions, that this topology accounts for it. Sampling correctness itself rests
+on the independent restarts, threshold robustness, and chain-stationarity diagnostics reported above.
 
 \begin{figure}[htbp]
   \centering
@@ -1124,9 +1128,9 @@ the same ansatz, not a certificate of absolute accuracy. The best result at
 $\omega{=}1.0$ is $E{=}20.1613\pm 0.0023$, an error of $+0.009\%$,
 indistinguishable from DMC.
 
-These results are achieved entirely without MCMC during training.
-The only MCMC appears in the final heavy evaluation, where it
-serves to certify rather than to train the wavefunction.
+These results are achieved without any Markov chain in the training gradients.
+MCMC enters only outside the gradient loop: a small Metropolis probe periodically selects the
+best checkpoint, and the final heavy evaluation certifies the energy.
 The training itself uses $4096$ importance-resampled collocation
 points per epoch with an oversampling factor of~$8$, requiring
 ${\sim}32\text{k}$ proposal evaluations per gradient step---modest
@@ -1520,8 +1524,8 @@ evaluation can report a misleading energy.
 
 The data expose this directly.
 Table~\ref{tab:vmc-gap} compares the VMC-best energy seen during
-training (a 20\,000-sample probe evaluated by straightforward
-Monte Carlo from the model's own $|\Psi|^2$) with the final IS
+training (a 20\,000-sample Metropolis probe from the model's own
+$|\Psi|^2$, used for checkpoint selection) with the final IS
 evaluation that uses the Gaussian proposal.
 At high~$\omega$ where IS is reliable, the two estimates agree
 closely.
@@ -1531,7 +1535,7 @@ the true energy.
 
 \begin{table}[h]
   \centering
-  \caption{Gap between VMC-best checkpoint energy (direct sampling
+  \caption{Gap between VMC-best checkpoint energy (Metropolis sampling
   from $|\Psi|^2$) and final IS evaluation, for selected runs.
   Positive gap means IS reports higher (worse) energy than the VMC
   probe saw.}

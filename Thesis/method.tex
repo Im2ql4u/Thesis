@@ -313,7 +313,7 @@ To avoid a spurious center-of-mass (COM) drift, we project the flow to zero mean
   \Delta_\beta \;\leftarrow\; \Delta_\beta \;-\; \frac{1}{N}\sum_{i=1}^N \Delta_{\beta,i}.
   \label{eq:bf-com}
 \end{equation}
-With inputs expressed in trap units $\tilde R$ (already centered in practice) and with messages built from $\mathbf r_{ij}$, the update is effectively translation-invariant and rotation-equivariant.%
+The messages are built from the relative vectors $\mathbf r_{ij}$ and the zero-mean projection removes the spurious centre-of-mass drift; as noted under the design goals, the map is not translation-invariant or rotation-equivariant by construction (the displacement head reads a $d$-vector from the absolute coordinates).%
 \footnote{Implementation note: subtracting the batchwise mean of $\Delta_\beta$ is a one-liner and removes the small residual COM drift seen in ablations.}
 
 \subsection{Effect on the nodes and variational safety}
@@ -546,8 +546,9 @@ $|\Psi_\theta|^2$ itself, usually by a Metropolis chain, so the estimators of th
 and of the gradient share the very metric they are meant to precondition. In
 \emph{collocation} the batch is drawn from a fixed analytic proposal $q(\mathbf R)$ and
 reweighted to $|\Psi_\theta|^2$ by importance weights
-$w_i=|\Psi_\theta(\mathbf R_i)|^2/q(\mathbf R_i)$, so that no Markov chain is required at
-any point in training.
+$w_i=|\Psi_\theta(\mathbf R_i)|^2/q(\mathbf R_i)$, so that the gradient training requires no
+Markov chain. A Metropolis probe is used only outside the gradient loop---for periodic
+checkpoint selection and for the final energy certification.
 
 For the collocation objective we use a \emph{weak form}: the local energy $E_L$ enters
 only as a reward in a score-function (REINFORCE) gradient~\cite{Williams1992-REINFORCE},
@@ -919,7 +920,7 @@ family, developed with the geometry of \S\ref{sec:theory-tangent-kernel}, descri
 paradigm comparisons of Chapter~\ref{ch:kernel}. From a batch we assemble the centred
 score matrix $O_{ki}=\partial_{\theta_i}\log|\Psi_\theta(\mathbf x_k)|$ and form the
 quantum geometric tensor $S=O^{\!\top}O/B$ (or, when $B<P$, the tangent kernel
-$K=OO^{\!\top}$, which shares its nonzero spectrum). From the spectrum
+$K=OO^{\!\top}$, whose nonzero spectrum equals that of $S$ up to the overall factor $B$). From the spectrum
 $\{\lambda_a\}$ we report the effective dimension
 $d_{\mathrm{eff}}=(\sum_a\lambda_a)^2/\sum_a\lambda_a^2$ and the condition number
 $\kappa(S)=\lambda_{\max}/\lambda_{\min}$. Cross-architecture comparisons of

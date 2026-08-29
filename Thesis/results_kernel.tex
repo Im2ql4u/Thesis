@@ -84,8 +84,8 @@ weak coupling ($1.40\pm0.17$ vs $3.25\pm0.03$ at $\omega=1$, $\sim\!11\sigma$,
 seeded), and those directions are the physical collective modes of $H$ (breathing,
 correlation-hole, relative excitation)---to $R^2=1.00$ at the exact $N=2$ anchor, and
 $R^2\!\gtrsim\!0.93$ at $N=6$ rising to $\approx\!1.00$ at $N=12$ across the confinement
-range. A separable network of matched or larger capacity instead spends nearly half its
-tangent budget on directions of \emph{no} physical response---a correlation deficit already
+range. A separable network of matched or larger capacity instead leaves nearly half its
+tangent budget along directions a compact physical dictionary does not resolve---already
 measurable at strong confinement, where the two networks are identical in energy.
 \textbf{(Q1b, backflow)} At the Wigner crystal the \emph{conventional} backflow
 collapses to a single collective displacement mode (rank $10\!\to\!1$ at $N=6$,
@@ -94,8 +94,8 @@ message-passing backflow keeps full rank $\sim\!N$ and stays at $\sim\!0.02\%$; 
 gain there is Coulomb (not kinetic) correlation, and the inter-particle messages
 account for the entire backflow contribution. Q1a and Q1b are not independent: holding the
 backflow fixed and varying only the correlator, its loss of physical alignment and the
-backflow's rank collapse set in at the \emph{same} confinement---one relational deficit, seen
-in the amplitude and in the nodes. \textbf{(Q2)} SR whitens the tangent
+backflow's rank collapse set in at the \emph{same} confinement, pointing to a common relational
+bottleneck seen in the amplitude and in the nodes. \textbf{(Q2)} SR whitens the tangent
 kernel; its value tracks $\kappa(S)$---negligible for the well-conditioned VMC
 metric, decisive for the ill-conditioned collocation objective.
 \textbf{(Q3)} VMC and collocation reach the \emph{same state} when the importance
@@ -191,22 +191,25 @@ leading-mode score is generous to the DeepSet: at $\omega=1$ it is nominally the
 of the two ($R^2\!\approx\!0.996$ vs.\ $0.991$), with energies identical to four figures. Yet
 a correlation-specific probe exposes a deficit the leading mode hides. Write the
 eigenvalue-weighted fraction of the top tangent modes lying \emph{outside} the
-physical-operator span as the \emph{non-physical tangent mass}. The DeepSet carries a large
+physical-operator span as the \emph{dictionary-orthogonal tangent mass}. The DeepSet carries a large
 excess at \emph{every} confinement---$0.44$ against the CTNN's $0.06$ at $\omega=1$, a gap of
 $\sim\!0.3$--$0.5$ that persists from the strongly-confined limit down to the crystal
-(Fig.~\ref{fig:nonphys}). The reading is that a separable network can \emph{estimate} the
-correlation energy---a small fraction of the total at strong confinement, so the energy looks
-converged---without \emph{representing} correlation: it spends nearly half its tangent budget
-on directions that correspond to no physical response. The deficiency is intrinsic and present
+(Fig.~\ref{fig:nonphys}). The reading is that a separable network reaches the same energy---correlation being a small
+fraction of the total at strong confinement, so the energy looks converged---while leaving
+nearly half its tangent budget along directions a compact physical dictionary does not resolve.
+A direction outside the dictionary need not be unphysical; the robust statement is that the
+CTNN's tangent space is far more completely accounted for by a small set of physical operators
+than the DeepSet's. The deficiency is intrinsic and present
 throughout; weak confinement merely removes the disguise, because there correlation \emph{is}
-the energy. At $N=12$ the contrast is starker still: the CTNN's non-physical mass stays
+the energy. At $N=12$ the contrast is starker still: the CTNN's dictionary-orthogonal mass stays
 $\lesssim\!0.02$ across $\omega$, while a matched DeepSet (trained to $+0.2\%$) sits at
 $\approx\!0.77$ at $\omega=1$---the gap \emph{widens} with system size rather than closing.
 
 \begin{figure}[htbp]\centering
   \includegraphics[width=0.72\textwidth]{nonphys_mass.png}
-  \caption{A limitation visible where the energy cannot see it. Non-physical tangent mass---the
-  eigenvalue-weighted tangent variance outside the physical-operator span---versus $\omega$. At
+  \caption{A limitation visible where the energy cannot see it. Dictionary-orthogonal tangent mass---the
+  eigenvalue-weighted tangent variance outside the span of a compact physical-operator
+  dictionary---versus $\omega$. At
   $\omega=1$ the two correlators are indistinguishable in energy ($-0.001\%$) and in
   leading-mode physicality, yet the DeepSet already spends $44\%$ of its tangent variance on
   physically-uninterpretable directions against the CTNN's $6\%$. The excess is roughly constant
@@ -322,9 +325,10 @@ together at $\omega\!\approx\!0.05$---the hole capture falls from $0.68$ to $0.0
 backflow rank drops from $\sim\!10$ to $1$. With a CTNN correlator both hold until
 $\omega\!\approx\!0.01$. The correlator's grip on the physical correlation modes and the
 backflow's ability to sustain a full-rank displacement are the same capability seen from two
-sides: when the amplitude model can no longer represent the correlation hole, the nodal
-deformation can no longer stay high-rank, and a better correlator postpones \emph{both}. Q1a
-and Q1b are one phenomenon.
+sides: when the amplitude model can no longer resolve the correlation hole, the nodal
+deformation can no longer stay high-rank, and a better correlator postpones \emph{both}. The
+evidence---coincident transitions that shift together under a correlator swap---supports a
+common relational bottleneck underlying Q1a and Q1b rather than proving them literally identical.
 
 \begin{figure}[htbp]\centering
   \includegraphics[width=\textwidth]{q1_unification.png}

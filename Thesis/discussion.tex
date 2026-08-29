@@ -276,7 +276,7 @@ overlap, and ablation).
 
 \paragraph{Low-dimensional correlator manifold.}
 Across all $(N,\omega)$, the entropy effective rank $r_{\rm eff}(Z)$ of the
-correlator features remains close to~1 and rarely exceeds~2
+correlator features stays low across all $(N,\omega)$, spanning roughly $1$ to $3$
 (Table~\ref{tab:correlator-geom}).
 In the most extreme case, $N{=}2$ at $\omega=10^{-3}$, we find
 $r_{\rm eff}(Z)\approx 1.00$ with head--PC1 correlation $\approx 0.998$ and
@@ -392,22 +392,23 @@ only where near-field physics is delicate. In the Wigner limit, the model
 naturally reduces to a static Wigner-molecule ansatz with low-rank latent
 geometry.
 
-\paragraph{Compression is physical alignment, and it is one deficit.}
+\paragraph{Compression is physical alignment.}
 The low-rank latent geometry above says \emph{how many} directions the correlator uses; the
 tangent-kernel analysis of Chapter~\ref{ch:kernel} adds \emph{which} directions, and the
 distinction turns out to matter. Naming the leading tangent modes against a dictionary of
 physical operators shows that the message-passing correlator's dominant directions are the
 Hamiltonian's own collective modes---breathing, correlation-hole, relative excitation---to
 $R^2\!\approx\!1$ across $\omega$ and up to $N{=}12$, whereas a separable network of matched
-(or larger) capacity spends nearly half of its tangent budget on directions of no physical
-response. This is the precise sense in which a separable network \emph{estimates} the
-correlation energy without \emph{representing} correlation: the deficit is present at every
-confinement and is merely disguised at strong confinement, where correlation is a small slice
-of the energy and the two networks are indistinguishable in energy and even in leading-mode
-physicality. It is also a \emph{single} deficit rather than two---holding the backflow fixed
-and varying only the correlator, the correlator's loss of physical alignment and the
-backflow's rank collapse set in at the same confinement, the one relational capability seen
-once in the amplitude and once in the nodes.
+(or larger) capacity leaves nearly half of its tangent budget along directions a compact
+physical dictionary does not resolve. A direction outside the dictionary need not be unphysical;
+the robust reading is that the CTNN's tangent space is far more completely accounted for by a
+small set of physical operators than the DeepSet's. That gap is present at every confinement and
+is merely disguised at strong confinement, where correlation is a small slice of the energy and
+the two networks are indistinguishable in energy and even in leading-mode physicality. It also
+appears \emph{coupled} to the backflow: holding the backflow fixed and varying only the
+correlator, the correlator's loss of alignment and the backflow's rank collapse set in at the
+same confinement---evidence for a common relational bottleneck seen once in the amplitude and
+once in the nodes, rather than proof that the two are literally one deficit.
 
 \paragraph{Connection to the physical picture.}
 Finally, the learned representations dovetail with the structural analysis in

@@ -221,8 +221,8 @@ The main contributions of this thesis are:
         is ill-conditioned: negligibly for $|\Psi|^2$-VMC, decisively for collocation.
         And an MCMC-free, importance-sampled collocation objective matches VMC when the
         sampling is healthy and, with a physics-informed proposal built from the Wigner
-        shell, reaches a genuine Wigner molecule at $\omega=0.0035$ with no Markov-chain Monte
-        Carlo during training.
+        shell, reaches a genuine Wigner molecule at $\omega=0.0035$ with no Markov chain in the
+        gradient training (a Metropolis probe is used only for checkpoint selection and final certification).
   \item \textbf{Topology-resolved Wigner diagnostics.}
         Across $\omega\in[1,10^{-3}]$ we quantify the crossover using two-shell
         probabilities and inner-ring occupancy histograms, shell-mixture

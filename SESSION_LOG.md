@@ -855,3 +855,16 @@ pass, not an exhaustive line-by-line re-verification; AUTHOR CHECKs flagged in t
   the intentionally reversed order of responses 2 and 3 visible.
 - PDF build attempted with `pdflatex`, but no LaTeX engine is installed or on
   `PATH`; editor diagnostics for the changed TeX files are clear.
+
+---
+
+## 2026-09-02 --- Local pdflatex build restored
+
+- Installed MiKTeX and added VS Code tasks for restoring tracked thesis figures,
+  running `pdflatex`, and running BibTeX from `Thesis/`.
+- Restored the existing `results/figures` subtree required by the manuscript;
+  no placeholder figures were generated.
+- Disabled Microtype font expansion in `Thesis/main.tex`: pdfTeX cannot expand
+  one of the manuscript's non-scalable fonts.
+- Completed BibTeX and two final `pdflatex` passes. `Thesis/main.pdf` now builds
+  successfully at 119 pages with no unresolved citations or references.

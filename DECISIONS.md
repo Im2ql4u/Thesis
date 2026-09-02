@@ -485,3 +485,16 @@ AI output as scientific authority.
 distinction between discussion/review support and authorship, and must not imply
 that quoted AI advice determined the methodological conclusions.
 **Confidence:** high
+
+### [2026-09-02] --- Retain Microtype without font expansion for pdflatex
+
+**Decision:** Disable Microtype's font-expansion feature while retaining
+protrusion and the remaining typographic refinements.
+**Alternatives considered:** Remove Microtype entirely; switch document engines;
+or keep an unbuildable PDF workflow.
+**Reasoning:** The installed pdfTeX engine cannot expand a non-scalable font used
+in the manuscript. Disabling expansion resolves the compiler failure with a
+minimal, document-wide compatibility change.
+**Constraints introduced:** Re-enable font expansion only after confirming that
+all document fonts are scalable under the chosen PDF engine.
+**Confidence:** high

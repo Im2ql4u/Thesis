@@ -877,3 +877,14 @@ pass, not an exhaustive line-by-line re-verification; AUTHOR CHECKs flagged in t
   visible on PDF page 4 (printed page 3), following the preface.
 - Removed an accidental empty AI-response panel that appeared above the three
   intended excerpts, rebuilt the PDF, and visually verified the corrected page.
+
+---
+
+## 2026-09-02 --- Sample-conversation declaration layout
+
+- Reworked the declaration into a compact AI-use disclosure list followed by a
+  labelled sample from a longer conversation.
+- Set the author prompt in a blue left-column card and the AI excerpts in
+  right-column cards; omission rows now explicitly mark the intervening
+  conversation and work.
+- Rebuilt and rendered the declaration page to confirm the two-column layout.

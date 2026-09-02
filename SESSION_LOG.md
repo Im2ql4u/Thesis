@@ -888,3 +888,15 @@ pass, not an exhaustive line-by-line re-verification; AUTHOR CHECKs flagged in t
   right-column cards; omission rows now explicitly mark the intervening
   conversation and work.
 - Rebuilt and rendered the declaration page to confirm the two-column layout.
+
+---
+
+## 2026-09-02 --- Declaration styling refinement
+
+- Replaced the boxed declaration with ordinary prose and a concise list of AI
+  uses: discussion of results/failure modes, experiment planning, and prose
+  review.
+- Reordered the supplied excerpts as responses 1, 2, and 3. The author prompt
+  remains above; all AI responses now share a rounded, right-offset red style,
+  separated only by vertical ellipses.
+- Rebuilt and visually verified the final declaration page.

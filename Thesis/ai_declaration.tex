@@ -1,63 +1,63 @@
 \chapter*{Declaration on the Use of Artificial Intelligence}
 \addcontentsline{toc}{chapter}{Declaration on the Use of Artificial Intelligence}
 
-\noindent\fcolorbox{mutedblue}{mutedblueLight}{%
-\begin{minipage}{0.94\textwidth}
-\color{mutedblue}\textbf{Use of AI in this thesis}\par\smallskip
-\color{black}
+Artificial-intelligence systems were used as discussion partners during the
+development of this thesis. The use was limited to:
 \begin{itemize}\setlength{\itemsep}{0.25em}\setlength{\parskip}{0pt}
-	\item AI systems were used as discussion partners to interrogate results,
-	identify possible failure modes, and plan experiments.
-	\item Agents reviewed the prose for clarity and mistakes; they did not author
-	the text.
-	\item The author wrote the code and thesis text, and made the scientific
-	decisions.
+	\item discussing results and possible failure modes;
+	\item planning experiments and next steps; and
+	\item reviewing the prose for clarity and mistakes.
 \end{itemize}
-\end{minipage}}
+The author wrote the code and thesis text, and made the scientific decisions.
 
-\vspace{1.2em}
+\vspace{0.8em}
 \noindent\textit{The following is a sample from a longer conversation about the
-collocation approach.  Omitted messages and intervening work are marked by
-ellipses.  Responses 2 and 3 are intentionally shown out of chronological order.}
+development of the collocation approach.}
 
-\vspace{1em}
-\noindent
-\begin{tabular}{@{}p{0.445\textwidth}@{\hspace{0.035\textwidth}}p{0.445\textwidth}@{}}
-\fcolorbox{mutedblue}{mutedblueLight}{%
-\begin{minipage}{0.88\linewidth}
+\vspace{0.8em}
+\noindent\begin{tikzpicture}
+\node[draw=mutedblue, fill=mutedblueLight, rounded corners=8pt, inner sep=9pt]
+{\begin{minipage}{0.70\textwidth}
 \color{mutedblue}\textbf{Author}\par\smallskip
 \color{black}
 I am trying to develop a PINN to find ground-state solutions of the
-Schr\"odinger equation.  I have tried multiple approaches, but I am not
+Schr\"odinger equation. I have tried multiple approaches, but I am not
 succeeding.
-\end{minipage}}
-&
-\fcolorbox{deepwine}{deepwineLight}{%
-\begin{minipage}{0.88\linewidth}
+\end{minipage}};
+\end{tikzpicture}
+
+\vspace{0.8em}
+\noindent\hfill\begin{tikzpicture}
+\node[draw=deepwine, fill=deepwineLight, rounded corners=8pt, inner sep=9pt]
+{\begin{minipage}{0.66\textwidth}
 \color{deepwine}\textbf{AI response 1}\par\smallskip
 \color{black}
 This asymmetry is fundamental and cannot be resolved by sampling tricks, loss
 modifications, or gradient preconditioning within the collocation framework.
-\end{minipage}}
-\\[1.1em]
-\multicolumn{2}{c}{\color{earthybrown}\large\textbf{\ldots\quad omitted conversation and intervening work \quad\ldots}}\\[1.1em]
-&
-\fcolorbox{earthybrown}{lightearthybrown}{%
-\begin{minipage}{0.88\linewidth}
-\color{earthybrown}\textbf{AI response 3 --- shown before response 2}\par\smallskip
+\end{minipage}};
+\end{tikzpicture}
+
+\begin{center}\color{earthybrown}\large$\vdots$\end{center}
+
+\noindent\hfill\begin{tikzpicture}
+\node[draw=deepwine, fill=deepwineLight, rounded corners=8pt, inner sep=9pt]
+{\begin{minipage}{0.66\textwidth}
+\color{deepwine}\textbf{AI response 2}\par\smallskip
 \color{black}
 Anything that injects near-node points makes gradients explode or become
 uselessly noisy.
-\end{minipage}}
-\\[1.1em]
-\multicolumn{2}{c}{\color{earthybrown}\large\textbf{\ldots\quad omitted conversation and intervening work \quad\ldots}}\\[1.1em]
-&
-\fcolorbox{deepwine}{deepwineLight}{%
-\begin{minipage}{0.88\linewidth}
-\color{deepwine}\textbf{AI response 2 --- shown after response 3}\par\smallskip
+\end{minipage}};
+\end{tikzpicture}
+
+\begin{center}\color{earthybrown}\large$\vdots$\end{center}
+
+\noindent\hfill\begin{tikzpicture}
+\node[draw=deepwine, fill=deepwineLight, rounded corners=8pt, inner sep=9pt]
+{\begin{minipage}{0.66\textwidth}
+\color{deepwine}\textbf{AI response 3}\par\smallskip
 \color{black}
 Stick with SR + energy (or energy+variance) VMC\ldots
-\end{minipage}}
-\end{tabular}
+\end{minipage}};
+\end{tikzpicture}
 
 \clearpage

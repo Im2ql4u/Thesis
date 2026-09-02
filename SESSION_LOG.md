@@ -910,3 +910,14 @@ pass, not an exhaustive line-by-line re-verification; AUTHOR CHECKs flagged in t
 - Corrected the response order: the near-node warning is response 1, the
   asymmetry statement is response 2, and the VMC recommendation is response 3.
 - Rebuilt and visually verified the 119-page PDF.
+
+---
+
+## 2026-09-02 --- Expanded AI declaration narrative
+
+- Added context before the sampled conversation describing the months of failed
+  collocation experiments and the gradient-instability problem near nodes.
+- Restored the author's fuller question, added ellipses within each selected AI
+  excerpt, and replaced the use list with prose that distinguishes discussion
+  and review support from authorship and scientific judgment.
+- Rebuilt and visually verified the declaration page.

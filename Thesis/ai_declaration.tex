@@ -1,8 +1,15 @@
 \chapter*{Declaration on the Use of Artificial Intelligence}
 \addcontentsline{toc}{chapter}{Declaration on the Use of Artificial Intelligence}
 
-\noindent\textit{The following is a sample from a longer conversation about the
-development of the collocation approach.}
+The collocation approach in this thesis was developed over several months of
+failed experiments. Its central difficulty was not merely that a network did not
+converge, but that the parts of the Schr\"odinger residual that made the method
+physically meaningful also made its gradients unstable near the wavefunction's
+nodes. During that period, AI systems were used as sounding boards: to test
+interpretations of unexpected results, to formulate possible explanations, and
+to decide which experiment should come next. The exchange below is a short
+sample from one longer conversation at a point where the negative evidence had
+begun to make abandoning collocation seem plausible.
 
 \vspace{0.35em}
 \noindent\begin{tikzpicture}
@@ -12,7 +19,7 @@ development of the collocation approach.}
 \color{black}
 I am trying to develop a PINN to find ground-state solutions of the
 Schr\"odinger equation. I have tried multiple approaches, but I am not
-succeeding.
+succeeding. \ldots What do you think about this? What should we do from here?
 \end{minipage}};
 \end{tikzpicture}
 
@@ -22,8 +29,8 @@ succeeding.
 {\begin{minipage}{0.66\textwidth}
 \color{deepwine}\textbf{AI response 1}\par\smallskip
 \color{black}
-Anything that injects near-node points makes gradients explode or become
-uselessly noisy.
+\ldots Anything that injects near-node points makes gradients explode or become
+uselessly noisy. \ldots
 \end{minipage}};
 \end{tikzpicture}
 
@@ -34,8 +41,9 @@ uselessly noisy.
 {\begin{minipage}{0.66\textwidth}
 \color{deepwine}\textbf{AI response 2}\par\smallskip
 \color{black}
-This asymmetry is fundamental and cannot be resolved by sampling tricks, loss
-modifications, or gradient preconditioning within the collocation framework.
+\ldots This asymmetry is fundamental and cannot be resolved by sampling tricks,
+loss modifications, or gradient preconditioning within the collocation
+framework. \ldots
 \end{minipage}};
 \end{tikzpicture}
 
@@ -46,18 +54,18 @@ modifications, or gradient preconditioning within the collocation framework.
 {\begin{minipage}{0.66\textwidth}
 \color{deepwine}\textbf{AI response 3}\par\smallskip
 \color{black}
-Stick with SR + energy (or energy+variance) VMC\ldots
+\ldots Stick with SR + energy (or energy+variance) VMC. \ldots
 \end{minipage}};
 \end{tikzpicture}
 
 \vspace{0.7em}
-Artificial-intelligence systems were used as discussion partners during the
-development of this thesis. The use was limited to:
-\begin{itemize}\setlength{\itemsep}{0.15em}\setlength{\parskip}{0pt}
-	\item discussing results and possible failure modes;
-	\item planning experiments and next steps; and
-	\item reviewing the prose for clarity and mistakes.
-\end{itemize}
-The author wrote the code and thesis text, and made the scientific decisions.
+Artificial-intelligence systems were therefore used for discussion, planning,
+and review, rather than as a source of results. They helped turn observations
+into hypotheses that could be checked, suggested alternative diagnostics when a
+run failed, and reviewed the final prose for clarity and mistakes. The code, the
+experiments, the scientific judgments, and the text of this thesis were written
+by the author. In particular, the recommendation shown above was not accepted as
+a methodological conclusion: it became one claim among several to investigate.
+The work that followed led to the collocation analysis reported in this thesis.
 
 \clearpage

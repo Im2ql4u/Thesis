@@ -1,0 +1,87 @@
+\chapter*{Declaration on the Use of Artificial Intelligence}
+\addcontentsline{toc}{chapter}{Declaration on the Use of Artificial Intelligence}
+
+Artificial-intelligence systems were used as discussion partners during the
+development of this thesis.  They were useful for interrogating results,
+identifying possible failure modes, planning experiments, and reviewing prose
+for clarity and mistakes.  The scientific decisions, the implementation, and
+the text of this thesis were written by the author.  Agents were used to review
+the writing, not to author it.
+
+The exchange below captures one moment in the development of the collocation
+approach.  It is included because it illustrates a real methodological tension:
+after months of unsuccessful work, an apparently definitive recommendation to
+abandon the approach had to be treated as a hypothesis to test, rather than as
+a conclusion to accept.  Substantial work occurred between the responses shown;
+the second and third replies are presented in their original, non-chronological
+order.
+
+\begin{center}
+\setlength{\fboxsep}{10pt}
+\fcolorbox{mutedblue}{mutedblueLight}{%
+\begin{minipage}{0.91\textwidth}
+\color{mutedblue}\textbf{Author's prompt}\par\smallskip
+\color{black}
+\begin{quote}
+I am trying to develop a PINN to find ground-state solutions of the
+Schr\"odinger equation.  I have tried multiple approaches, but I am not
+succeeding.
+\end{quote}
+\end{minipage}}
+\end{center}
+
+\begin{center}
+\setlength{\fboxsep}{10pt}
+\fcolorbox{deepwine}{deepwineLight}{%
+\begin{minipage}{0.91\textwidth}
+\color{deepwine}\textbf{AI response}\par\smallskip
+\color{black}
+\begin{quote}
+\end{quote}
+
+\begin{quote}
+\end{quote}
+
+\begin{quote}
+\end{quote}
+\end{minipage}}
+\end{center}
+\begin{center}
+\setlength{\fboxsep}{10pt}
+\fcolorbox{deepwine}{deepwineLight}{%
+\begin{minipage}{0.91\textwidth}
+\color{deepwine}\textbf{AI response 1}\par\smallskip
+\color{black}
+\begin{quote}
+This asymmetry is fundamental and cannot be resolved by sampling tricks, loss
+modifications, or gradient preconditioning within the collocation framework.
+\end{quote}
+\end{minipage}}
+\end{center}
+
+\begin{center}
+\setlength{\fboxsep}{10pt}
+\fcolorbox{earthybrown}{lightearthybrown}{%
+\begin{minipage}{0.91\textwidth}
+\color{earthybrown}\textbf{AI response 3 --- shown before response 2}\par\smallskip
+\color{black}
+\begin{quote}
+Anything that injects near-node points makes gradients explode or become
+uselessly noisy.
+\end{quote}
+\end{minipage}}
+\end{center}
+
+\begin{center}
+\setlength{\fboxsep}{10pt}
+\fcolorbox{deepwine}{deepwineLight}{%
+\begin{minipage}{0.91\textwidth}
+\color{deepwine}\textbf{AI response 2 --- shown after response 3}\par\smallskip
+\color{black}
+\begin{quote}
+Stick with SR + energy (or energy+variance) VMC\ldots
+\end{quote}
+\end{minipage}}
+\end{center}
+
+\clearpage

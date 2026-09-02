@@ -467,3 +467,21 @@ DMC-quality reference, per the CTNN-below-fixed-node-DMC caveat already in the d
 - Chose per-cell provenance tablenotes on tab:energies over a separate master
   reference-energy table: duplicating the reference numbers would create two sources of
   truth, an accuracy hazard. Flagged to user; standalone table available on request.
+
+### [2026-09-02] --- Declare AI use as process support, not authorship
+
+**Decision:** Add a front-matter declaration immediately after the preface that
+describes AI systems as discussion and review support, while stating that the
+author wrote the implementation and thesis text and made the scientific
+decisions.
+**Alternatives considered:** Omit AI use entirely; use a generic acknowledgement;
+or attribute authored prose to AI-assisted drafting.
+**Reasoning:** The declaration gives a transparent account of how AI was used
+without obscuring the author's responsibility for the research, code, and prose.
+The displayed exchange documents a genuine point of methodological uncertainty,
+including the non-chronological order of two responses, rather than presenting
+AI output as scientific authority.
+**Constraints introduced:** Future changes to this declaration must preserve the
+distinction between discussion/review support and authorship, and must not imply
+that quoted AI advice determined the methodological conclusions.
+**Confidence:** high

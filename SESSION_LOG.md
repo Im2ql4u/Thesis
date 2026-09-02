@@ -842,3 +842,16 @@ Full-thesis editorial pass per the revision brief. Concrete changes (all committ
 
 Final: tectonic 2-pass, 120 pages, 0 undefined refs. Honest scope note: focused high-value
 pass, not an exhaustive line-by-line re-verification; AUTHOR CHECKs flagged in the report.
+
+---
+
+## 2026-09-02 --- AI-use declaration and front-matter correction
+
+- Replaced the front-matter acknowledgement include with the existing preface.
+- Added `Thesis/ai_declaration.tex` immediately after the preface. It documents
+  AI use for discussion, result interpretation, planning, and copy review while
+  preserving authorship of the code, scientific decisions, and thesis prose.
+- Styled the supplied conversation as coloured prompt/response panels and made
+  the intentionally reversed order of responses 2 and 3 visible.
+- PDF build attempted with `pdflatex`, but no LaTeX engine is installed or on
+  `PATH`; editor diagnostics for the changed TeX files are clear.

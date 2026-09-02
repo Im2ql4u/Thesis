@@ -900,3 +900,13 @@ pass, not an exhaustive line-by-line re-verification; AUTHOR CHECKs flagged in t
   remains above; all AI responses now share a rounded, right-offset red style,
   separated only by vertical ellipses.
 - Rebuilt and visually verified the final declaration page.
+
+---
+
+## 2026-09-02 --- Conversation-first declaration order
+
+- Moved the sampled conversation above the declaration text and compacted its
+  vertical spacing.
+- Corrected the response order: the near-node warning is response 1, the
+  asymmetry statement is response 2, and the VMC recommendation is response 3.
+- Rebuilt and visually verified the 119-page PDF.

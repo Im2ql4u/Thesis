@@ -57,7 +57,55 @@ neural networks are used as \emph{variational ans\"atze} for quantum states
 log-probabilities for many-body configurations and is trained by variational
 Monte Carlo.
 
-In principle, neural networks provide highly expressive ansätze for quantum
+The appeal of this second use is easy to state and easy to overstate. Universal
+approximation results guarantee that a sufficiently large network can
+\emph{represent} any suitably regular function to arbitrary accuracy; they say
+nothing about whether gradient-based optimisation will \emph{find} that
+representation, nor at what sample cost. The distinction is not academic here.
+Much of what follows is a study of the gap between the two: an ansatz that
+demonstrably can express the ground state, placed in a training scheme that
+does---or does not---allow it to get there. Representability is cheap; trainability
+is the entire difficulty.
+
+There is nonetheless a genuine structural argument for the approach, and it is
+worth separating from the overstated one. Deterministic expansions confront the
+dimension of the problem directly: FCI is exact within a finite basis but its cost
+grows combinatorially, so that a modest two-dimensional dot of twenty electrons---forty
+spatial degrees of freedom---is already far beyond reach, while cheaper methods such as
+Hartree--Fock or truncated coupled cluster buy their favourable scaling by fixing in
+advance which correlations may be described. A variational neural ansatz does neither.
+It is not an expansion in a basis whose size must grow with the space, and it imposes no
+prior truncation on which correlations are available; it is a parameterisation that can,
+in principle, concentrate its capacity wherever the solution actually varies. Whether it
+does so in practice is an empirical question, and one this thesis measures rather than
+assumes.
+
+That question also suggests a different way to use a solver. Nearly every
+established method for the many-body Schrödinger equation is constructed outward
+from physical principles: an approximation is chosen, justified physically, and
+then implemented. A trained network inverts the order. It is obtained largely on
+machine-learning terms, and only afterwards interrogated as to what it has
+represented---and unlike an implicit stochastic representation, it is a concrete
+parameterised object whose internal structure can be examined directly. This
+motivates a question that the exponential dimension of the Hilbert space does not
+by itself settle: how many directions does the \emph{solved state} actually vary
+along? Not the dimension of the equation, but the dimension of the answer.
+
+We make that question quantitative through the geometry of the wavefunction's
+log-derivatives. Perturbing the parameters of a trained ansatz over an ensemble of
+configurations and collecting the resulting sensitivities into a covariance matrix
+yields, in the simplest reading, a principal-component analysis of the state: the
+eigenvalues report how much variation each independent direction carries, and their
+distribution counts how many directions are doing genuine work. The physically
+appropriate version of this covariance is the quantum geometric tensor (equivalently,
+the Fisher metric), and the corresponding count is the participation ratio of its
+spectrum---an effective dimension rather than a hard rank, insensitive to the raw
+parameter count. Chapter~\ref{ch:kernel} develops this instrument and applies it to
+architecture, optimiser, and training paradigm alike; the questions it answers are how
+this effective dimension behaves as particles are added and as the trap is opened, and
+whether different architectures arrive at the same solution by different routes.
+
+In principle, then, neural networks provide highly expressive ansätze for quantum
 problems. In practice, several issues arise. Objectives based on local
 energies involve second derivatives and can be numerically delicate.
 Coordinate parameterizations that do not respect known structure can lead to

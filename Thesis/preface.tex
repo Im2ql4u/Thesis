@@ -1,76 +1,160 @@
 \chapter*{Preface}
 \addcontentsline{toc}{chapter}{Preface}
 
-There is a particular satisfaction in variational methods: you always know
-when you are wrong.
-The variational principle guarantees that any trial wavefunction yields an
-energy above the true ground state.
-Progress is therefore unambiguous---the energy goes down or it does not---and
-the direction of error is fixed by a theorem.
-What remains open is only how close you can get, and at what cost.
+When I came to UiO, Morten read my background and said: ``You know PINNs, you know
+many-body quantum systems. I want you to do PINNs on quantum dots.'' I said
+``sure,'' and then asked the only sensible follow-up question I had:
+``Where do I start?''
 
-This thesis is a record of that question applied to the quantum many-body
-problem.
-We take two-dimensional harmonic quantum dots, attach a physics-informed
-neural network to the Schrödinger equation, and ask what breaks when one
-actually builds such a pipeline and pushes it toward accuracy.
-The answer is not one thing.
-It is a sequence of five distinct obstacles, each with its own character,
-each illuminating something about the geometry of the problem that the
-formalism alone does not reveal.
+This thesis is the long answer. The short one took me the better part of two
+years to find, and it is this: you start by arranging to be wrong in a way you
+can measure.
 
-The variational principle has organized computational quantum mechanics
-since the early days of the field.
-Neural networks now join a long line of function approximators---Slater
-determinants, Jastrow factors, backflow transformations---pressed into
-the same service.
-What machine learning contributes is not fundamentally new in kind, but in
-scale and in optimization infrastructure: the ability to represent functions
-across many orders of magnitude in input scale and to update them stably
-through tens of thousands of gradient steps.
-The Jastrow factor was, in a sense, already a neural wavefunction.
-It simply lacked the surrounding machinery.
+There is a particular satisfaction in variational methods, and that is exactly
+what it consists of. The variational principle guarantees that any trial
+wavefunction yields an energy above the true ground state. Progress is therefore
+unambiguous---the energy goes down or it does not---and the direction of error is
+fixed by a theorem. You are never in doubt about whether you have improved. What
+remains open is only how close you can get, and at what cost. For a project with
+as few fixed landmarks as this one had, that guarantee was often the only solid
+ground available.
 
-What this thesis discovers is that the machinery matters as much as the network.
-The connections between machine learning and quantum mechanics run deep enough
-that the obstacles encountered here have a dual nature: they are simultaneously
-physics problems and optimization problems.
-Stochastic reconfiguration---invented by physicists to optimize variational
-wavefunctions---is precisely natural gradient descent on the variational
-manifold.
-The REINFORCE estimator from reinforcement learning is the score-function
-gradient of the variational energy.
-The Fisher information matrix in statistics is the quantum geometric tensor
-in physics.
-These were not borrowed from one field by the other; they were discovered
-independently by communities that rarely read each other's papers.
-Recognizing that they are the same mathematics feels less like a connection
-between two fields and more like the realization that there was only ever
-one field, working on the same problem from different sides.
+I say ``two years'' deliberately. I have been fortunate in my supervisor: Morten
+gave me not the customary year but nearly two, and the difference is the whole
+thesis. Most of what is worth reading here comes from the second year, and none
+of it would have been found on a schedule that ended at the first. That is a form
+of trust it is easy to underestimate until you have needed it.
 
-Perhaps the most instructive moments in this work are the failures.
-A subtle error in the importance-sampling code went undetected for months
-because its signature---deteriorating accuracy at larger particle numbers
-and lower confinement---was indistinguishable from insufficient architecture.
-In $Nd$ dimensions, an error in log-density grows linearly with dimension
-and is catastrophically amplified in the normalized weights; the bug was
-invisible where experiments ran quickly and catastrophic where they mattered.
-A Langevin refinement step, intuitively motivated, turned out to introduce
-a systematic gradient bias because importance-resampling weights are valid
-only when samples originate from the proposal distribution, not from a
-non-equilibrium Langevin path.
-A second-order optimizer degraded precisely when the landscape became
-ill-conditioned enough to need it, because the Fisher-matrix estimate
-collapses to noise when effective sample sizes are small.
-In each case, the failure was more informative than success could have been:
-it identified exactly what the method was quietly assuming and what the
-problem was quietly violating.
+It was, even so, a solitary way to spend them. Not for want of a literature---
+neural quantum states are a busy field, and FermiNet, PauliNet, and neural
+backflow were all there to learn from. But the particular thing I was trying to
+do, training a many-body ground state by collocation with no Markov chain
+anywhere in the optimisation, had very little in front of it to steer by. When an
+experiment failed there was frequently no way to tell whether the method was
+unsound, the architecture too weak, or the code quietly broken; and for long
+stretches the honest answer was that I did not know. My friends at CCSE, and
+outside it, are the reason those stretches remained survivable rather than
+merely long.
 
-Negative results of this kind are not a concession.
-They are a method.
-This thesis proceeds through three ordered decisions that every practitioner
-must make when applying neural networks to the many-body Schrödinger equation:
-what to parameterize, how to train, and how to optimize.
-The decisions are simple to state and non-trivial to make correctly, and
-the record of what happens when they are made incorrectly is, in the end,
-more instructive than any table of final energies.
+What kept me at it was a question that turned out to be more interesting than
+the one I was assigned. Nearly every established method for the many-body
+Schr\"odinger equation is built outward from physical principles---an
+approximation is chosen, justified physically, and then implemented. I wanted to
+approach it from the other end: solve the problem by machine learning, largely on
+machine-learning terms, and only then ask what the solution had understood. A
+trained network is not merely an answer; it is an answer with an internal
+structure that can be examined. Twenty electrons in two dimensions is forty
+degrees of freedom, and a configuration-interaction treatment of that would
+outlast the age of the universe. But the wavefunction that eventually solves it
+need not be forty-dimensional in any meaningful sense. So: how many directions
+does the trained state actually vary along? How does correlation change as
+particles are added, or as the trap is opened and they are given room to move
+apart? What is actually required to reach a solution---and how must a network
+grow, if at all, to keep pace with the system it is solving?
+
+Those questions have answers here, and they are more specific than I expected.
+The correlator settles onto a manifold of one or two effective dimensions and
+stays there across three decades of confinement; what changes is its content, not
+its size. And the difference between architectures turns out not to be capacity
+but \emph{alignment}: a message-passing network keeps its dominant directions
+pointed along the collective modes the Hamiltonian actually has, while a
+separable network reaches the very same energy with much of its capacity spent on
+directions no compact physical description resolves. At strong confinement this
+costs nothing and is invisible. Open the trap and it is the whole story.
+
+Then the trained states can be turned around and used as instruments. Read from
+the inside, they show six electrons forming a single ring poised between two
+shell topologies, twelve settling into two commensurate shells, twenty building
+three and collapsing back toward one within a single decade of confinement. That
+was the part I had not anticipated when I said ``sure'': that the network would
+stop being the object of study and become the apparatus.
+
+Yet the moments I learned the most from were, without exception, the failures.
+An error in the importance-sampling code went undetected for months, because its
+signature---accuracy decaying at larger particle numbers and weaker
+confinement---is precisely the signature of an architecture that is merely not good
+enough. In $Nd$ dimensions an error in a log-density grows linearly with
+dimension and is amplified catastrophically in the normalised weights; the bug was
+invisible exactly where experiments were cheap and ruinous exactly where they
+mattered. A Langevin refinement step, which I had every intuition was an
+improvement, introduced a systematic gradient bias, because importance weights
+are valid only for samples drawn from the proposal and not for samples carried
+along a non-equilibrium path. A second-order optimiser degraded precisely when the
+landscape became ill-conditioned enough to require it, because the estimate of the
+metric it inverts collapses into noise at small effective sample size. Discovering
+the first of these did real damage to my confidence in everything else, and
+re-establishing that confidence---rather than assuming it---is a substantial part
+of what the later chapters are actually doing.
+
+In each case the failure specified something no success could have: exactly what
+the method had been quietly assuming, and exactly where the problem quietly
+violated it. Negative results of this kind are not a concession or an
+embarrassment. They are a method, and I have written them up as one.
+
+Something else surfaced along the way that I have not stopped thinking about.
+The obstacles in this work have a persistent double character: each is
+simultaneously a physics problem and an optimisation problem, and it is usually
+arbitrary which name you give it. Stochastic reconfiguration, invented by
+physicists to optimise variational wavefunctions, is natural gradient descent on
+the variational manifold. The REINFORCE estimator from reinforcement learning is
+the score-function gradient of the variational energy. The Fisher information
+matrix of statistics is the quantum geometric tensor of physics. These were not
+borrowed by one field from another; they were found independently, by communities
+that rarely read each other's papers. Coming to recognise that they are the same
+mathematics felt less like discovering a bridge between two fields than like
+realising there had only ever been one, approached from opposite sides.
+
+What I can claim at the end of it is narrower than what I hoped for at the
+beginning, and I have tried to keep it that way. A compact, well-conditioned
+ansatz, trained by a scheme that is stable across three decades of confinement,
+matches diffusion Monte Carlo wherever a diffusion Monte Carlo reference exists.
+Below that---which is to say, throughout the strongly correlated regime this
+thesis cares most about---there is no external benchmark, and the energies are
+variational predictions supported by internal consistency and physical scaling
+rather than validated numbers. I have said so in every place it is true. The
+temptation to phrase these results as a competition with the best available
+methods was considerable, and resisting it is, I think, one of the more
+defensible decisions in the thesis.
+
+Which returns me to hindsight. Looking back over this work, my first instinct is
+to catalogue what I would now do differently---and it is a long catalogue, and it
+is very easy to assemble when you already possess the knowledge you spent two
+years acquiring. But most of that catalogue was purchased by the failures, and it
+could not have been read off in advance from anything. The regret and the result
+are the same object seen from two sides. That is worth remembering, and easy to
+forget, which is the best argument I know for writing a preface at all.
+
+\bigskip
+
+The most consistent source of inspiration, motivation, and steadiness through all
+of it has been my girlfriend, Elida. That support has been as constant as a
+mountain, and without it I would not have had the nerve to begin this, let alone
+the depth to finish it. I am more grateful than I can put down here.
+
+I owe a warm and sincere thanks to my family, who have supported me in every
+undertaking I have had and have simply always been there; and to my friends,
+inside CCSE and out, who supplied the joy, the laughter, and a good deal of the
+sanity this project required.
+
+To Morten, again, and properly: thank you for the assignment, for the two years,
+and above all for a genuine and undisguised interest in what I was finding, at
+every stage---including the stages where what I was finding was that I had been
+wrong. That interest is most of what encouragement actually consists of.
+
+Finally, the $N=20$ reference energies used for comparison in
+Chapter~\ref{ch:results} are drawn from the master's thesis of Daniel
+Haas~\cite{HaasHFQD}, University of Oslo, and I am grateful for the availability
+of that work as an independent benchmark.
+
+\bigskip
+
+A word on how to read what follows. This thesis proceeds through three ordered
+decisions that anyone applying neural networks to the many-body Schr\"odinger
+equation has to make: what to parameterise, how to train, and how to optimise.
+They are simple to state and genuinely difficult to make correctly. The record of
+what happens when they are made incorrectly is, in the end, more instructive than
+any table of final energies---which is, at last, the answer to the question I
+asked Morten on the first day. You start by being willing to be wrong on the
+record, and then you keep the record.
+
+\clearpage

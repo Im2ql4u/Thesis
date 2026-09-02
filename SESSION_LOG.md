@@ -868,3 +868,12 @@ pass, not an exhaustive line-by-line re-verification; AUTHOR CHECKs flagged in t
   one of the manuscript's non-scalable fonts.
 - Completed BibTeX and two final `pdflatex` passes. `Thesis/main.pdf` now builds
   successfully at 119 pages with no unresolved citations or references.
+
+---
+
+## 2026-09-02 --- Declaration PDF visual verification
+
+- Rendered the front matter directly from `Thesis/main.pdf`. The declaration is
+  visible on PDF page 4 (printed page 3), following the preface.
+- Removed an accidental empty AI-response panel that appeared above the three
+  intended excerpts, rebuilt the PDF, and visually verified the corrected page.

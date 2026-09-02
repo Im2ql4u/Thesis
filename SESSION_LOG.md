@@ -921,3 +921,60 @@ pass, not an exhaustive line-by-line re-verification; AUTHOR CHECKs flagged in t
   excerpt, and replaced the use list with prose that distinguishes discussion
   and review support from authorship and scientific judgment.
 - Rebuilt and visually verified the declaration page.
+
+## 2026-09-02 — Preface merge and narrative-voice pass
+
+Pulled 51 commits from origin/main (f10d05b). Discovered that
+`Thesis/acknowledgement.tex` existed but was never `\include`d in `main.tex`,
+so the acknowledgements had not been compiling into the PDF at all.
+
+**Frontmatter.** Merged acknowledgements and preface into a single first-person
+Preface, opened by the supervisor's original assignment ("You know PINNs, you
+know many-body quantum systems...") and closing by answering the question it
+poses. Thanks are woven through the reflection rather than appended as a block.
+Deleted `acknowledgement.tex`; the Haas benchmark citation is preserved in the
+new preface.
+
+**Methodology moved to the Introduction**, with three corrections that would not
+have survived examination:
+- FCI and HF no longer share a scaling claim (HF is polynomial, FCI combinatorial).
+- Universal approximation is now stated as *representability*, with trainability
+  named as the actual difficulty — which is what the thesis measures. The
+  original phrasing ("can provably solve any problem") was contradicted by the
+  thesis's own collocation results.
+- The "PCA" intuition now names its real object: the quantum geometric tensor and
+  the participation ratio of its spectrum, consistent with Chapter `ch:kernel`.
+
+**Other frontmatter fixes.** Removed "five distinct obstacles" (the body has
+three); removed "competing with the best known solutions to date", which had
+undone the claim-calibration of 49b0661; narrowed "little prior research" to the
+defensible claim about MCMC-free collocation; completed an unfinished sentence.
+
+**Narrative-voice pass on the body.** The guiding voice already existed at
+chapter openings and "how to read this" paragraphs but vanished in section
+interiors. Extended it rather than rewriting:
+- `results.tex` — reader guidance before the energy tables (what to look for,
+  and where the tables stop); framing for the negative-results inventory plus a
+  new synthesis paragraph identifying the mechanism common to four of the five
+  failures; framing for the Wigner sections as instrument-use, and the
+  smooth-ring/crystal apparent contradiction named up front.
+- `discussion.tex` — chapter-level framing ordered by interpretive burden; stakes
+  added to all four section openings, which previously recited their own tables.
+- `conclusion.tex` — opening reframed around the thesis's driving question and
+  the separation of demonstrated / observed / plausible.
+
+Register decision: guiding voice ("we", with stakes and opinions) in the body;
+genuinely personal register confined to the Preface, AI declaration, negative
+results, and limitations, where the content earns it.
+
+Build verified: 121 pages, no undefined references or citations.
+
+**Environment fix.** LaTeX Workshop was failing with `spawn pdflatex ENOENT` —
+VS Code launched from the Dock does not inherit the shell PATH. Fixed in *user*
+settings (not the tracked `.vscode/settings.json`, which is shared with a Windows
+machine) by giving all four tools absolute `/Library/TeX/texbin` paths and an
+explicit PATH env.
+
+**TODO:** `.vscode/tasks.json` is Windows-only (`cmd.exe`, MiKTeX paths) and
+arrived with this pull; Cmd+Shift+B fails on macOS. Proper fix is VS Code's
+per-platform `osx`/`windows` task overrides rather than swapping the paths.

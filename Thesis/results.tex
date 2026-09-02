@@ -68,10 +68,28 @@ per-particle weights.
 
 \subsection{Energies}
 
-Table~\ref{tab:Residual} reports two-electron energies from
-\emph{residual-only} training (PINN and PINN+BF). For $N{=}2$, backflow is not
-required to reach DMC accuracy, but it slightly reduces the variance and
-smooths convergence.
+The tables in this section are the thesis's only contact with an external ground
+truth, and it is worth being explicit about what to look for in them before the
+digits arrive. Two things matter, and neither is the raw energy. The first is
+\emph{where the agreement holds}: a method that matches DMC at $\omega=1$ and
+drifts at $\omega=0.1$ is a different object from one that holds across the whole
+benchmarked range, because the physics changes character between those points while
+the architecture does not. The second is \emph{where the tables stop}. Below
+$\omega=0.1$ there is no DMC reference for $N\ge6$, and the numbers reported there
+are variational predictions rather than validated ones. That boundary is the single
+most important feature of what follows, and we have marked it everywhere it occurs
+rather than letting a uniformly formatted table imply a uniform level of evidence.
+
+Table~\ref{tab:Residual} begins with the easiest case, and its purpose is
+diagnostic rather than competitive: two electrons are few enough that the
+architecture can be tested nearly in isolation. It reports two-electron energies
+from \emph{residual-only} training (PINN and PINN+BF). The result to notice is a
+negative one---for $N{=}2$, backflow is \emph{not} required to reach DMC accuracy;
+it slightly reduces the variance and smooths convergence, and nothing more. The
+Slater--Jastrow correlator already places the nodes well enough at this size. This
+matters because it establishes a baseline against which the backflow's later
+contribution, at larger $N$ and weaker traps, can be read as a genuine effect
+rather than as an artefact of having added parameters.
 
 \begin{table}[h!]
 \centering
@@ -527,6 +545,14 @@ field entirely (Chapter~\ref{ch:kernel}, \S\ref{sec:kernel-q1b}).
 \section{Wigner--molecule crossover}
 \label{sec:wigner-molecule}
 
+Up to this point the trained wavefunction has been the thing under examination.
+In this section it becomes the instrument. Having established that the ansatz is
+accurate wherever accuracy can be checked, we now turn it on the physics and ask
+what the electrons are actually doing---and the answer is only reachable this way,
+because the structure we are looking for is invisible in the observable that would
+most naturally be plotted. That is the first thing to understand before any of the
+diagnostics below make sense.
+
 In a finite, rotationally symmetric harmonic trap the appropriate picture for
 the strongly correlated limit is a \emph{Wigner molecule}: electrons localize
 in \emph{relative} coordinates---forming concentric rings with polygon-like
@@ -785,9 +811,17 @@ equilibrium radius.
 \subsection{Shell topology, angular order, and the rotating Wigner molecule}
 \label{sec:wigner-angular}
 
-Because the Hamiltonian is rotationally symmetric, a Wigner molecule's internal
-angular order can only be observed after registering frames to a co-rotating
-reference.
+This subsection resolves an apparent contradiction, and it is worth naming it as
+such: the densities plotted above look like smooth rings, yet we are about to claim
+the electrons form a crystal. Both are true, and the reason is symmetry. Because the
+Hamiltonian is rotationally invariant, so is its ground state, and any lab-frame
+average necessarily smears an angularly ordered configuration into a featureless
+ring. The order is real; it simply lives in relative coordinates, and looking for it
+in the lab frame is looking in the one place it is guaranteed not to be. Everything
+below follows from taking that seriously.
+
+Concretely, a Wigner molecule's internal angular order can only be observed after
+registering frames to a co-rotating reference.
 For a shell $s$ with $n_s$ particles we compute a rotation-registered
 bond-orientational parameter $|\Phi_{n_s}|$ and a corresponding
 Lindemann-type ratio quantifying angular stiffness.  Lab-frame densities
@@ -1181,8 +1215,16 @@ Appendix~\ref{app:postcatch22:frontier} rather than here.
 \subsection{What worked and what did not}
 \label{sec:colloc-negatives}
 
-The collocation programme explored a large space of methods.
-This section documents the key positive and negative findings.
+The collocation programme explored a large space of methods, and most of that
+space did not work. What follows is an honest inventory of both outcomes, and the
+negative half is the more useful one. Each failure below was, at the time, an
+intuitively reasonable idea; each turned out to violate a specific assumption that
+the method had never been forced to state. A working configuration tells you that
+some set of choices is sufficient. A failure, if you chase it far enough to name
+the mechanism, tells you which choice was load-bearing and why---and that is the
+kind of statement that transfers to a system other than this one. We therefore
+report the mechanism in each case, not merely the fact that the attempt was
+abandoned.
 
 \paragraph{Positive: pure REINFORCE over mixed objectives.}
 Setting $\beta{=}0$ in the hybrid loss (pure REINFORCE, no direct
@@ -1288,6 +1330,20 @@ The gradient signal at $N{=}20$ is too noisy for the additional
 backflow parameters to be trained effectively; the simpler Jastrow
 network with its smaller parameter count permits higher
 oversampling and better gradient quality.
+
+\paragraph{What the failures have in common.} Read together, these five negatives
+are not five unrelated disappointments. Four of them---CG-SR, Langevin refinement,
+the Pfaffian's parameter count, and the backflow at $N{=}20$---fail through the same
+channel: a quantity that must be \emph{estimated} from a finite sample degrades
+faster than the quantity it is meant to improve. Natural gradients need an estimate
+of the metric; Langevin needs samples that have actually equilibrated; a larger
+parameter space needs a correspondingly better-resolved gradient. In each case the
+method is not wrong in principle, and would be perfectly sound given samples we
+cannot afford. What fails is the estimate, and it fails precisely in the regime
+where the correction was supposed to help. This is the thread that
+\S\ref{sec:colloc-reliability} follows deliberately, from the proposal mismatch at
+one end to the evaluation bottleneck at the other; stated once here, it is worth
+carrying into that analysis rather than rediscovering at its conclusion.
 
 
 %% ═══════════════════════════════════════════════════════════════════════

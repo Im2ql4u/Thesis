@@ -1710,3 +1710,29 @@ at omega=0.5 and 0.001 (training).
 - Coherence pass: threaded the estimate-vs-represent mechanism + single-deficit statement
   through abstract, intro, discussion (new "Compression is physical alignment" paragraph),
   conclusion, and the Q1 headline. 121 pages, 0 undefined refs. All pushed.
+
+## 2026-09-02 — Preface merge, methodology relocation, narrative-voice pass
+
+No experiments run; writing session.
+
+- Pulled 51 commits (f10d05b). Found `acknowledgement.tex` had never been
+  `\include`d in `main.tex`, so the thanks had not compiled since they were written.
+- Merged acknowledgements + preface into one first-person Preface, opened by
+  Morten's original assignment and closed by answering it. Thanks interleaved
+  rather than appended. `acknowledgement.tex` deleted; `HaasHFQD` cite preserved.
+- Moved the drafted methodological argument (scaling, expressivity, intrinsic
+  dimension, PCA intuition) from the preface into the Introduction, correcting
+  three claims on the way: HF/FCI scaling conflated; universal approximation
+  overstated as solvability (contradicted by our own collocation results —
+  representability vs trainability is precisely the gap we measure); "PCA" now
+  named as the QGT participation ratio, consistent with ch:kernel.
+- Killed two live inconsistencies in the preface: "five distinct obstacles" (body
+  has three) and "competing with the best known solutions to date", which had
+  silently undone the 49b0661 calibration pass in the most-read page of the thesis.
+- Voice pass: the guiding register already existed at chapter openings and the
+  "how to read this" paragraphs, and evaporated in section interiors. Extended it
+  into results.tex (pre-table guidance; negative-results framing + a synthesis
+  paragraph naming the estimator-degradation mechanism common to 4 of 5 failures;
+  Wigner-as-instrument framing), discussion.tex (chapter framing + all four
+  section openings), conclusion.tex (opening).
+- 121 pages, 0 undefined refs, 0 undefined citations.

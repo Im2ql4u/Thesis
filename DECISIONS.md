@@ -498,3 +498,56 @@ minimal, document-wide compatibility change.
 **Constraints introduced:** Re-enable font expansion only after confirming that
 all document fonts are scalable under the chosen PDF engine.
 **Confidence:** high
+
+### [2026-09-02] --- Merge acknowledgements into a first-person Preface
+
+**Decision:** Combine `acknowledgement.tex` and `preface.tex` into a single
+first-person Preface in which thanks are interleaved with reflection, and delete
+`acknowledgement.tex`.
+**Alternatives considered:** Keep both as separate front-matter chapters (adding
+the missing `\include` to `main.tex`); or leave the existing essayistic preface
+intact and append the thanks to it.
+**Reasoning:** `acknowledgement.tex` was never included in `main.tex` and so had
+never compiled. The preface additionally carried four competing registers with an
+audible seam. A single merged chapter resolves both, and gives the preface room
+to be personal rather than to duplicate the Introduction's argument.
+**Constraints introduced:** The Haas benchmark citation (`HaasHFQD`) now lives
+only in the preface and must not be dropped from it. Any future front-matter edit
+must keep the personal register out of the Results chapters.
+**Confidence:** high
+
+### [2026-09-02] --- Guiding voice in the body; personal voice only at the frame
+
+**Decision:** Sustain a guiding but impersonal voice ("we", with explicit stakes,
+reader orientation, and stated opinions about physics and method) throughout the
+body chapters, and confine genuinely first-person register to the Preface, the AI
+declaration, the negative-results inventory, and the limitations.
+**Alternatives considered:** A uniformly personal, first-person register across
+the whole thesis, including the Results chapters, as originally requested.
+**Reasoning:** The complaint that motivated this pass was the absence of *stakes*,
+not the absence of the author; `discussion.tex` read as cold because it recited
+its own tables, not because it said "we". A sustained personal register inside
+Results is the one variant that carries real examination risk, and the guiding
+voice delivers the intended effect without it. The body was verified to contain
+zero first-person singular beforehand, so the baseline was already consistent.
+**Constraints introduced:** New body prose should add stakes and reader guidance
+rather than authorial presence; first-person singular in Results requires a
+specific reason (i.e. narrating something that actually happened to the author).
+**Confidence:** medium-high --- register is a matter of taste, and the author may
+prefer to push the personal voice further into the negative-results sections.
+
+### [2026-09-02] --- State universal approximation as representability, not solvability
+
+**Decision:** In the Introduction, frame universal approximation as a statement
+about *representing* a function, explicitly distinguished from *finding* it by
+gradient-based optimisation, and name the gap between the two as an object the
+thesis measures.
+**Alternatives considered:** Retain the drafted claim that machine learning "can
+provably, in principle, solve any problem".
+**Reasoning:** The stronger claim is false as stated and is contradicted by this
+thesis's own collocation results, in which an ansatz demonstrably able to express
+the ground state repeatedly fails to reach it under a given training scheme. The
+corrected framing is both defensible and a better description of the contribution.
+**Constraints introduced:** Any future expressivity claim must separate
+representability from trainability and sample complexity.
+**Confidence:** high

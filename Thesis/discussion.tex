@@ -1,15 +1,33 @@
 \chapter{Discussion}
 \label{ch:discussion}
 
+This chapter asks what the preceding results mean, which is a different question
+from what they are. Four threads run through it, and they are ordered by how much
+interpretation they require: the energies, where an external benchmark does part of
+the arguing for us; the Wigner regime, where the trained state is used as an
+instrument and the burden of proof shifts onto internal consistency; the learned
+representations, where the quantities are informative but partly gauge-dependent
+and must be read with that in mind; and the collocation programme, where the
+central claim---that a Markov chain is not necessary---needs its boundaries drawn
+as carefully as its successes.
+
 \section{Discussion of energy results}
 \label{sec:energy-discussion}
 
-The energy benchmarks in Tables~\ref{tab:Residual} and~\ref{tab:energies}
+The energies are the least interesting result in this thesis and the most necessary
+one. They establish that the ansatz works; everything downstream---every claim about
+what the network learned, every structural diagnostic read off the trained
+state---is worthless if it does not. So the question to press here is not whether
+the numbers are good, but whether they are good \emph{for the right reason}, and
+whether the regimes where no benchmark exists inherit any of that credibility.
+
+The benchmarks in Tables~\ref{tab:Residual} and~\ref{tab:energies}
 show that the Slater--Jastrow PINN, with and without backflow, achieves
 DMC-level accuracy for two-electron dots and maintains sub-$0.1\%$ errors
 for $N\in\{6,12\}$ across a wide range of trap frequencies. At the same
 time, it extrapolates in a controlled way into ultra-weak traps
-($\omega=10^{-3}$) where no DMC data are available.
+($\omega=10^{-3}$) where no DMC data are available. That last clause carries
+the weight, and we return to what it can and cannot support below.
 
 \paragraph{Two electrons: architecture test and SR refinement.}
 For $N{=}2$, residual-only training provides a clean test of the bare
@@ -132,10 +150,19 @@ ultra-classical limit.
 \section{Discussion of the Wigner–molecule regime}
 \label{sec:wigner-discussion}
 
+This is the section in which the network stops being the object of study and
+becomes the apparatus. Everything up to this point asked whether the trained state
+is accurate; here we assume it is and ask what it can be used to see. That shift
+raises the evidential stakes considerably, because it is exactly the regime in which
+no DMC reference exists---so any structural claim has to be carried by internal
+consistency, by agreement between independent diagnostics that could easily have
+disagreed, and by the fact that the answers reproduce known classical topologies
+nobody trained the network to reproduce. The phrase ``strongly correlated'' is a
+label; what follows is an attempt to say something falsifiable instead.
+
 The structural diagnostics in Sec.~\ref{sec:wigner-molecule} show that the
 weakest traps considered place the dots firmly on the Wigner side of the
-crossover, in a sense that goes beyond the loose label ``strongly
-correlated''. Three strands of evidence support this: (i) localization and
+crossover, in a sense that goes beyond that loose label. Three strands of evidence support this: (i) localization and
 energy partitioning, (ii) shell geometry and bond order, and
 (iii) topology statistics and reconstruction of $g(r)$.
 
@@ -258,6 +285,15 @@ the same regimes.
 
 \section{Discussion of learned representations}
 \label{sec:repr-discussion}
+
+There is no guarantee that a trained network organises itself in a way anyone can
+interpret. High-dimensional function approximators are entitled to be
+incomprehensible, and frequently are. So the finding that structures this section is
+genuinely surprising, and worth stating before it is qualified: the internal
+organisation is not merely interpretable but \emph{simple}, and simple in a way that
+matches the physics rather than the parameterisation. The qualification, which
+follows immediately and matters, is that not every quantity we can measure on this
+state is a property \emph{of} the state.
 
 The representation analysis in Sec.~\ref{sec:repr-analysis} reveals a
 surprisingly simple internal organization of the ansatz: the correlator
@@ -432,6 +468,15 @@ fermion systems.
 
 \section{Discussion of collocation-assisted training}
 \label{sec:collocation-discussion}
+
+Of everything in this thesis, the collocation programme is where the claim most
+needs its boundaries drawn before it is stated, because the headline---an accurate
+many-body wavefunction trained with no Markov chain---is the kind of sentence that
+travels further than its evidence. It is also the part that consumed the most time
+and produced the most failures, and the two facts are related: the method works
+within a regime whose edges had to be found by walking off them repeatedly. What
+follows therefore spends as much effort on where the approach breaks, and on the
+precise sense in which ``MCMC-free'' is meant, as on where it succeeds.
 
 The collocation experiments reported in Sec.~\ref{sec:collocation}
 demonstrate that a purely importance-sampled, MCMC-free training pipeline

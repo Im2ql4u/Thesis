@@ -1019,3 +1019,18 @@ title nor the note. Cosmetic (never rendered) but misleading to maintain; renami
 touches 2 cite sites.
 
 Build verified: 121 pages, 0 errors, 0 undefined references or citations.
+
+## 2026-09-03 (cont.) — AI declaration to appendix; preface pruned
+
+- Moved the AI declaration out of the front matter to the end of the appendices.
+  It is now a numbered chapter (Appendix E, p.117) with label `app:ai-declaration`
+  rather than a starred front-matter chapter with a manual `addcontentsline`.
+- Pruned the preface from 1622 to 1291 words. Cuts: the two paragraphs summarising
+  the alignment and Wigner findings (that work belongs to the abstract; a one-line
+  gesture remains); two of the three failure vignettes compressed to a single
+  clause, keeping the importance-sampling bug at full length since it carries the
+  confidence argument; the closing recital of the three ordered decisions removed
+  as Introduction material, leaving only the callback that answers the opening
+  question. Structure, thanks, and the regret/result resolution untouched.
+
+Build verified: 121 pages, 0 errors, 0 undefined references or citations.

@@ -1,18 +1,17 @@
 \chapter*{Introduction}
 
 A system of many interacting electrons is described completely by its wavefunction, and
-placed almost out of reach by it. The Schr\"odinger equation that fixes this wavefunction is
-known exactly; the whole difficulty is one of solving it, because the object it determines
-lives in a space whose dimension grows exponentially with the number of particles. This is the
-\emph{many-body problem}, the point at which quantum mechanics turns from a compact set of
-principles into one of the hardest computational challenges in physics.
+placed almost out of reach by it. #I didint quite understand this sentence
+ The Schr\"odinger equation that fixes this wavefunction is
+known exactly; the whole difficulty is one of solving it.
 
 The competition that makes it hard is physical. Kinetic energy tends to delocalise the
 particles; interactions and external potentials drive localisation and correlation; and the
 balance between them plays out in a configuration space far too large to enumerate. Yet the
 quantities we need---energies, correlation functions, phase boundaries---are precisely the ones
-that depend on getting that balance right, so approximation is unavoidable and its quality is
-everything.
+that depend on getting that balance right. This is the
+\emph{many-body problem}, the point at which quantum mechanics turns from a compact set of
+principles into one of the hardest computational challenges in physics.
 
 A wide range of electronic-structure methods has been developed to address
 this. Mean-field approaches such as Hartree–Fock replace the full many-body
@@ -35,7 +34,7 @@ from the chosen trial nodes, and constructing high-quality trial wavefunctions
 is increasingly difficult as systems become more strongly correlated or
 inhomogeneous. In practice, a large part of the many-body problem becomes the
 problem of choosing an expressive, well-conditioned ansatz and optimising it
-reliably.
+reliably. #proof read
 
 \paragraph{Machine learning and many-body wavefunctions.}
 In parallel with these developments, machine learning—especially deep
@@ -57,28 +56,27 @@ neural networks are used as \emph{variational ans\"atze} for quantum states
 log-probabilities for many-body configurations and is trained by variational
 Monte Carlo.
 
-The appeal of this second use is easy to state and easy to overstate. Universal
+The appeal of this second use is easy to state and easy to overstate #bad sentence. Universal
 approximation results guarantee that a sufficiently large network can
 \emph{represent} any suitably regular function to arbitrary accuracy; they say
 nothing about whether gradient-based optimisation will \emph{find} that
-representation, nor at what sample cost. The distinction is not academic here.
+representation, nor at what sample cost. The distinction is not academic here #strange sentence.
 Much of what follows is a study of the gap between the two: an ansatz that
 demonstrably can express the ground state, placed in a training scheme that
 does---or does not---allow it to get there. Representability is cheap; trainability
 is the entire difficulty.
 
 There is nonetheless a genuine structural argument for the approach, and it is
-worth separating from the overstated one. Deterministic expansions confront the
+worth separating from the overstated one #strange. Deterministic expansions confront the
 dimension of the problem directly: FCI is exact within a finite basis but its cost
 grows combinatorially, so that a modest two-dimensional dot of twenty electrons---forty
-spatial degrees of freedom---is already far beyond reach, while cheaper methods such as
-Hartree--Fock or truncated coupled cluster buy their favourable scaling by fixing in
+spatial degrees of freedom---is already far beyond reach, while cheaper methods such as coupled cluster buy their favourable scaling by fixing in
 advance which correlations may be described. A variational neural ansatz does neither.
 It is not an expansion in a basis whose size must grow with the space, and it imposes no
 prior truncation on which correlations are available; it is a parameterisation that can,
 in principle, concentrate its capacity wherever the solution actually varies. Whether it
 does so in practice is an empirical question, and one this thesis measures rather than
-assumes.
+assumes. #this entire paragraph was badly written
 
 That question also suggests a different way to use a solver. Nearly every
 established method for the many-body Schrödinger equation is constructed outward
@@ -87,7 +85,8 @@ then implemented. A trained network inverts the order. It is obtained largely on
 machine-learning terms, and only afterwards interrogated as to what it has
 represented---and unlike an implicit stochastic representation, it is a concrete
 parameterised object whose internal structure can be examined directly. This
-motivates a question that the exponential dimension of the Hilbert space does not
+motivates a question that the exponential dimension #exponential dimension??
+ of the Hilbert space does not
 by itself settle: how many directions does the \emph{solved state} actually vary
 along? Not the dimension of the equation, but the dimension of the answer.
 

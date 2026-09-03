@@ -25,7 +25,8 @@ $\omega\in\{1.0,\,0.5,\,0.1,\,0.01,\,0.001\}$.
 Three questions organise the chapter. \emph{First, how accurate is the method?}
 Section~\ref{sec:energy-overview} benchmarks the variational energies against
 diffusion Monte Carlo (DMC) wherever a reference exists---for $\omega\ge0.1$---and is
-candid that below it no DMC benchmark is available for $N\ge6$, so the strongly
+candid that below it no DMC benchmark is available for $N\ge6$ #not true at all, we have for N=2-20
+, so the strongly
 correlated energies rest on internal variational consistency rather than an external
 ground truth. \emph{Second, what does the network learn?}
 Section~\ref{sec:repr-analysis} dissects the trained wavefunction's internal
@@ -48,7 +49,7 @@ tail to refine the last digits of the energy. In the residual phase, the
 network initially chooses its own target energy as a stabilizer, before we
 switch to the DMC reference energy (and optionally add a variance penalty).
 The SR phase then uses on the order of $10^3$--$3\times10^3$ iterations with
-batches of $\sim 3{\times}10^3$ samples per iteration.
+batches of $\sim 3{\times}10^3$ samples per iteration. #this is very old, applying SR is ambigous, is it VMC or collocation or what?
 
 We compare two backflow architectures throughout. Both condition each particle's
 displacement on the interparticle coordinates, but they do so differently: the
@@ -91,6 +92,7 @@ matters because it establishes a baseline against which the backflow's later
 contribution, at larger $N$ and weaker traps, can be read as a genuine effect
 rather than as an artefact of having added parameters.
 
+#This table is stupid, we have a duplicate but larger more proper one deeper down do we not? why do we have a separate N=2 case table from the other Ns, move this further down, this isnt a part of the discussion here. it is refrenced twice, as table 1 above, and table 2 below, with two different descriptions
 \begin{table}[h!]
 \centering
 \caption{Ground-state energies (Hartree) for two electrons in a harmonic trap

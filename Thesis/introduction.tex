@@ -1,9 +1,10 @@
 \chapter*{Introduction}
 
-A system of many interacting electrons is described completely by its wavefunction, and
-placed almost out of reach by it. #I didint quite understand this sentence
- The Schr\"odinger equation that fixes this wavefunction is
-known exactly; the whole difficulty is one of solving it.
+A system of many interacting electrons is described completely by its wavefunction.
+The same object puts the system almost out of reach, because a complete description
+of $N$ interacting particles is a function of all their coordinates at once, and the
+space of those coordinates grows with every particle added. The equation that fixes
+this wavefunction is known exactly; the entire difficulty is solving it.
 
 The competition that makes it hard is physical. Kinetic energy tends to delocalise the
 particles; interactions and external potentials drive localisation and correlation; and the
@@ -32,9 +33,9 @@ for continuum systems. However, QMC is not free of difficulties. The fermion
 sign problem limits direct simulations, fixed-node approximations inherit bias
 from the chosen trial nodes, and constructing high-quality trial wavefunctions
 is increasingly difficult as systems become more strongly correlated or
-inhomogeneous. In practice, a large part of the many-body problem becomes the
-problem of choosing an expressive, well-conditioned ansatz and optimising it
-reliably. #proof read
+inhomogeneous. In practice, then, much of the many-body problem reduces to a
+narrower one: choosing an expressive, well-conditioned ansatz and optimising it
+reliably.
 
 \paragraph{Machine learning and many-body wavefunctions.}
 In parallel with these developments, machine learning—especially deep
@@ -56,27 +57,27 @@ neural networks are used as \emph{variational ans\"atze} for quantum states
 log-probabilities for many-body configurations and is trained by variational
 Monte Carlo.
 
-The appeal of this second use is easy to state and easy to overstate #bad sentence. Universal
-approximation results guarantee that a sufficiently large network can
-\emph{represent} any suitably regular function to arbitrary accuracy; they say
-nothing about whether gradient-based optimisation will \emph{find} that
-representation, nor at what sample cost. The distinction is not academic here #strange sentence.
-Much of what follows is a study of the gap between the two: an ansatz that
-demonstrably can express the ground state, placed in a training scheme that
-does---or does not---allow it to get there. Representability is cheap; trainability
-is the entire difficulty.
+One argument for this second use is routinely overstated, and it is worth
+disposing of first. Universal approximation results guarantee that a sufficiently
+large network can \emph{represent} any suitably regular function to arbitrary
+accuracy. They say nothing about whether gradient-based optimisation will
+\emph{find} that representation, nor at what sample cost. This thesis measures that
+gap directly: the same ansatz, demonstrably able to express the ground state, is
+placed in training schemes that do and do not allow it to get there. Representability
+is cheap; trainability is the difficulty.
 
-There is nonetheless a genuine structural argument for the approach, and it is
-worth separating from the overstated one #strange. Deterministic expansions confront the
-dimension of the problem directly: FCI is exact within a finite basis but its cost
-grows combinatorially, so that a modest two-dimensional dot of twenty electrons---forty
-spatial degrees of freedom---is already far beyond reach, while cheaper methods such as coupled cluster buy their favourable scaling by fixing in
-advance which correlations may be described. A variational neural ansatz does neither.
-It is not an expansion in a basis whose size must grow with the space, and it imposes no
-prior truncation on which correlations are available; it is a parameterisation that can,
-in principle, concentrate its capacity wherever the solution actually varies. Whether it
-does so in practice is an empirical question, and one this thesis measures rather than
-assumes. #this entire paragraph was badly written
+A weaker but sounder argument survives that objection. Established methods pay for
+accuracy in one of two currencies. FCI is exact within a finite basis, but its cost
+grows combinatorially with that basis, so a modest two-dimensional dot of twenty
+electrons is already far beyond reach. Cheaper methods such as coupled cluster buy
+their favourable scaling instead by deciding in advance which correlations may be
+described at all.
+
+A variational neural ansatz pays in neither currency. It is not an expansion whose
+size must grow with the space it covers, and it fixes no prior truncation on which
+correlations are available. It is a parameterisation free, in principle, to
+concentrate its capacity wherever the solution actually varies. Whether it does so in
+practice is an empirical question, and this thesis treats it as one.
 
 That question also suggests a different way to use a solver. Nearly every
 established method for the many-body Schrödinger equation is constructed outward
@@ -85,10 +86,12 @@ then implemented. A trained network inverts the order. It is obtained largely on
 machine-learning terms, and only afterwards interrogated as to what it has
 represented---and unlike an implicit stochastic representation, it is a concrete
 parameterised object whose internal structure can be examined directly. This
-motivates a question that the exponential dimension #exponential dimension??
- of the Hilbert space does not
-by itself settle: how many directions does the \emph{solved state} actually vary
-along? Not the dimension of the equation, but the dimension of the answer.
+motivates a question that the size of the problem does not by itself settle. A
+twenty-electron dot is a function of forty coordinates, and any basis expansion of it
+grows combinatorially---but it does not follow that the solution itself is
+forty-dimensional in any useful sense. How many directions does the \emph{solved
+state} actually vary along? Not the dimension of the equation, but the dimension of
+the answer.
 
 We make that question quantitative through the geometry of the wavefunction's
 log-derivatives. Perturbing the parameters of a trained ansatz over an ensemble of

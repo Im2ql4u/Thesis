@@ -24,11 +24,12 @@ $\omega\in\{1.0,\,0.5,\,0.1,\,0.01,\,0.001\}$.
 
 Three questions organise the chapter. \emph{First, how accurate is the method?}
 Section~\ref{sec:energy-overview} benchmarks the variational energies against
-diffusion Monte Carlo (DMC) wherever a reference exists---for $\omega\ge0.1$---and is
-candid that below it no DMC benchmark is available for $N\ge6$ #not true at all, we have for N=2-20
-, so the strongly
-correlated energies rest on internal variational consistency rather than an external
-ground truth. \emph{Second, what does the network learn?}
+published reference values wherever one exists---diffusion Monte Carlo (DMC) for
+$N\le12$, and the tabulated $N=20$ energies of Haas~\cite{HaasHFQD}, which are not
+DMC and are treated as the weaker benchmark they are. Those references reach down to
+$\omega=0.1$ for every $N$, and for $N{=}2$ to $\omega=0.01$; below that no published
+value exists for $N\ge6$, so the strongly correlated energies rest on internal
+variational consistency rather than on an external ground truth. \emph{Second, what does the network learn?}
 Section~\ref{sec:repr-analysis} dissects the trained wavefunction's internal
 representation---a strikingly low-dimensional correlator whose \emph{content}, but
 not its dimensionality, reorganises across regimes, alongside a backflow field that
@@ -49,7 +50,13 @@ tail to refine the last digits of the energy. In the residual phase, the
 network initially chooses its own target energy as a stabilizer, before we
 switch to the DMC reference energy (and optionally add a variance penalty).
 The SR phase then uses on the order of $10^3$--$3\times10^3$ iterations with
-batches of $\sim 3{\times}10^3$ samples per iteration. #this is very old, applying SR is ambigous, is it VMC or collocation or what?
+batches of $\sim 3{\times}10^3$ samples per iteration. Throughout this section---and
+wherever else the thesis says ``SR tail'' without further qualification---SR is applied
+to \emph{variational Monte Carlo with $|\Psi|^2$ sampling}. This matters because the
+same optimiser is used again in Section~\ref{sec:collocation} on the collocation
+objective, where the sampling measure differs and SR consequently behaves differently:
+here it is a refinement that buys the last digits, there it is what makes the
+optimisation viable at all (Chapter~\ref{ch:kernel}, Q2).
 
 We compare two backflow architectures throughout. Both condition each particle's
 displacement on the interparticle coordinates, but they do so differently: the
@@ -92,13 +99,14 @@ matters because it establishes a baseline against which the backflow's later
 contribution, at larger $N$ and weaker traps, can be read as a genuine effect
 rather than as an artefact of having added parameters.
 
-#This table is stupid, we have a duplicate but larger more proper one deeper down do we not? why do we have a separate N=2 case table from the other Ns, move this further down, this isnt a part of the discussion here. it is refrenced twice, as table 1 above, and table 2 below, with two different descriptions
 \begin{table}[h!]
 \centering
-\caption{Ground-state energies (Hartree) for two electrons in a harmonic trap
-using \emph{residual-only} training. DMC references from
-\cite{Pederiva2000-QD-DMC}. Parentheses
-denote $1\sigma$ on the last digits.}
+\caption{Ground-state energies (Hartree) for two electrons in a harmonic trap using
+\emph{residual-only} training---that is, \emph{without} the SR tail. To be read against
+Table~\ref{tab:energies}, which reports the same systems after SR refinement: the
+comparison isolates what pretraining alone achieves, and the residual bias at
+$\omega=0.01$ visible here is the one the SR tail removes. DMC references from
+\cite{Pederiva2000-QD-DMC}. Parentheses denote $1\sigma$ on the last digits.}
 \label{tab:Residual}
 \begin{tabular}{c c c c}
 \hline

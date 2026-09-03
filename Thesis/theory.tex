@@ -11,8 +11,7 @@ wavefunctions. Finally, we discuss Full Configuration Interaction (FCI), which p
 exact solution to the many-body problem within a finite basis set, and Variational Monte
 Carlo (VMC), a stochastic method for approximating ground-state properties. The following
 chapter then shifts to machine learning---statistical learning theory, optimisation, neural
-networks, and physics-informed neural networks---providing the underpinnings for how these
-methods apply to quantum many-body problems. #abundant writing
+networks, and physics-informed neural networks.
 
 \section{Mathematical Foundations}
 At the center of quantum mechanics lies a rich mathematical framework built upon linear algebra and functional analysis. This section introduces the essential mathematical concepts and notations that underpin quantum theory, including Dirac notation, operators, Hilbert spaces, and the representation of quantum states and observables.
@@ -789,9 +788,15 @@ traditionally categorized as:
   observations and rewards. The task is to learn a policy that maximizes expected 
   cumulative reward.  
 \end{itemize}
-Although reinforcement learning plays a minor role in this thesis, supervised and 
-unsupervised perspectives provide the theoretical foundation for the 
-physics-informed approaches discussed later.  #we use unsupervised? when?
+Both of the first two categories appear in this thesis, and it is worth saying where.
+The training objectives that carry the bulk of the work---the Schr\"odinger residual and
+the variational energy---are \emph{unsupervised}: there are no labelled targets anywhere,
+and the loss is supplied entirely by the physics the network is asked to satisfy. The one
+genuinely \emph{supervised} ingredient is the second phase of residual pretraining, in
+which a published reference energy is used as an explicit target; the first phase, where
+the network sets its own target as a stabiliser, is better described as self-supervised.
+Reinforcement learning enters only obliquely---the REINFORCE estimator used for the
+collocation gradient is borrowed from it---and is not otherwise used.
 
 \subsection{Generalisation and the bias--variance tradeoff}
 The essential challenge in ML is not just minimizing the empirical risk 

@@ -978,3 +978,44 @@ explicit PATH env.
 **TODO:** `.vscode/tasks.json` is Windows-only (`cmd.exe`, MiKTeX paths) and
 arrived with this pull; Cmd+Shift+B fails on macOS. Proper fix is VS Code's
 per-platform `osx`/`windows` task overrides rather than swapping the paths.
+
+## 2026-09-03 — Editorial comment pass
+
+Pulled bf3614b. Twelve inline editorial comments were marked with bare `#`, which
+is LaTeX's macro-parameter character: every one threw an error and mangled the
+text following it on that line. All resolved and removed; build is back to zero
+errors.
+
+**Introduction (6).** Unpacked the opening paradox so the second "it" has a clear
+referent; removed "the problem becomes the problem"; replaced the mannered "easy
+to state and easy to overstate"; removed "not academic here" (an unintended pun in
+an academic thesis); split the overloaded FCI/CC/neural-ansatz paragraph in two;
+and corrected "the exponential dimension of the Hilbert space", which imported
+discrete-basis language into a continuum problem.
+
+**Results (3).** The "no DMC benchmark below omega=0.1 for N>=6" claim was correct
+as written and is kept, but the surrounding sentence wrongly described all
+references as DMC — the N=20 values are from Haas, not DMC, and are now labelled
+as the weaker benchmark they are. Disambiguated the SR tail as |Psi|^2-sampled VMC,
+with a forward pointer to the collocation case where the same optimiser behaves
+oppositely. Table 1 (residual-only) is kept rather than deleted as a duplicate: it
+is a different experiment from Table 2, and the omega=0.01 bias visible in it is
+the evidence for the SR-tail argument in discussion.tex. Its caption now says so.
+
+**Theory (2).** Trimmed the roadmap sentence; replaced the unearned "supervised and
+unsupervised perspectives" claim with a concrete statement of where each actually
+appears (unsupervised residual/variational objectives; supervised only in the
+second pretraining phase; self-supervised in the first; RL only via REINFORCE).
+
+**Bibliography.** The HaasHFQD `note` claimed "correlated-level (DMC-quality)
+reference energies", which the entry's own title (a neural-quantum-states thesis)
+does not support. Rewritten to state only what is known: Haas is the source of the
+N=20 values, and the N<=12 DMC values are cited to Pederiva et al. as the original
+source. Per author instruction, the Haas acknowledgement was removed from the
+preface.
+
+**TODO:** the bib key `HaasHFQD` still implies Hartree-Fock and matches neither the
+title nor the note. Cosmetic (never rendered) but misleading to maintain; renaming
+touches 2 cite sites.
+
+Build verified: 121 pages, 0 errors, 0 undefined references or citations.

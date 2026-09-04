@@ -1096,3 +1096,46 @@ be the first removed); British/American standardisation (parameteriz- 11 vs 4,
 initializ- 33 vs 13 are the real offenders; the centre/center count is inflated by
 LaTeX \centering and is smaller than it appears); "apparatus" appears twice, not
 three times -- keep the preface instance, make the discussion one direct.
+
+## 2026-09-04 (cont.) — Reviewer Tier 2: repetition, register, spelling
+
+**Rhetorical register halved.** worth 20 -> 10, honest 7 -> 2, "not merely" 12 -> 9,
+precisely 17 -> 16. Cut the "it is worth X-ing" and self-labelling-as-honest
+constructions; kept the instances where the word carries meaning ("questions worth a
+thesis", "worth its cost", "not merely the same energy", "fails precisely in the
+regime where the correction was supposed to help"). Of the cuts, the majority were
+introduced by this project's own voice pass on 2026-09-02 and were removed first.
+Notable: "What follows is an honest inventory" -> "We report the successful and the
+failed variants together, because the failures identify which assumptions are
+load-bearing"; "One point of honesty about that reference is worth stating plainly"
+-> "Every relative error in this chapter depends on that reference, and an external
+DMC benchmark exists only for omega>=0.1."
+
+**Gauge caveat: one full explanation, pointers elsewhere.** The canonical derivation
+stays in results_kernel `sec:synthesis`, where the path-dependence is actually
+established. results.tex keeps a compact in-situ statement (that section is entirely
+component-level measurement, so it needs one) and the two full re-explanations in
+discussion.tex become cross-references.
+
+**"The network becomes the apparatus"** now appears once, in the preface. The
+discussion instance is direct: "Having established the wavefunction's accuracy
+wherever a benchmark exists, we now use it to probe Wigner-molecule structure."
+
+**Langevin discussion** 274 -> 174 words: mechanism stated once, experimental detail
+left to the results section that already reports it.
+
+**Conclusion middle** 769 -> 638 words (chapter 1140 -> 1009); the opening, the
+limitations paragraph, and the final alignment paragraph are preserved intact, as
+they are the strongest parts.
+
+**Spelling standardised to British** (52 changes) with LaTeX protected: `\begin{center}`,
+`\centering`, `\label{}`/`\ref{}`/`\cite{}` and `\texttt{}` were excluded from
+substitution. Remaining American forms are all label identifiers, which are never
+rendered and whose renaming would risk breaking cross-references. "centering" is left
+as-is where it names the numerical operation (method.tex 439/523), which is standard in
+both variants -- and note that "batchwise centering of O" there is a genuine batch
+operation, distinct from the per-configuration COM mean corrected on 2026-09-04.
+
+Build: 121 pages, 0 errors, 0 undefined references or citations.
+
+**Not done, by author decision:** Chapter 2 (Machine Learning) remains at full length.

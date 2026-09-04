@@ -3,8 +3,8 @@
 
 This thesis set out from a single question---what does it actually take to solve
 the many-body Schr\"odinger equation with a neural network, and what has the network
-understood once it has---and it is worth recording that the most durable answers
-came from the places where the attempt failed. The quantum-dot benchmarks served a
+understood once it has---and the most durable answers came from the places where the
+attempt failed. The quantum-dot benchmarks served a
 dual purpose throughout: they test the numerical stability and expressivity of the
 Slater--Jastrow PINN+backflow ansatz, and they provide a controlled setting in which
 to study Wigner-molecule formation and the internal representations learned by the
@@ -12,80 +12,66 @@ network. What follows separates what has been demonstrated from what has been
 observed, and both from what has merely been made plausible; that separation is
 itself one of the results.
 
-On the \emph{energy} side, the results in Sec.~\ref{sec:energy-discussion}
-show that a single, trap-unit–normalised architecture with soft-core pair
-features and an explicit cusp achieves DMC-level accuracy for two-electron
-dots and maintains sub-$0.1\%$ relative errors for $N\in\{6,12\}$ across
-$\omega\in\{0.1,0.5,1.0\}$. The same setup extrapolates smoothly to
-ultra-weak traps at $\omega=10^{-3}$, where no DMC data are available, with
-internal consistency checks (scaling exponents, virial ratios and structural
-diagnostics) supporting the reliability of the resulting variational
-predictions. Crucially, these accuracies are obtained with a relatively
-modest SR tail on top of a residual-based pretraining stage, emphasizing that
+On the \emph{energy} side, a single trap-unit-normalised architecture with soft-core
+pair features and an explicit cusp reaches DMC-level accuracy for two-electron dots and
+holds sub-$0.1\%$ relative errors for $N\in\{6,12\}$ across $\omega\in\{0.1,0.5,1.0\}$
+(Sec.~\ref{sec:energy-discussion}). It extrapolates smoothly to $\omega=10^{-3}$, where
+no DMC data exist and internal checks---scaling exponents, virial ratios, structural
+diagnostics---carry the reliability of what are then variational predictions. These
+accuracies come from a modest SR tail on residual-based pretraining, which says that
 conditioning and inductive bias matter at least as much as raw sample count.
 
-On the \emph{structural} side, Sec.~\ref{sec:wigner-molecule} establishes that
-the weak-trap states develop bona fide Wigner-molecule structure rather than being
-vaguely ``strongly correlated'' dots. (Throughout, $N_\uparrow=N_\downarrow$ is held
-fixed and total-spin sectors are not scanned, so these are statements about the
-studied spin-projection sector, not a claim to have settled the global spin ordering.) As $\omega$ decreases, all three systems
-$(N=2,6,12)$ undergo a smooth crossover in which (i) radii and localization
-ratios evolve towards large, stiff configurations, (ii) the energy
-partitioning approaches the nearly classical virial form
-$V_{\rm int}\approx 2V_{\rm trap}$, and (iii) shell structures and bond
-orders emerge that match classical Coulomb-cluster topologies. For $N{=}6$,
-the dot forms a single rotating Wigner ring with a quantum mixture of
-$(1,5)$ and $(0,6)$ sectors; for $N{=}12$, a robust two-shell Wigner molecule
-with a commensurate $(3,9)$ split becomes modal. Shell-resolved
-reconstructions of $g(r)$ show that the full pair structure decomposes cleanly
-into these topologies and their combinatorics, with cosine similarities
-$\approx 1$ between reconstructed and global $g(r)$ (a decomposition check; sampling
-correctness rests on the independent restart and chain diagnostics).
+On the \emph{structural} side, the weak-trap states develop bona fide Wigner-molecule
+structure rather than being vaguely ``strongly correlated'' dots
+(Sec.~\ref{sec:wigner-molecule}). As $\omega$ falls, all three systems $(N=2,6,12)$ cross
+over smoothly: radii and localisation ratios move toward large stiff configurations, the
+energy partitioning approaches the classical virial form $V_{\rm int}\approx 2V_{\rm
+trap}$, and shell structures and bond orders emerge that match classical Coulomb-cluster
+topologies---a single rotating ring mixing $(1,5)$ and $(0,6)$ at $N{=}6$, a modal
+two-shell $(3,9)$ molecule at $N{=}12$. Shell-resolved reconstructions of $g(r)$ recover
+the global pair structure from shell geometry and combinatorics alone (a decomposition
+check; sampling correctness rests on the independent restart and chain diagnostics).
+Throughout, $N_\uparrow=N_\downarrow$ is held fixed and total-spin sectors are not
+scanned, so these are statements about the studied spin-projection sector rather than a
+claim to have settled the global spin ordering.
 
-On the \emph{representation} side, Sec.~\ref{sec:repr-discussion} shows that
-this rich real-space physics is carried by a remarkably simple latent geometry.
-The correlator $W_\theta$ lives on a low-dimensional manifold
-($r_{\rm eff}(Z)\sim 1\text{--}2$) whose leading axes behave as collective
-coordinates for global size and radial fluctuations, with finer angular and
-topological information held in conditional distributions on that manifold; the
-identity of the leading axis shifts across regimes in a
-$\phi\leftrightarrow\psi$ recomposition rather than by growing in dimension.
-The backflow, by contrast, realises a high-dimensional displacement field whose
-energetic leverage sits in near-field configurations at intermediate traps. One
-earlier reading of the weak-trap limit---that the optimiser simply ``switches
-backflow off''---proves to be architecture-specific, and is corrected here: it is the
-\emph{conventional} backflow that collapses to a single collective mode
-(rank $\to 1$) at the Wigner crystal---its single round of pairwise messages failing to
-sustain the relative displacement the crystal demands---whereas the copresheaf
-message-passing backflow retains full rank and keeps its accuracy there
-(Chapter~\ref{ch:kernel}). How these internal numbers should be read is itself a
-result: quantities split between the Jastrow and the backflow are gauge-like, fixed by
-the training route rather than the state, so the load-bearing conclusions rest on the
-invariants---energy, overlap, and ablation---not on the component ranks themselves.
+On the \emph{representation} side, that real-space richness is carried by a strikingly
+simple latent geometry (Sec.~\ref{sec:repr-discussion}). The correlator occupies one to
+two effective directions whose leading axes act as collective coordinates for global size
+and radial fluctuation, with angular and topological information held in conditional
+distributions on them; across regimes the leading axis changes identity in a
+$\phi\leftrightarrow\psi$ recomposition rather than growing in dimension. The backflow
+is by contrast a high-dimensional displacement field whose energetic leverage sits in
+near-field configurations at intermediate traps. One earlier reading---that the optimiser
+simply switches backflow off---proves architecture-specific and is corrected here: it is
+the \emph{conventional} backflow that collapses to a single collective mode at the Wigner
+crystal and loses accuracy, its single round of pairwise messages failing to sustain the
+relative displacement the crystal demands, while the copresheaf message-passing backflow
+holds full rank and its accuracy. How these internal numbers may be read is itself a
+result: component-level quantities are gauge-like, so the load-bearing conclusions rest on
+the invariants---energy, overlap, ablation---not on the ranks.
 
-On the \emph{method} side, reading the ansatz through its tangent kernel
-(Chapter~\ref{ch:kernel}) connects these observations to the design choices that
-produced them. Message passing earns its cost by supplying a relational channel: it
-compresses the correlator onto fewer effective tangent directions and sustains a
-full-rank backflow where a separable network cannot, and at the Wigner crystal the
-inter-particle messages account for essentially the entire backflow contribution. The
-sharper statement is about physical structure, not dimension count: message passing keeps
-the correlator's leading tangent modes aligned with the physical collective modes of the
-Hamiltonian, whereas a separable network reaches the same energy while leaving nearly half its tangent
-capacity along directions a compact physical dictionary does not resolve (a direction outside
-the dictionary need not be unphysical; the robust statement is that the CTNN's tangent space is
-far more completely accounted for by a small set of physical operators than the DeepSet's). That
-gap is intrinsic and present at every confinement, disguised at strong confinement only because
-correlation is then a small slice of the energy; and it appears coupled to the backflow, since
-the correlator's loss of alignment and the backflow's rank collapse set in at the same
-confinement---evidence for a common relational bottleneck rather than proof of a single deficit.
-Natural-gradient (SR) preconditioning helps in proportion to how ill-conditioned the
-tangent metric is---little for $|\Psi|^2$-sampled VMC, decisively for the collocation
-objective---and the same conditioning story explains why an MCMC-free,
-importance-sampled collocation scheme equals VMC when its sampling is healthy and, with
-a proposal built from the Wigner shell itself, reaches a genuine Wigner molecule at
-$\omega=0.0035$ with no Markov chain in the gradient optimisation (checkpoint selection and
-final certification use MCMC).
+On the \emph{method} side, the tangent kernel connects these observations to the design
+choices that produced them (Chapter~\ref{ch:kernel}). Message passing earns its cost by
+supplying a relational channel: it compresses the correlator onto fewer effective tangent
+directions and sustains a full-rank backflow where a separable network cannot, and at the
+crystal the inter-particle messages account for essentially the entire backflow
+contribution. The sharper statement concerns physical structure rather than dimension
+count---message passing keeps the correlator's leading tangent modes aligned with the
+Hamiltonian's collective modes, whereas a separable network reaches the same energy with
+much of its tangent capacity along directions a compact physical dictionary does not
+resolve. That gap is present at every confinement, disguised at strong confinement only
+because correlation is then a small slice of the energy; and it appears coupled to the
+backflow, since the correlator's loss of alignment and the backflow's rank collapse set in
+at the same confinement and shift together under a correlator swap, supporting a common
+relational bottleneck. Natural-gradient preconditioning helps in proportion to how
+ill-conditioned the tangent metric is, so long as that metric stays estimable---little for
+$|\Psi|^2$-sampled VMC, decisively for collocation, and harmfully once importance
+sampling collapses. The same conditioning story explains why an MCMC-free,
+importance-sampled scheme equals VMC while its sampling is healthy and, with a proposal
+built from the Wigner shell itself, reaches a genuine Wigner molecule at $\omega=0.0035$
+with no Markov chain in the gradient optimisation (checkpoint selection and final
+certification use MCMC).
 
 \paragraph{Limitations and outlook.} Three limits bound these conclusions. External
 ground truth reaches only to $\omega=0.1$; below it the accuracy statements are internal

@@ -211,7 +211,7 @@ This choice cleanly separates (i) amplitude reweighting within nodal pockets (ha
 short-range gates so that $\partial \Delta_\beta/\partial \tilde r$ stays bounded;
 (ii) \emph{Permutation symmetry:} permutation equivariance holds by construction (shared
 maps and symmetric aggregation);
-(iii) \emph{Close to identity at initialization:} a zero-initialised last layer and a
+(iii) \emph{Close to identity at initialisation:} a zero-initialised last layer and a
 positive learnable scale keep $\Delta_\beta\!\approx\!0$ at the start.
 Rotational symmetry, by contrast, is only \emph{approximate}: the displacement head reads
 out a $d$-vector from node features that include the raw coordinates, so the map is not
@@ -280,7 +280,7 @@ single copresheaf round; the message-passing \emph{correlator} of the architectu
 comparison (\texttt{CTNNJastrowVCycle}) iterates the same style of update over a down/up
 ``V-cycle''.
 
-\subsection{Shared output, scaling, and initialization}
+\subsection{Shared output, scaling, and initialisation}
 Both variants take inputs in trap units ($\tilde{\mathbf x}=\sqrt{\omega}\,\mathbf x$),
 bound the displacement, and start at the Slater nodes,
 \begin{equation}
@@ -289,7 +289,7 @@ bound the displacement, and start at the Slater nodes,
   \label{eq:bf-bound-scale}
 \end{equation}
 with the last linear layer ($\psi_\beta$ or $W_{\!\Delta}$) zero-initialised so that
-$\Delta_\beta\!\approx\!0$ initially. Empirically this parameterization stabilises the
+$\Delta_\beta\!\approx\!0$ initially. Empirically this parameterisation stabilises the
 SR/energy tails and protects the Laplacian.
 
 \subsection{Short-range behaviour and gates}
@@ -309,7 +309,7 @@ Either choice keeps the learned response smooth at coalescence and limits the BF
 
 \subsection{Symmetries and COM neutrality}
 Permutation symmetry is automatic (pairwise messages and symmetric aggregation).
-To avoid a spurious center-of-mass (COM) drift, we project the flow to zero mean:
+To avoid a spurious centre-of-mass (COM) drift, we project the flow to zero mean:
 \begin{equation}
   \Delta_\beta \;\leftarrow\; \Delta_\beta \;-\; \frac{1}{N}\sum_{i=1}^N \Delta_{\beta,i}.
   \label{eq:bf-com}
@@ -324,12 +324,12 @@ small residual COM drift seen in ablations.}
 Because only $\mathrm{SD}$ is evaluated at $\tilde R'$, backflow changes the \emph{nodes} but leaves the correlator exponent on $\tilde R$. No Jacobian term is introduced (we are not performing a change of variables of the full wavefunction).
 This ``Feynman--Cohen style'' design targets fixed-node error directly while keeping the amplitude model simple and smooth.
 
-\subsection{Regularization, initialization, and cost}
+\subsection{Regularization, initialisation, and cost}
 We found the following defaults robust across $(N,\omega)$:
 (i) $\varepsilon\in[10^{-6},10^{-4}]$ (trap units) for the soft norm;
-(ii) bounded output $\tanh$ with a learnable scale $s_\beta$ initialized in $[0.02,0.10]$;
+(ii) bounded output $\tanh$ with a learnable scale $s_\beta$ initialised in $[0.02,0.10]$;
 (iii) optional gate $\chi_{\rm bf}$ with $r_g\approx 0.3$ (trap units).
-Zero-initializing the last layer of $\psi_\beta$ makes the ansatz start exactly at the Slater nodes and improves optimiser stability.
+Zero-initialising the last layer of $\psi_\beta$ makes the ansatz start exactly at the Slater nodes and improves optimiser stability.
 The compute/memory cost scales as $O\!\big(BN^2(d+H)\big)$ for batch size $B$ and hidden width $H$.
 
 \subsection{Mapping to implementation}
@@ -391,7 +391,7 @@ Batch      & collocation    & $n_{\rm coll}\sim3\times10^3$, oversample $m=8$--$
 \section{Primary objective and two–stage training}
 \label{sec:opt-overview}
 
-Given a parameterized wavefunction $\Psi_\theta$, the variational ground–state energy is
+Given a parameterised wavefunction $\Psi_\theta$, the variational ground–state energy is
 \begin{equation}
 E(\theta)
 =\frac{\langle\Psi_\theta|H|\Psi_\theta\rangle}{\langle\Psi_\theta|\Psi_\theta\rangle}
@@ -449,12 +449,12 @@ In a many–body fermionic system, \emph{which} particle indices are close is ir
 \subsection{Stratified capped–simplex mixture}
 We draw collocation batches $X\in\mathbb{R}^{B\times N\times d}$ from a five–component mixture,
 \[
-\text{\small(center, tails, mixed, shells, dimers)},
+\text{\small(centre, tails, mixed, shells, dimers)},
 \]
 with nonnegative weights $w\in\Delta^4$ projected to a \emph{capped simplex} $\{\,w:\, \sum_k w_k=1,\ 0\le w_k\le 0.3\,\}$ to enforce coverage (code: \texttt{\_project\_simplex\_with\_caps}).
 Each component proposes $x$ as follows (all in physical units; the code internally scales by $a_{\rm ho}=1/\sqrt{\omega}$):
 \begin{itemize}
-  \item \textbf{Center:} narrow isotropic Gaussian around the trap center (samples near the density core).
+  \item \textbf{Centre:} narrow isotropic Gaussian around the trap centre (samples near the density core).
   \item \textbf{Tails:} wide Gaussian (probes low–density outskirts and large–$r$ behaviour).
   \item \textbf{Mixed:} hybrid batches mixing narrow and moderate spreads per configuration (tests robustness to inhomogeneous spreads).
   \item \textbf{Shells:} points placed on $K$ hyperspherical shells with trap–scaled radii $\{r_k\}$ and occupancy $\{q_k\}$, with small radial/tangential jitter (captures ring/shell order at weak traps).
@@ -500,7 +500,7 @@ We support three Laplacian backends:
 \begin{enumerate}
   \item \textbf{Exact:} chunked second partials (reference–accurate, heavier).
   \item \textbf{HVP–Hutchinson:} $\Delta \log\Psi = \mathbb{E}_v[v^\top H_{\log\Psi} v]$ with Rademacher $v$ (fast and stable; fallback to FD if a probe is non–finite).
-  \item \textbf{FD–Hutchinson:} centered finite differences of directional gradients (robust in corner cases; slightly noisier).
+  \item \textbf{FD–Hutchinson:} centred finite differences of directional gradients (robust in corner cases; slightly noisier).
 \end{enumerate}
 We average a small number of probes (2–16 in ablations), and trim quantiles before forming losses.
 
@@ -520,7 +520,7 @@ and approximates a natural–gradient step by solving $(S+\lambda I)\Delta\theta
 quantum geometric tensor $S$ of~\S\ref{sec:theory-tangent-kernel}.
 Implementation details:
 \begin{itemize}
-  \item \textbf{Centering/whitening.} We center $O$ per batch and whiten by the diagonal of $S$ before CG to improve conditioning.
+  \item \textbf{Centering/whitening.} We centre $O$ per batch and whiten by the diagonal of $S$ before CG to improve conditioning.
   \item \textbf{Trust region.} The final step is scaled to satisfy a maximum parameter norm (code: \texttt{max\_param\_step}).
   \item \textbf{Damping.} A small $\lambda$ (code: \texttt{damping}) stabilizes low–variance directions.
 \end{itemize}
@@ -543,8 +543,8 @@ in conditioning and in the collocation regime, which is the subject of
 \section{Sampling paradigms and the weak-form collocation objective}
 \label{sec:method-collocation}
 The pipeline above draws its batches from an analytic proposal rather than a Markov
-chain, and it is worth making the choice of \emph{sampling measure} explicit, because
-the results treat it as a variable in its own right. Two paradigms appear in this
+chain, so the choice of \emph{sampling measure} must be stated explicitly: the results
+treat it as a variable in its own right. Two paradigms appear in this
 thesis. In \emph{variational Monte Carlo} (VMC) the batch is drawn from
 $|\Psi_\theta|^2$ itself, usually by a Metropolis chain, so the estimators of the QGT
 and of the gradient share the very metric they are meant to precondition. In
@@ -721,7 +721,7 @@ in line with shell-based descriptions in~\cite{schweigert1994spectralpropertiesc
 \subsection{Orientational order and “ring stiffness”}
 \label{subsec:orient}
 
-On each detected ring (inner or outer) we center the mean angle to remove global rotations and define 
+On each detected ring (inner or outer) we centre the mean angle to remove global rotations and define 
 angles $\{\phi_k\}_{k=1}^n$.
 Bond‐orientational order is
 \begin{equation}

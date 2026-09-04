@@ -45,7 +45,7 @@ topologies, angular order, and melting---from $N{=}2$ up to $N{=}20$.
 \section{Training protocol and energy overview}
 \label{sec:energy-overview}
 Unless otherwise stated, we first apply residual-based pretraining to obtain a
-well-conditioned initializer, and then run a Stochastic Reconfiguration (SR)
+well-conditioned initialiser, and then run a Stochastic Reconfiguration (SR)
 tail to refine the last digits of the energy. In the residual phase, the
 network initially chooses its own target energy as a stabilizer, before we
 switch to the DMC reference energy (and optionally add a variance penalty).
@@ -77,8 +77,7 @@ per-particle weights.
 \subsection{Energies}
 
 The tables in this section are the thesis's only contact with an external ground
-truth, and it is worth being explicit about what to look for in them before the
-digits arrive. Two things matter, and neither is the raw energy. The first is
+truth. Two things matter in them, and neither is the raw energy. The first is
 \emph{where the agreement holds}: a method that matches DMC at $\omega=1$ and
 drifts at $\omega=0.1$ is a different object from one that holds across the whole
 benchmarked range, because the physics changes character between those points while
@@ -237,21 +236,15 @@ to cooperating tightly at moderate-to-weak correlation, with a sharp transition 
 that coincides with the physical crossover in $\Gamma = V_{\mathrm{int}}/T$ (\S\ref{sec:repr-coupling}).
 
 \paragraph{How these quantities should be read.}
-One caveat frames everything that follows, and it is better stated plainly than
-discovered later. The Jastrow and the backflow are partial substitutes---correlation
-that one does not capture, the other can---so how the labour is divided between them
-is a soft, almost flat direction of the loss, settled by the training route rather
-than by the state itself. Quantities that live on a single component---the backflow's
-rank and displacement magnitude, the per-branch loadings, the coupling between the
-two networks---are therefore \emph{gauge-like} in the precise sense developed in
-Chapter~\ref{ch:kernel}: reproducible and meaningful for a given trained model, but
-descriptive of how \emph{this} network chose to organise itself, not of an invariant
-that every optimal ansatz must share. The invariant backbone---total energy, state
-overlap, and the energetic price of ablating a component---is the business of the
-companion chapter. Read in that light, the anatomy below is not weakened by being
-gauge-dependent; it is a faithful dissection of one high-quality solution, and the
-regularities it shows across regimes are the more telling for being ones the network
-was free \emph{not} to adopt.
+One caveat frames everything that follows. The Jastrow and the backflow are partial
+substitutes, so how the labour is divided between them is a nearly flat direction of
+the loss, settled by the training route rather than by the state. Quantities living on
+a single component---the backflow's rank and displacement magnitude, the per-branch
+loadings, the coupling between the two networks---are therefore \emph{gauge-like};
+\S\ref{sec:synthesis} establishes why, and the invariants are energy, state
+overlap, and ablation. The anatomy below is not weakened by this: it is a faithful
+dissection of one high-quality solution, and the regularities it shows are the more
+telling for being ones the network was free \emph{not} to adopt.
 
 %% ──────────────────────────────────────────────────────────────────────
 \subsection{Correlator geometry: a compact manifold that reorganises}
@@ -826,9 +819,8 @@ equilibrium radius.
 \subsection{Shell topology, angular order, and the rotating Wigner molecule}
 \label{sec:wigner-angular}
 
-This subsection resolves an apparent contradiction, and it is worth naming it as
-such: the densities plotted above look like smooth rings, yet we are about to claim
-the electrons form a crystal. Both are true, and the reason is symmetry. Because the
+This subsection resolves an apparent contradiction: the densities plotted above look
+like smooth rings, yet we are about to claim the electrons form a crystal. Both are true, and the reason is symmetry. Because the
 Hamiltonian is rotationally invariant, so is its ground state, and any lab-frame
 average necessarily smears an angularly ordered configuration into a featureless
 ring. The order is real; it simply lives in relative coordinates, and looking for it
@@ -1039,8 +1031,8 @@ $N\in\{6,12\}$; $N{=}20$ remains harder. And in the deep-Wigner limit a
 physics-informed proposal carries the same MCMC-free objective all the way to
 $\omega=0.0035$ (Chapter~\ref{ch:kernel},
 \S\ref{sec:kernel-q3-frontier})---far past the point where a naive proposal
-collapses. What follows is an honest account of what makes the weak form
-work, and of where it, too, eventually breaks.
+collapses. What follows sets out what makes the weak form work, and where it, too,
+eventually breaks.
 
 
 \subsection{Training methodology}
@@ -1231,14 +1223,14 @@ Appendix~\ref{app:postcatch22:frontier} rather than here.
 \label{sec:colloc-negatives}
 
 The collocation programme explored a large space of methods, and most of that
-space did not work. What follows is an honest inventory of both outcomes, and the
-negative half is the more useful one. Each failure below was, at the time, an
+space did not work. We report the successful and the failed variants together,
+because the failures identify which assumptions are load-bearing. Each failure below was, at the time, an
 intuitively reasonable idea; each turned out to violate a specific assumption that
 the method had never been forced to state. A working configuration tells you that
 some set of choices is sufficient. A failure, if you chase it far enough to name
 the mechanism, tells you which choice was load-bearing and why---and that is the
 kind of statement that transfers to a system other than this one. We therefore
-report the mechanism in each case, not merely the fact that the attempt was
+report the mechanism in each case, not just the fact that the attempt was
 abandoned.
 
 \paragraph{Positive: pure REINFORCE over mixed objectives.}
@@ -1361,8 +1353,8 @@ method is not wrong in principle, and would be perfectly sound given samples we
 cannot afford. What fails is the estimate, and it fails precisely in the regime
 where the correction was supposed to help. This is the thread that
 \S\ref{sec:colloc-reliability} follows deliberately, from the proposal mismatch at
-one end to the evaluation bottleneck at the other; stated once here, it is worth
-carrying into that analysis rather than rediscovering at its conclusion.
+one end to the evaluation bottleneck at the other. Stated here, it can be carried
+into that analysis rather than rediscovered at its conclusion.
 
 
 %% ═══════════════════════════════════════════════════════════════════════

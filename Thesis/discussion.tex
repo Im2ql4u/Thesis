@@ -66,7 +66,7 @@ growth in error with either particle number or trap strength. The worst
 relative deviations occur at intermediate $\omega$ and remain safely below
 the percent level.
 
-One subtlety is worth stating precisely, because the message-passing (CTNN) ansatz
+One subtlety matters here, because the message-passing (CTNN) ansatz
 occasionally sits \emph{below} the quoted DMC reference (for example $N{=}12$,
 $\omega{=}1$: $65.6956$ vs.\ $65.7001$\,Ha). This does not violate the variational
 principle, which bounds the energy only from below by the \emph{exact} ground state,
@@ -151,9 +151,10 @@ ultra-classical limit.
 \section{Discussion of the Wigner–molecule regime}
 \label{sec:wigner-discussion}
 
-This is the section in which the network stops being the object of study and
-becomes the apparatus. Everything up to this point asked whether the trained state
-is accurate; here we assume it is and ask what it can be used to see. That shift
+Having established the wavefunction's accuracy wherever a benchmark exists, we now
+use it to probe Wigner-molecule structure. Everything up to this point asked whether
+the trained state is accurate; here we take that as given and ask what it can be
+used to see. That shift
 raises the evidential stakes considerably, because it is exactly the regime in which
 no DMC reference exists---so any structural claim has to be carried by internal
 consistency, by agreement between independent diagnostics that could easily have
@@ -292,8 +293,7 @@ the same regimes.
 
 There is no guarantee that a trained network organises itself in a way anyone can
 interpret. High-dimensional function approximators are entitled to be
-incomprehensible, and frequently are. So the finding that structures this section is
-genuinely surprising, and worth stating before it is qualified: the internal
+incomprehensible, and frequently are. So the finding that structures this section is a surprising one: the internal
 organisation is not merely interpretable but \emph{simple}, and simple in a way that
 matches the physics rather than the parameterisation. The qualification, which
 follows immediately and matters, is that not every quantity we can measure on this
@@ -305,14 +305,10 @@ $W_\theta$ lives on a low-dimensional manifold whose leading axes track
 global size and fluctuations of the electron cloud, while the BackflowNet
 implements a high-dimensional but predominantly local correction whose net energy
 becomes small in the deepest Wigner regimes. This mirrors the physical
-picture developed in Sec.~\ref{sec:wigner-molecule}. One caution, developed at
-length in Chapter~\ref{ch:kernel}, applies throughout what follows: because the
-Jastrow and the backflow are partial substitutes, quantities that live on a single
-component---effective ranks, displacement magnitudes, per-branch loadings---are
-gauge-like, fixed by the training route rather than by the state. They are faithful
-descriptions of \emph{this} trained model, and we read them as such; the conclusions
-that must hold regardless of training route rest instead on the invariants (energy,
-overlap, and ablation).
+picture developed in Sec.~\ref{sec:wigner-molecule}. As established in
+\S\ref{sec:synthesis}, component-level quantities are gauge-like; the
+conclusions drawn below therefore rest on the invariants---energy, overlap, and
+ablation.
 
 \paragraph{Low-dimensional correlator manifold.}
 Across all $(N,\omega)$, the entropy effective rank $r_{\rm eff}(Z)$ of the
@@ -403,12 +399,10 @@ must supply: a \emph{conventional} backflow does not fall idle so
 gracefully. It collapses to a single collective mode (rank $\to1$) and \emph{loses}
 accuracy at the Wigner crystal, because the residual correlation there is relative and
 full-rank, and its single round of pairwise messages does not sustain it, whereas the
-CTNN's copresheaf transport does. Second, the ranks and displacement
-magnitudes quoted here are gauge-like: they record how this particular trained model
-divided the labour between Jastrow and backflow, and the statements that survive a
-change of training route are the energetic ones---the ablation price, and the gap
-between a conventional and a copresheaf message-passing backflow---not the component
-ranks themselves.
+CTNN's copresheaf transport does. Second, the ranks and displacement magnitudes quoted here are gauge-like
+(\S\ref{sec:synthesis}); what survives a change of training route is the
+ablation price and the gap between a conventional and a copresheaf backflow, not the
+component ranks.
 
 \paragraph{Regime dependence and architectural implications.}
 Taken together, the representation results show a clear regime dependence:
@@ -682,48 +676,21 @@ is statistically resolved at the sample sizes in use.
 \subsection{Why Langevin refinement fails}
 \label{sec:colloc-langevin-discussion}
 
-The Langevin proposal-refinement strategy was motivated by a
-natural intuition: if the Gaussian proposal has poor overlap
-with $|\Psi|^2$, then evolving samples toward high-$|\Psi|^2$
-regions via the score function $\nabla_{\mathbf{R}}\log|\Psi|^2$
-before resampling should improve overlap.
-
-The failure of this approach reveals a subtlety that is well
-known in the MCMC literature but easy to overlook in the
-importance-sampling context: $K$ steps of overdamped Langevin
-dynamics from an out-of-equilibrium starting distribution
-produce a distribution that is neither the proposal~$q$ nor
-the target~$|\Psi|^2$, but an intermediate non-equilibrium
-distribution that depends sensitively on $K$ and on the step
-size~$\varepsilon$.
-
-In the importance-resampling framework, the weights are computed
-as $w_i = |\Psi(\mathbf{R}_i)|^2 / q(\mathbf{R}_i)$, which is
-only correct if the samples $\mathbf{R}_i$ are actually drawn
-from $q$.
-After $K$ Langevin steps, the effective sampling distribution
-$\tilde{q}$ differs from~$q$, but the weights are still computed
-using~$q$---introducing a systematic bias in the estimated
-gradient.
-This bias is not merely noise: it systematically pushes the
-wavefunction toward regions favoured by the Langevin dynamics,
-creating a positive-feedback loop in which the wavefunction
-concentrates further around the Langevin-biased distribution.
-
-The result is dramatic: at $N{=}20$, $\omega{=}0.1$, Langevin
-refinement produced a wavefunction with $+153\%$ error, compared
-to $+5.7\%$ from standard importance resampling.
-Even at $N{=}6$, $\omega{=}0.001$, where the overlap problem is
-less severe, Langevin added $+0.06\%$ of additional error.
-
-The correct resolution would require either (i)~running the
-Langevin chain to equilibrium ($K \to \infty$, equivalent to
-MCMC and defeating the purpose), (ii)~a Metropolis--Hastings
-correction at each step (also MCMC), or
-(iii)~computing annealed importance-sampling weights that account
-for the non-equilibrium path
-(computationally expensive and technically involved).
-None of these is practical within the collocation paradigm.
+Langevin refinement was motivated by a natural intuition: if the Gaussian proposal
+overlaps $|\Psi|^2$ poorly, evolving samples up the score $\nabla_{\mathbf{R}}\log|\Psi|^2$
+before resampling should improve that overlap. It fails for a reason that is standard
+in the MCMC literature and easy to overlook in an importance-sampling context. The
+weights $w_i = |\Psi(\mathbf{R}_i)|^2/q(\mathbf{R}_i)$ are valid only if the
+$\mathbf{R}_i$ are drawn from $q$; after $K$ Langevin steps from an out-of-equilibrium
+start, the effective density is some intermediate $\tilde q$ depending on $K$ and
+$\varepsilon$, while the weights still divide by $q$. The resulting gradient bias is
+not noise---it pushes the wavefunction toward regions the Langevin dynamics favours,
+which shifts $\tilde q$ further in the same direction, and the loop closes. The
+measured errors in \S\ref{sec:colloc-negatives} confirm the mechanism experimentally.
+Correcting it requires running to equilibrium, adding a Metropolis--Hastings step, or
+computing annealed weights along the non-equilibrium path; the first two are MCMC by
+another name, which defeats the purpose, and the third is expensive enough to
+forfeit the advantage the collocation route exists to provide.
 
 
 \subsection{Architectural trade-offs at scale}
@@ -814,7 +781,7 @@ scale efficiently on modern hardware, particularly GPUs with
 large batch sizes.
 
 \paragraph{What ``MCMC-free'' does and does not mean.}
-Three distinctions are worth stating precisely, since they are easily conflated.
+Three distinctions are easily conflated.
 (i)~The pipeline is \emph{Markov-chain-free}: no configuration is ever drawn from a
 Markov chain during training---samples come from an analytic proposal $q(\mathbf R)$ and
 are importance-reweighted. It is not free of Monte Carlo in the broader sense:

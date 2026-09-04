@@ -67,9 +67,8 @@ model's own $|\Psi|^2$); we report only participation ratios converged in the
 sample count $B$; and we anchor the tooling on the analytic two-electron ground
 state, where the ansatz reproduces $E=3.000127$~Ha ($+0.004\%$) with squared
 overlap $1.000000$. Backflow comparisons are seeded ($\ge 2$ seeds) and held at
-reference quality. One point of honesty about that reference is worth stating
-plainly, because every relative error in this chapter depends on it: an external
-DMC benchmark exists only for $\omega\ge0.1$. In the strongly correlated regime
+reference quality. Every relative error in this chapter depends on that reference,
+and an external DMC benchmark exists only for $\omega\ge0.1$. In the strongly correlated regime
 below, we quote errors against our own converged variational energies (the
 $|\Psi|^2$-sampled SR result), and, in the deep-Wigner cascade of
 \S\ref{sec:kernel-q3-frontier}, cross-check against the physical energy-scaling law
@@ -131,7 +130,7 @@ DeepSet sits at $2.9$, no lower than the $20$k one). The compression is
 architectural, not a matter of size or sampling mass. It is also a well-posed comparison
 despite $d_{\mathrm{eff}}$ not being a reparameterization-invariant absolute dimension
 (\S\ref{sec:theory-tangent-kernel}): both families are compared under matched
-normalization conventions and a common probe measure, so the factor-of-two gap reflects
+normalisation conventions and a common probe measure, so the factor-of-two gap reflects
 how each architecture spends its tangent directions, not a change of coordinates.
 
 \begin{figure}[htbp]\centering
@@ -360,8 +359,8 @@ $E_{\mathrm{Adam}}-E_{\mathrm{SR}}$ is large and positive (e.g.\ $+2.9$ at
 $N=6,\omega=1$), because the importance weights make the objective badly
 conditioned and plain Adam fails to converge it.
 
-The honest verdict is therefore not ``SR wins'' or ``SR ties'' but \textbf{SR
-matters precisely when the tangent metric is ill-conditioned}. Its value is a
+The verdict is therefore not ``SR wins'' or ``SR ties'' but \textbf{SR matters when
+the tangent metric is ill-conditioned and still estimable}. Its value is a
 function of $\kappa(S)$, set by the ansatz and the sampling measure, not an intrinsic
 property of the optimiser---which is exactly why an earlier low-$\omega$ VMC sweep
 saw a modest SR advantage that never grew into a decisive win.

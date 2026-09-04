@@ -14,7 +14,7 @@ chapter then shifts to machine learning---statistical learning theory, optimisat
 networks, and physics-informed neural networks.
 
 \section{Mathematical Foundations}
-At the center of quantum mechanics lies a rich mathematical framework built upon linear algebra and functional analysis. This section introduces the essential mathematical concepts and notations that underpin quantum theory, including Dirac notation, operators, Hilbert spaces, and the representation of quantum states and observables.
+At the centre of quantum mechanics lies a rich mathematical framework built upon linear algebra and functional analysis. This section introduces the essential mathematical concepts and notations that underpin quantum theory, including Dirac notation, operators, Hilbert spaces, and the representation of quantum states and observables.
 \subsection{Hilbert Spaces and Function Representations}
 In essence, quantum mechanics is formulated in complex vector spaces---specifically
 \emph{Hilbert spaces}: complex inner-product spaces that are \emph{complete} in the norm
@@ -229,7 +229,7 @@ basis expansions and variational ansätze.
 % Finite variance requires sufficient smoothness of $\Psi_\theta$ so that $\nabla^2\Psi_\theta/\Psi_\theta$
 % remains integrable, particularly near nodal surfaces and coalescence points. Enforcing known
 % short-distance behaviour (e.g.\ cusp conditions) tames the kinetic-energy singularities and
-% reduces $\mathrm{Var}(E_L)$. In practice we also (i) center observables, (ii) use large, well-mixed
+% reduces $\mathrm{Var}(E_L)$. In practice we also (i) centre observables, (ii) use large, well-mixed
 % chains, and (iii) report blocking-based confidence intervals.
 
 % \paragraph{Reweighting for small parameter moves.}
@@ -380,7 +380,7 @@ $\tfrac12$ exchange coefficient correct).
 
 \paragraph{Self-consistency (SCF).}
 HF is solved iteratively:
-initialize $P^{(0)}$, build $\mathbf F[P^{(n)}]$, diagonalize to get $\mathbf C^{(n+1)}$,
+initialise $P^{(0)}$, build $\mathbf F[P^{(n)}]$, diagonalize to get $\mathbf C^{(n+1)}$,
 update $P^{(n+1)}$, and iterate until the total energy and/or $P$ change is below tolerance.
 Damping or DIIS mixing stabilizes convergence. The dominant costs are building two-electron
 contributions ($\mathcal O(M^4)$) and diagonalization ($\mathcal O(M^3)$).
@@ -627,7 +627,7 @@ For $N{=}6$, phase-aligned $(1,5)$ and $(0,6)$ sectors show comparable order
 ($|\Phi_5|\!\approx\!0.48$, $|\Phi_6|\!\approx\!0.52$) with $\lambda_\phi\!\approx\!0.29$—a single-ring rotating Wigner molecule.
 For $N{=}12$, $(3,9)$ frames have strong order 
 ($|\Phi_3|\!\approx\!0.67$, $|\Phi_9|\!\approx\!0.50$) and small $\lambda_\phi$ ($\sim\!0.24$–$0.26$).
-$(2,10)$ exhibits very tight inner order ($|\Phi_2|\!\approx\!0.73$) with a softer outer ring ($|\Phi_{10}|\!\approx\!0.42$), and $(1,11)$ has weak outer order and a softly vibrating center—precisely the \emph{rotating Wigner molecule} (RWM) picture of fluctuating orientations across near-degenerate shellings.\cite{Egger_1999,manninen2007metalclustersquantumdots}
+$(2,10)$ exhibits very tight inner order ($|\Phi_2|\!\approx\!0.73$) with a softer outer ring ($|\Phi_{10}|\!\approx\!0.42$), and $(1,11)$ has weak outer order and a softly vibrating centre—precisely the \emph{rotating Wigner molecule} (RWM) picture of fluctuating orientations across near-degenerate shellings.\cite{Egger_1999,manninen2007metalclustersquantumdots}
 
 \subsection{Scaling check and two-body benchmarks ($N=2$)}
 \label{subsec:n2-scaling-theory}
@@ -758,7 +758,7 @@ of an expected error (or \emph{risk}) under uncertainty.
 Formally, consider an input space $\mathcal{X}\subseteq\mathbb{R}^d$ and an output 
 space $\mathcal{Y}$, together with an unknown joint distribution $P(X,Y)$ over 
 pairs $(x,y)$. The aim of learning is to construct a function 
-$f_\theta:\mathcal{X}\to\mathcal{Y}$, parameterized by $\theta\in\Theta$, 
+$f_\theta:\mathcal{X}\to\mathcal{Y}$, parameterised by $\theta\in\Theta$, 
 such that $f_\theta(x)$ predicts $y$ with small error. A loss function
 \[
 \ell:\mathcal{Y}\times\mathcal{Y}\to\mathbb{R}_{\geq 0}
@@ -966,8 +966,8 @@ eigenvalues are \emph{not} invariant under an arbitrary reparameterization: resc
 single parameter $\theta_1\mapsto c\,\theta_1$ leaves the physical state untouched but
 changes $d_{\mathrm{eff}}$ (for a diagonal metric it moves from $2$ toward $1$ as
 $c\to\infty$). $d_{\mathrm{eff}}$ is therefore \emph{not} a coordinate-free intrinsic
-dimension of the wavefunction; it is a property of the (architecture, parameterization,
-normalization) triple. We use it accordingly---as a comparison between fixed
+dimension of the wavefunction; it is a property of the (architecture, parameterisation,
+normalisation) triple. We use it accordingly---as a comparison between fixed
 architectures under matched conventions and a common probe measure---and read a smaller
 $d_{\mathrm{eff}}$ as ``this architecture concentrates its Fisher weight into fewer active
 directions,'' not as an absolute manifold dimension.
@@ -979,7 +979,7 @@ Optimisation in deep neural networks poses unique challenges:
   and saddle points. Empirically, most local minima reached by SGD perform similarly well.  
 
   \item \textbf{Vanishing and exploding gradients.} In deep networks, gradients can shrink 
-  or blow up during backpropagation. Proper initialization and activation choice are 
+  or blow up during backpropagation. Proper initialisation and activation choice are 
   essential to mitigate this problem.  
 
   \item \textbf{Flat vs.\ sharp minima.} Empirical evidence suggests that flat minima 
@@ -1000,7 +1000,7 @@ of this thesis are assembled. They compose affine maps with elementwise nonlinea
 to represent functions that linear models cannot. We first define the feed-forward map,
 and then discuss the two design choices that most affect its behaviour in
 physics-informed settings, where gradients and Laplacians of the network enter the loss:
-the activation function and the weight initialization.
+the activation function and the weight initialisation.
 
 \subsection{From linear models to nonlinear function classes}
 Classical regression models are linear in their parameters: 
@@ -1032,7 +1032,7 @@ The earliest activation functions were smooth, saturating nonlinearities:
   \sigma_{\tanh}(x) &= \tanh(x).
 \end{align}
 Both map $\mathbb{R}$ to a bounded range and are differentiable. 
-The hyperbolic tangent is zero-centered, which often improves optimisation.  
+The hyperbolic tangent is zero-centred, which often improves optimisation.  
 
 Despite their smoothness, these functions suffer from the 
 \emph{vanishing gradient problem}. For large $|x|$, their derivatives 
@@ -1089,20 +1089,20 @@ and generalisation across a wide range of tasks.
 % The activation function thus encodes an implicit inductive bias, influencing 
 % both optimisation dynamics and the type of functions that can be efficiently 
 % represented. In the next section, we turn to the equally critical issue of 
-% \emph{weight initialization}, which determines how activations and gradients 
+% \emph{weight initialisation}, which determines how activations and gradients 
 % propagate at the start of training.  
 
-\subsection{Initialization}
+\subsection{Initialisation}
 \label{sec:initialization}
 
-The initialization of neural network weights has a critical impact on 
+The initialisation of neural network weights has a critical impact on 
 optimisation. At the start of training, parameter values determine how 
-signals propagate forward and backward through the network. Poor initialization 
+signals propagate forward and backward through the network. Poor initialisation 
 can lead to exploding or vanishing activations and gradients, making 
 optimisation unstable or ineffective. Proper schemes balance signal magnitudes 
 across layers and preserve gradient flow, especially in deep networks.  
 
-\subsubsection{The role of initialization}
+\subsubsection{The role of initialisation}
 Consider a feed-forward network with layers
 \[
   h^{(\ell)} = \sigma\!\left(W^{(\ell)} h^{(\ell-1)} + b^{(\ell)}\right),
@@ -1112,14 +1112,14 @@ If weights are too large, activations grow exponentially with depth,
 leading to exploding gradients. If too small, activations shrink toward zero, 
 causing vanishing gradients. Both phenomena impede learning.  
 
-Initialization therefore aims to preserve the variance of activations 
+Initialisation therefore aims to preserve the variance of activations 
 and gradients across layers, such that
 \[
   \mathrm{Var}[h^{(\ell)}] \approx \mathrm{Var}[h^{(\ell-1)}].
 \]
 
-\subsubsection{Xavier/Glorot initialization}
-Glorot and Bengio (2010) proposed initializing weights with variance scaled 
+\subsubsection{Xavier/Glorot initialisation}
+Glorot and Bengio (2010) proposed initialising weights with variance scaled 
 by the number of input and output units:
 \begin{equation}
   W_{ij}^{(\ell)} \sim \mathcal{U}\!\left(-\sqrt{\frac{6}{n_\text{in}+n_\text{out}}}, \;
@@ -1129,9 +1129,9 @@ Here $n_\text{in}$ and $n_\text{out}$ denote the fan-in and fan-out of a layer.
 This choice balances variance across layers for activations with 
 approximately unit derivative (e.g.\ tanh).  
 
-\subsubsection{Kaiming/He initialization}
+\subsubsection{Kaiming/He initialisation}
 For rectified activations such as ReLU, He et al.\ (2015) proposed 
-\emph{Kaiming initialization}, scaling variance by $2/n_\text{in}$:
+\emph{Kaiming initialisation}, scaling variance by $2/n_\text{in}$:
 \begin{equation}
   W_{ij}^{(\ell)} \sim \mathcal{N}\!\left(0, \; \frac{2}{n_\text{in}}\right).
 \end{equation}
@@ -1148,9 +1148,9 @@ For example, $g=\sqrt{2}$ is recommended for ReLU, while $g=1$ is typical for
 tanh and smooth activations. Choosing the correct gain ensures that variance 
 neither explodes nor decays through the network.  
 
-\subsubsection{Orthogonal and random normal initialization}
-An alternative approach is to initialize each weight matrix as an orthogonal 
-matrix scaled by a variance factor. Orthogonal initialization preserves the 
+\subsubsection{Orthogonal and random normal initialisation}
+An alternative approach is to initialise each weight matrix as an orthogonal 
+matrix scaled by a variance factor. Orthogonal initialisation preserves the 
 norm of activations across layers, which can stabilize very deep networks.  
 
 Simpler schemes such as sampling from a standard normal distribution without 
@@ -1160,12 +1160,12 @@ unstable training.
 
 % For physics-informed networks, stable gradient propagation is crucial: 
 % losses often involve higher-order derivatives, and exploding Hessians 
-% can render training unstable. Empirically, Glorot initialization with 
+% can render training unstable. Empirically, Glorot initialisation with 
 % a tuned gain has been found robust for smooth activations, while Kaiming 
-% initialization is well-suited for ReLU-like functions.  
+% initialisation is well-suited for ReLU-like functions.  
 
 \subsection{Summary}
-Initialization is particularly delicate in deep networks. Even small 
+Initialisation is particularly delicate in deep networks. Even small 
 imbalances in variance can compound exponentially with depth. Smooth 
 activations (SiLU, GELU, Mish) alleviate gradient instability but 
 require careful scaling, as their effective slope differs from ReLU or tanh.  
@@ -1173,14 +1173,14 @@ require careful scaling, as their effective slope differs from ReLU or tanh.
 Key takeaways include:
 \begin{itemize}
   \item Proper scaling of variance prevents vanishing/exploding signals.  
-  \item Initialization must match the activation function (Glorot for tanh/smooth, 
+  \item Initialisation must match the activation function (Glorot for tanh/smooth, 
   Kaiming for ReLU).  
   \item Orthogonal schemes can improve stability in deep networks.  
-  \item For PINNs and scientific ML, initialization is not merely a convenience 
+  \item For PINNs and scientific ML, initialisation is not merely a convenience 
   but essential for stable computation of derivatives.  
 \end{itemize}
 
-Initialization and activation choice thus form an inseparable pair: together
+Initialisation and activation choice thus form an inseparable pair: together
 they determine whether information propagates stably through the network. This is taken up again for physics-informed models in Section~\ref{sec:pinns}.
 
 \section{Architectures for many-body wavefunctions}
@@ -1276,7 +1276,7 @@ message-passing CTNN. Holding everything else fixed and varying only this choice
 the effect of the relational channel, which Chapter~\ref{ch:kernel} analyses through the
 geometry of the tangent kernel introduced in \S\ref{sec:theory-tangent-kernel}.
 
-\section{Expressivity, approximation, and generalization}
+\section{Expressivity, approximation, and generalisation}
 \label{sec:nn_approximation}
 
 The central reason neural networks have become the dominant model class in machine 
@@ -1382,7 +1382,7 @@ Neural networks thus provide a flexible ansatz space:
 
 These theoretical guarantees justify the use of neural networks as universal, symmetry-aware 
 function approximators, laying the groundwork for our discussions of activation functions, 
-initialization strategies, and physics-informed extensions.  
+initialisation strategies, and physics-informed extensions.  
 
 \section{Physics-Informed Neural Networks}
 \label{sec:pinns}
@@ -1459,13 +1459,13 @@ In the linearized/NTK view, convergence speed is governed by the spectrum of a p
 Gradient-based training tends to fit low-frequency components first, delaying convergence for solutions with sharp layers or oscillations unless the sampling, features, or architecture emphasize high-frequency content (e.g., Fourier features, windowed bases, curriculum).
 
 \medskip
-Mitigating these challenges requires careful design of architectures, activations, initialization, loss weighting, and sampling strategies. These topics are explained and discussed in detail in \cite{De_Ryck_2024}
+Mitigating these challenges requires careful design of architectures, activations, initialisation, loss weighting, and sampling strategies. These topics are explained and discussed in detail in \cite{De_Ryck_2024}
 
 \subsection{Relevance to this thesis}
 For scientific machine learning, PINNs provide a principled framework 
 for embedding physical structure into neural networks. In this thesis, 
 they motivate the choice of smooth activations (for stable derivatives), 
-careful initialization (to prevent exploding Hessians), and architectural 
+careful initialisation (to prevent exploding Hessians), and architectural 
 constraints (to encode symmetry and physical laws).  
 Thus, PINNs serve both as a methodological tool and as a theoretical lens 
 for understanding the interplay between learning and physics.  
@@ -1484,7 +1484,7 @@ that are both smooth and physically plausible. Generalisation in neural networks
 \end{enumerate}
 In scientific computing, these mechanisms explain why neural networks, 
 despite their size, can approximate physically meaningful solutions.  
-They also justify the careful design choices of activations, initialization, 
+They also justify the careful design choices of activations, initialisation, 
 and constraints emphasized throughout this chapter.  
 
 \medskip

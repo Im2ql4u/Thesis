@@ -57,8 +57,8 @@ neural networks are used as \emph{variational ans\"atze} for quantum states
 log-probabilities for many-body configurations and is trained by variational
 Monte Carlo.
 
-One argument for this second use is routinely overstated, and it is worth
-disposing of first. Universal approximation results guarantee that a sufficiently
+One argument for this second use is routinely overstated, and disposing of it first
+clarifies what remains. Universal approximation results guarantee that a sufficiently
 large network can \emph{represent} any suitably regular function to arbitrary
 accuracy. They say nothing about whether gradient-based optimisation will
 \emph{find} that representation, nor at what sample cost. This thesis measures that
@@ -110,7 +110,7 @@ whether different architectures arrive at the same solution by different routes.
 In principle, then, neural networks provide highly expressive ansätze for quantum
 problems. In practice, several issues arise. Objectives based on local
 energies involve second derivatives and can be numerically delicate.
-Coordinate parameterizations that do not respect known structure can lead to
+Coordinate parameterisations that do not respect known structure can lead to
 large gradients and Laplacian spikes near electron coalescence. Generic
 architectures can waste capacity on degrees of freedom that are irrelevant
 from a physical point of view. These challenges motivate hybrid approaches in
@@ -285,7 +285,7 @@ The main contributions of this thesis are:
         forms a two-shell molecule with a commensurate $(3,9)$ split as the dominant
         topology, complementing classical and quantum studies of parabolic
         dots~\cite{Egger_1999,Kong_2002,schweigert1994spectralpropertieschargedparticles,Filinov_2001}.
-  \item \textbf{Representation insight, with its gauge honestly drawn.}
+  \item \textbf{Representation insight, with its gauge explicitly drawn.}
         The correlator features occupy a low-dimensional manifold (one to three
         principal directions) whose leading axes act as collective coordinates for
         global size and radial fluctuations, with a $\phi\leftrightarrow\psi$

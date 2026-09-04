@@ -2,8 +2,7 @@
 \addcontentsline{toc}{chapter}{Preface}
 
 \chapterepigraph{Life must be understood backwards. But they forget the other
-proposition, that it must be lived forwards.}{S\o ren Kierkegaard}{Journal entry
-\textit{Journals}}
+proposition, that it must be lived forwards.}{S\o ren Kierkegaard}{\textit{Journals}}
 
 When I came to UiO, Morten read my background and said: ``You know PINNs, you know
 many-body quantum systems. I want you to do PINNs on quantum dots.'' I said
@@ -16,8 +15,8 @@ wrong in a way that can be measured.
 
 That is what variational methods make possible. The variational principle does
 not say how to improve a trial wavefunction, but it does guarantee that its
-energy lies above the ground-state energy. Failure therefore has a direction:
-the energy decreases, or it does not. For a project with few fixed landmarks,
+energy lies above the ground-state energy. Improvement therefore has a direction:
+lower energy is better. For a project with few fixed landmarks,
 that was enough to begin. The harder task was learning what a disappointing
 result meant.
 
@@ -30,7 +29,7 @@ code quietly broken. For long stretches, the honest answer was that I did not
 know. The work became an attempt to construct tests that could tell these
 explanations apart.
 
-The most important lessons were therefore failures. An error in the
+The most important lessons came from failures. An error in the
 importance-sampling code went undetected for months because its signature---loss
 of accuracy at larger particle numbers and weaker confinement---was exactly what
 an inadequate architecture might have produced. In $Nd$ dimensions, a small
@@ -42,34 +41,31 @@ substantial part of the later work.
 
 Other failures taught the same lesson from different directions. A Langevin
 refinement step introduced bias into the gradient. A second-order optimiser
-became least reliable when the estimated metric was too noisy to trust. Neither
-result was useful merely because it was negative. Each exposed an assumption
-that had been invisible until the computation violated it. Negative results of
-this kind are not a concession or an embarrassment; they are part of the method,
-and I have written them up as such.
+became least reliable when its estimated metric was too noisy to resolve.
+Neither result was useful merely because it was negative. Each exposed an
+assumption that had been invisible until the computation violated it. Negative
+results of this kind are not a concession or an embarrassment; they are part of
+the method, and I have written them up as such.
 
 \newpage
 
-The project also changed what I thought the network was for. I began by asking
-whether a machine-learning construction could solve the many-body
-Schr\"odinger equation. I ended up using the trained state as an apparatus for
-asking what structure the approximation had captured and which directions of
-variation mattered. That shift, from treating a network as an answer to treating
-it as something that can itself be examined, is the thread running through this
-thesis.
+That diagnostic stance also changed what I thought the network was for. I began
+by asking whether a machine-learning construction could solve the many-body
+Schr\"odinger equation. I ended up using the trained state as an apparatus:
+something to examine for the structure it had captured and the directions of
+variation that mattered. That shift, from treating a network as an answer to
+treating it as an object of study, is the thread running through this thesis.
 
-Something else surfaced along the way that I have not stopped thinking about. The
-obstacles in this work have a persistent double character: each is simultaneously
-a physics problem and an optimisation problem, and it is usually arbitrary which
-name you give it. Stochastic reconfiguration, invented by physicists to optimise
-variational wavefunctions, is natural gradient descent on the variational
-manifold. The REINFORCE estimator from reinforcement learning is the
-score-function gradient of the variational energy. The Fisher information matrix
-of statistics is the quantum geometric tensor of physics. These were not borrowed
-by one field from another; they were found independently, by communities that
-rarely read each other's papers. Coming to recognise that they are the same
-mathematics felt less like discovering a bridge between two fields than like
-realising there had only ever been one, approached from opposite sides.
+The work also made a connection harder to ignore. Its obstacles have a double
+character: each is at once a physics problem and an optimisation problem.
+Stochastic reconfiguration, developed for variational wavefunctions, is natural
+gradient descent on the variational manifold. The REINFORCE estimator from
+reinforcement learning is the score-function gradient of the variational energy.
+The Fisher information matrix of statistics is the quantum geometric tensor of
+physics. The same mathematics appears under different names in different
+communities. Recognising that felt less like discovering a bridge between fields
+than like realising that the two fields had been approaching the same problem
+from opposite sides.
 
 Looking back, it is easy to make a catalogue of what I would now do differently.
 Most of that knowledge, however, was purchased by the failures and could not
@@ -79,9 +75,9 @@ from two sides. That is worth remembering, and easy to forget.
 \bigskip
 
 The most consistent source of inspiration, motivation, and steadiness through all
-of it has been my girlfriend, Elida. That support has been as constant as a
-mountain, and without it I would not have had the nerve to begin this, let alone
-the depth to finish it. I am more grateful than I can put down here.
+of it has been my girlfriend, Elida. Her support made it possible to begin this
+work and to stay with it when it became difficult. I am more grateful than I can
+put down here.
 
 I owe a warm and sincere thanks to my family, who have supported me in every
 undertaking I have had and have simply always been there; and to my friends,

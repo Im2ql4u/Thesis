@@ -1174,3 +1174,16 @@ Build: 121 pages, 0 errors, 0 undefined references or citations.
   fragment, translation, and journal-entry details from the rendered thesis.
 - Rebuilt and visually verified the centred whole-thesis page; the PDF remains
   122 pages with no errors or unresolved references.
+
+---
+
+## 2026-09-04 --- Preface quality pass and enlarged thesis epigraph
+
+- Enlarged the centred Dostoevsky epigraph and corrected the Kierkegaard source
+  line to show only the work title.
+- Reviewed the completed Preface for unresolved draft notes, repetition, weak
+  transitions, tonal drift, and claim precision. Tightened the optimisation
+  wording so the variational principle orders trial states without implying
+  monotonic training, and narrowed the cross-disciplinary history claim.
+- Rebuilt and visually checked the front matter; the PDF remains 122 pages with
+  no errors or unresolved references.

@@ -1139,3 +1139,16 @@ operation, distinct from the per-configuration COM mean corrected on 2026-09-04.
 Build: 121 pages, 0 errors, 0 undefined references or citations.
 
 **Not done, by author decision:** Chapter 2 (Machine Learning) remains at full length.
+
+---
+
+## 2026-09-04 --- Preface rewritten around diagnostic failure
+
+- Replaced unresolved draft fragments and inline notes with a single arc:
+  assignment, measurable error through the variational principle, diagnostic
+  failures, and the network as an instrument of analysis.
+- Removed the repeated question framing and the miniature results summary while
+  retaining the importance-sampling case, interdisciplinary reflection, thanks,
+  and the final return to the opening question.
+- Added and visually reviewed the Kierkegaard epigraph; the rebuilt PDF places
+  the Preface across two balanced pages and compiles without errors.

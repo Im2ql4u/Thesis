@@ -1,75 +1,69 @@
 \chapter*{Preface}
 \addcontentsline{toc}{chapter}{Preface}
 
+\begin{flushright}
+\color{myaccent}\rule{0.48\textwidth}{0.5pt}\par\smallskip
+\begin{minipage}{0.64\textwidth}
+\raggedleft\itshape
+Life must be understood backwards. But they forget the other proposition, that
+it must be lived forwards.\par\smallskip
+\normalfont\color{myaccent}\textsc{S\o ren Kierkegaard}\par
+\normalfont\footnotesize\color{black}Journal entry JJ:167 (1843)
+\end{minipage}
+\end{flushright}
+
 When I came to UiO, Morten read my background and said: ``You know PINNs, you know
 many-body quantum systems. I want you to do PINNs on quantum dots.'' I said
 ``sure'' and then asked the only sensible follow-up question I had:
 ``Where do I start?''
 
-This thesis is the long answer. The short one took me the better part of two
-years to find, and it is this: you start by arranging to be wrong in a way you
-can measure.
+I did not realise then that this was the question I had been assigned to answer.
+This thesis is the long answer. The short answer is: start by arranging to be
+wrong in a way that can be measured.
 
-That is what variational methods are for. The variational principle guarantees
-that any trial wavefunction yields an energy above the true ground state, so
-progress is unambiguous---the energy goes down or it does not---and the direction
-of error is fixed by a theorem. What remains open is only how close you can get,
-and at what cost. For a project with as few fixed landmarks as this one had, that
-guarantee was often the only solid ground available.
+That is what variational methods make possible. The variational principle does
+not say how to improve a trial wavefunction, but it does guarantee that its
+energy lies above the ground-state energy. Failure therefore has a direction:
+the energy decreases, or it does not. For a project with few fixed landmarks,
+that was enough to begin. The harder task was learning what a disappointing
+result meant.
 
-I say ``two years'' deliberately. Morten gave me not the customary year but
-nearly two, and the difference is the whole thesis: most of what is worth reading
-here comes from the second year, and none of it would have been found on a
-schedule that ended at the first.
+It was a solitary problem, not for want of literature---neural quantum states,
+FermiNet, PauliNet, and neural backflow offered much to learn from---but because
+the particular route I was trying to take had little precedent. When an
+experiment failed, it was rarely clear whether the method was unsound, the
+architecture inadequate, the optimiser poorly matched to the problem, or the
+code quietly broken. For long stretches, the honest answer was that I did not
+know. The work became an attempt to construct tests that could tell these
+explanations apart.
 
-It was, even so, a solitary way to spend them---not for want of a literature,
-since neural quantum states are a busy field and FermiNet, PauliNet, and neural
-backflow were all there to learn from, but because the particular thing I was
-trying to do had very little in front of it to steer by. When an experiment
-failed there was frequently no way to tell whether the method was unsound, the
-architecture too weak, or the code quietly broken, and for long stretches the
-honest answer was that I did not know. My friends at CCSE, and outside it, are the
-reason those stretches remained survivable rather than merely long.
+The most important lessons were therefore failures. An error in the
+importance-sampling code went undetected for months because its signature---loss
+of accuracy at larger particle numbers and weaker confinement---was exactly what
+an inadequate architecture might have produced. In $Nd$ dimensions, a small
+error in a log-density grows linearly with dimension and is amplified in the
+normalised weights; the bug was invisible where experiments were cheap and
+ruinous where they mattered. Discovering it damaged my confidence in everything
+else. Re-establishing that confidence, rather than assuming it, became a
+substantial part of the later work.
 
-What kept me at it was a question more interesting than the one I was assigned.
-Nearly every established method for the many-body Schr\"odinger equation is built
-outward from physical principles: an approximation is chosen, justified
-physically, and then implemented. I wanted to approach it from the other end---to
-solve the problem on machine-learning terms, and only then ask what the solution
-had understood. A trained network is not merely an answer; it is an answer with an
-internal structure that can be examined. Twenty electrons in two dimensions is
-forty degrees of freedom, and a configuration-interaction treatment of that would
-outlast the age of the universe---but the wavefunction that solves it need not be
-forty-dimensional in any meaningful sense. So: how many directions does the
-trained state actually vary along, and how does that change as particles are added
-or the trap is opened and they are given room to move apart?
+Other failures taught the same lesson from different directions. A Langevin
+refinement step introduced bias into the gradient. A second-order optimiser
+became least reliable when the estimated metric was too noisy to trust. Neither
+result was useful merely because it was negative. Each exposed an assumption
+that had been invisible until the computation violated it. Negative results of
+this kind are not a concession or an embarrassment; they are part of the method,
+and I have written them up as such.
 
-Those questions have answers here, and they are more specific than I expected.
-The most useful of them is that what separates one architecture from another is
-not capacity but \emph{alignment} with the structure the problem actually has---a
-distinction that costs nothing at strong confinement, where it is invisible, and
-becomes the whole story when the trap is opened. Somewhere in the middle of that
-analysis the network stopped being the object of study and became the apparatus,
-which was not something I anticipated when I said ``sure.''
+\newpage
 
-Yet the moments I learned the most from were, without exception, the failures. An
-error in the importance-sampling code went undetected for months, because its
-signature---accuracy decaying at larger particle numbers and weaker
-confinement---is precisely the signature of an architecture that is merely not good
-enough. In $Nd$ dimensions an error in a log-density grows linearly with dimension
-and is amplified catastrophically in the normalised weights; the bug was invisible
-exactly where experiments were cheap and ruinous exactly where they mattered.
-Discovering it did real damage to my confidence in everything else, and
-re-establishing that confidence rather than assuming it is a substantial part of
-what the later chapters are doing. Two further failures---a Langevin refinement
-step that biased the gradient, and a second-order optimiser that degraded
-precisely when the landscape became ill-conditioned enough to require it---taught
-the same lesson from different directions.
-
-In each case the failure specified something no success could have: exactly what
-the method had been quietly assuming, and exactly where the problem quietly
-violated it. Negative results of this kind are not a concession or an
-embarrassment. They are a method, and I have written them up as one.
+The project also changed what I thought the network was for. I began by asking
+whether a machine-learning construction could solve the many-body
+Schr\"odinger equation. I ended up using the trained state as an apparatus for
+asking what structure the approximation had captured and which directions of
+variation mattered. That shift, from treating a network as an answer to treating
+it as something that can itself be examined, is the thread running through this
+thesis.
 
 Something else surfaced along the way that I have not stopped thinking about. The
 obstacles in this work have a persistent double character: each is simultaneously
@@ -84,23 +78,10 @@ rarely read each other's papers. Coming to recognise that they are the same
 mathematics felt less like discovering a bridge between two fields than like
 realising there had only ever been one, approached from opposite sides.
 
-What I can claim at the end is narrower than what I hoped for at the beginning,
-and I have tried to keep it that way. Where an external benchmark exists, the
-method matches it. Throughout the strongly correlated regime this thesis cares
-most about, no such benchmark exists, and the energies there are variational
-predictions supported by internal consistency and physical scaling rather than
-validated numbers. I have said so in every place it is true. The temptation to
-phrase the results as a competition with the best available methods was
-considerable, and resisting it is one of the more defensible decisions in the
-thesis.
-
-Which returns me to hindsight. Looking back, my first instinct is to catalogue
-what I would now do differently, and it is a long catalogue---very easy to
-assemble once you already possess the knowledge you spent two years acquiring. But
-most of it was purchased by the failures and could not have been read off in
-advance from anything. The regret and the result are the same object seen from two
-sides. That is worth remembering, and easy to forget, which is the best argument I
-know for writing a preface at all.
+Looking back, it is easy to make a catalogue of what I would now do differently.
+Most of that knowledge, however, was purchased by the failures and could not
+have been read off in advance. The regret and the result are the same object seen
+from two sides. That is worth remembering, and easy to forget.
 
 \bigskip
 

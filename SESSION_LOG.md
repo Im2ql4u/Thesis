@@ -1034,3 +1034,65 @@ Build verified: 121 pages, 0 errors, 0 undefined references or citations.
   question. Structure, thanks, and the regret/result resolution untouched.
 
 Build verified: 121 pages, 0 errors, 0 undefined references or citations.
+
+## 2026-09-04 — Reviewer Tier 1: claim calibration and interpretation propagation
+
+Acted on an external review. Its factual claims were verified before acting: all
+five critical/high textual items existed verbatim, and its rhetorical word counts
+(worth 20, honest 7, "not merely" 12, precisely 17) matched exactly once the
+appendix was included. Chapter 2 (Machine Learning, 5652 words) was NOT cut --
+author decision; the reviewer applied research-paper norms to a master's thesis,
+where demonstrated command of background is part of what is examined.
+
+Interpretation propagation (the review's core diagnosis: several generations of
+interpretation coexist, with ch.7 holding the most mature version):
+- "the two failures ... prove to be one" and "the two effects are one mechanism"
+  -> both now state the observation that warrants the inference (same confinement,
+  shifting together under correlator swap) and conclude "supporting/pointing to a
+  common relational bottleneck".
+- SR: "beneficial when well-conditioned, catastrophically wrong when not" replaced
+  in BOTH results.tex and discussion.tex by the ch.7 three-regime picture --
+  well-conditioned (Adam suffices) / anisotropic but estimable (SR most valuable) /
+  metric unresolvable (SR harmful). The decisive variable is the estimator, not the
+  curvature.
+- "the optimiser has effectively learned away backflow" -> recast as small net
+  energetic contribution in one trained CTNN decomposition, with the explicit
+  counterpoint that a conventional backflow collapses in exactly this regime.
+
+Overinterpretations narrowed:
+- CKA no longer claimed to establish an "orthogonal complement"; now states the
+  correlator's feature geometry is left almost unchanged (complementary roles).
+- phi<->psi no longer implies Slater occupations are being reoccupied/mixed; states
+  the branch-loading shift that was actually measured.
+- "genuinely independent correction" -> spans essentially all COM-free directions.
+- "N=20: bounded by memory, not by principle" -> "exposes the memory-sampling
+  trade-off" (dimensional ESS deterioration is also implicated).
+- "trusted anchors" -> "working variational anchors, supported by the internal
+  checks above".
+- g(r): same-sample reconstruction no longer described as ruling out a sampling
+  artefact; now consistently a decomposability check, with sampling correctness
+  attributed to the restart/threshold/chain diagnostics.
+- "genuine Wigner molecules" -> "bona fide Wigner-molecule structure", with the
+  fixed N_up=N_down spin-projection caveat stated in the conclusion.
+- Figure caption "physically-uninterpretable directions" -> "directions not
+  resolved by the chosen physical-operator dictionary" (matching the main text).
+
+Physics/copyedit:
+- DMC "projects out the exact ground state" -> projects toward it, with fixed-node
+  variational-within-the-nodal-surface caveat. Genuine correction, not style.
+- Truncated "reduce computational cost from O(N^3)" completed (Sherman-Morrison,
+  O(N^2) per single-particle move).
+- Comma splice at the short-range gate; "batchwise mean" clarified as the
+  per-configuration mean over particles (both occurrences); backflow summary
+  changed from asserting it reduces nodal error to stating the design intent.
+- Cross-reference to Chapter 3 corrected to Section~\ref{sec:pinns}.
+
+Build: 121 pages, 0 errors, 0 undefined references or citations.
+
+**Deferred (Tier 2):** repetition pruning across Results/Discussion/Conclusion;
+halving the "worth/honest/not merely/precisely" register (note: 9 of the 20 "worth"
+and 2 of the 7 "honest" were introduced by the voice pass on 2026-09-02 and should
+be the first removed); British/American standardisation (parameteriz- 11 vs 4,
+initializ- 33 vs 13 are the real offenders; the centre/center count is inflated by
+LaTeX \centering and is smaller than it appears); "apparatus" appears twice, not
+three times -- keep the preface instance, make the discussion one direct.

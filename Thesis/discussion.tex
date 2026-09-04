@@ -110,7 +110,8 @@ side of the crossover (correct shell topologies, near-classical virial
 ratios), with no indication of a mis-set energy scale.
 
 Within these caveats, the $\omega=10^{-3}$ energies can be regarded as
-trusted anchors for the Wigner-molecule analysis in
+working variational anchors, supported by the internal checks above, for the
+Wigner-molecule analysis in
 Sec.~\ref{sec:wigner-molecule} and for the representation analysis in
 Sec.~\ref{sec:repr-analysis}.
 
@@ -254,13 +255,16 @@ statistical resolution. The same holds for $N{=}6$, where the global $g(r)$
 is reproduced essentially exactly by an OO/IO mixture of $(1,5)$ and $(0,6)$
 sectors.
 
-This has two important implications. First, the structure seen in $g(r)$ is
-unambiguously geometric (shells and topologies) rather than a subtle
-finite-size or sampling artifact: once the shell occupancies and topology
-statistics are fixed, the global $g(r)$ is determined. Second, it shows that
-the neural ansatz is not merely ``getting the energy right'' but also
-reproducing the detailed two-body correlation structure expected from
-classical and quantum studies of parabolic Coulomb clusters.
+Two implications follow, and the first needs its scope stated precisely. Because the
+sector histograms and the global $g(r)$ are built from the \emph{same} samples, this is
+a test of \emph{decomposability}, not of sampling correctness: it shows that once the
+shell occupancies and topology statistics are fixed, the global $g(r)$ is determined by
+shell geometry and combinatorics alone, leaving no residual structure unaccounted for.
+It cannot, and does not, rule out a sampling artefact common to both---that case rests
+independently on the restart, threshold and chain diagnostics. Second, subject to that
+scope, the ansatz is not only reproducing the energy but also the detailed two-body
+correlation structure expected from classical and quantum studies of parabolic Coulomb
+clusters.
 
 \paragraph{From dimer to multi-shell Wigner molecules.}
 Viewed across $N=2,6,12$ and decreasing $\omega$, a coherent Wigner-molecule
@@ -374,9 +378,14 @@ and the ranks of $Z$ and $\Delta Z$ are both $\approx 1$. PC ablations of
 $\Delta x$ show that even though $r_{\rm eff}(\Delta x)$ can be nominally high,
 the field is effectively constant over the sampled manifold (PC ablation error
 $\sim 10^{-6}$), and near-field shares of both $\Delta E$ and
-$\|\Delta x\|^2$ are $\approx 1$. In this regime, the optimiser has
-effectively \emph{learned away} backflow: the Slater--Jastrow correlator alone
-is sufficient to represent the Wigner dimer.
+$\|\Delta x\|^2$ are $\approx 1$. In the trained CTNN decomposition, then, the net
+energetic contribution assigned to backflow becomes small in the deep-Wigner regime.
+This does not imply that backflow is generically unnecessary here: Chapter~\ref{ch:kernel}
+shows that a \emph{conventional} backflow collapses in precisely this regime and loses
+accuracy, whereas the message-passing backflow retains the full-rank response the
+crystal demands. What is small is the energy assigned to one component in one trained
+decomposition---a gauge-like quantity---not the structural need for an adequate
+relational nodal channel.
 
 For $N{=}6$ and $N{=}12$ at $\omega=10^{-3}$ the pattern is similar, albeit
 less extreme. The correlator manifold remains low-rank with PC1 almost
@@ -624,13 +633,15 @@ optimisation landscape.
 The Fisher information matrix $F_{ij} = \EE[\partial_i \log|\Psi|^2
 \cdot \partial_j \log|\Psi|^2]$ characterises the curvature of
 parameter space as seen by the wavefunction.
-In strong confinement ($\omega \ge 0.1$), the wavefunction is compact
-and all parameters contribute to its structure in a comparable
-manner: $F$ is well-conditioned and its inverse provides an effective
-preconditioning of the gradient.
+Ill-conditioning alone does not determine whether SR helps. Natural gradients are
+most valuable when the metric is anisotropic but remains statistically resolvable;
+what disqualifies them is not curvature but the failure to estimate it. In strong
+confinement ($\omega \ge 0.1$) the wavefunction is compact and all parameters
+contribute to its structure in a comparable manner, so $F$ is well-conditioned, its
+inverse is a sound preconditioner, and Adam is in any case close behind.
 
-At ultra-weak confinement ($\omega \le 0.01$), two effects conspire to
-make $F$ ill-conditioned:
+At ultra-weak confinement ($\omega \le 0.01$), two effects conspire---and it is the
+second, not the first, that is decisive:
 \begin{enumerate}
 \item \textbf{Scale separation.} The wavefunction extends over
   ${\sim}1/\sqrt{\omega}$ oscillator lengths, creating a large
@@ -657,11 +668,15 @@ The price is slower convergence in well-conditioned regimes
 benefit is robustness in ill-conditioned regimes where CG-SR
 diverges.
 
-This regime boundary has practical implications for future work:
-any natural-gradient or second-order method applied to weakly
-confined many-body systems must explicitly address the
-conditioning of the Fisher or Hessian matrix in the
-low-overlap regime.
+The resulting picture has three regimes rather than two. Where the metric is
+well-conditioned, SR is sound but unnecessary. Where it is anisotropic and still
+estimable, SR is at its most valuable---which is the collocation case of
+Chapter~\ref{ch:kernel}, Q2. Where importance-sampling collapse makes the empirical
+metric itself unreliable, its inversion amplifies estimation noise and SR becomes
+actively harmful. The practical implication for future work is therefore about the
+\emph{estimator}, not the curvature: any natural-gradient or second-order method
+applied to weakly confined many-body systems must certify that the metric it inverts
+is statistically resolved at the sample sizes in use.
 
 
 \subsection{Why Langevin refinement fails}

@@ -732,12 +732,16 @@ QMC methods have been successfully applied to various quantum systems:
 \subsubsection{Computational Efficiency}
 Key factors in achieving efficient QMC simulations include:
 \begin{itemize}
-    \item \textbf{Efficient Determinant Updates:} Algorithms for rapid updates of Slater determinants and their inverses can reduce computational cost from $\mathcal{O}(N^3)$.
+    \item \textbf{Efficient Determinant Updates:} For a single-particle move, the Sherman--Morrison
+    formula updates the inverse Slater matrix in $\mathcal{O}(N^2)$ rather than recomputing the
+    determinant from scratch at $\mathcal{O}(N^3)$.
     \item \textbf{Optimised Gradient and Laplacian Calculations:} Recursive methods and efficient numerical routines for evaluating $\nabla\Psi_T/\Psi_T$ and $\nabla^2\Psi_T/\Psi_T$ are essential.
 \end{itemize}
 
 \subsection{Conclusion}
-Variational and Diffusion Monte Carlo methods together provide a robust framework for studying quantum systems. VMC offers a flexible approach for optimising trial wavefunctions, while DMC projects out the exact ground state through imaginary-time evolution. These methods, working in concert, enable accurate and efficient investigations of systems from simple atoms to strongly correlated materials. Ongoing improvements in trial wavefunction design and stochastic algorithms continue to extend the reach of QMC in modern computational physics.
+Variational and Diffusion Monte Carlo methods together provide a robust framework for studying quantum systems. VMC offers a flexible approach for optimising trial wavefunctions, while DMC projects toward the ground state through imaginary-time evolution---though
+for fermions the practical fixed-node variant is variational only within the imposed
+nodal surface, and retains a nodal bias unless those nodes are exact. These methods, working in concert, enable accurate and efficient investigations of systems from simple atoms to strongly correlated materials. Ongoing improvements in trial wavefunction design and stochastic algorithms continue to extend the reach of QMC in modern computational physics.
 
 \chapter{Machine Learning}
 \label{ch:ml_theory}
@@ -1177,7 +1181,7 @@ Key takeaways include:
 \end{itemize}
 
 Initialization and activation choice thus form an inseparable pair: together
-they determine whether information propagates stably through the network. This will be discussed further in the context of physics-informed models in Chapter~\ref{ch:trial_wavefunction}.
+they determine whether information propagates stably through the network. This is taken up again for physics-informed models in Section~\ref{sec:pinns}.
 
 \section{Architectures for many-body wavefunctions}
 \label{sec:architectures}

@@ -116,7 +116,8 @@ An MLP $\psi$ maps $\mathbf u_{ij}\mapsto\mathbf h^{\psi}_{ij}\in\mathbb R^{d_L}
 \[
   \chi(\tilde r)=\frac{\tilde r^{2}}{\tilde r^{2}+r_g^{2}},\quad r_g\approx 0.3,\quad \chi(0)=\chi'(0)=0,
 \]
-suppresses learned responses \emph{at} coalescence, we use $\chi\,\mathbf h^\psi_{ij}$ downstream.
+suppresses learned responses \emph{at} coalescence; downstream we use
+$\chi\,\mathbf h^\psi_{ij}$.
 
 \subsection{Analytic short-range cusp (shared)}
 \label{subsec:cusp}
@@ -314,7 +315,10 @@ To avoid a spurious center-of-mass (COM) drift, we project the flow to zero mean
   \label{eq:bf-com}
 \end{equation}
 The messages are built from the relative vectors $\mathbf r_{ij}$ and the zero-mean projection removes the spurious centre-of-mass drift; as noted under the design goals, the map is not translation-invariant or rotation-equivariant by construction (the displacement head reads a $d$-vector from the absolute coordinates).%
-\footnote{Implementation note: subtracting the batchwise mean of $\Delta_\beta$ is a one-liner and removes the small residual COM drift seen in ablations.}
+\footnote{Implementation note: the mean is taken over particles \emph{within each
+configuration}, not across configurations in the batch, so the constraint removes
+centre-of-mass motion configuration by configuration. It is a one-liner and removes the
+small residual COM drift seen in ablations.}
 
 \subsection{Effect on the nodes and variational safety}
 Because only $\mathrm{SD}$ is evaluated at $\tilde R'$, backflow changes the \emph{nodes} but leaves the correlator exponent on $\tilde R$. No Jacobian term is introduced (we are not performing a change of variables of the full wavefunction).
@@ -339,10 +343,10 @@ For both, aggregation is selectable (\texttt{sum|mean|max}); spin handling
 (\texttt{use\_spin}, \texttt{same\_spin\_only}) produces the mask $w_{ij}^{\rm spin}$;
 output control matches~\eqref{eq:bf-bound-scale} via \texttt{out\_bound="tanh"} and
 $s_\beta=\mathrm{softplus}(\texttt{bf\_scale\_raw})$; and \eqref{eq:bf-com} is enforced by
-subtracting the batchwise mean of the predicted $\Delta_\beta$ before forming $\tilde R'$.
+subtracting the per-configuration mean over particles of the predicted $\Delta_\beta$ before forming $\tilde R'$.
 
 \paragraph{Summary.}
-Backflow provides a compact, symmetry-respecting way to move the Slater nodes toward the true correlated nodes. With mollified distances, optional short-range gates/attention, zero-mean projection, and bounded outputs, it integrates cleanly with the analytic cusp and smooth NQS correlator, reducing fixed-node error without inflating local-energy variance.
+Backflow provides a compact, symmetry-respecting way to move the Slater nodes toward the true correlated nodes. With mollified distances, optional short-range gates/attention, zero-mean projection, and bounded outputs, it integrates cleanly with the analytic cusp and smooth NQS correlator, designed to reduce nodal error while controlling local-energy variance.
 
 \section{Architecture sizes and hyperparameters}
 \label{sec:hyperparameters}

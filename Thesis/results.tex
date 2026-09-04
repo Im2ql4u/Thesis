@@ -223,7 +223,9 @@ the \emph{backflow displacement field} $\Delta\mathbf{x}$ produced by the CTNN,
 and the \emph{coupling} between these two components.
 All diagnostics are evaluated on samples drawn from $|\Psi|^2$.
 
-Three results organise this section.
+Three descriptive regularities organise the trained solutions examined here. They are
+reported as observed properties of these models, not as settled architecture-level
+facts: as the caveat below explains, several are gauge-like.
 First, the correlator operates on a manifold of remarkably low dimension ($r_{\mathrm{eff}}\lesssim 3$),
 whose \emph{content}---but not dimensionality---reorganises across regimes via a
 $\phi\leftrightarrow\psi$ transition in the leading principal axis (\S\ref{sec:repr-geom}).
@@ -328,7 +330,9 @@ When interactions are weak relative to the trap ($\omega \gtrsim 0.1$),
 the non-interacting shell structure provides a good zeroth-order description,
 and the correlator's primary role is refining pair correlations on top of that.
 When interactions dominate ($\omega \lesssim 0.01$),
-the orbital structure itself must reorganise---which orbitals are occupied and how they mix
+the leading correlator coordinate shifts away from pair features toward the
+single-particle/orbital-derived and auxiliary branches: the network reorganises the
+features through which it represents the state
 becomes the dominant variational degree of freedom.
 The network discovers this distinction autonomously:
 regime changes appear as a rotation of a low-dimensional axis across branches,
@@ -398,7 +402,8 @@ The effective rank of the displacement field is consistently $\approx 2N - 2$,
 saturating the available spatial degrees of freedom modulo centre-of-mass conservation
 (confirmed by COM shifts of order $10^{-14}$--$10^{-17}$).
 The backflow transformation is not a low-rank collective mode
-such as a breathing or rigid rotation; each particle receives a genuinely independent correction
+such as a breathing or rigid rotation; the displacement field spans essentially all COM-free spatial directions, so each
+particle receives a correction
 conditioned on the full configuration.
 This full-rank behaviour is a property of the \emph{message-passing} backflow
 specifically, and it is exactly the point at which the companion chapter finds the
@@ -414,7 +419,7 @@ Yet the CKA between correlator features with and without backflow exceeds 0.99 i
 (and exceeds 0.979 everywhere).
 The correlator manifold is almost unperturbed by the displacement field.
 This establishes a clean separation of concerns:
-the CTNN operates in the orthogonal complement of the correlator's feature space,
+the CTNN's action leaves the correlator's feature geometry almost unchanged,
 providing configuration-dependent corrections that the globally organised correlator does not
 and need not represent.
 
@@ -1210,7 +1215,7 @@ and the rollback mechanism rejecting all gradient updates.
 This marks the boundary of the current collocation approach for
 $N{=}12$.
 
-\paragraph{$N{=}20$: bounded by memory, not by principle.}
+\paragraph{$N{=}20$ exposes the memory--sampling trade-off.}
 Twenty electrons in two dimensions push the collocation pipeline against a hardware
 wall rather than a conceptual one. The backflow's edge-feature tensor scales as
 $\mathcal{O}(N^2\times h_{\mathrm{bf}})$, which at $N{=}20$ forces the hidden
@@ -1274,9 +1279,13 @@ CG-SR updates in this regime produced errors of $+4$--$36\%$
 for $N{=}6$ at $\omega{=}0.01$ and $\omega{=}0.001$, compared to
 $+0.15\%$ and $+0.24\%$ from Adam with per-parameter adaptive
 learning rates.
-This demonstrates a sharp \emph{optimiser regime boundary}: natural
-gradients are beneficial when the Fisher matrix is well-conditioned,
-but catastrophically wrong when it is not.
+Ill-conditioning alone does not decide whether SR helps; what matters is whether
+the metric is \emph{also} statistically resolvable. This gives a three-regime
+picture (developed in Chapter~\ref{ch:kernel}, Q2): where the metric is
+well-conditioned, Adam already suffices and SR buys little; where it is anisotropic
+but still estimable, SR is most valuable; and where importance-sampling collapse
+makes the empirical metric itself unreliable, inverting it amplifies sampling noise
+and does harm. The failures above are the third regime, not the second.
 
 \paragraph{Negative: Langevin proposal refinement.}
 To address the ESS catastrophe at high~$N$, we implemented

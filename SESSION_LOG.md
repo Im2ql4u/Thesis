@@ -1187,3 +1187,15 @@ Build: 121 pages, 0 errors, 0 undefined references or citations.
   monotonic training, and narrowed the cross-disciplinary history claim.
 - Rebuilt and visually checked the front matter; the PDF remains 122 pages with
   no errors or unresolved references.
+
+---
+
+## 2026-09-04 --- Chapter epigraph position experiment
+
+- Tested rendering queued epigraphs inside the chapter-title formatter so that
+  quotations would appear above titles on the same page. The paragraph-level
+  epigraph layout is incompatible with the current `titlesec` chapter hook and
+  left the PDF build incomplete.
+- Restored the stable post-title chapter epigraph layout and rebuilt the complete
+  122-page PDF. Reduced the dedicated Dostoevsky quotation from `\Large` to
+  `\large` for a less dominant opening page.

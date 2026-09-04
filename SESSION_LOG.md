@@ -1164,3 +1164,13 @@ Build: 121 pages, 0 errors, 0 undefined references or citations.
   Aurelius at their respective chapter openings.
 - Rebuilt the thesis successfully at 122 pages and visually checked the
   whole-thesis, Preface, and Introduction treatments.
+
+---
+
+## 2026-09-04 --- Epigraph attribution refinement
+
+- Centred the Dostoevsky epigraph on its dedicated page.
+- Reduced every epigraph source line to the work title only, removing chapter,
+  fragment, translation, and journal-entry details from the rendered thesis.
+- Rebuilt and visually verified the centred whole-thesis page; the PDF remains
+  122 pages with no errors or unresolved references.

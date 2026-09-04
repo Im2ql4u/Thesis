@@ -1199,3 +1199,15 @@ Build: 121 pages, 0 errors, 0 undefined references or citations.
 - Restored the stable post-title chapter epigraph layout and rebuilt the complete
   122-page PDF. Reduced the dedicated Dostoevsky quotation from `\Large` to
   `\large` for a less dominant opening page.
+
+---
+
+## 2026-09-04 --- Chapter quotes above titles
+
+- Replaced the unsuccessful global chapter hook with local page-break suppression
+  at each epigraph-bearing chapter. Each quote now appears above its chapter
+  title on the same page, while normal chapter breaks elsewhere are unchanged.
+- Increased the chapter quote text to `\large` and rebuilt twice to settle
+  cross-references.
+- Visually verified the Introduction opening; the PDF remains 122 pages with no
+  errors or unresolved references.

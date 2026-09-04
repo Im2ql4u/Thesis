@@ -1152,3 +1152,15 @@ Build: 121 pages, 0 errors, 0 undefined references or citations.
   and the final return to the opening question.
 - Added and visually reviewed the Kierkegaard epigraph; the rebuilt PDF places
   the Preface across two balanced pages and compiles without errors.
+
+---
+
+## 2026-09-04 --- Thesis epigraphs
+
+- Added reusable whole-thesis and chapter-epigraph commands with right-aligned
+  quotation, accent rule and attribution, and smaller black source text.
+- Placed the Dostoevsky quote before the Preface and the verified quotes from
+  Kierkegaard, Shelley, Heraclitus, Epictetus, Aristotle, Nietzsche, and Marcus
+  Aurelius at their respective chapter openings.
+- Rebuilt the thesis successfully at 122 pages and visually checked the
+  whole-thesis, Preface, and Introduction treatments.

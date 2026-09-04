@@ -107,6 +107,33 @@
 \setlength{\figgutter}{0.3em} % tweak gutter size
 \newcommand{\threecolw}{\dimexpr(\textwidth-2\figgutter)/3\relax}
 
+\newcommand{\chapterepigraph}[3]{%
+  \begin{flushright}
+  \color{myaccent}\rule{0.48\textwidth}{0.5pt}\par\smallskip
+  \begin{minipage}{0.64\textwidth}
+  \raggedleft\itshape #1\par\smallskip
+  \normalfont\color{myaccent}\textsc{#2}\par
+  \normalfont\footnotesize\color{black}#3
+  \end{minipage}
+  \end{flushright}
+  \vspace{1.75em}%
+}
+
+\newcommand{\thesisepigraph}[3]{%
+  \thispagestyle{empty}
+  \vspace*{\fill}
+  \begin{flushright}
+  \color{myaccent}\rule{0.55\textwidth}{0.5pt}\par\smallskip
+  \begin{minipage}{0.68\textwidth}
+  \raggedleft\large\itshape #1\par\medskip
+  \normalfont\color{myaccent}\textsc{#2}\par
+  \normalfont\footnotesize\color{black}#3
+  \end{minipage}
+  \end{flushright}
+  \vspace*{\fill}
+  \clearpage%
+}
+
 \titleformat{\chapter}
   [display]  % display = title is on its own line
   {\normalfont\huge\bfseries\color{myaccent}}  % Style
@@ -139,6 +166,9 @@ Tangent-Space Geometry, Message Passing, and Wigner Molecules}
 
 
 \include{abstract}
+\thesisepigraph{To go wrong in one's own way is better than to go right in
+someone else's.}{Fyodor Dostoevsky}{\textit{Crime and Punishment}, Part III,
+Chapter I (Constance Garnett translation)}
 \include{preface}
 \tableofcontents
 

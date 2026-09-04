@@ -551,3 +551,20 @@ corrected framing is both defensible and a better description of the contributio
 **Constraints introduced:** Any future expressivity claim must separate
 representability from trainability and sample complexity.
 **Confidence:** high
+
+### [2026-09-04] --- Use consistent epigraphs at thesis entry points
+
+**Decision:** Add a dedicated whole-thesis epigraph before the Preface and use a
+single right-aligned epigraph treatment beneath the Preface, Introduction,
+Theory, Methods, Results, Discussion, and Conclusion headings.
+**Alternatives considered:** Place each quote on a dedicated page; use a different
+visual style for every chapter; or omit source information from the document.
+**Reasoning:** A shared restrained format provides a pause at each major entry
+point without interrupting the reading flow. The whole-thesis quote receives its
+own page because it establishes the document's broader theme; chapter quotes
+remain integrated with their openings. Source lines preserve traceability while
+remaining visually subordinate to the quotation.
+**Constraints introduced:** Future epigraphs should use the shared commands and
+include a source line; chapter epigraphs should remain short enough to sit above
+the opening prose without forcing a page break.
+**Confidence:** high

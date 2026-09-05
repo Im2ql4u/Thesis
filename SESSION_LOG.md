@@ -1384,3 +1384,40 @@ chapter 7's inline duplicate cut to a sentence.
 Correction to the review: I had listed the overlap estimator as missing from the
 front half. It is defined in 5.3, carefully, with the modulus-versus-signed
 caveat. Three of the four gaps were real, not four.
+
+---
+
+## 2026-09-05 --- De-narration pass over the whole document
+
+Implemented `PROSE_PLAN_2026-09-05.md` in eight phases, each built and verified.
+119 pages down to 111.
+
+The diagnosis had a sharp boundary worth recording: all seventeen rhetorical
+headings traced to my own commits this session (4589f78, b341289, 14a2c4f), and
+so did almost all the mannerism. The chapters I barely touched - Appendix A,
+Methods 5, the CTNN section 2.4 - read best. The problem was the connective
+tissue added during the restructure, not the underlying thesis.
+
+Operational rule, which mattered: delete rather than rewrite. The previous pass
+had rewritten mannered sentences into quieter mannered sentences, which is why
+the "not X but Y" count went 15 -> 12 -> 12 across two attempts. Rewriting
+preserves the rhetorical move.
+
+Phases: headings first (36 renames, which lowers the register of the whole
+document and makes the remaining performance audible); roadmaps and metadiscourse
+deleted; the five separate declarations that the three axes are one geometry
+reduced to one, stated causally; advance answers removed from 6.1 and 7.1; the
+introduction de-answered, with the four research questions restored to questions
+and the answers left to the contributions list; verdict words replaced by the
+evidence; the abstract rewritten for both its staleness and its persuasion; the
+long methods sentences broken; the appendices de-editorialised.
+
+Measurement note: the plan's "11 methods sentences over 60 words" was partly an
+artefact - my sentence splitter was joining sentences across display equations.
+The corrected count was 5, of which one (93 words) was genuinely bad and is
+fixed. Metrics that treat display maths as a sentence break are the honest ones.
+
+Body prose came down 2.8%, against a 10-15% target taken from the external
+review. The structural deletions are done; the shortfall is in distributed
+clause-level trimming, which is the remaining work and needs a reader's judgement
+rather than a pattern match.

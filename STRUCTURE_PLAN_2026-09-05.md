@@ -1,194 +1,122 @@
-# Chapters 6–8: merged structural plan (2026-09-05)
+# Chapters 6–9: what is done, and what is left (2026-09-05, third revision)
 
-Supersedes the first version of this file. Merges my structural read with a second
-external assessment, after verifying that assessment's factual claims against the source.
-Companion to `AUDIT_TRIAGE_2026-09-05.md`, which covered correctness.
-
----
-
-## First: two claims in the second assessment that do not hold
-
-**It claims Chapter 6 carries an "older, cruder" formulation of the SR story** — "natural
-gradients are beneficial when Fisher is well-conditioned, catastrophically wrong when it is
-not" — contradicting Chapter 7's mature version. **Not true.** `results.tex:1296-1302`
-reads:
-
-> Ill-conditioning alone does not decide whether SR helps; what matters is whether the
-> metric is *also* statistically resolvable. This gives a three-regime picture (developed in
-> Chapter 7, Q2) … The failures above are the third regime, not the second.
-
-That is the mature formulation, and it explicitly defers to Chapter 7. Commit `6c9b6bf`
-("propagate the chapter-7 formulations backward") already did this job.
-
-**It claims the Discussion says the shell reconstruction shows structure is "unambiguously
-geometric … rather than a sampling artifact,"** contradicting Chapter 6's more careful
-decomposability scoping. The phrase does not occur anywhere in the thesis, and §8.2 already
-carries the careful version verbatim.
-
-Both assessments so far have been partly reading a document that no longer exists. The
-consequence for the plan is concrete: **there is no hunt for mutated claims to do.** The
-duplication is real; the drift between retellings has already been fixed.
+Supersedes the previous two versions. The macrostructure is settled and should not be
+rearranged again. What remains is reduction and polish.
 
 ---
 
-## Where the second assessment improves on my plan
+## Verification first
 
-### 1. Move the collocation programme out of Chapter 6 entirely
+Three claims from the latest external read did not survive checking. Recording them so
+they are not chased:
 
-My first plan tried to save §6.4 in place by adding a fourth question to the chapter
-introduction. That was papering over the problem. §6.4 is seven pages that answer none of
-Chapter 6's stated questions, and Chapter 7 §§7.3–7.4 already owns the collocation
-mechanism. Splitting one programme across two chapters is exactly what makes the reader
-hold it in two places.
+- **The rotated page 84 is a build artifact.** `/Rotate 90` appears in no committed PDF
+  and vanishes on any clean rebuild (`latexmk -C` then a full run). It comes from an
+  interrupted incremental build, not from the source. No package in the document sets
+  page attributes.
+- Two earlier reads claimed a crude SR formulation in Chapter 6 and a contradictory
+  $g(r)$ scoping sentence. Neither exists; both were fixed before those reads.
 
-Consolidating gives three chapters with genuinely different jobs:
+Everything else in that read checked out, including one item that matters more than the
+rest.
 
-| | Its one job |
+---
+
+## Done in this pass
+
+| | |
 |---|---|
-| **Ch 6** | What we obtained: trustworthy states, the physics they reveal, and how they represent it. |
-| **Ch 7** | Why we obtained it, and where it fails: architecture, conditioning, sampling paradigm, and the MCMC-free programme end to end. |
-| **Ch 8** | What it means, and what would have to be true for it to be wrong. |
+| **Ch 8's over-unification** | It claimed "one mechanism explains every failure," directly contradicting Ch 7's own §7.4.5, which shows the wall below $\omega=0.0035$ is a Slater–Jastrow balance problem and *explicitly not the sampler*. Rewritten as **two walls**: statistical, which a better proposal moves, and representational, which it cannot. This was my error, introduced when Ch 8 was compressed, and it is the more interesting claim in its corrected form. |
+| **Ch 7 spoiler in §6.3** | The backflow subsection announced the conventional-vs-copresheaf result a chapter before the controlled comparison that earns it. Cut to a description plus a forward pointer. |
+| **Six-point Wigner synthesis** | Compressed to two paragraphs. The numbered checklist restated pages the reader had just finished. |
+| **Total-spin caveat** | Moved from immediately after §6.2's opening — where it stalled the argument at the moment it took off — to the synthesis, where it qualifies the conclusion. |
+| **"What follows, in short"** | Cut. It was the old *Headline findings* in better prose, and it named every result before §7.1 began. Replaced with a five-line road map. |
+| **Conclusion** | Rebuilt. See below. |
+| **Three defects** | A stray `\paragraph{Localization and energy partitioning.}` left by the splice; a sentence damaged by an earlier edit in §6.3.1; a cross-reference pointing at Ch 6 for a table that now lives in Ch 7. |
+| **Tone** | "not by somebody else's node" → neutral phrasing; "The honest statement is…" → just the statement. |
 
-**What did we obtain → why → what does it mean.** That is a better spine than either of my
-four-triad diagnosis or the current arrangement.
+### The conclusion now has a job
 
-### 2. Swap §6.2 and §6.3 — physics before representations
+It was four "On the *X* side" blocks mirroring the old chapter order — the last remaining
+replay of the results, three pages of it, now that Ch 8 is genuinely interpretive. Rebuilt
+around two things nothing else in the thesis does:
 
-I had not proposed this. It is right, and there is decisive evidence for it that neither
-assessment cited:
+**The loop.** Solve the state → the state teaches the physics → the physics builds the
+sampler → the sampler reaches states the original method could not. Ch 6 finds the shell
+geometry; Ch 7 §7.4 turns it into a proposal and gets to $\omega=0.0035$. That circle is
+the thesis's most distinctive structural claim and it was stated nowhere. It now opens
+the chapter and gives it its shape.
 
-**§6.2 currently forward-references §6.3 three times.** Lines 251, 513 and 553 all invoke
-"the physical crossover in Γ = V_int/T" — a quantity defined and measured in §6.3
-(`sec:wigner-energy`, line 697). The representation section leans on a physical crossover
-the reader has not yet met.
+**The ledger.** Three tiers, kept apart: *established against something outside this
+thesis* (only $N\le12$ at $\omega\ge0.1$, plus $N{=}2$ to $\omega=0.01$); *internally
+consistent in ways that could have failed* (the deep-Wigner picture, the architecture
+result — with the reasons the agreement is not cheap); *indicated and no more* (the
+size-scaling, seeded only at $N{=}6$). The old opening promised exactly this separation
+and then narrated findings instead. The preface's "wrong on the record" obliges it.
 
-Reorder to **energies → Wigner physics → representations** and three things happen at once:
+The four research questions are answered in a paragraph each, which absorbs the RQ
+mapping that had been bolted on. The chapter closes back on the preface, grounded in its
+actual account of the importance-sampling bug.
 
-- the forward reference becomes a backward one, and the φ↔ψ transition at ω≈0.1 lands as a
-  *finding* ("the network reorganises exactly where the physics does") rather than as a
-  coincidence asserted in advance;
-- the gauge caveat stops having to be imported from a chapter that does not exist yet —
-  representations now sit directly against Chapter 7's controlled comparison;
-- the chapter closes on the handoff that writes itself: *this anatomy describes what a
-  successful solution looks like; it does not explain why message passing produces it.*
-
-### 3. Retire the Q1/Q1a/Q1b/Q2/Q3 headings
-
-On the page the hierarchy reads as a technical report and keeps reminding the reader they
-are inside a framework rather than an argument. Descriptive headings instead:
-
-- Message passing reorganises the variational geometry
-  - The correlator: compression onto physical directions
-  - The backflow: preventing collective collapse
-- When natural gradients help, and when they hurt
-- The sampling measure sets the reachable regime
-- A Wigner-informed proposal, and the wall beyond it
-
-### 4. Chapter 7's title over-promises "one lens"
-
-§7.4 — Wigner-ring proposal, Dirichlet angular gaps, adaptive refitting, the
-Slater–Jastrow cancellation — is physics-informed sampling, not tangent-kernel analysis.
-The slogan has outgrown the science. Retitle to something like **"Why the method works:
-geometry, optimisation, and sampling."** The tangent geometry stays the intellectual centre
-without pretending every experiment is viewed through it.
-
-### 5. The operative principle: transitions, not summaries
-
-This is the best line in the second assessment and it is what makes every cut below safe:
-
-> You often solve coherence by summarising. But summarising repeatedly creates bulk. You
-> can get the same cohesion with one sentence at the boundary.
-
-Every synthesis block that gets deleted is replaced by one transition sentence. That is the
-rule for the whole pass.
+**Current shape:** Ch 6 = 15 pp, Ch 7 = 19 pp, Ch 8 = 5 pp, Ch 9 = 4 pp. Whole thesis 116
+pages, clean build.
 
 ---
 
-## Where I would modify it
+## What is left, in order
 
-### A. Keep the collocation *energy table* in Chapter 6
+### 1. §7.3.3 "What worked and what did not" — the last lab-notebook stretch
 
-The second assessment moves the entire programme. But "an accurate many-body wavefunction
-can be trained with no Markov chain in the gradient" is one of the abstract's three headline
-questions — it is a **result**, not a mechanism. Demoting Table 6.8 into a "why the method
-works" chapter demotes the thesis's third contribution.
+Eight findings in positive/negative list form, and the densest unbroken prose in the
+thesis. The content should stay; the form should not. Convert the enumeration to a
+compact table:
 
-**Fix:** §6.1 presents *both training routes side by side* in one benchmark table — SR–VMC
-and collocation, against the same references. The reader learns in one place how accurate
-the method is, by either route. Everything else about collocation — reliability campaign,
-negative results, gradient-quality chain, the frontier — moves to Chapter 7, which is where
-"why it works and where it fails" belongs.
+| Attempt | Outcome | Mechanism | Consequence |
 
-### B. Do not drop the research-question labels entirely
+and keep prose only for the three that develop the argument — **Langevin**, **CG-SR**,
+and the **$N{=}20$ reversal**. Those three are the ones the Discussion later builds on;
+the rest (finite differences, Pfaffian, hard cusp gating, warm starts) are inventory and
+read better as rows. Saves roughly a page and makes the negative-results programme
+scannable, which is how a reader actually uses it.
 
-A UiO examiner may well check that the thesis answers its own stated research questions.
-Descriptive headings, yes — but name the research question in the first sentence of each
-section, and add an explicit RQ→section mapping to the Conclusion. Readable headings,
-traceable answers.
+### 2. `\paragraph{}` thinning in Ch 7
 
-### C. §6.3 is a catalogue, and neither assessment examined its table load
+Ch 6 is now at 15 headers (was 33) and Ch 8 at 3 (was 23). Ch 7 sits at 33 after
+absorbing collocation. Test for each: *could the sentence after this heading have followed
+the previous paragraph?* If yes, delete the heading and keep the text. Concentrated in
+§7.3.3–§7.3.4.
 
-Seven pages, four tables, eight figures. Six diagnostics × four particle numbers × five
-confinements is a matrix, and the prose currently walks it cell by cell, so the reader
-cannot tell which numbers carry the claim and which are corroboration.
+### 3. §6.2's diagnostic catalogue
 
-Build the section on the two that carry it — **shell-topology fractions** and the **g(r)
-reconstruction**. The Lindemann tables, quantile tables, FWHM and per-N radial tables become
-one appendix table the text points at once. This is the largest single cut available in
-Chapter 6 and it removes no result.
+Still 6 pp with 4 tables and 8 figures, prose walking a $6\times4\times5$ matrix. Build
+the section on the two diagnostics that carry the claim — shell-topology fractions and
+the $g(r)$ reconstruction — and move the Lindemann, quantile, FWHM and per-$N$ radial
+tables to an appendix that the text points at once. Largest single cut still available;
+removes no result. Left until now deliberately, because it is the most content-affecting
+edit and is easier to judge against a stable chapter.
 
-### D. The appendices have to follow the move
+### 4. A read-through for voice
 
-Appendices C (the collocation–backflow catch-22, 6 pp) and D (post-catch-22 history, 2 pp)
-are both collocation. If the programme consolidates into Chapter 7 they become Chapter 7's
-appendices, and D.2's N=20 numbers should fold into Chapter 7's collocation results rather
-than living alone in an appendix that the Discussion then mis-cites.
+The register is close now. The remaining risk is that the vivid lines cluster. They
+should be rare enough to land: *"A variational wavefunction is two things at once."*
+*"The network that produced it is not."* *"Falling quiet and falling over are not the same
+thing."* If a page has two, one of them is probably decoration. Also worth a targeted
+sweep: sentences that tell the reader what the previous sentence meant.
 
----
+### 5. Typesetting, last
 
-## The merged architecture
-
-| | now | after | contents |
-|---|---|---|---|
-| **Ch 6** *The state and the physics* | 21 pp | **~13** | 6.1 Energies, both training routes (4) · 6.2 The Wigner-molecule crossover (5) · 6.3 What the network represents (4) |
-| **Ch 7** *Why the method works: geometry, optimisation, sampling* | 12 pp | **~17** | short opening (1) · 7.1 Message passing reorganises the geometry (6) · 7.2 Conditioning: when natural gradients help (3) · 7.3 Training without a Markov chain: reliability and its boundary (5) · 7.4 The Wigner-informed proposal and the remaining wall (2) |
-| **Ch 8** *Discussion* | 11 pp | **~6** | re-chartered: limits of the evidence, failure mechanisms, literature, what it predicts |
-| **Ch 9** | 3 pp | 3 pp | + explicit RQ→section mapping |
-| | **47** | **~39** | |
-
-Chapter 7 absorbs seven pages from Chapter 6 and still ends up smaller than the two of them
-were, because the collocation programme is stated once instead of three times. §7.5's
-synthesis dissolves into Chapter 8's opening — the two currently do the same job.
+Only once the pagination has stopped moving. Check the §7.2 heading break, the long
+§7.4 running head, and widow/orphan lines around the tables in §7.3.
 
 ---
 
-## Order of work
+## Settled — do not revisit
 
-1. **§8.1–§8.3 triage.** Move the four keeper paragraphs into Chapter 6 (fixed-node
-   argument under the energy table; spin caveat and decomposability scoping into the Wigner
-   section); cut the rest. Mostly deletion, biggest single legibility gain.
-2. **Move §6.4 into Chapter 7**, keeping only the energy table in §6.1. Fold §8.4's
-   mechanism subsections in at the same time so collocation is assembled once.
-3. **Swap §6.2 and §6.3**, and rewrite the three section-boundary transitions. The forward
-   references to Γ resolve themselves.
-4. **Cut Chapter 7's opening** from four framing devices to three paragraphs; keep a
-   compressed headline paragraph, drop "One idea, one lens," "The three questions" and
-   "Discipline" as separate blocks.
-5. **Retitle Chapter 7 and its sections**; add the RQ mapping to Chapter 9.
-6. **§6.3 catalogue → argument**; secondary tables to the appendix.
-7. **`\paragraph{}` thinning pass.** Chapter 6 currently carries 33 paragraph headers plus
-   19 subsections — 52 headed blocks in 21 pages. Test: a `\paragraph{}` earns its heading
-   only if the sentence after it could not have followed the previous paragraph.
-8. **Typesetting sweep last**, once pagination is stable: check the §7.2 heading break and
-   the long §7.4 running head.
-
----
-
-## What I would still not change
-
-- **Chapter 6's evidence.** The cuts above are to scaffolding and to secondary diagnostic
-  tables, not to results.
-- **The collocation negative results.** "What worked and what did not" is the most
-  distinctive writing in the thesis. In Chapter 7 it should get *more* prominence, not less.
-- **The preface and the epigraphs.** Seven is one or two past where I would stop, but no
-  examiner will mark it.
+- The three-chapter division of labour: what we obtained → why it works → what it means,
+  with the conclusion doing the ledger and the loop.
+- Collocation living in Ch 7, with its energy table in Ch 6 beside the SR–VMC table.
+- Wigner physics before representations.
+- Descriptive section headings, with the research questions traceable through Ch 9.
+- Ch 6's evidence. The cuts above are to scaffolding and secondary tables, not results.
+- §7.3's negative results, which stay prominent. They are the most distinctive material
+  in the thesis and the part an examiner is most likely to remember.

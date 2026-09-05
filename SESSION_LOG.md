@@ -1278,3 +1278,36 @@ Paragraph-header density is now 15 in Ch 6 (was 33) and 3 in Ch 8 (was 23).
 would move the Lindemann, quantile and FWHM tables to an appendix; the
 `\paragraph{}` thinning pass over Ch 7, which now carries 33; and the typesetting
 sweep, which should be last since it depends on stable pagination.
+
+---
+
+## 2026-09-05 --- Conclusion rebuilt; chapter-7 spoiler and a self-inflicted
+## contradiction removed
+
+- Rewrote the conclusion. It had been four "On the X side" blocks mirroring the old
+  chapter order, and with Ch 8 now interpretive it was the last replay of the
+  results. Rebuilt around the loop (solve the state -> the state teaches the physics
+  -> the physics builds the sampler -> the sampler reaches states the original method
+  could not) and an evidence ledger separating what is externally established, what
+  is internally consistent, and what is only indicated. The four research questions
+  are answered in a paragraph each, absorbing the RQ mapping that had been bolted on.
+- Fixed a contradiction I introduced when compressing Ch 8: it claimed one mechanism
+  explains every collocation failure, which contradicts 7.4.5, where the wall below
+  omega=0.0035 is diagnosed as a Slater-Jastrow balance problem and explicitly not
+  the sampler. Now stated as two walls, statistical and representational. The
+  corrected version is the stronger claim.
+- Removed the chapter-7 spoiler from 6.3 (the backflow subsection announced the
+  conventional-vs-copresheaf result before the controlled comparison earned it), cut
+  "What follows, in short" from the chapter-7 opening, compressed the six-point
+  Wigner synthesis to two paragraphs, and moved the total-spin caveat to where it
+  qualifies a conclusion rather than stalling an opening.
+- Verified and dismissed: the rotated page 84 reported externally is a build
+  artifact. `/Rotate 90` is absent from every committed PDF and from any clean
+  rebuild; no loaded package sets page attributes.
+- Near-miss worth recording: a find-based splice deleted the whole of section 7.1
+  because the search for the next `% ====` divider ran past the section. Caught by
+  re-checking the section map immediately after the edit and restored from the
+  working blocks in the scratch directory. Keep the block files until the
+  restructuring settles.
+
+116 pages, clean build. Remaining work is in `STRUCTURE_PLAN_2026-09-05.md`.

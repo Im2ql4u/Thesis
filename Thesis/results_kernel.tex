@@ -45,11 +45,11 @@ which counts how many directions actually carry Fisher weight, whatever the para
 count says. Beside it sit the local-energy variance $\Var(E_L)$, zero only for an exact
 eigenstate; the effective sample size; and the condition number $\kappa(S)$.
 
-Three constraints hold throughout. Architectures are compared on a
-\emph{common probe set}---the same configurations for every model, never each model's own
-$|\Psi|^2$. Backflow comparisons are seeded and held at reference quality. And below
-$\omega=0.1$ every relative error is measured against our own converged variational
-energies, which makes it a statement about internal consistency and not about accuracy.
+Architectures are compared on a \emph{common probe set}: the same configurations for every
+model, never each model's own $|\Psi|^2$. Backflow comparisons are seeded and held at
+reference quality. Below $\omega=0.1$ every relative error is measured against our own
+converged variational energies, and is therefore a statement about internal consistency
+rather than about accuracy.
 The tooling is anchored on the analytic two-electron ground state, where the ansatz
 returns $E=3.000127$~Ha ($+0.004\%$) at squared overlap $1.000000$.
 
@@ -123,9 +123,9 @@ state, vanishes only for an exact eigenstate, and is directly comparable between
 ansätze evaluated on their own $|\Psi|^2$. Measured at matched training protocol and
 production capacity, $\Var(E_L)$ is lower for the message-passing correlator at every
 confinement (Table~\ref{tab:varEL}), by factors of $2$ to $7$, while the two are
-indistinguishable in energy. At the crystal the separation is clean across seeds: three
+indistinguishable in energy. At the crystal the two sets of runs do not overlap: three
 CTNN runs give $(1.95,\,1.63,\,1.96)\times10^{-5}$ against three DeepSet runs at
-$(3.40,\,3.23,\,3.41)\times10^{-5}$, with no overlap. Intermediate confinements
+$(3.40,\,3.23,\,3.41)\times10^{-5}$. Intermediate confinements
 ($\omega=0.28,\,0.05,\,0.03$) reproduce the same ordering at ratios $1.2$--$1.8$. The one
 place the ordering is not resolved is the smallest capacity tier used for the depth
 analysis ($12$k CTNN vs $9$k DeepSet), where the two sit within $8\%$ of each other at
@@ -495,7 +495,7 @@ preconditioning breaks an accuracy floor near $0.3\%$---a floor set by the Jastr
 with the backflow contributing almost nothing. That is a property of the objective, not of
 the idea. Everything below uses the weak form.
 
-So posed, the result is clean. On the same Slater--Jastrow--backflow ansatz, and with no
+On the same Slater--Jastrow--backflow ansatz, and with no
 Markov chain anywhere in the optimisation, the weak form recovers the variational energy
 to within DMC uncertainty at strong confinement and to a few tenths of a percent of our
 gold standard well into the correlated regime for $N\in\{6,12\}$
@@ -1126,7 +1126,7 @@ We replace the origin mixture with a \emph{Wigner-ring} proposal: a radial Gauss
 shell radius times an angular distribution for the ring electrons, plus a central Gaussian.
 On trusted states this lifts the effective sample size by $15$--$47\times$ over the origin
 mixture (Table~\ref{tab:ring-ess}), turning a collapsed sampler into a usable one---without
-any training, a cheap decisive test. Fitting the ring to $|\Psi|^2$ samples (the simplest
+any training. Fitting the ring to $|\Psi|^2$ samples (the simplest
 adaptive form) doubles the ESS again; a $(1,5)+(0,6)$ mixture \emph{hurts} at $N=6$, since
 the state is $(1,5)$ and the extra channel dilutes the proposal mass.
 

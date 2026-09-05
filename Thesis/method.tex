@@ -547,19 +547,22 @@ Implementation details:
 Because our backflow only alters the Slater coordinates (and $W_\theta$ stays on safe features of $\tilde R$), the SR statistics remain well–behaved even when nodes shift.
 
 \paragraph{Optimiser variants compared.}
-Three first-order updates appear in the results, and the comparison between them is itself a
-finding (Chapter~\ref{ch:kernel}, \S\ref{sec:kernel-q2}):
-(i) \textbf{Adam}~\cite{KingmaBa2015-Adam}, a diagonal adaptive step used as the robust
-default, with separate learning rates for the Jastrow and backflow blocks;
-(ii) \textbf{plain SR}, the natural-gradient step above with a fixed diagonal damping
-$\lambda$; and
-(iii) \textbf{CG-SR}, the same step solved matrix-free by (preconditioned) conjugate
-gradients with Tikhonov damping and a trust-region cap, which converges faster where $S$ is
-well conditioned but becomes unstable in the weak-confinement regime where $S$ is nearly
-singular. Solving the SR step without forming $S$ is what makes it affordable at
-$\mathcal{O}(10^5)$ parameters; the same obstacle is addressed from the other side by the
+Three first-order updates appear in the results, and their comparison is itself a finding
+(\S\ref{sec:kernel-cond}):
+\begin{itemize}
+  \item \textbf{Adam}~\cite{KingmaBa2015-Adam}: a diagonal adaptive step, used as the
+    robust default, with separate learning rates for the Jastrow and backflow blocks.
+  \item \textbf{Plain SR}: the natural-gradient step above with a fixed diagonal damping
+    $\lambda$.
+  \item \textbf{CG-SR}: the same step solved matrix-free by preconditioned conjugate
+    gradients, with Tikhonov damping and a trust-region cap. It converges faster where $S$
+    is well conditioned and becomes unstable at weak confinement, where $S$ is nearly
+    singular.
+\end{itemize}
+Solving the SR step without forming $S$ is what makes it affordable at
+$\mathcal{O}(10^5)$ parameters. The same obstacle is addressed from the other side by the
 minSR and kernel-formulation reductions, which exploit the fact that the number of samples,
-not the number of parameters, sets the true rank of the
+rather than the number of parameters, sets the true rank of the
 problem~\cite{ChenHeyl2024-minSR,Rende2024-KernelSR}. Under $|\Psi|^2$ sampling the Adam and SR \emph{fixed points} coincide; they differ
 in conditioning and in the collocation regime, which is the subject of
 \S\ref{sec:kernel-q2}.
@@ -613,12 +616,12 @@ effective sample size $\mathrm{ESS}=(\sum_i w_i)^2/\sum_i w_i^2$ and, as a heavi
 diagnostic, the Pareto shape parameter $\hat k$ of the
 weights~\cite{Vehtari2024}. The second is not a second opinion on the first. Importance
 weights are heavy-tailed, and $\hat k$ estimates the tail index of the generalised Pareto
-distribution fitted to the largest of them. The threshold
-that matters is a statement about moments: for $\hat k<1/2$ the weights have finite
-variance and the reweighted estimator obeys a central limit theorem; between $1/2$ and $1$
-the variance is infinite but the mean still exists, and convergence is slow enough that
-$\hat k\approx0.7$ is the practical limit of trustworthiness; above $1$ the mean itself is
-undefined and no sample size repairs it. An ESS can look survivable while $\hat k$ says the
+distribution fitted to the largest of them. The relevant thresholds are statements about
+moments. For $\hat k<1/2$ the weights have finite variance and the reweighted estimator
+obeys a central limit theorem. Between $1/2$ and $1$ the variance is infinite though the
+mean still exists, and convergence is slow enough that $\hat k\approx0.7$ is the practical
+limit of trustworthiness. Above $1$ the mean itself is undefined, and no sample size
+repairs it. An ESS can look survivable while $\hat k$ says the
 estimator has no variance to speak of, which is why we track both. Both degrade when $q$
 ceases to overlap $|\Psi_\theta|^2$, and that degradation is the failure mode which bounds
 the paradigm at large $N$ and weak $\omega$ (Chapter~\ref{ch:kernel},

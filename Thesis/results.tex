@@ -14,9 +14,9 @@ A variational wavefunction is both an answer and an instrument, and this chapter
 as each in turn.
 
 The quantum dot is an unforgiving test. The Coulomb interaction is singular wherever two
-electrons meet; the kinetic energy carries second derivatives, which magnify any error in
-the wavefunction's curvature; and the confinement $\omega$ sweeps the physics across three
-decades of correlation strength, from a compact, kinetic-energy-dominated droplet at
+electrons meet, and the kinetic energy carries second derivatives, which magnify any error
+in the wavefunction's curvature. The confinement $\omega$ then sweeps the physics across
+three decades of correlation strength: from a compact, kinetic-energy-dominated droplet at
 $\omega=1$ to a dilute Wigner molecule at $\omega=10^{-3}$, where the electrons settle
 several oscillator lengths apart and their mutual repulsion rather than the trap determines
 the structure of the state. We work at $N\in\{2,6,12,20\}$ electrons and
@@ -77,9 +77,9 @@ another.
 
 \subsection{Energies}
 
-These tables are the thesis's only contact with an external ground truth. Two features of
-them carry more information than the raw energies. The first is \emph{where the agreement
-holds}: a method that matches DMC at $\omega=1$ and drifts at $\omega=0.1$ differs from one
+These tables are the thesis's only contact with an external ground truth, and two features
+of them carry more information than the energies themselves. The first is \emph{where the
+agreement holds}: a method that matches DMC at $\omega=1$ and drifts at $\omega=0.1$ differs from one
 that holds across the whole benchmarked range, since the physics changes character between
 those points while the architecture does not. The second is \emph{where the tables stop}.
 Below $\omega=0.1$ no DMC reference exists for $N\ge6$, so the values reported there are
@@ -275,7 +275,7 @@ falls below it we read this as a plausibly improved nodal structure rather than 
 --- though establishing that rigorously would require the DMC trial nodes and a matched
 uncertainty analysis, which we have not undertaken.
 
-The pattern is clean wherever we can check it. For $N{=}2$ the ansatz reaches DMC
+Wherever an external check exists, the pattern is the same. For $N{=}2$ the ansatz reaches DMC
 accuracy at every $\omega$ for which a DMC number exists, and for $N\!\in\!\{6,12\}$
 the relative deviation stays within $0.008$–$0.05\%$ across the benchmarked
 range ($\omega\ge0.1$; Fig.~\ref{fig:rel_error_vs_omega}). Below $\omega=0.1$ there
@@ -479,8 +479,7 @@ interaction-driven swelling and shell formation.
 \subsection{Radial localization and pair correlations}
 \label{sec:wigner-radial}
 
-Two numbers carry this subsection. The typical radius $r_{\rm mode}$ grows as a power
-law, $r_{\rm mode}\!\sim\!\omega^{\alpha}$ with $\alpha\simeq-0.62$ at $N{=}2$---close to
+The typical radius $r_{\rm mode}$ grows as a power law, $r_{\rm mode}\!\sim\!\omega^{\alpha}$ with $\alpha\simeq-0.62$ at $N{=}2$---close to
 the classical two-body value $-2/3$, which nothing in the ansatz knows about. And the
 width-to-scale ratio $\gamma=\sigma_r/r_{\rm mode}$ falls, which is the shell stiffening
 rather than merely dilating (Table~\ref{tab:radial-compact}).
@@ -629,16 +628,14 @@ stiff three-shell crystal from a disordered single-shell state---is the most
 dramatic structural collapse observed in our system-size series.
 
 % ──────────────────────────────────────────────────────────────────────
-Two implications follow, the first of which needs its scope stated precisely. Because the
-sector histograms and the global $g(r)$ are built from the \emph{same} samples, this is
-a test of \emph{decomposability}, not of sampling correctness: it shows that once the
-shell occupancies and topology statistics are fixed, the global $g(r)$ is determined by
-shell geometry and combinatorics alone, leaving no residual structure unaccounted for.
-It cannot, and does not, rule out a sampling artefact common to both---that case rests
-independently on the restart, threshold and chain diagnostics. Second, subject to that
-scope, the ansatz is not only reproducing the energy but also the detailed two-body
-correlation structure expected from classical and quantum studies of parabolic Coulomb
-clusters.
+Because the sector histograms and the global $g(r)$ are built from the \emph{same} samples,
+this tests \emph{decomposability} rather than sampling correctness: once the shell
+occupancies and topology statistics are fixed, the global $g(r)$ is determined by shell
+geometry and combinatorics alone, with no residual structure unaccounted for. A sampling
+artefact common to both constructions is not excluded, and that case rests on the restart,
+threshold and chain diagnostics instead. Within that scope, the ansatz reproduces not only
+the energy but the detailed two-body correlation structure expected from classical and
+quantum studies of parabolic Coulomb clusters.
 
 \paragraph{A caveat on total spin.}
 Our reference states are the closed-shell singlets of the non-interacting problem, with
@@ -656,16 +653,15 @@ future work.
 \subsection{The crossover across diagnostics}
 \label{sec:wigner-synthesis}
 
-Six diagnostics, four particle numbers, five confinements---and they agree. As $\omega$
-falls from $1$ to $10^{-3}$ the densities expand and develop rings; the shell topology
+Six diagnostics, applied at four particle numbers and five confinements, agree. As $\omega$
+falls from $1$ to $10^{-3}$ the densities expand and develop rings, and the shell topology
 resolves into the discrete finite-$N$ patterns that classical Coulomb clusters
 predict---$(1,5)$ at $N{=}6$, $(3,9)$ at $N{=}12$, $(1,7,12)$ at
-$N{=}20$~\cite{schweigert1994spectralpropertieschargedparticles,Kong_2002}; the shells
-separate and stiffen; rotation-registered angular order rises while lab-frame order
-stays near zero, which is what a freely rotating molecule looks like; the Lindemann
-disorder falls; and the energy partitioning approaches the classical virial form, with
-$\Gamma$ reaching ${\sim}40$ for $N{=}12$ at the weakest trap. None of these was built
-into the ansatz. The commensurate $(3,9)$ sector at $N{=}12$ carries real weight in
+$N{=}20$~\cite{schweigert1994spectralpropertieschargedparticles,Kong_2002}. The shells
+separate and stiffen. Rotation-registered angular order rises while lab-frame order stays
+near zero, as expected for a freely rotating molecule, and the Lindemann disorder falls.
+The energy partitioning approaches the classical virial form, with $\Gamma$ reaching
+${\sim}40$ for $N{=}12$ at the weakest trap. None of these was built into the ansatz. The commensurate $(3,9)$ sector at $N{=}12$ carries real weight in
 $(1,11)$ and $(2,10)$ besides, which is the quantum rotational mixing the rotating-Wigner-molecule
 picture
 predicts~\cite{manninen2007metalclustersquantumdots,Filinov_2001}. At $N{=}20$ the
@@ -714,7 +710,7 @@ The correlator (\S\ref{sec:repr-geom}), the displacement field
 (\S\ref{sec:repr-backflow}) and the coupling between them (\S\ref{sec:repr-coupling}) are
 probed in turn, with every diagnostic evaluated on samples drawn from $|\Psi|^2$.
 
-One caveat frames the whole section, and it is not a small one. The Jastrow and the
+One caveat governs the whole section. The Jastrow and the
 backflow are partial substitutes: how the labour is divided between them is a nearly
 flat direction of the loss, settled by the route the training took rather than by the
 state it arrived at. Quantities living on a single component---the backflow's rank and
@@ -798,7 +794,7 @@ with $\psi$ dropping below 15\%.
 The transition is sharpest at $N{=}12$, where $\psi$ goes from 0.09 at $\omega{=}0.01$
 to 0.63 at $\omega{=}0.1$.
 
-The physical interpretation is direct.
+These loadings track the physics.
 When interactions are weak relative to the trap ($\omega \gtrsim 0.1$),
 the non-interacting shell structure provides a good zeroth-order description,
 and the correlator's primary role is refining pair correlations on top of that.
@@ -887,10 +883,9 @@ holding everything else fixed (\S\ref{sec:kernel-q1b}).
 Yet the CKA between correlator features with and without backflow exceeds 0.99 in nearly all cases
 (and exceeds 0.979 everywhere).
 The correlator manifold is almost unperturbed by the displacement field.
-This establishes a clean separation of concerns:
-the CTNN's action leaves the correlator's feature geometry almost unchanged,
-providing configuration-dependent corrections that the globally organised correlator does not
-and need not represent.
+The two components therefore act on largely disjoint feature subspaces: the CTNN leaves the
+correlator's feature geometry almost unchanged while supplying configuration-dependent
+corrections that the globally organised correlator does not represent.
 
 
 %% ──────────────────────────────────────────────────────────────────────

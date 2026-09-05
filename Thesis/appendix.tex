@@ -242,8 +242,6 @@ non-smooth short-distance structure (a cusp) so that divergences in kinetic and
 potential contributions cancel in physically meaningful quantities such as the
 local energy \cite{BeccaSorella2017-QMCBook}.
 
-The central point for learning is:
-
 \begin{quote}
 Coulomb does not merely add ``another term'' to the residual; it introduces
 \emph{singular short-range physics} that forces delicate cancellations with the
@@ -509,7 +507,7 @@ the underlying operator-driven stiffness: the spikes originate from imperfect
 kinetic--potential cancellation enforced by Coulomb cusp physics.
 \end{enumerate}
 
-\paragraph{Bottom line.}
+\paragraph{Summary.}
 Laplacian dominance creates stiffness through $k^4$-type amplification of curvature
 errors; Coulomb creates stiffness by enforcing cusp constraints (in 2D: $1$ vs $1/3$
 depending on spin channel) and cancellation against the Laplacian.
@@ -548,16 +546,13 @@ gradients with unbounded variance.
 The result is an irreducible accuracy floor---roughly $0.3\%$, set by the Jastrow
 alone---that is absent under VMC\,+\,SR training of the same ansatz.
 
-Two things about the scope of this result should be stated before the details, so
-the floor is not misread. First, it is a property of the \emph{strong form}
-specifically: the weak-form (score-function / REINFORCE) collocation objective used
+The scope of this result needs two qualifications. First, it is a property of the
+\emph{strong form} specifically: the weak-form (score-function / REINFORCE) collocation objective used
 for the results in the main text never differentiates through the Laplacian and does
 not inherit this pathology, which is why it trains the same ansatz to far below the
 $0.3\%$ floor. The value here is therefore a diagnosis of one objective's limits, not
-a measure of what MCMC-free training can achieve. Second, the analysis is what
-motivated the shift to the weak form in the first place; it is presented as a
-worked negative result---the kind that redirects a research programme---rather than
-as a headline number.
+a measure of what MCMC-free training can achieve. Second, this analysis is what motivated the shift to the weak form, and is reported as a
+negative result rather than as a headline number.
 
 \section{Setup and notation}
 \label{app:catch22:setup}
@@ -1085,7 +1080,7 @@ branches, the partial recoveries, and the current status for difficult regimes
 After the catch-22 analysis the work shifted from searching for a single better architecture to
 engineering a training pipeline that makes a physically strong ansatz trainable across regimes.
 Four principles organised it: keep the Slater--Jastrow--backflow ansatz but treat sampling and
-preconditioning as first-class objects; replace one-shot ``hero'' runs with staged continuation
+preconditioning as first-class objects; replace single long runs with staged continuation
 (solve easy regimes, warm-start hard ones); separate claims by evidence tier (online probe,
 restored VMC-best, heavy exact VMC); and record negative results, because many theoretically
 plausible variants fail on gradient-noise geometry.

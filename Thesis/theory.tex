@@ -360,8 +360,8 @@ energy \emph{of the problem with those nodes imposed as a boundary condition}. T
 is a rigorous upper bound on $E_0$, and it is exact only if the nodes are. Otherwise it
 carries a systematic \emph{nodal bias} that no amount of sampling removes.
 
-Three consequences of that are load-bearing later. A published DMC energy is not ground
-truth but the best energy attainable inside somebody's nodal surface. A variational state
+Three consequences follow. A published DMC energy is not ground truth; it is the best
+energy attainable inside the nodal surface of the trial state used to produce it. A variational state
 with better nodes than that surface may therefore lie \emph{below} a fixed-node DMC number
 without violating anything, since the variational principle bounds the energy from below by
 $E_0$ and not by another approximation (\S\ref{sec:energy-discussion}). And improving nodes
@@ -451,8 +451,7 @@ where $\eta>0$ is the \emph{learning rate}. Intuitively, the gradient points in 
 direction of steepest increase of the loss, so subtracting it decreases the loss most 
 rapidly in a local sense.  
 
-The choice of learning rate is crucial: if too small, convergence is slow; 
-if too large, the algorithm may diverge.  
+If $\eta$ is too small convergence is slow; if too large the iteration diverges.
 
 \subsection{Stochastic gradient descent (SGD)}
 For large datasets, evaluating the full gradient at every step is prohibitively 
@@ -466,10 +465,8 @@ The update rule is then
 \begin{equation}
   \theta^{(t+1)} = \theta^{(t)} - \eta \,\nabla_\theta \hat{\mathcal{R}}_B(\theta^{(t)}).
 \end{equation}
-SGD introduces randomness into the optimisation trajectory. 
-Paradoxically, this noise often \emph{helps}: it prevents the algorithm 
-from getting trapped in poor local minima and can improve generalisation 
-through an implicit regularization effect \cite{wu2022alignmentpropertysgdnoise,Berner_Grohs_Kutyniok_Petersen_2022}.  
+The batch estimate is unbiased, and its variance sets the scale of the noise in the
+trajectory~\cite{wu2022alignmentpropertysgdnoise}.
 
 \subsection{Momentum and adaptive methods}
 Plain gradient descent treats all directions in parameter space equally.  
@@ -480,8 +477,8 @@ vector $v_t$:
   \theta^{(t+1)} &= \theta^{(t)} - \eta v_{t+1},
 \end{align}
 where $\beta \in (0,1)$ controls the contribution of past gradients.  
-Momentum smooths oscillations and allows the optimisation to traverse 
-valleys in the loss landscape more effectively.  
+Momentum damps oscillation across narrow directions and accumulates displacement along
+consistent ones.
 
 Beyond momentum, \emph{adaptive methods} such as RMSProp and Adam 
 rescale learning rates per parameter based on historical gradient magnitudes \cite{KingmaBa2015-Adam}. 
@@ -493,7 +490,8 @@ For instance, Adam combines momentum with an adaptive normalisation:
 \end{align}
 where $g_t=\nabla_\theta \hat{\mathcal{R}}_B(\theta^{(t)})$ and 
 $\hat{m}_t, \hat{v}_t$ are bias-corrected versions of $m_t, v_t$.  
-Adam is widely used in practice for its robustness across diverse problems \cite{ZhangEtAl2022-AdamConverges}.  
+Adam is the default optimiser in this work; where it is replaced by SR, and why, is the
+subject of \S\ref{sec:kernel-cond}~\cite{ZhangEtAl2022-AdamConverges}.
 
 \subsection{Second-order methods and natural gradient}
 First-order methods only use gradient information. In principle, convergence can be 
@@ -724,8 +722,7 @@ through learned maps, rather than recomputing and discarding one-shot messages. 
 correlator iterates this exchange over a down/up ``V-cycle''; the backflow applies a
 single such copresheaf round. Its concrete update equations, hidden dimensions, and
 parameter counts are specified in the Methods chapter
-(\S\ref{subsec:ctnn-backflow}, Eqs.~\eqref{eq:ctnn-edge}--\eqref{eq:ctnn-node}). Two points of framing carry into the
-rest of the thesis. First, the CTNN is \emph{one} concrete realisation of the
+(\S\ref{subsec:ctnn-backflow}, Eqs.~\eqref{eq:ctnn-edge}--\eqref{eq:ctnn-node}). The framing matters in two respects. First, the CTNN is \emph{one} concrete realisation of the
 message-passing class defined above; the conclusions we draw about the value of message
 passing concern the class, with the CTNN as the instance actually studied. Wherever we
 contrast a ``message-passing'' network with a ``separable'' one, the separable member is
@@ -860,11 +857,11 @@ an importance-weighted estimator has a variance at all, which is what bounds the
 Markov-chain-free programme. And optimisation conditioning is the subject of the entire
 tangent-kernel analysis.
 
-The one that turns out to be decisive was not obvious in advance. A strong-form residual
-loss, differentiating through the Laplacian, meets a structural obstruction the moment it
-is asked to train a nodal surface: the learning signal lives where $E_L$ diverges. The
-weak form, which keeps the local energy as a reward and never differentiates it, sidesteps
-that. Appendix~\ref{app:catch22} shows why, and it is the reason the collocation programme
+The fourth is the one that determined the design of the collocation programme. A
+strong-form residual loss, differentiating through the Laplacian, meets a structural
+obstruction as soon as it is asked to train a nodal surface, because the learning signal
+lives where $E_L$ diverges. The weak form keeps the local energy as a reward and never
+differentiates it, and so avoids the obstruction. Appendix~\ref{app:catch22} shows why, and it is the reason the collocation programme
 of Chapter~\ref{ch:kernel} takes the form it does.
 
 \section{Constraints carried into the method}

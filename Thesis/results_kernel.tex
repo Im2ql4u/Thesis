@@ -12,16 +12,17 @@
 \chapter[Why the method works]{Why the method works: geometry, optimisation, and sampling}
 \label{ch:kernel}
 
-The previous chapter showed that the ansatz works. It reaches reference quality wherever
-a reference exists, the states it produces are genuine Wigner molecules, and it holds
-that structure on a handful of internal directions. Why it works is a separate question,
-and a harder one.
+The previous chapter showed that the ansatz works: it reaches reference quality wherever a
+reference exists, the states it produces are genuine Wigner molecules, and it holds that
+structure on a handful of internal directions. Why it works is a separate and harder
+question.
 
-Two networks of the same size, trained the same way, landing on the same energy, need
-not be the same object. A natural-gradient step that is decisive in one training regime
-does nothing in another. An importance-sampled objective reproduces a Markov chain's
-answer in one corner of the phase diagram and parts company with it in the next. Three unrelated puzzles, on the face of it. They have one answer, and it is
-geometric.
+Consider what remains unexplained. Two networks of the same size, trained the same way and
+landing on the same energy, need not be the same object. A natural-gradient step that is
+decisive in one training regime does nothing in another. An importance-sampled objective
+reproduces a Markov chain's answer in one corner of the phase diagram and parts company
+with it in the next. These look like three unrelated puzzles, and they share one
+geometric answer.
 
 Everything turns on the per-sample log-derivative matrix
 \begin{equation}
@@ -30,9 +31,9 @@ Everything turns on the per-sample log-derivative matrix
   \label{eq:kernel-O}
 \end{equation}
 and on its two Gram matrices, the quantum geometric tensor $S = O^{\!\top}O / B$ and the
-neural tangent kernel $K = OO^{\!\top}$. Architecture sets the shape of that geometry.
-The optimiser inverts it. The sampling measure decides whether it can be estimated at
-all. The chapter follows them in that order.
+neural tangent kernel $K = OO^{\!\top}$. Architecture fixes the shape of that geometry,
+the optimiser inverts it, and the sampling measure decides whether it can be estimated at
+all. The chapter takes them in that order.
 
 The instrument throughout is the \emph{effective dimension} of the tangent space---the
 participation ratio of the QGT spectrum $\{\lambda_a\}$,
@@ -44,7 +45,7 @@ which counts how many directions actually carry Fisher weight, whatever the para
 count says. Beside it sit the local-energy variance $\Var(E_L)$, zero only for an exact
 eigenstate; the effective sample size; and the condition number $\kappa(S)$.
 
-Three constraints hold across the chapter. Architectures are compared on a
+Three constraints hold throughout. Architectures are compared on a
 \emph{common probe set}---the same configurations for every model, never each model's own
 $|\Psi|^2$. Backflow comparisons are seeded and held at reference quality. And below
 $\omega=0.1$ every relative error is measured against our own converged variational
@@ -52,14 +53,14 @@ energies, which makes it a statement about internal consistency and not about ac
 The tooling is anchored on the analytic two-electron ground state, where the ansatz
 returns $E=3.000127$~Ha ($+0.004\%$) at squared overlap $1.000000$.
 
-\paragraph{The road.} We begin with what message passing changes in the tangent
-geometry, in the amplitude and in the nodes; then ask what that geometry implies for the
-optimiser and for the measure that builds it; then, taking the measure as something we
-may choose, remove the Markov chain from training altogether and find where the choice
-stops working. One caveat runs underneath all three and is itself a result: quantities
-living on a single component---backflow rank, displacement magnitude---are gauge-like,
-fixed by the training route rather than by the state. What the conclusions rest on
-instead is set out in \S\ref{sec:synthesis}, once there are conclusions to rest.
+We start with what message passing changes in the tangent geometry, in the amplitude and
+in the nodes; then ask what that geometry implies for the optimiser and for the measure
+that builds it; and then, treating the measure as something we may choose, remove the
+Markov chain from training altogether and find where the choice stops working. A caveat
+runs underneath all three and is itself a result: quantities living on a single
+component, such as the backflow's rank or its displacement magnitude, are gauge-like,
+fixed by the training route rather than by the state. \S\ref{sec:synthesis} sets out what
+the conclusions rest on instead, once there are conclusions to rest.
 
 % =====================================================================
 \section[Message passing and the variational geometry]{Message passing reorganises the variational geometry}
@@ -271,7 +272,7 @@ $\omega$ & CTNN & conv & CTNN & conv & CTNN & conv \\
 probe}: configurations are drawn once from the full model's $|\Psi|^2$ and every arm is
 re-evaluated on them, so the trap and Coulomb terms are held fixed by construction and each
 figure below is the change in the kinetic term at fixed measure---the instantaneous cost of
-removing a component, not the energy of a re-relaxed state. Two facts are seed-stable.
+removing a component, not the energy of a re-relaxed state. Two seed-stable facts emerge.
 (i) The \textbf{relational work migrates from the nodes to the amplitude} as the trap
 weakens. Deleting the backflow costs $+5.6\%$ at $\omega=1$ and $+1.4\%$ at $\omega=0.1$,
 but only $+0.013$--$0.017\%$ at $\omega=0.01$ (three seeds), while deleting the Jastrow
@@ -405,8 +406,8 @@ prediction there, not yet a measurement, and testing it is the obvious extension
 \subsection{The measure sets the conditioning, the variance, and the reach}
 
 Between $|\Psi|^2$-sampled VMC and importance-sampled collocation the wavefunction family
-is identical; only the measure that defines the loss changes. Three consequences follow,
-and they are one statement.
+is identical; only the measure that defines the loss changes. That change has three
+consequences, and underneath them one cause.
 \paragraph{$|\Psi|^2$ is self-preconditioning; the covering proposal is not.}
 Sampling from $|\Psi|^2$ makes the estimator of $S$ and of the gradient share the
 same measure, which conditions the update. A fixed covering proposal instead drives
@@ -417,8 +418,8 @@ gradient estimator is degenerate---a hard limit, not undertraining.
 
 This needs one reconciliation, because \S\ref{sec:colloc-reliability} below reports usable
 collocation energies at the same $(N,\omega)$ where the estimator is called degenerate here
-($+0.24$--$0.29\%$ across three seeds, Table~\ref{tab:reliability}). Two things differ.
-First, the sampler: the collapse measured above is for the \emph{static} origin-centred
+($+0.24$--$0.29\%$ across three seeds, Table~\ref{tab:reliability}). The two situations
+differ in the sampler and in the quantity being described. The sampler first: the collapse measured above is for the \emph{static} origin-centred
 mixture, while the campaign's robust recipe refits its proposal every $30$ epochs and
 oversamples $16\times$. The campaign's \emph{baseline} rows, which keep the static
 proposal, are the ones that blow up ($+3.9$ to $+7.2\%$ at $\omega=0.001$). Second, and
@@ -504,7 +505,8 @@ So posed, the result is clean. On the same Slater--Jastrow--backflow ansatz, and
 Markov chain anywhere in the optimisation, the weak form recovers the variational energy
 to within DMC uncertainty at strong confinement and to a few tenths of a percent of our
 gold standard well into the correlated regime for $N\in\{6,12\}$
-(Table~\ref{tab:collocation}). Why it works, where it stops, and what the stopping is made of, follow below.
+(Table~\ref{tab:collocation}). The rest of this section is why it works, where it stops, and what the stopping is made
+of.
 \subsection{The objective, and why it is stable}
 \label{sec:colloc-method}
 The collocation training used here is exactly the MCMC-free pipeline specified in the
@@ -514,8 +516,7 @@ Gaussian-mixture proposal reweighted to $|\Psi_\theta|^2$ with ESS / Pareto-$\ha
 monitoring and tail controls (\S\ref{subsec:colloc-proposal}), and---in the Wigner
 regime---the physics-informed ring proposal with cascade warm-starting
 (\S\ref{subsec:colloc-wigner}). We do not repeat those definitions; this section reports what
-the pipeline achieves and where it fails. Two methodological findings shape the results
-below. First, among the optimisers (\S\ref{sec:sr-stage}), \textbf{Adam} was the robust
+the pipeline achieves and where it fails. Two methodological findings shape what follows. First, among the optimisers (\S\ref{sec:sr-stage}), \textbf{Adam} was the robust
 default across all regimes, whereas \textbf{CG-SR} converged faster at $\omega\!\ge\!0.1$ but
 diverged for $\omega\!\le\!0.01$, where the geometric tensor becomes ill-conditioned.
 Second, \textbf{cascade warm-starting}---initialising each confinement from the converged
@@ -774,7 +775,7 @@ way, and the loop closes on itself---which is what the $+153\%$ in the table is.
 twenty steps in $Nd{=}40$ dimensions do not equilibrate. Fixing it means running to
 equilibrium, adding a Metropolis--Hastings step, or computing annealed weights along the
 non-equilibrium path. The first two are MCMC under another name; the third costs enough
-to forfeit the advantage that made the route worth taking.
+to forfeit the advantage that made the route attractive.
 
 \paragraph{What the failures have in common.}
 Read together these are not separate disappointments. Four of them---CG-SR, Langevin,
@@ -1107,9 +1108,9 @@ computational cost.
 \label{sec:kernel-q3-frontier}
 
 The ESS collapse of \S\ref{sec:kernel-q3} is a limitation of the \emph{proposal}, not
-of collocation itself, and it can be substantially pushed back. This section reports a
-physics-informed proposal that extends MCMC-free collocation deep into the Wigner
-regime, the mechanism that limits it, and the wall that remains.
+of collocation itself, and it can be pushed back a long way. A physics-informed proposal
+carries MCMC-free collocation deep into the Wigner regime; what limits it, and the wall
+that survives, follow from the same physics.
 
 \subsection{The origin-centred proposal misses the Wigner shell}
 Every proposal in the standard pipeline is a mixture of \emph{origin-centred} Gaussians,
@@ -1235,28 +1236,28 @@ bound it.
 \section{A gauge caveat, and what survives it}
 \label{sec:synthesis}
 
-Which of the numbers above can be leaned on is not obvious, and the answer is not
-flattering to all of them.
+Not every number above can be leaned on equally, and the ones that read most vividly are
+among the weaker.
 
-Component-level quantities---the backflow's rank, its displacement magnitude
-$|\Delta\mathbf{x}|$, the per-component $d_{\mathrm{eff}}$---are \textbf{gauge-like}. The
-Jastrow and the backflow are substitutes. How correlation is divided between them is a
-nearly flat, path-dependent direction of the loss, so those quantities record the route
-the training took and not the state it reached. The worry is not hypothetical. Every claim that reversed during this project was of
-this kind---the
-$d_{\mathrm{eff}}$ inversion at the crystal that did not survive seeding, a mislabelled
-backflow, an artefactual rank collapse produced by training both components jointly
-from scratch.
+Quantities defined on a single component---the backflow's rank, its displacement magnitude
+$|\Delta\mathbf{x}|$, the per-component $d_{\mathrm{eff}}$---are \textbf{gauge-like},
+because the Jastrow and the backflow are substitutes and the division of correlation
+between them is a nearly flat, path-dependent direction of the loss. Such quantities record
+the route the training took rather than the state it reached. This is not a hypothetical
+worry: every claim that reversed during this project was of this kind, from the
+$d_{\mathrm{eff}}$ inversion at the crystal that did not survive seeding, through a
+mislabelled backflow, to an artefactual rank collapse produced by training both components
+jointly from scratch.
 
-Four measurements are invariant to that gauge, and the conclusions of this chapter rest
-only on them. \emph{Energy} and \emph{ablation}---delete a component and price it---carry
-the architecture comparison. $\Var(E_L)$ separates the two families where energy cannot
-and where $d_{\mathrm{eff}}$ has stopped trying: at matched protocol and production
-capacity it is lower for the message-passing ansatz at every confinement, by factors of
-two to seven (Table~\ref{tab:varEL}), and seed-cleanly so at the crystal. And \emph{state
-overlap} is what makes the comparison between training paradigms a claim about states
-rather than about numbers that happen to agree.
+The conclusions of this chapter rest instead on four measurements that survive a change of
+gauge. Energy and ablation---delete a component and price it---carry the architecture
+comparison. $\Var(E_L)$ separates the two families where energy cannot and where
+$d_{\mathrm{eff}}$ has stopped trying, being lower for the message-passing ansatz at every
+confinement by factors of two to seven at matched protocol and production capacity
+(Table~\ref{tab:varEL}), and seed-cleanly so at the crystal. State overlap makes the
+comparison between training paradigms a claim about states rather than about numbers that
+happen to agree.
 
-Rank is not on that list. It runs through this chapter as the clearest \emph{signature}
-of the mechanism---a field collapsing onto a single mode is easy to see. What carries the
+Rank belongs to neither list. It runs through this chapter as the clearest signature of the
+mechanism, a field collapsing onto a single mode being easy to see, but what carries the
 finding is the half percent of energy that collapses with it.

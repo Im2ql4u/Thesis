@@ -10,8 +10,8 @@ a thousandfold.}{Aristotle}{\textit{On the Heavens}}
 \label{ch:results}
 \endgroup
 
-A variational wavefunction is two things at once. It is an answer, and it is an
-instrument. This chapter uses it as both, in that order.
+A variational wavefunction is both an answer and an instrument, and this chapter uses it
+as each in turn.
 
 The quantum dot is an unforgiving place to try. The Coulomb interaction is singular
 wherever two electrons meet. The kinetic energy carries second derivatives, which
@@ -87,7 +87,7 @@ another.
 \subsection{Energies}
 
 The tables in this section are the thesis's only contact with an external ground
-truth. Two things matter in them, and neither is the raw energy. The first is
+truth, and what matters in them is not the raw energy. It is
 \emph{where the agreement holds}: a method that matches DMC at $\omega=1$ and
 drifts at $\omega=0.1$ is a different object from one that holds across the whole
 benchmarked range, because the physics changes character between those points while
@@ -300,8 +300,8 @@ trap-unit scaling, soft-core pair features with $ds/dr\!\to\!0$ at coalescence, 
 an explicit analytic cusp---each of which keeps the gradients and the Laplacian
 numerically tame from the shallowest trap to the tightest.
 
-Wherever an external number exists, the state matches it. We can stop asking whether it
-is right, and start asking what it knows.
+Wherever an external number exists, the state matches it, which lets us stop asking
+whether it is right and start asking what it knows.
 
 \section{Wigner--molecule crossover}
 \label{sec:wigner-molecule}
@@ -639,7 +639,7 @@ stiff three-shell crystal from a disordered single-shell state---is the most
 dramatic structural collapse observed in our system-size series.
 
 % ──────────────────────────────────────────────────────────────────────
-Two implications follow, and the first needs its scope stated precisely. Because the
+Two implications follow, the first of which needs its scope stated precisely. Because the
 sector histograms and the global $g(r)$ are built from the \emph{same} samples, this is
 a test of \emph{decomposability}, not of sampling correctness: it shows that once the
 shell occupancies and topology statistics are fixed, the global $g(r)$ is determined by
@@ -684,7 +684,8 @@ $\omega$ is the sharpest transition in the series, and the sector-resolved $|\Ph
 measured conditionally on shell occupancy have not, to our knowledge, been reported
 before for $N\ge12$ parabolic dots.
 
-Two qualifications bound all of it. The states are the lowest we find within a fixed
+All of it is bounded by two qualifications. The states are the lowest we find within a
+fixed
 spin-projection sector, and we have not scanned total spin, so these are
 not proven global-spin ground states. And the shell-resolved reconstruction of $g(r)$
 establishes decomposability rather than sampling correctness, which rests on the
@@ -700,14 +701,14 @@ measured shell radius and angular order tracks it, and carries MCMC-free trainin
 into the correlated regime (\S\ref{sec:kernel-q3-frontier}). What the trained model
 reveals about the physics is what later lets us train it more cheaply.
 
-So much for the state seen from outside. How much of that did the network need to hold
-internally? Less than one would think.
+That is the state seen from outside. How much of it did the network need to hold
+internally, and in what form?
 
 \section{What the network holds}
 \label{sec:repr-analysis}
 
-The physics of the last section is elaborate: rings, occupancies, angular stiffness, a
-topology that shifts with the trap. The network that produced it is not. Across
+The physics of the last section is elaborate---rings, occupancies, angular stiffness, a
+topology that shifts with the trap---and the network that produced it is not. Across
 $N\in\{2,6,12,20\}$ and $\omega\in\{10^{-3},10^{-2},0.1,0.5,1.0\}$, the correlator
 $W_\theta$ turns out to live on a manifold of one to three effective dimensions, and it
 stays there. What changes across the crossover is not how many directions it uses but
@@ -719,19 +720,18 @@ division of labour between them shifts sharply near $\omega\approx0.1$---the sam
 the physics changes character, where $\Gamma = V_{\mathrm{int}}/T$ crosses over
 (\S\ref{sec:wigner-energy}).
 
-Three things are probed below: the correlator (\S\ref{sec:repr-geom}), the displacement
-field (\S\ref{sec:repr-backflow}), and the coupling between them
-(\S\ref{sec:repr-coupling}). All diagnostics are evaluated on samples drawn from
-$|\Psi|^2$.
+The correlator (\S\ref{sec:repr-geom}), the displacement field
+(\S\ref{sec:repr-backflow}) and the coupling between them (\S\ref{sec:repr-coupling}) are
+probed in turn, with every diagnostic evaluated on samples drawn from $|\Psi|^2$.
 
 One caveat frames the whole section, and it is not a small one. The Jastrow and the
 backflow are partial substitutes: how the labour is divided between them is a nearly
 flat direction of the loss, settled by the route the training took rather than by the
 state it arrived at. Quantities living on a single component---the backflow's rank and
 displacement magnitude, the per-branch loadings, the coupling itself---are therefore
-\emph{gauge-like}. What follows is a faithful dissection of one high-quality solution,
-and no less interesting for that; the regularities it shows are the more telling for
-being ones the network was free \emph{not} to adopt. But which of them are properties of
+\emph{gauge-like}. This section dissects one high-quality solution faithfully, and the
+regularities it uncovers are the more telling for being ones the network was free
+\emph{not} to adopt. But which of them are properties of
 the \emph{architecture} rather than of this particular training run is a question this
 section cannot answer. Chapter~\ref{ch:kernel} answers it by controlled comparison, and
 establishes there which quantities survive a change of gauge and which do not.
@@ -1000,19 +1000,17 @@ further correlation-hole deepening.
 \subsection{What this is, and what it is not}
 \label{sec:repr-synthesis}
 
-Put together, the picture is a division of labour. The correlator supplies a small set of
-learned collective coordinates---one to three directions, whose leading axis tracks the
-dominant global coordinate of the cloud and changes identity, rather than growing in
-number, as the physics changes. The backflow supplies a high-rank, configuration-dependent
-displacement that leaves those coordinates almost untouched (CKA $>0.98$) and works
-instead in the space they do not span. At strong correlation the two operate
-independently. At moderate coupling they lock together, the displacements aligning with
-the correlator's gradient. The switch is sharp, and it happens where the physics switches.
+Taken together these measurements describe a division of labour. The correlator supplies a
+small set of learned collective coordinates, one to three directions whose leading axis
+tracks the dominant global coordinate of the cloud and changes identity rather than growing
+in number as the physics changes. The backflow supplies a high-rank, configuration-dependent
+displacement that leaves those coordinates almost untouched (CKA $>0.98$) and works instead
+in the space they do not span. At strong correlation the two operate independently; at
+moderate coupling they lock together, the displacements aligning with the correlator's
+gradient, and the switch happens sharply and where the physics switches.
 
-That is an appealing account, and every number in it is real. It is also, at this stage,
-an account of \emph{one} trained solution. Nothing above rules out that a different
-training route would have divided the same labour differently and reached the same
-energy---which, for two components that are partial substitutes, is exactly what one
-should expect it to do. The anatomy cannot tell us which of its features belong to the
-architecture. For that we need to hold everything fixed except the architecture, and
-measure what changes.
+Every number in that account is real, and it remains an account of \emph{one} trained
+solution. Nothing here rules out a different training route dividing the same labour
+differently and arriving at the same energy, which for two partial substitutes is what one
+should expect. Deciding which of these features belong to the architecture requires holding
+everything else fixed and varying only the architecture.

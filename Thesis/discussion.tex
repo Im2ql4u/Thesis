@@ -8,110 +8,106 @@ Nietzsche}{\textit{Human, All Too Human}}
 \label{ch:discussion}
 \endgroup
 
-This chapter asks what the preceding results mean, which is a different question from
-what they are. It does not re-report them.
+Architecture, optimiser and sampling measure looked at the outset like three separate
+choices, and they turned out to be one geometry. Architecture fixes the shape of the
+variational tangent space, message passing compressing it in the correlator and holding it
+open in the nodes. The optimiser inverts the metric on that space, which earns its cost
+only while the metric is both badly conditioned and still measurable. And the sampling
+measure decides what the metric is estimated from in the first place: $|\Psi|^2$ conditions
+itself and stays on target, whereas a fixed covering proposal loses the conditioning first
+and the state afterwards.
 
-The three threads of this thesis turned out to be one geometry. Architecture sets the
-shape of the variational tangent space---message passing compresses it in the correlator
-and keeps it from collapsing in the nodes. The optimiser inverts the metric on that
-space, and is worth its cost exactly when the metric is badly conditioned and still
-measurable. The training paradigm chooses which measure defines the metric in the first
-place: $|\Psi|^2$ conditions itself and stays on target, while a fixed covering proposal
-loses first the conditioning and then the state.
-
-Four things remain to be said. What the energies do and do not establish. How far the
-internal numbers can be pushed, given that several of them are gauge-dependent. Where
-the boundary of Markov-chain-free training actually lies, and why it lies there. And
-what the picture predicts for systems larger than these.
+That leaves the question of what any of it establishes. The energies agree with an external
+reference over part of the grid and with nothing at all over the rest, and the two
+situations license quite different claims. Several of the internal quantities that make the
+architecture comparison vivid are not properties of the state. The Markov-chain-free route
+works inside a boundary whose location we had to find by crossing it. And the picture, if
+it is right, says something about systems larger than these.
 
 \section{What the energies establish}
 \label{sec:energy-discussion}
 
 The energies are the least interesting result in this thesis and the most necessary one.
-Everything downstream---every claim about what the network learned, every structural
-diagnostic read off the trained state---is worthless if they do not hold. So the question
-worth pressing is not whether the numbers are good. It is what having good numbers
-actually buys.
+Every claim downstream---about what the network learned, about the structure read off the
+trained state---collapses if they do not hold. The question, then, is not whether the
+numbers are good but what having good numbers actually buys, and the answer differs at the
+two ends of the grid.
 
-Less than it appears at one end, and more than it appears at the other.
+At the benchmarked end it buys less than it appears to. Agreement with a fixed-node DMC
+calculation is agreement with another approximation. Where our message-passing ansatz sits
+\emph{below} a published DMC value, as it does for $N{=}12$ at $\omega{=}1$, the natural
+reading is that a better nodal surface has been found rather than that something has gone
+wrong, since the variational principle bounds the energy from below by the exact ground
+state and not by the nodal constraint of the reference calculation. We adopt that reading,
+though establishing it would require the DMC trial nodes and a matched uncertainty
+analysis, which we have not done. Stripped of interpretation, what remains is that two
+independent methods agree to a few hundredths of a percent wherever both exist, and that is
+the strongest external statement available anywhere in this work.
 
-Less, at the top end. Agreement with a fixed-node DMC calculation is agreement with
-another approximation, not with the truth. Where our message-passing ansatz sits
-\emph{below} a published DMC value---$N{=}12$ at $\omega{=}1$, for instance---the natural
-reading is not that something has gone wrong but that a better nodal surface has been
-found; the variational principle bounds the energy from below by the exact ground state,
-not by the nodal constraint of the reference calculation. That reading is plausible and
-we adopt it, though establishing it would require the DMC trial nodes and a matched
-uncertainty analysis, which we have not done. What can be said without qualification is
-that at $\omega\ge0.1$ two independent methods agree to a few hundredths of a percent.
-That is the strongest external statement available.
-
-More, at the bottom end---but only by inheritance, and the inheritance has to be argued
-rather than assumed. Below $\omega=0.1$ no published value exists for $N\ge6$. What
-transfers there is not accuracy but \emph{conditioning}: the same architecture, the same
-protocol, the same trap-unit scaling and soft-core features and analytic cusp, applied
-across three decades of $\omega$ without adjustment. A method that had to be retuned at
-each confinement would carry nothing across the boundary. This one does not, and its
-energies join the benchmarked regime smoothly and follow the classical scaling
-exponent once they are past it. That is a reason to take the deep-Wigner numbers
-seriously as variational predictions. It is not a reason to call them validated, and we
-do not.
+At the unbenchmarked end it buys more than it appears to, though only by inheritance, and
+the inheritance has to be argued rather than assumed. Below $\omega=0.1$ no published value
+exists for $N\ge6$. What carries across the boundary is not accuracy but conditioning: the
+same architecture, protocol, trap-unit scaling, soft-core features and analytic cusp,
+applied across three decades of $\omega$ without adjustment. A method retuned at each
+confinement would carry nothing. This one carries its own behaviour, and the energies it
+produces join the benchmarked regime smoothly and then follow the classical scaling
+exponent. The deep-Wigner numbers therefore deserve to be taken seriously as variational
+predictions, which is a weaker thing than being validated, and we do not call them
+validated anywhere.
 
 \section{How far the internal numbers can be pushed}
 \label{sec:repr-discussion}
 
-There is no guarantee that a trained network organises itself in a way anyone can
-interpret. High-dimensional function approximators are entitled to be incomprehensible,
-and usually are. The surprise here is not that the internal organisation is
-interpretable but that it is \emph{small}, and small in a way that follows the physics
-rather than the parameterisation: a real-space transition involving shells, ring
-occupancies and angular stiffness, held on one to three effective directions whose
-identity---not whose number---changes across the crossover.
+Nothing obliges a trained network to organise itself in a way anyone can interpret.
+High-dimensional function approximators are entitled to be incomprehensible, and usually
+are. What is surprising here is less that the internal organisation can be read than that
+it is so small, and small along the grain of the physics rather than of the
+parameterisation: a real-space transition involving shells, ring occupancies and angular
+stiffness, held on one to three effective directions whose identity changes across the
+crossover while their number does not.
 
-It is tempting to read that as a discovery about neural wavefunctions. It cannot quite
-be one, for a reason that reaches well past this thesis.
+That invites being read as a discovery about neural wavefunctions, and it cannot quite be
+one, for a reason that reaches well past this thesis. The Jastrow and the backflow are
+partial substitutes, so any measurement made on one of them alone---its rank, its
+displacement magnitude, its share of the energy---records a division of labour that the
+loss barely constrains and that a different training route could have settled differently
+while arriving at the same state. Such quantities are gauge-like. Reporting them is
+legitimate; treating them as properties of the architecture is not. Every claim that
+reversed during this project was of that kind.
 
-The Jastrow and the backflow are partial substitutes. Any measurement made on one of
-them alone---its rank, its displacement magnitude, its share of the energy---records a
-division of labour that the loss barely constrains, and that a different training route
-could have made differently while reaching the same state. Such quantities are
-gauge-like. Reporting them is not wrong; treating them as properties of the architecture
-is. Every claim that reversed during this project was of that kind.
+What survives a change of training route is what can be measured on the state itself or
+by deleting part of it: the energy, the local-energy variance, the price of removing a
+component, and the overlap between two trained states. On those the controlled comparison
+of Chapter~\ref{ch:kernel} does support an architectural claim, and a sharper one than the
+dimension count that first suggested it. Counting directions tells us how many the
+correlator uses; the tangent-kernel analysis tells us which, and that turns out to be the
+substantive question. The message-passing correlator's dominant directions are the
+Hamiltonian's own collective modes---breathing, correlation hole, relative excitation---to
+$R^2\approx1$ across $\omega$ and up to $N{=}12$, whereas a separable network of matched or
+larger capacity leaves nearly half its tangent budget where no compact physical dictionary
+finds it. A direction outside the dictionary need not be unphysical, so the defensible
+version of the claim is that one tangent space is far more completely accounted for by a
+small set of physical operators than the other. The gap persists at every confinement, and
+strong confinement merely disguises it, correlation being a small slice of the energy there
+and the two networks agreeing to four figures.
 
-What survives is what can be measured on the state or by deletion: the energy, the
-local-energy variance, the price of removing a component, and the overlap between two
-states. And on those, the controlled comparison in Chapter~\ref{ch:kernel} does support
-a genuine architectural statement---one sharper than the dimension count that first
-suggested it. The low-rank geometry says \emph{how many} directions the correlator uses.
-The tangent-kernel analysis says \emph{which}, and that turns out to be the substantive
-question. The message-passing correlator's dominant directions are the Hamiltonian's own
-collective modes---breathing, correlation hole, relative excitation---to $R^2\approx1$
-across $\omega$ and up to $N{=}12$, while a separable network of matched or larger
-capacity leaves nearly half its tangent budget where no compact physical dictionary
-finds it. A direction outside the dictionary need not be unphysical; the robust claim is
-that one tangent space is far more completely accounted for by a small set of physical
-operators than the other. That gap is present at every confinement. Strong confinement
-merely disguises it, because correlation is a small slice of the energy there and the two
-networks agree to four figures.
-
-The practical consequence is a design rule rather than a theorem. A compact, smooth
-correlator plus a moderately wide backflow is a good default for parabolic dots: the
-correlator behaves like a learned set of collective coordinates, and the backflow like a
-local correction channel that switches on where near-field physics is delicate and
-falls quiet in the Wigner limit. But the \emph{kind} of backflow keeps mattering after
-its energy contribution has gone. A conventional single-round network collapses onto one
-collective mode exactly where the copresheaf network does not, and pays half a percent
-for it. Falling quiet and falling over are not the same thing.
+The practical upshot is a design rule rather than a theorem. For parabolic dots a
+compact smooth correlator with a moderately wide backflow is a sound default: the
+correlator behaves like a learned set of collective coordinates, while the backflow acts as
+a local correction channel that switches on where the near-field physics is delicate and
+falls quiet in the Wigner limit. The \emph{kind} of backflow keeps mattering, however, long
+after its energy contribution has gone, since a conventional single-round network collapses
+onto one collective mode exactly where the copresheaf network does not, and pays half a
+percent for the collapse. Falling quiet and falling over are different things.
 
 \section[Where MCMC-free training stops]{Where Markov-chain-free training stops, and why}
 \label{sec:collocation-discussion}
 
-Of everything here, the collocation programme is the part whose claim most needs its
-boundaries drawn before it is stated. ``An accurate many-body wavefunction trained with
-no Markov chain'' is the kind of sentence that travels further than its evidence. It is
-also the part that consumed the most time and produced the most failures, and the two
-facts are related: the method works inside a regime whose edges had to be found by
-walking off them.
+``An accurate many-body wavefunction trained with no Markov chain'' is the kind of
+sentence that travels further than its evidence, so the boundaries have to be drawn before
+the claim is made. The collocation programme also consumed the most time and produced the
+most failures of anything here, and the two facts are related: the method works inside a
+regime whose edges had to be found by walking off them.
 
 \paragraph{What ``MCMC-free'' does and does not mean.}
 Three distinctions are easily conflated.
@@ -129,41 +125,37 @@ unsupervised solution of the Schr\"odinger equation.
 guided by the variational objective alone and cross-checked against the fitted Wigner
 scaling curve, never against an external benchmark.
 
-\paragraph{There are two walls, and they are different.}
-Most of the failures lie on a single chain, and it is worth stating in order.
-Proposal--target mismatch inflates the tail of the importance weights; the inflated tail
-destroys the gradient estimator; a destroyed estimator makes the optimisation
-seed-dependent and the empirical metric unreliable; and once the metric is unreliable,
-inverting it---which is what natural-gradient preconditioning does---amplifies the noise
-instead of the signal. Langevin refinement joins that chain at the first link, by
-breaking the proposal the weights are computed against. CG-SR joins it at the last:
-it fails at low $\omega$ not because the metric is ill-conditioned but because it can no
-longer be estimated. The $N{=}20$ reversal, where a Jastrow-only ansatz beats the
-backflow it should in principle beat, reaches the same chain through memory rather than
-through confinement, the edge tensor forcing the collocation budget down until the
-gradient degrades. That chain is a sampling-quality chain, and a better proposal moves
-it: rebuilding the proposal from the Wigner shell pushes the wall from $\omega\approx0.01$
-down to $\omega=0.0035$.
+\paragraph{Two walls, of different kinds.}
+Most of the failures lie on a single chain of causes. Proposal--target mismatch inflates
+the tail of the importance weights; the inflated tail destroys the gradient estimator; a
+destroyed estimator makes the optimisation seed-dependent and the empirical metric
+unreliable; and inverting an unreliable metric, which is what natural-gradient
+preconditioning does, amplifies the noise instead of the signal. Langevin refinement joins
+that chain at the first link, by breaking the proposal the weights are computed against.
+CG-SR joins it at the last, failing at low $\omega$ because the metric can no longer be
+estimated rather than because it is ill-conditioned. Even the $N{=}20$ reversal, where a
+Jastrow-only ansatz beats the backflow it should in principle beat, arrives at the same
+chain through memory instead of confinement, the edge tensor forcing the collocation budget
+down until the gradient degrades. Everything on that chain is a sampling problem, and a
+better proposal moves it: rebuilding the proposal from the Wigner shell pushed the wall
+from $\omega\approx0.01$ down to $\omega=0.0035$.
 
-Below $0.0035$ something else takes over, and conflating the two would be a mistake.
-There the obstacle is not the sampler. Metropolis walkers initialised directly on the
-classical shell relax inward regardless; the backflow displacement transfers correctly
-and is simply far too small to bridge the gap; and the collapse is non-monotonic across
-proposal variants in a way that a sampling failure would not be. What fails is the
-warm start. The Wigner peak at these confinements exists only because the Jastrow
-amplifies an exponentially suppressed determinant back up by a comparable factor, and a
-$23\%$ change in $\omega$ perturbs both sides of that cancellation. The balance tips and
-the density falls back to the non-interacting shell. This is a representational
-limitation---the ansatz is not covariant enough in $\ell$---not a statistical one, and
-no improvement to the proposal will remove it.
+Below $0.0035$ the obstacle changes character. It is no longer the sampler. Metropolis
+walkers initialised directly on the classical shell relax inward regardless, the backflow
+displacement transfers correctly and is simply far too small to bridge the gap, and the
+collapse is non-monotonic across proposal variants in a way that a sampling failure would
+not be. What fails is the warm start. At these confinements the Wigner peak exists only
+because the Jastrow amplifies an exponentially suppressed determinant back up by a
+comparable factor, and a $23\%$ change in $\omega$ perturbs both sides of that
+cancellation, tipping the balance so that the density falls back to the non-interacting
+shell. The ansatz is not covariant enough in $\ell$, which is a representational
+limitation, and no improvement to the proposal will remove it.
 
-Two walls, then, of different kinds. The first is statistical and yields to a better
-measure. The second is representational and will not. Distinguishing them matters
-practically: it says where effort should go. And the general lessons survive the
-distinction. Any importance-sampled scheme applied to a weakly confined many-body system
-will meet the first chain in that order, and any second-order method applied to one must
-certify that the metric it inverts is statistically resolved at the sample sizes in use.
-Neither statement is about quantum dots.
+Distinguishing the two matters practically, because it says where effort should go. The
+general lessons survive the distinction in any case. Any importance-sampled scheme applied
+to a weakly confined many-body system will meet the first chain in that order, and any
+second-order method applied to one must certify that the metric it inverts is statistically
+resolved at the sample sizes in use. Neither statement is about quantum dots.
 
 \paragraph{Where the two routes actually stand.}
 Compared directly against the SR route, collocation is competitive for
@@ -180,8 +172,8 @@ confinement.
 \section{What the picture predicts}
 \label{sec:implications}
 
-If the argument of this thesis is right, the same three statements should hold well
-outside the quantum dot.
+If the argument of this thesis is right, it should hold well outside the quantum dot, and
+in three particular ways.
 
 \emph{Up to the frontier, the proposal is the bottleneck rather than the objective.}
 That makes the next move a better sampler rather than a better loss---normalising flows
@@ -204,8 +196,8 @@ $\mathcal{O}(N^2 h_{\mathrm{bf}})$ edge tensor is what stops the method at twent
 electrons, and it stops it for reasons of memory rather than of physics. Sparse or
 low-rank message passing, or a local backflow that avoids all-to-all edge features,
 would extend the reach without touching anything else in the pipeline---and, on the
-evidence of Chapter~\ref{ch:kernel}, without giving up the nodal correction that makes
-the backflow worth having at all.
+evidence of Chapter~\ref{ch:kernel}, without giving up the nodal correction that is the
+reason for having a backflow at all.
 
 Finally, a caution that applies to this thesis more than to any of its predictions. The
 architecture comparison is cleanest at $N{=}6$, where it is seeded; the $N{=}12$ contrast

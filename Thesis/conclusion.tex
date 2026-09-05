@@ -9,22 +9,20 @@ Aurelius}{\textit{Meditations}}
 \label{ch:conclusions}
 \endgroup
 
-The question this thesis was assigned was where to start. The answer it arrived at has a
-shape, and the shape is a loop.
+The question this thesis was assigned was where to start, and the answer it arrived at
+closes on itself.
 
 We built a wavefunction and checked it against every external number that exists. The
-checked wavefunction then became an instrument, and what it showed us was a Wigner
-molecule---rings at definite occupancies, angular order that stiffens as the trap
-weakens, a shell radius growing as $\omega^{-2/3}$. Those are facts about electrons. They
-are also, it turned out, exactly the facts a sampler needs in order to aim at the right
-part of configuration space. Building the proposal out of the measured shell geometry
-carried Markov-chain-free training from $\omega\approx0.01$ down to $\omega=0.0035$,
-into states the original method could not reach. The physics we learned from the
-solution improved the solver, and the improved solver produced solutions we could not
-otherwise have learned from.
-
-That loop is the thesis. Everything below is an account of how far around it we got, and
-where it broke.
+checked wavefunction then became an instrument, and through it we watched a Wigner
+molecule form: rings at definite occupancies, angular order stiffening as the trap
+weakens, a shell radius growing as $\omega^{-2/3}$. Those are facts about electrons, and
+they turned out to be precisely the facts a sampler needs in order to aim at the right part
+of configuration space. Rebuilding the proposal out of the measured shell geometry carried
+Markov-chain-free training from $\omega\approx0.01$ down to $\omega=0.0035$, into states
+the original method could not reach. So the physics we learned from the solution improved
+the solver, and the improved solver produced solutions we could not otherwise have learned
+from. How far around that circle we got, and where it broke, is what remains to be set
+down.
 
 \section{What was asked, and what came back}
 
@@ -72,8 +70,9 @@ the ansatz, and none of it is visible in the density that one would naturally pl
 
 \section[The ledger]{What is established, what is consistent, and what is indicated}
 
-The preface promised to be wrong on the record. That obliges a ledger, because these
-three are not the same kind of claim and the difference is easy to lose.
+The preface promised to be wrong on the record, which obliges a ledger. Three kinds of
+claim run through this thesis, they are not interchangeable, and the difference between
+them is easy to lose in a summary.
 
 \emph{Established against something outside this thesis.} The energies for $N\le12$ at
 $\omega\ge0.1$, and for $N{=}2$ down to $\omega=0.01$. Two independent methods agree
@@ -90,35 +89,35 @@ the shell topologies reproduce classical ground states nobody trained the networ
 reproduce; and the architecture result survives seeding, a change of probe measure, and
 a capacity ladder that runs against it.
 
-\emph{Indicated, and no more.} The size-scaling of the tangent-space picture. The
+\emph{Indicated, and no more.} How the tangent-space picture scales with size. The
 architecture comparison is seeded at $N{=}6$, rests on fewer models at $N{=}12$, and on a
-single production state at $N{=}20$. The trend is in the right direction and widens with
-particle number, which is what the mechanism predicts. It is not settled, and settling it
-is a question of compute rather than of interpretation.
+single production state at $N{=}20$. The trend runs in the direction the mechanism predicts
+and widens with particle number, but it is not settled, and settling it is a question of
+compute rather than of interpretation.
 
-To that ledger belongs one further entry, which is methodological rather than physical.
-Quantities defined on a single component of the ansatz---the backflow's rank, its
-displacement magnitude, its share of the energy---are gauge-like. The Jastrow and the
-backflow are substitutes, so the division of labour between them is a nearly flat
-direction of the loss that the training route settles and the state does not. Every claim
-that reversed during this project was of that kind. What survives is what can be measured
-on the state or by deletion, and the conclusions above rest only on those.
+One further entry belongs here, methodological rather than physical. Quantities defined on
+a single component of the ansatz---the backflow's rank, its displacement magnitude, its
+share of the energy---are gauge-like, because the Jastrow and the backflow are substitutes
+and the division of labour between them is a nearly flat direction of the loss that the
+training route settles rather than the state. Every claim that reversed during this project
+was of that kind. The conclusions above rest only on what can be measured on the state
+itself or by deleting part of it.
 
 \section{Where it stops, and what would move it}
 
-Two walls bound the Markov-chain-free route, and they are different in kind. The first is
-statistical: the proposal loses the target, and a better proposal moves the wall---from
-$\omega\approx0.01$ to $\omega=0.0035$, in our case, by building the proposal out of the
-physics. The second is representational and does not yield to sampling at all. Below
-$\omega=0.0035$ a converged state does not survive transfer to a weaker trap, because the
-Wigner peak exists only through a near-cancellation between an exponentially suppressed
-determinant and a Jastrow that amplifies it back, and a $23\%$ change in $\omega$ tips
-that balance. Walkers placed directly on the classical shell relax inward regardless.
-No proposal can repair that. What is needed is an $\ell$-covariant parametrisation, or an
-objective anchored on the shell amplitude rather than on the energy alone.
+The Markov-chain-free route is bounded by two walls of different kinds. The first is
+statistical: the proposal loses the target, and a better proposal moves the wall, in our
+case from $\omega\approx0.01$ to $\omega=0.0035$ once the proposal was built out of the
+physics. The second does not yield to sampling at all. Below $\omega=0.0035$ a converged
+state fails to survive transfer to a weaker trap, because the Wigner peak exists only
+through a near-cancellation between an exponentially suppressed determinant and a Jastrow
+that amplifies it back, and a $23\%$ change in $\omega$ tips that balance. Walkers placed
+directly on the classical shell relax inward regardless, so no proposal can repair it.
+Reaching further would take an $\ell$-covariant parametrisation, or an objective anchored
+on the shell amplitude rather than on the energy alone.
 
-Three other things would move the picture, in rough order of how much they would move it.
-A backflow that is not quadratic in particle number: the $\mathcal{O}(N^2 h)$ edge tensor
+Three other things would move the picture, in rough order of how much. A backflow that is
+not quadratic in particle number: the $\mathcal{O}(N^2 h)$ edge tensor
 is what stops the method at twenty electrons, and it stops it for reasons of memory
 rather than of physics. A proposal that adapts on its own---a normalising flow, or the
 shell-informed construction of \S\ref{sec:kernel-q3-frontier} generalised past ring
@@ -128,19 +127,18 @@ from indicated into established.
 
 \section{A closing thought}
 
-The three axes of this thesis---what the network is, how it is optimised, and what
-measure defines the loss---looked at the outset like three separate engineering choices.
-They are one geometry. Architecture sets the shape of the variational tangent space. The
-optimiser inverts the metric on that space. The sampling measure decides whether the
-metric can be estimated at all. Read that way, the recurring finding is not about neural
-networks in particular: what matters is not capacity but alignment with the
-low-dimensional, collective structure the problem actually has---which, in real space,
-\emph{is} the Wigner molecule.
+What the network is, how it is optimised, and what measure defines its loss looked at the
+outset like three separate engineering choices, and the finding that recurs through every
+chapter is that they are one question about one matrix. Whether that is a fact about neural
+networks seems doubtful. It looks more like a fact about the problem: capacity was never
+the scarce resource, and what mattered instead was staying aligned with the
+low-dimensional collective structure the physics already has---which, in real space, is the
+Wigner molecule.
 
-The most durable results here came from the places where the attempt failed, and they
-came only because the failures had been made measurable: a rank collapse that survived
-seeding and a dimension inversion that did not; a sampler blamed for a wall the ansatz
-had built; an importance-sampling bug whose signature---accuracy falling away at larger
-$N$ and weaker $\omega$---was exactly what an inadequate architecture would have
-produced, and which no amount of thinking about architectures would ever have found.
-That is what the record was for.
+The durable results came from the places where the attempt failed. A rank collapse that
+survived seeding and a dimension inversion that did not. A sampler blamed for a wall the
+ansatz had built. An importance-sampling bug whose signature, accuracy falling away at
+larger $N$ and weaker $\omega$, was exactly what an inadequate architecture would have
+produced, and which no amount of thinking about architectures would ever have found. Each
+of those cost months, and each of them is in this thesis rather than quietly absent from
+it, because a mistake that has been written down can be argued with.

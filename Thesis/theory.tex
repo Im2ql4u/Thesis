@@ -10,29 +10,26 @@ is an attunement of opposite tensions, like that of the bow and the lyre.}{Herac
 \label{sec:theory}
 \endgroup
 
-The system this thesis solves can be written in one line. Everything hard about it follows
-from three features of that line, and this chapter is about those three.
+$N$ electrons in a two-dimensional harmonic trap, repelling one another through the Coulomb
+interaction. The Hamiltonian fits on one line and contains nothing exotic, and every
+difficulty in the thesis comes from three of its properties.
 
-We take $N$ electrons in a two-dimensional harmonic trap, interacting through the Coulomb
-repulsion. The Hamiltonian is elementary; the difficulty is that the electrons are
-identical fermions, that the interaction is singular where two of them meet, and that the
-kinetic term is a second derivative. Antisymmetry makes the state's sign structure the
-expensive part of the problem. The singularity makes the local energy divergent unless the
-wavefunction is built to cancel it. And the second derivative means that any method which
-evaluates the energy pointwise is exposed to the curvature of whatever function it is
-handed.
+The electrons are identical fermions, so the wavefunction changes sign under exchange and
+that sign structure turns out to be the expensive part of the problem. The interaction
+diverges where two of them meet, so the local energy $\hat H\Psi/\Psi$ diverges too unless
+the wavefunction is built to cancel it. And the kinetic term is a second derivative, which
+means that any method evaluating the energy pointwise is exposed to the curvature of
+whatever function it has been handed.
 
-What follows is selected rather than comprehensive. \S\ref{sec:qm-setup} fixes the
-many-body Schr\"odinger problem and the notation. \S\ref{sec:secondquant}--\S\ref{sec:fci}
-introduce the vocabulary of electronic structure---occupation numbers, the mean field, the
-exact diagonalisation---not because we compute them, but because \emph{correlation energy},
-\emph{closed shell} and \emph{exact within a basis} are defined there and are used
-throughout. \S\ref{sec:quantumdots} then specialises to the quantum dot and derives the
-cusp conditions, which is where the singularity is disarmed. \S\ref{sec:wigner-markers-theory}
-sets out what a Wigner molecule is and how one would know. And
-\S\ref{sec:qmc-theory} covers the two Monte Carlo methods that supply this thesis's only
-external numbers, together with the approximation that limits what those numbers are
-worth.
+The sections below are chosen with those three in view. \S\ref{sec:qm-setup} fixes the
+many-body problem and the notation. \S\ref{sec:secondquant} introduces the vocabulary of
+electronic structure---occupation numbers, the mean field, the exact diagonalisation---which
+we do not compute but do rely on, since \emph{correlation energy}, \emph{closed shell} and
+\emph{exact within a basis} are defined there and used throughout. \S\ref{sec:quantumdots}
+specialises to the quantum dot and derives the cusp conditions that disarm the singularity.
+\S\ref{sec:wigner-markers-theory} says what a Wigner molecule is and how one would know one.
+And \S\ref{sec:qmc-theory} covers the two Monte Carlo methods that supply this thesis's only
+external numbers, along with the approximation that limits what those numbers are worth.
 
 \section{The many-body problem}
 \label{sec:qm-setup}
@@ -75,10 +72,10 @@ approximate the lowest eigenpair of Eq.~\eqref{eq:manybody-H}.
 \label{sec:secondquant}
 \label{sec:fci}
 
-Three ideas from quantum chemistry are used constantly in what follows without being
-computed anywhere in it. They are worth stating precisely, because the words
-\emph{correlation energy}, \emph{closed shell} and \emph{exact within a basis} mean
-particular things, and the accuracy claims of this thesis are calibrated against them.
+The words \emph{correlation energy}, \emph{closed shell} and \emph{exact within a basis}
+recur throughout this thesis, and the accuracy claims are calibrated against them. They
+come from three ideas in quantum chemistry that are used constantly here and computed
+nowhere.
 
 \paragraph{Second quantisation.} A first-quantised $N$-fermion state is an antisymmetric
 function expanded in Slater determinants of $M$ one-particle orbitals, and the number of
@@ -109,14 +106,14 @@ operator $F=\hat h_0+\sum_{j\in\mathrm{occ}}(J_j-K_j)$, in which each electron m
 mean field of the others. Because $F$ depends on its own solutions, it is solved
 self-consistently.
 
-Two things follow that this thesis uses. The first is a definition: the
-\emph{correlation energy} is what a single determinant cannot reach,
-$\Delta E = E_{\rm exact}-E_{\rm HF}$. It is a small fraction of the total energy and
-essentially all of the difficulty, which is why a method can look converged in total energy
-while representing the correlation badly---a distinction Chapter~\ref{ch:kernel} makes
-quantitative. The second is a structural fact: when the occupied orbitals fill complete
-shells, the determinant is a spin singlet and is unique, with no degenerate manifold to
-choose from. Those \emph{closed-shell} particle numbers are the ones studied here.
+From this comes the definition the thesis leans on. The \emph{correlation energy} is
+whatever a single determinant cannot reach, $\Delta E = E_{\rm exact}-E_{\rm HF}$: a small
+fraction of the total and essentially all of the difficulty, which is why a method can look
+converged in total energy while representing the correlation badly, a distinction
+Chapter~\ref{ch:kernel} makes quantitative. A structural fact comes with it. When the
+occupied orbitals fill complete shells the determinant is a spin singlet and is unique,
+with no degenerate manifold to choose from, and those \emph{closed-shell} particle numbers
+are the ones studied here.
 
 \paragraph{Full configuration interaction, and the cost of being exact.}
 Expanding in \emph{all} $N$-electron determinants of a given basis and diagonalising,
@@ -132,7 +129,7 @@ combinatorial wall that motivates variational methods in the first place.
 harmonic-oscillator orbitals rather than self-consistent HF orbitals, and our external
 benchmark is diffusion Monte Carlo~\cite{Pederiva2000-QD-DMC}, which for these systems is
 both more accurate than an affordable FCI and available at the particle numbers we care
-about. The reader should carry forward the definitions and not expect the tables.
+about.
 
 
 \section{Quantum Dots}
@@ -176,8 +173,8 @@ one for each spin:
 \det[\phi_a(\mathbf r_i)]_{i\in\uparrow,a=1..N/2}\;
 \det[\phi_a(\mathbf r_j)]_{j\in\downarrow,a=1..N/2}\;\times\; \Xi_{S=0,S_z=0},
 \]
-where $\Xi$ is the singlet spin function. A word on what this reference is and is not. It
-has the \emph{form} of a restricted closed-shell determinant, but its orbitals are the
+where $\Xi$ is the singlet spin function. This has the \emph{form} of a restricted
+closed-shell determinant, but its orbitals are the
 harmonic-oscillator eigenstates of the trap, not orbitals optimised self-consistently in
 the mean field of the other electrons. It is therefore the closed-shell
 \emph{non-interacting} reference, not an RHF one, and no self-consistent-field calculation
@@ -374,36 +371,35 @@ energy \emph{of the problem with those nodes imposed as a boundary condition}. T
 is a rigorous upper bound on $E_0$, and it is exact only if the nodes are. Otherwise it
 carries a systematic \emph{nodal bias} that no amount of sampling removes.
 
-Three consequences follow, and all three are load-bearing later.
-\emph{First}, a published DMC energy is not ground truth; it is the best energy attainable
-inside somebody's nodal surface. \emph{Second}, a variational state whose nodes are better
-than that surface may legitimately lie \emph{below} a fixed-node DMC number without
-violating anything---the variational principle bounds the energy from below by $E_0$, not
-by another approximation (\S\ref{sec:energy-discussion}). \emph{Third}, improving nodes is
-therefore the thing worth doing, which is what the coordinate backflow of
-Chapter~\ref{ch:trial_wavefunction} exists to attempt.
+Three consequences of that are load-bearing later. A published DMC energy is not ground
+truth but the best energy attainable inside somebody's nodal surface. A variational state
+with better nodes than that surface may therefore lie \emph{below} a fixed-node DMC number
+without violating anything, since the variational principle bounds the energy from below by
+$E_0$ and not by another approximation (\S\ref{sec:energy-discussion}). And improving nodes
+becomes the thing to attempt, which is what the coordinate backflow of
+Chapter~\ref{ch:trial_wavefunction} is for.
 
 \subsection{What this leaves us needing}
 
-Both methods take a trial state as given. VMC is only as good as the state it optimises;
-fixed-node DMC is only as good as the nodes it is handed. The quality of the ansatz is
-therefore not a detail of the implementation but the object of study, and it is
-constrained from three directions at once.
+Both methods take a trial state as given. VMC is only as good as the state it optimises,
+and fixed-node DMC only as good as the nodes it is handed, so the quality of the ansatz
+stops being an implementation detail and becomes the object of study. Three requirements
+bear on it at once.
 
-It must be \emph{antisymmetric}, exactly and by construction, since the sign structure is
-what makes the problem hard---which in practice means a determinant, multiplied by a
-symmetric correlation factor of the kind Jastrow introduced for strongly interacting
-systems~\cite{Jastrow1955-ManyBodyCorrelation}. It must place its \emph{nodes} well, since that is where the
-remaining systematic error lives. And it must be smooth enough that
-$E_L=\hat H\Psi/\Psi$---which contains a Laplacian, and a Coulomb potential that diverges
-at coalescence---can be evaluated without the two singularities amplifying each other. The
-cusp conditions of \S\ref{subsec:cusp} are exactly the statement that those two
-divergences can be made to cancel, and hard-wiring that cancellation is the first design
-decision of Chapter~\ref{ch:trial_wavefunction}.
+Antisymmetry has to hold exactly and by construction, since the sign structure is what
+makes the problem hard in the first place. In practice that means a determinant, multiplied
+by a symmetric correlation factor of the kind Jastrow introduced for strongly interacting
+systems~\cite{Jastrow1955-ManyBodyCorrelation}. The nodes have to be placed well, since
+that is where the remaining systematic error lives once the amplitude is right. And the
+state has to be smooth enough that $E_L=\hat H\Psi/\Psi$, containing as it does a Laplacian
+and a potential that diverges at coalescence, can be evaluated without the two
+singularities amplifying one another. The cusp conditions of \S\ref{subsec:cusp} say that
+those two divergences can be made to cancel exactly, and hard-wiring that cancellation is
+the first design decision of Chapter~\ref{ch:trial_wavefunction}.
 
-What remains is to choose the functional form. A compact antisymmetric state that can
-represent correlation without destroying local-energy conditioning is what the next
-chapter goes looking for, in the machine-learning literature.
+That leaves the functional form. A compact antisymmetric state able to represent
+correlation without destroying local-energy conditioning is what the next chapter goes
+looking for, in a literature that grew up asking quite different questions.
 
 \chapter{Machine Learning}
 \label{ch:ml_theory}
@@ -419,8 +415,7 @@ proxy for the population risk $\mathcal R(\theta)=\mathbb E_P[\ell(f_\theta(X),Y
 gap between the two is the subject of the field: overfitting, the bias--variance tradeoff,
 regularisation, held-out validation~\cite{HastieTibshiraniFriedman2009-ESL,Berner_Grohs_Kutyniok_Petersen_2022}.
 
-\textbf{Almost none of that applies here}, and saying so at the outset avoids a
-misunderstanding that would otherwise run through the whole chapter. There is no dataset.
+Almost none of that applies here. There is no dataset.
 There is no train/test split, no held-out set, and nothing to overfit \emph{to}. The
 objective is an expectation,
 \begin{equation}
@@ -431,18 +426,15 @@ under a distribution the model itself defines, and it is re-estimated from fresh
 every step. A network that drove Eq.~\eqref{eq:vmc-objective-theory} to the exact ground
 state would not be memorising anything; it would be right.
 
-Two things replace generalisation as the difficulty, and both are visible already in the
-form of Eq.~\eqref{eq:vmc-objective-theory}.
-
-The first is that the objective is a \emph{moving} expectation. The measure
-$|\Psi_\theta|^2$ changes with every update, so the gradient, the samples used to estimate
-it, and the metric used to precondition it are all functions of the current parameters.
-Nothing analogous happens in supervised learning, where the data distribution sits still.
-
-The second is that $E_L=\hat H\Psi_\theta/\Psi_\theta$ contains a Laplacian and a Coulomb
-potential. The objective therefore depends not on the network's \emph{values} but on its
-second derivatives, and on their behaviour near a singularity. Smoothness stops being a
-stylistic preference and becomes a requirement of the loss.
+What replaces generalisation as the difficulty is already visible in the form of
+Eq.~\eqref{eq:vmc-objective-theory}. Its measure $|\Psi_\theta|^2$ moves: it changes with
+every update, so the gradient, the samples used to estimate it, and the metric used to
+precondition it are all functions of the current parameters. In supervised learning the
+data distribution sits still and none of this arises. Meanwhile
+$E_L=\hat H\Psi_\theta/\Psi_\theta$ contains a Laplacian and a potential that diverges,
+so the objective reads the network's second derivatives rather than its values, and reads
+them near a singularity. Smoothness stops being a stylistic preference and becomes a
+requirement of the loss.
 
 So the chapter that follows selects for those two facts. \S\ref{sec:ml_optimization} treats
 optimisation, and in particular the geometry that a natural-gradient step exploits---the
@@ -454,27 +446,21 @@ approximation-theoretic argument for neural networks, which establishes less tha
 usually taken to. And \S\ref{sec:pinns} sets out what happens when a differential operator
 is placed inside a training objective, which is where the two traditions meet.
 
-One term from the taxonomy above is worth keeping, because it recurs. The objectives here
-are \emph{unsupervised}: there are no labelled targets, and the loss comes entirely from
-the physics the network is asked to satisfy. The one supervised ingredient is the second
-phase of residual pretraining, where a published reference energy is used as an explicit
-target---which is why those runs are described later as trained without a Markov chain
-rather than as unsupervised solutions of the Schr\"odinger equation. Reinforcement learning
-enters only obliquely: the REINFORCE estimator used for the collocation gradient is
-borrowed from it.
+One term from the usual taxonomy does recur. The objectives here are \emph{unsupervised}:
+no labelled targets exist, and the loss comes entirely from the physics the network is
+asked to satisfy. The exception is the second phase of residual pretraining, where a
+published reference energy is used as an explicit target, and that is why those runs are
+later described as trained without a Markov chain rather than as unsupervised solutions of
+the Schr\"odinger equation. Reinforcement learning enters obliquely, through the REINFORCE
+estimator borrowed for the collocation gradient.
 
 
 \section{Optimisation}
 \label{sec:ml_optimization}
 
-The minimization of empirical risk,
-\[
-  \hat{\mathcal{R}}(\theta) = \frac{1}{n}\sum_{i=1}^n \ell(f_\theta(x_i),y_i),
-\]
-is an \emph{optimisation problem}. The hypothesis class $\{f_\theta\}$ is usually 
-nonlinear and high-dimensional, so closed-form solutions are not available. 
-Instead, optimisation is performed iteratively by updating parameters 
-$\theta \in \mathbb{R}^p$ according to the geometry of the loss landscape.  
+Whatever the objective, minimising it over a nonlinear, high-dimensional hypothesis class
+admits no closed form, so the parameters $\theta\in\mathbb R^p$ are updated iteratively
+according to the local geometry of the loss.  
 
 \subsection{Gradient descent}
 The most basic algorithm is \emph{gradient descent}. Starting from an initial guess 
@@ -585,7 +571,8 @@ Its Gram dual, the \emph{neural tangent kernel} (NTK)~\cite{JacotEtAl2018-NTK},
 shares the nonzero spectrum of $S$ up to the overall factor $B$ (its nonzero eigenvalues are $B\lambda_a$), and is cheaper to diagonalise when
 $B<P$.
 
-Two scalars read from that spectrum organise the analysis. The \emph{condition number}
+The analysis is organised around two scalars read from that spectrum. The
+\emph{condition number}
 $\kappa(S)=\lambda_{\max}/\lambda_{\min}$ measures how anisotropic the tangent metric
 is, and therefore how far a natural-gradient step departs from a Euclidean one---the
 quantity that decides when SR is worth its cost. The \emph{effective dimension}
@@ -614,13 +601,12 @@ $d_{\mathrm{eff}}$ as ``this architecture concentrates its Fisher weight into fe
 directions,'' not as an absolute manifold dimension.
 
 \subsection{What survives into the rest of the thesis}
-Two properties of the optimiser matter here, and neither is convergence speed. The first
-is that a natural-gradient step is only as good as the metric it inverts, so the estimator
-of $S$ becomes part of the method rather than an implementation detail---a point
-Chapter~\ref{ch:kernel} turns into a three-regime result. The second is that
-$\kappa(S)$ and $d_{\mathrm{eff}}$ are readable properties of a trained state, which makes
-them usable as diagnostics and not merely as convergence aids. Both are used that way from
-Chapter~\ref{ch:results} onward.
+Convergence speed is not what matters about the optimiser here. A natural-gradient step is
+only as good as the metric it inverts, so the estimator of $S$ becomes part of the method
+rather than an implementation detail, and Chapter~\ref{ch:kernel} turns that into a
+three-regime result. Separately, $\kappa(S)$ and $d_{\mathrm{eff}}$ can be read off a
+trained state, which makes them diagnostics as much as convergence aids, and they are used
+that way from Chapter~\ref{ch:results} onward.
 
 
 \section{Networks that can be differentiated twice}
@@ -633,25 +619,22 @@ A feed-forward network composes affine maps with elementwise nonlinearities,
   h^{(\ell)}=\sigma\!\big(W^{(\ell)}h^{(\ell-1)}+b^{(\ell)}\big),\qquad
   f_\theta(x)=W^{(L)}h^{(L-1)}+b^{(L)},
 \]
-and without the nonlinearity $\sigma$ the whole composition collapses to a single affine
-map. This much is standard, and for most applications the choice of $\sigma$ is settled by
-convention or by a sweep. Here it is settled by the objective.
+and without the nonlinearity $\sigma$ the composition collapses to a single affine map.
+For most applications the choice of $\sigma$ is settled by convention or by a sweep. Here
+the objective settles it, because the local energy $E_L=\hat H\Psi_\theta/\Psi_\theta$
+contains a Laplacian and training therefore backpropagates through second derivatives of
+the network.
 
-The local energy $E_L=\hat H\Psi_\theta/\Psi_\theta$ contains a Laplacian. Training
-therefore backpropagates through second derivatives of the network, which puts two
-constraints on $\sigma$ that value-level approximation never does.
-
-\paragraph{The activation must be genuinely smooth, and smooth in a useful way.}
-$\mathrm{ReLU}(x)=\max(0,x)$ has a distributional second derivative and cannot appear in a
-Laplacian-based loss at all. That much is obvious. The subtler point is that being
-$C^\infty$ is not sufficient. What matters is the \emph{magnitude and reach} of the higher
-derivatives: an activation whose second and third derivatives decay quickly away from the
-origin contributes little curvature over most of its input range, so the Laplacian of a deep
-composition stays bounded and its variance stays finite. Tanh and the logistic sigmoid are
-perfectly smooth, but their higher derivatives are sharply peaked and change sign, so
-curvature accumulates unevenly through depth. We use the smooth
-$\mathrm{SiLU}(x)=x\,\sigma(x)$ family (SiLU, GELU, Mish behave comparably here), whose
-higher derivatives are broader and better behaved under composition
+\paragraph{The activation.}
+$\mathrm{ReLU}(x)=\max(0,x)$ has a distributional second derivative and is excluded
+immediately. Less obviously, being $C^\infty$ does not suffice either. The relevant
+property is the reach of the higher derivatives: an activation whose second and third
+derivatives decay quickly away from the origin contributes little curvature over most of
+its input range, so the Laplacian of a deep composition stays bounded and its variance
+finite. Tanh and the logistic sigmoid are perfectly smooth, yet their higher derivatives are
+sharply peaked and change sign, and curvature accumulates unevenly through depth. We use
+the $\mathrm{SiLU}(x)=x\,\sigma(x)$ family instead, where SiLU, GELU and Mish behave
+comparably and their higher derivatives are broader and better behaved under composition
 (Fig.~\ref{fig:activation_derivatives}).
 
 \begin{figure}[htbp]
@@ -667,7 +650,7 @@ higher derivatives are broader and better behaved under composition
   \label{fig:activation_derivatives}
 \end{figure}
 
-\paragraph{Initialisation must control derivative magnitudes, not just activations.}
+\paragraph{Initialisation.}
 The standard schemes---Xavier/Glorot, scaling weight variance as $1/(n_{\rm in}+n_{\rm
 out})$, and Kaiming/He, scaling as $2/n_{\rm in}$ for rectified units---are designed to keep
 forward activations and backward gradients from shrinking or exploding through
@@ -679,11 +662,10 @@ than any initialisation choice---zero-initialise the final layer of the backflow
 the ansatz begins exactly at the Slater nodes and the learned nodal deformation grows from
 nothing rather than from noise (\S\ref{sec:bf-init}).
 
-\paragraph{What this does not settle.} Nothing above makes the Laplacian well conditioned;
-it only stops the network from making it worse. The conditioning itself comes from the
-coordinate scaling, the soft-core pair features and the analytic cusp of
-Chapter~\ref{ch:trial_wavefunction}, and is analysed in Appendices~\ref{app:laplacian}
-and~\ref{app:coulomb}.
+None of this makes the Laplacian well conditioned; it only stops the network from making
+it worse. The conditioning itself comes from the coordinate scaling, the soft-core pair
+features and the analytic cusp of Chapter~\ref{ch:trial_wavefunction}, and is analysed in
+Appendices~\ref{app:laplacian} and~\ref{app:coulomb}.
 
 
 \section{Architectures for many-body wavefunctions}
@@ -763,7 +745,7 @@ through learned maps, rather than recomputing and discarding one-shot messages. 
 correlator iterates this exchange over a down/up ``V-cycle''; the backflow applies a
 single such copresheaf round. Its concrete update equations, hidden dimensions, and
 parameter counts are specified in the Methods chapter
-(\S\ref{subsec:ctnn-backflow}, Eqs.~\eqref{eq:ctnn-edge}--\eqref{eq:ctnn-node}). Two points of framing matter for the
+(\S\ref{subsec:ctnn-backflow}, Eqs.~\eqref{eq:ctnn-edge}--\eqref{eq:ctnn-node}). Two points of framing carry into the
 rest of the thesis. First, the CTNN is \emph{one} concrete realisation of the
 message-passing class defined above; the conclusions we draw about the value of message
 passing concern the class, with the CTNN as the instance actually studied. Wherever we
@@ -783,16 +765,15 @@ geometry of the tangent kernel introduced in \S\ref{sec:theory-tangent-kernel}.
 \label{sec:nn_approximation}
 
 The usual justification for using a neural network as a variational ansatz is that it can
-represent anything. It is worth disposing of that argument now, because the thesis is
-about what happens after it stops being relevant.
+represent anything. That argument needs disposing of early, since this thesis is about what
+happens after it stops being relevant.
 
 The universal approximation theorems say that a single hidden layer with a non-polynomial
 activation is dense in $C(K)$ on compacta: for any continuous $f$ and any $\varepsilon>0$
 there exist a width and a parameter vector achieving
 $\sup_{x\in K}|f(x)-f_\theta(x)|<\varepsilon$~\cite{Cybenko1989,HORNIK1991251,LeshnoEtAl1993-NonpolyActivationUniversality}.
 Sharper versions bound the width needed for a given accuracy, and show that depth can be
-exponentially more efficient than width for compositional targets. For our purposes these
-results establish exactly one thing, and it is worth stating in the negative:
+exponentially more efficient than width for compositional targets. For our purposes they establish exactly one thing, and it is best put negatively:
 \emph{the ground state is not out of reach of the hypothesis class.} A network of the sizes
 used here can, in principle, express it.
 
@@ -804,34 +785,33 @@ typically astronomical; and the same function can be represented by two networks
 optimisation behaviour is entirely different---which is, in miniature, the comparison
 Chapter~\ref{ch:kernel} makes.
 
-One further result is worth keeping, because it does more than assert possibility. In high
-dimension a generic continuous target requires a network size growing exponentially in $d$,
-so approximation alone cannot explain why these methods work at all in $Nd$ dimensions.
+One further result does more than assert possibility. In high dimension a generic
+continuous target requires a network size growing exponentially in $d$, so approximation
+alone cannot explain why these methods work at all in $Nd$ dimensions.
 The escapes are all statements about \emph{structure} rather than capacity: targets of
 finite Barron norm admit dimension-independent
 rates~\cite{Barron1993-UniversalApprox}; compositional targets admit efficient
 representation by deep networks when the composition matches the architecture; and imposed symmetry reduces the effective
 domain by the order of the symmetry group. The last of these is the one we exploit
-directly, and the middle one is the reason the message-passing architectures of
-\S\ref{sec:architectures} are worth taking seriously: what makes them useful is not more
-capacity but a compositional form that matches the relational structure of the physics.
+directly, and the middle one is why the message-passing architectures of
+\S\ref{sec:architectures} deserve attention: their usefulness comes from a compositional
+form matching the relational structure of the physics, not from added capacity.
 
-That is the position the rest of the thesis works from. Representability is assumed;
-trainability, conditioning and the geometry of the parameterisation are what is measured.
+The rest of the thesis therefore assumes representability and measures the other things:
+trainability, conditioning, and the geometry of the parameterisation.
 
 
 \section{Physics-Informed Neural Networks}
 \label{sec:pinns}
 
-Traditional machine learning focuses on fitting models to labeled data. 
-In scientific applications, however, governing equations such as differential 
-equations encode a wealth of prior information about the system. 
-\emph{Physics-Informed Neural Networks (PINNs)}~\cite{raissi2019pinns} integrate these
-constraints directly into the learning process, combining data-driven approximation
-with analytical structure. The idea of training a network against a differential operator
-predates the name by two decades~\cite{Lagaris1998-ANNforODEPDE}; what
-\cite{raissi2019pinns} added was automatic differentiation, which makes the residual
-cheap enough to evaluate that it can drive the optimisation directly.
+In scientific applications the governing equations already encode most of what is known
+about a system, and a model fitted only to data throws that information away.
+\emph{Physics-informed neural networks} (PINNs)~\cite{raissi2019pinns} put it back, by
+penalising the residual of the equation itself alongside whatever data exists. Training a
+network against a differential operator predates the name by two
+decades~\cite{Lagaris1998-ANNforODEPDE}; what \cite{raissi2019pinns} added was automatic
+differentiation, which makes the residual cheap enough to evaluate that it can drive the
+optimisation directly.
 
 
 
@@ -911,17 +891,16 @@ of Chapter~\ref{ch:kernel} takes the form it does.
 \section{The four facts the Methods are designed around}
 \label{sec:ml_summary}
 
-The two traditions of this chapter and the last describe the same objects in different
-words, and it is worth putting the dictionary down before the construction begins. The
-quantum geometric tensor of variational Monte Carlo \emph{is} the Fisher metric of
-information geometry. Stochastic reconfiguration \emph{is} natural-gradient descent under
-it. The neural tangent kernel is that metric's Gram dual, and the sampling measure that a
-physicist chooses for a Metropolis chain is the same object a statistician calls a proposal
-distribution. Neither community needs the other's vocabulary to do its own work, which is
-why the identifications are easy to miss; but once they are made, a question about
-architecture and a question about optimisation become questions about the same matrix.
+The two traditions of this chapter and the last have been describing the same objects in
+different words. The quantum geometric tensor of variational Monte Carlo is the Fisher
+metric of information geometry; stochastic reconfiguration is natural-gradient descent
+under it; the neural tangent kernel is that metric's Gram dual; and the sampling measure a
+physicist chooses for a Metropolis chain is what a statistician calls a proposal
+distribution. Neither community needs the other's vocabulary in order to do its own work,
+which is why the identifications are easy to miss. Once made, they collapse a question
+about architecture and a question about optimisation into questions about one matrix.
 
-What that matrix has to contend with, for this problem, comes down to four facts.
+For this problem, four facts bear on that matrix.
 
 \emph{The objective contains a second-order operator.} The local energy carries a
 Laplacian, so training differentiates through second derivatives of the network. This is

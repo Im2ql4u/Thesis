@@ -17,8 +17,7 @@ and keeps it from collapsing in the nodes. The optimiser inverts the metric on t
 space, and is worth its cost exactly when the metric is badly conditioned and still
 measurable. The training paradigm chooses which measure defines the metric in the first
 place: $|\Psi|^2$ conditions itself and stays on target, while a fixed covering proposal
-loses first the conditioning and then the state. Everything below follows from taking
-that seriously.
+loses first the conditioning and then the state.
 
 Four things remain to be said. What the energies do and do not establish. How far the
 internal numbers can be pushed, given that several of them are gauge-dependent. Where
@@ -34,7 +33,7 @@ diagnostic read off the trained state---is worthless if they do not hold. So the
 worth pressing is not whether the numbers are good. It is what having good numbers
 actually buys.
 
-It buys less than it appears to, and more than it appears to, in two different places.
+Less than it appears at one end, and more than it appears at the other.
 
 Less, at the top end. Agreement with a fixed-node DMC calculation is agreement with
 another approximation, not with the truth. Where our message-passing ansatz sits
@@ -69,9 +68,8 @@ rather than the parameterisation: a real-space transition involving shells, ring
 occupancies and angular stiffness, held on one to three effective directions whose
 identity---not whose number---changes across the crossover.
 
-The temptation is to read that as a discovery about neural wavefunctions. It cannot
-quite be, and the reason is worth stating carefully, because it applies to a whole class
-of representation-analysis results and not only to ours.
+It is tempting to read that as a discovery about neural wavefunctions. It cannot quite
+be one, for a reason that reaches well past this thesis.
 
 The Jastrow and the backflow are partial substitutes. Any measurement made on one of
 them alone---its rank, its displacement magnitude, its share of the energy---records a
@@ -145,11 +143,10 @@ backflow it should in principle beat, is the same chain reached through memory r
 than through confinement: the backflow's edge tensor forces the collocation budget down
 until the gradient degrades.
 
-That is a more useful conclusion than a list of things that did not work, because it is
-predictive. Any importance-sampled scheme applied to a weakly confined many-body system
-will meet the same chain in the same order, and any second-order method applied to one
-must certify that the metric it inverts is statistically resolved at the sample sizes in
-use. Neither statement is specific to quantum dots.
+Any importance-sampled scheme applied to a weakly confined many-body system will meet
+that chain in that order. Any second-order method applied to one must certify that the
+metric it inverts is statistically resolved at the sample sizes in use. Neither statement
+is about quantum dots.
 
 \paragraph{Where the two routes actually stand.}
 Compared directly against the SR route, collocation is competitive for
@@ -173,9 +170,8 @@ outside the quantum dot.
 Markov-chain-free route fails through its sampler and nowhere else. That makes the
 obvious next move a better sampler rather than a better loss---normalising flows trained
 against $|\Psi|^2$, or the physics-informed proposals of
-\S\ref{sec:kernel-q3-frontier} generalised beyond ring geometries. The measured jump
-when the proposal was rebuilt from the Wigner shell, an ESS improvement of $15$--$47\times$
-with no training at all, is the size of the prize.
+\S\ref{sec:kernel-q3-frontier} generalised beyond ring geometries. Rebuilding the proposal from the Wigner shell lifted the effective sample size by
+$15$--$47\times$ without any training at all.
 
 \emph{Relational structure will matter more, not less, with $N$.} The tangent-space gap
 between message-passing and separable correlators widens with particle number in the

@@ -20,8 +20,8 @@ and a harder one.
 Two networks of the same size, trained the same way, landing on the same energy, need
 not be the same object. A natural-gradient step that is decisive in one training regime
 does nothing in another. An importance-sampled objective reproduces a Markov chain's
-answer in one corner of the phase diagram and parts company with it in the next. These
-look like three unrelated puzzles. They are one, and it is geometric.
+answer in one corner of the phase diagram and parts company with it in the next. Three unrelated puzzles, on the face of it. They have one answer, and it is
+geometric.
 
 Everything turns on the per-sample log-derivative matrix
 \begin{equation}
@@ -32,7 +32,7 @@ Everything turns on the per-sample log-derivative matrix
 and on its two Gram matrices, the quantum geometric tensor $S = O^{\!\top}O / B$ and the
 neural tangent kernel $K = OO^{\!\top}$. Architecture sets the shape of that geometry.
 The optimiser inverts it. The sampling measure decides whether it can be estimated at
-all. Read in that order, the three puzzles become one story.
+all. The chapter follows them in that order.
 
 The instrument throughout is the \emph{effective dimension} of the tangent space---the
 participation ratio of the QGT spectrum $\{\lambda_a\}$,
@@ -528,8 +528,7 @@ So posed, the result is clean. On the same Slater--Jastrow--backflow ansatz, and
 Markov chain anywhere in the optimisation, the weak form recovers the variational energy
 to within DMC uncertainty at strong confinement and to a few tenths of a percent of our
 gold standard well into the correlated regime for $N\in\{6,12\}$
-(Table~\ref{tab:collocation}). What follows is why that works, where it stops, and what
-the stopping tells us.
+(Table~\ref{tab:collocation}). Why it works, where it stops, and what the stopping is made of, follow below.
 \subsection{The objective, and why it is stable}
 \label{sec:colloc-method}
 The collocation training used here is exactly the MCMC-free pipeline specified in the
@@ -1361,15 +1360,15 @@ bound it.
 \section{A gauge caveat, and what survives it}
 \label{sec:synthesis}
 
-One thing has to be said plainly before any of this is carried forward, because it
-governs which of the numbers above can be leaned on.
+Which of the numbers above can be leaned on is not obvious, and the answer is not
+flattering to all of them.
 
 Component-level quantities---the backflow's rank, its displacement magnitude
 $|\Delta\mathbf{x}|$, the per-component $d_{\mathrm{eff}}$---are \textbf{gauge-like}. The
 Jastrow and the backflow are substitutes. How correlation is divided between them is a
 nearly flat, path-dependent direction of the loss, so those quantities record the route
-the training took and not the state it reached. This is not a hypothetical worry: every
-claim that reversed during this project was of exactly that kind---the
+the training took and not the state it reached. The worry is not hypothetical. Every claim that reversed during this project was of
+this kind---the
 $d_{\mathrm{eff}}$ inversion at the crystal that did not survive seeding, a mislabelled
 backflow, an artefactual rank collapse produced by training both components jointly
 from scratch.
@@ -1383,7 +1382,6 @@ two to seven (Table~\ref{tab:varEL}), and seed-cleanly so at the crystal. And \e
 overlap} is what makes the comparison between training paradigms a claim about states
 rather than about numbers that happen to agree.
 
-Rank is not on that list. It appears throughout this chapter because it is the clearest
-\emph{signature} of the mechanism---a field collapsing onto one mode is a vivid thing to
-watch---but the finding it signals is carried by the half-percent of energy that goes
-with it, not by the rank itself.
+Rank is not on that list. It runs through this chapter as the clearest \emph{signature}
+of the mechanism---a field collapsing onto a single mode is easy to see. What carries the
+finding is the half percent of energy that collapses with it.

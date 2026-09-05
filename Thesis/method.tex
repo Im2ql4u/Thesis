@@ -8,10 +8,19 @@ grapes or a fig.}{Epictetus}{\textit{Discourses}}
 \label{ch:trial_wavefunction}
 \endgroup
 
-In this chapter we specify the concrete modelling and algorithmic choices used in our computations.
-We proceed from the physical setup and trial states to objectives, with an emphasis on stability,
-symmetry, and differentiability---all of which are critical for Laplacian-based local-energy
-evaluations and stochastic reconfiguration (SR). Unless otherwise stated, we work in atomic units.
+The previous chapter ended with four facts about this problem: the objective contains a
+second-order operator, the interaction is singular and the state carries nodes, the
+sampling measure is part of the method, and correlation is relational. This chapter builds
+the state those facts allow.
+
+Very little of what follows is a free choice. Antisymmetry is not optional, so there is a
+determinant. The Coulomb divergence can be cancelled analytically, so it is---which means
+the network never has to learn the one thing it would learn badly. Second derivatives enter
+the loss, so every feature fed to the network is bounded and smooth, and every coordinate is
+scaled so that the derivatives it produces are $\mathcal O(1)$ across three decades of
+confinement. What is genuinely open is the form of the learned part, and there we build
+both candidates and let the results decide. Unless stated otherwise we work in atomic
+units.
 
 \section{Preliminaries}
 \label{sec:setup}
@@ -335,6 +344,7 @@ modern quantum-Monte-Carlo form is due to Holzmann and
 Ceperley~\cite{HolzmannCeperley2003-Backflow}.
 
 \subsection{Regularization, initialisation, and cost}
+\label{sec:bf-init}
 We found the following defaults robust across $(N,\omega)$:
 (i) $\varepsilon\in[10^{-6},10^{-4}]$ (trap units) for the soft norm;
 (ii) bounded output $\tanh$ with a learnable scale $s_\beta$ initialised in $[0.02,0.10]$;
@@ -400,6 +410,7 @@ Readout    & (correlator)      & hidden $64$, $2$--$3$ layers, SiLU             
 
 
 \chapter{Optimisation}
+\label{ch:optimisation}
 \label{ch:optimization}
 
 \section{Primary objective and two–stage training}

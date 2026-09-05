@@ -408,82 +408,61 @@ chapter goes looking for, in the machine-learning literature.
 \chapter{Machine Learning}
 \label{ch:ml_theory}
 
-\section{Machine Learning as Statistical Learning}
+\section{What learning means here}
+\label{sec:ml-setup}
 
-Machine learning (ML) is best understood as the study of algorithms that approximate 
-functions from data. At its core, it is not about ``intelligent machines,'' but about developing 
-systematic ways to extract patterns from observations and to generalise these patterns to 
-unseen situations. From a mathematical perspective, ML is a branch of 
-\emph{statistical learning theory}, which views the learning process as the minimization 
-of an expected error (or \emph{risk}) under uncertainty.  
+Machine learning is usually introduced as \emph{empirical risk minimisation}: an unknown
+joint distribution $P(X,Y)$ generates data, a loss $\ell$ scores predictions, and one
+minimises the empirical average
+$\hat{\mathcal R}(\theta)=\tfrac1n\sum_i\ell(f_\theta(x_i),y_i)$ over a finite sample as a
+proxy for the population risk $\mathcal R(\theta)=\mathbb E_P[\ell(f_\theta(X),Y)]$. The
+gap between the two is the subject of the field: overfitting, the bias--variance tradeoff,
+regularisation, held-out validation~\cite{HastieTibshiraniFriedman2009-ESL,Berner_Grohs_Kutyniok_Petersen_2022}.
 
-Formally, consider an input space $\mathcal{X}\subseteq\mathbb{R}^d$ and an output 
-space $\mathcal{Y}$, together with an unknown joint distribution $P(X,Y)$ over 
-pairs $(x,y)$. The aim of learning is to construct a function 
-$f_\theta:\mathcal{X}\to\mathcal{Y}$, parameterised by $\theta\in\Theta$, 
-such that $f_\theta(x)$ predicts $y$ with small error. A loss function
-\[
-\ell:\mathcal{Y}\times\mathcal{Y}\to\mathbb{R}_{\geq 0}
-\]
-quantifies the discrepancy between prediction $f_\theta(x)$ and truth $y$. 
-The central object of learning is then the \textbf{population risk}
+\textbf{Almost none of that applies here}, and saying so at the outset avoids a
+misunderstanding that would otherwise run through the whole chapter. There is no dataset.
+There is no train/test split, no held-out set, and nothing to overfit \emph{to}. The
+objective is an expectation,
 \begin{equation}
-  \mathcal{R}(\theta) = \mathbb{E}_{(x,y)\sim P}\big[\ell(f_\theta(x),y)\big].
+  E[\Psi_\theta] \;=\; \mathbb E_{\mathbf R\sim|\Psi_\theta|^2}\big[E_L(\mathbf R)\big],
+  \label{eq:vmc-objective-theory}
 \end{equation}
-Since the distribution $P$ is unknown, we only have access to a finite dataset 
-$D=\{(x_i,y_i)\}_{i=1}^n$. The corresponding \textbf{empirical risk} is
-\begin{equation}
-  \hat{\mathcal{R}}(\theta) = \frac{1}{n}\sum_{i=1}^n \ell(f_\theta(x_i),y_i).
-\end{equation}
-This setup is known as \emph{empirical risk minimization (ERM)}, and it underlies 
-virtually all modern machine learning methods \cite{Berner_Grohs_Kutyniok_Petersen_2022}.  
+under a distribution the model itself defines, and it is re-estimated from fresh samples at
+every step. A network that drove Eq.~\eqref{eq:vmc-objective-theory} to the exact ground
+state would not be memorising anything; it would be right.
 
-\subsection{Types of learning}
-Depending on the information provided in the dataset, learning problems are 
-traditionally categorized as:
-\begin{itemize}
-  \item \textbf{Supervised learning.} We are given labeled pairs $(x_i,y_i)$, and the goal 
-  is to approximate the conditional expectation $\mathbb{E}[Y|X=x]$. Regression 
-  (continuous $Y$) and classification (discrete $Y$) are canonical examples.  
+Two things replace generalisation as the difficulty, and both are visible already in the
+form of Eq.~\eqref{eq:vmc-objective-theory}.
 
-  \item \textbf{Unsupervised learning.} Only input data $\{x_i\}$ is observed, without labels. 
-  The aim is to uncover structure, such as clustering, dimensionality reduction, 
-  or latent-variable representations.  
+The first is that the objective is a \emph{moving} expectation. The measure
+$|\Psi_\theta|^2$ changes with every update, so the gradient, the samples used to estimate
+it, and the metric used to precondition it are all functions of the current parameters.
+Nothing analogous happens in supervised learning, where the data distribution sits still.
 
-  \item \textbf{Reinforcement learning.} An agent interacts with an environment, receiving 
-  observations and rewards. The task is to learn a policy that maximizes expected 
-  cumulative reward.  
-\end{itemize}
-Both of the first two categories appear in this thesis, and it is worth saying where.
-The training objectives that carry the bulk of the work---the Schr\"odinger residual and
-the variational energy---are \emph{unsupervised}: there are no labelled targets anywhere,
-and the loss is supplied entirely by the physics the network is asked to satisfy. The one
-genuinely \emph{supervised} ingredient is the second phase of residual pretraining, in
-which a published reference energy is used as an explicit target; the first phase, where
-the network sets its own target as a stabiliser, is better described as self-supervised.
-Reinforcement learning enters only obliquely---the REINFORCE estimator used for the
-collocation gradient is borrowed from it---and is not otherwise used.
+The second is that $E_L=\hat H\Psi_\theta/\Psi_\theta$ contains a Laplacian and a Coulomb
+potential. The objective therefore depends not on the network's \emph{values} but on its
+second derivatives, and on their behaviour near a singularity. Smoothness stops being a
+stylistic preference and becomes a requirement of the loss.
 
-\subsection{Generalisation and the bias--variance tradeoff}
-The essential challenge in ML is not just minimizing the empirical risk 
-$\hat{\mathcal{R}}(\theta)$, but ensuring that this leads to a low population risk 
-$\mathcal{R}(\theta)$ on unseen data. A model that simply memorizes the training set 
-achieves low empirical risk but poor generalisation --- a phenomenon known as 
-\emph{overfitting}.  
+So the chapter that follows selects for those two facts. \S\ref{sec:ml_optimization} treats
+optimisation, and in particular the geometry that a natural-gradient step exploits---the
+central analytical object of this thesis. \S\ref{sec:ffnn} covers only as much of network
+construction as the second-derivative requirement forces.
+\S\ref{sec:architectures} builds the two architecture classes whose comparison is the
+thesis's central architectural question. \S\ref{sec:nn_approximation} disposes of the
+approximation-theoretic argument for neural networks, which establishes less than it is
+usually taken to. And \S\ref{sec:pinns} sets out what happens when a differential operator
+is placed inside a training objective, which is where the two traditions meet.
 
-Statistical learning theory formalizes this challenge via the 
-\emph{bias--variance tradeoff}. Given a data-generating process and a learning algorithm, 
-the expected squared error can be decomposed into
-\begin{equation}
-  \mathbb{E}\big[(f_\theta(x)-y)^2\big] 
-  = \underbrace{(\mathbb{E}[f_\theta(x)]-f^\ast(x))^2}_{\text{bias}^2} 
-  + \underbrace{\mathbb{E}[(f_\theta(x)-\mathbb{E}[f_\theta(x)])^2]}_{\text{variance}} 
-  + \underbrace{\sigma^2}_{\text{irreducible noise}},
-\end{equation}
-where $f^\ast(x)$ is the true regression function and $\sigma^2$ the intrinsic 
-noise of the data. Complex models tend to have low bias but high variance, while 
-simple models have the opposite. Successful learning algorithms balance these two 
-contributions. This is discussed in more detail in \cite{HastieTibshiraniFriedman2009-ESL}.
+One term from the taxonomy above is worth keeping, because it recurs. The objectives here
+are \emph{unsupervised}: there are no labelled targets, and the loss comes entirely from
+the physics the network is asked to satisfy. The one supervised ingredient is the second
+phase of residual pretraining, where a published reference energy is used as an explicit
+target---which is why those runs are described later as trained without a Markov chain
+rather than as unsupervised solutions of the Schr\"odinger equation. Reinforcement learning
+enters only obliquely: the REINFORCE estimator used for the collocation gradient is
+borrowed from it.
+
 
 \section{Optimisation}
 \label{sec:ml_optimization}
@@ -634,216 +613,78 @@ architectures under matched conventions and a common probe measure---and read a 
 $d_{\mathrm{eff}}$ as ``this architecture concentrates its Fisher weight into fewer active
 directions,'' not as an absolute manifold dimension.
 
-\subsection{Optimisation challenges in deep learning}
-Optimisation in deep neural networks poses unique challenges:
-\begin{itemize}
-  \item \textbf{Non-convexity.} Loss landscapes are highly non-convex, with many local minima 
-  and saddle points. Empirically, most local minima reached by SGD perform similarly well.  
+\subsection{What survives into the rest of the thesis}
+Two properties of the optimiser matter here, and neither is convergence speed. The first
+is that a natural-gradient step is only as good as the metric it inverts, so the estimator
+of $S$ becomes part of the method rather than an implementation detail---a point
+Chapter~\ref{ch:kernel} turns into a three-regime result. The second is that
+$\kappa(S)$ and $d_{\mathrm{eff}}$ are readable properties of a trained state, which makes
+them usable as diagnostics and not merely as convergence aids. Both are used that way from
+Chapter~\ref{ch:results} onward.
 
-  \item \textbf{Vanishing and exploding gradients.} In deep networks, gradients can shrink 
-  or blow up during backpropagation. Proper initialisation and activation choice are 
-  essential to mitigate this problem.  
 
-  \item \textbf{Flat vs.\ sharp minima.} Empirical evidence suggests that flat minima 
-  (regions where the loss remains low under perturbations of $\theta$) lead to 
-  better generalisation. SGD’s noise implicitly biases optimisation toward flatter minima.  
-\end{itemize}
-
-Optimisation is therefore more than a means of fitting: the choice of update also shapes the
-inductive biases and generalisation behaviour of the trained network. The sections that follow
-examine the other ingredients that determine those biases---network expressivity, activation
-functions, and initialisation.
-
-\section{Feed-forward neural networks}
+\section{Networks that can be differentiated twice}
+\label{sec:ffnn}
 \label{sec:FFNN}
 
-Feed-forward neural networks are the basic building block from which the architectures
-of this thesis are assembled. They compose affine maps with elementwise nonlinearities
-to represent functions that linear models cannot. We first define the feed-forward map,
-and then discuss the two design choices that most affect its behaviour in
-physics-informed settings, where gradients and Laplacians of the network enter the loss:
-the activation function and the weight initialisation.
-
-\subsection{From linear models to nonlinear function classes}
-Classical regression models are linear in their parameters: 
+A feed-forward network composes affine maps with elementwise nonlinearities,
 \[
-  f_\theta(x) = \theta^\top x.
+  h^{(0)}=x,\qquad
+  h^{(\ell)}=\sigma\!\big(W^{(\ell)}h^{(\ell-1)}+b^{(\ell)}\big),\qquad
+  f_\theta(x)=W^{(L)}h^{(L-1)}+b^{(L)},
 \]
-While simple and interpretable, linear models are limited to representing 
-affine functions. Introducing basis expansions (e.g.\ polynomials, Fourier series, 
-kernels) enlarges the hypothesis space, but requires manual design.  
+and without the nonlinearity $\sigma$ the whole composition collapses to a single affine
+map. This much is standard, and for most applications the choice of $\sigma$ is settled by
+convention or by a sweep. Here it is settled by the objective.
 
-Neural networks automate this process. A feed-forward neural network with $L$ layers is 
-a composition of affine maps and nonlinear activation functions:
-\begin{align}
-  h^{(0)} &= x, \\
-  h^{(\ell)} &= \sigma\!\left(W^{(\ell)} h^{(\ell-1)} + b^{(\ell)}\right), 
-  \quad \ell=1,\dots,L-1, \\
-  f_\theta(x) &= W^{(L)} h^{(L-1)} + b^{(L)}.
-\end{align}
-Here $\sigma:\mathbb{R}\to\mathbb{R}$ is a nonlinear activation. Without nonlinearity, 
-the network collapses to a single linear transformation; with it, the space of representable 
-functions expands dramatically.  
+The local energy $E_L=\hat H\Psi_\theta/\Psi_\theta$ contains a Laplacian. Training
+therefore backpropagates through second derivatives of the network, which puts two
+constraints on $\sigma$ that value-level approximation never does.
 
-\subsection{Activation functions}
-\subsubsection{Classical Activation Functions}
+\paragraph{The activation must be genuinely smooth, and smooth in a useful way.}
+$\mathrm{ReLU}(x)=\max(0,x)$ has a distributional second derivative and cannot appear in a
+Laplacian-based loss at all. That much is obvious. The subtler point is that being
+$C^\infty$ is not sufficient. What matters is the \emph{magnitude and reach} of the higher
+derivatives: an activation whose second and third derivatives decay quickly away from the
+origin contributes little curvature over most of its input range, so the Laplacian of a deep
+composition stays bounded and its variance stays finite. Tanh and the logistic sigmoid are
+perfectly smooth, but their higher derivatives are sharply peaked and change sign, so
+curvature accumulates unevenly through depth. We use the smooth
+$\mathrm{SiLU}(x)=x\,\sigma(x)$ family (SiLU, GELU, Mish behave comparably here), whose
+higher derivatives are broader and better behaved under composition
+(Fig.~\ref{fig:activation_derivatives}).
 
-The earliest activation functions were smooth, saturating nonlinearities:
-\begin{align}
-  \sigma_{\text{sigmoid}}(x) &= \frac{1}{1+e^{-x}}, \\
-  \sigma_{\tanh}(x) &= \tanh(x).
-\end{align}
-Both map $\mathbb{R}$ to a bounded range and are differentiable. 
-The hyperbolic tangent is zero-centred, which often improves optimisation.  
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=0.8\textwidth]{all_activations_shared_legend.pdf}
+  \caption{Common activation functions and their first three derivatives. All of
+  GELU, Mish, tanh and the logistic sigmoid are $C^\infty$, so the distinction is not
+  smoothness but the \emph{reach} of the higher derivatives: for GELU and Mish the second
+  and third derivatives are broad and decay slowly to zero, while for tanh and sigmoid they
+  are sharply peaked near the origin and change sign, so curvature accumulates unevenly
+  when such units are composed through depth. ReLU is shown for contrast; its second
+  derivative is a distribution and it cannot be used in a Laplacian-based objective at all.}
+  \label{fig:activation_derivatives}
+\end{figure}
 
-Despite their smoothness, these functions suffer from the 
-\emph{vanishing gradient problem}. For large $|x|$, their derivatives 
-approach zero, causing gradients to vanish during backpropagation in deep 
-networks. As a result, learning becomes prohibitively slow.  
+\paragraph{Initialisation must control derivative magnitudes, not just activations.}
+The standard schemes---Xavier/Glorot, scaling weight variance as $1/(n_{\rm in}+n_{\rm
+out})$, and Kaiming/He, scaling as $2/n_{\rm in}$ for rectified units---are designed to keep
+forward activations and backward gradients from shrinking or exploding through
+depth~\cite{GlorotBengio2010-Xavier,HeEtAl2015-KaimingInit}. That is necessary but not
+sufficient when the loss contains second derivatives, because a scheme that stabilises
+$\partial f/\partial x$ says nothing directly about $\partial^2 f/\partial x^2$. We use
+Xavier-style initialisation with the smooth activations above, and---more consequentially
+than any initialisation choice---zero-initialise the final layer of the backflow, so that
+the ansatz begins exactly at the Slater nodes and the learned nodal deformation grows from
+nothing rather than from noise (\S\ref{sec:bf-init}).
 
-To address vanishing gradients, the \emph{Rectified Linear Unit} (ReLU) 
-was introduced:
-\begin{equation}
-  \sigma_{\text{ReLU}}(x) = \max(0,x).
-\end{equation}
-ReLU is unbounded above and has derivative $1$ for positive inputs, 
-avoiding gradient saturation. This makes deep networks with ReLU 
-trainable even with many layers.  
+\paragraph{What this does not settle.} Nothing above makes the Laplacian well conditioned;
+it only stops the network from making it worse. The conditioning itself comes from the
+coordinate scaling, the soft-core pair features and the analytic cusp of
+Chapter~\ref{ch:trial_wavefunction}, and is analysed in Appendices~\ref{app:laplacian}
+and~\ref{app:coulomb}.
 
-However, ReLU introduces its own drawbacks:
-\begin{itemize}
-  \item Non-smoothness at $x=0$, which can lead to optimisation instability 
-  in contexts where derivatives or Laplacians are central (e.g.\ physics-informed models).  
-  \item The \emph{dying ReLU} problem, where neurons with negative inputs 
-  become permanently inactive.  
-\end{itemize}
-
-\subsubsection{Modern activations}
-To combine the benefits of ReLU with smoothness, a number of 
-\emph{smoothed rectifiers} have been proposed:
-\begin{align}
-  \sigma_{\text{SiLU}}(x) &= x \cdot \sigma_{\text{sigmoid}}(x), 
-  &&\text{(Sigmoid Linear Unit)} \\
-  \sigma_{\text{Swish}}(x) &= x \cdot \frac{1}{1+e^{-\beta x}}, 
-  &&\text{(generalised SiLU with $\beta>0$)} \\
-  \sigma_{\text{GELU}}(x) &= x \cdot \Phi(x), 
-  &&\text{(Gaussian Error Linear Unit)} \\
-  \sigma_{\text{Mish}}(x) &= x \cdot \tanh(\log(1+e^x)).
-\end{align}
-Here $\Phi(x)$ is the standard Gaussian cumulative distribution function.  
-
-These activations are smooth ($C^\infty$) and non-saturating, 
-preserving gradient flow while avoiding non-differentiable kinks.  
-Empirically, GELU, SiLU/Swish, and Mish improve optimisation stability 
-and generalisation across a wide range of tasks.  
-
-% Smooth activations (e.g.\ tanh, GELU, SiLU) yield better approximation 
-% in Sobolev spaces, where not only function values but also derivatives 
-% must be accurate. In contrast, piecewise-linear activations (ReLU) 
-% are less suited when derivatives appear explicitly in the loss.  
-
-% This distinction is crucial for physics-informed neural networks (PINNs), 
-% which require stable computation of $\nabla f_\theta$ and $\Delta f_\theta$.  
-% Using smooth activations ensures that gradients and Hessians are 
-% well-defined and numerically stable, reducing variance in physical 
-% losses involving differential operators.  
-
-% The activation function thus encodes an implicit inductive bias, influencing 
-% both optimisation dynamics and the type of functions that can be efficiently 
-% represented. In the next section, we turn to the equally critical issue of 
-% \emph{weight initialisation}, which determines how activations and gradients 
-% propagate at the start of training.  
-
-\subsection{Initialisation}
-\label{sec:initialization}
-
-The initialisation of neural network weights has a critical impact on 
-optimisation. At the start of training, parameter values determine how 
-signals propagate forward and backward through the network. Poor initialisation 
-can lead to exploding or vanishing activations and gradients, making 
-optimisation unstable or ineffective. Proper schemes balance signal magnitudes 
-across layers and preserve gradient flow, especially in deep networks.  
-
-\subsubsection{The role of initialisation}
-Consider a feed-forward network with layers
-\[
-  h^{(\ell)} = \sigma\!\left(W^{(\ell)} h^{(\ell-1)} + b^{(\ell)}\right),
-\]
-where $W^{(\ell)}$ has entries drawn from some distribution.  
-If weights are too large, activations grow exponentially with depth, 
-leading to exploding gradients. If too small, activations shrink toward zero, 
-causing vanishing gradients. Both phenomena impede learning.  
-
-Initialisation therefore aims to preserve the variance of activations 
-and gradients across layers, such that
-\[
-  \mathrm{Var}[h^{(\ell)}] \approx \mathrm{Var}[h^{(\ell-1)}].
-\]
-
-\subsubsection{Xavier/Glorot initialisation}
-Glorot and Bengio (2010) proposed initialising weights with variance scaled 
-by the number of input and output units:
-\begin{equation}
-  W_{ij}^{(\ell)} \sim \mathcal{U}\!\left(-\sqrt{\frac{6}{n_\text{in}+n_\text{out}}}, \;
-  \sqrt{\frac{6}{n_\text{in}+n_\text{out}}}\right).
-\end{equation}
-Here $n_\text{in}$ and $n_\text{out}$ denote the fan-in and fan-out of a layer.  
-This choice balances variance across layers for activations with 
-approximately unit derivative (e.g.\ tanh).  
-
-\subsubsection{Kaiming/He initialisation}
-For rectified activations such as ReLU, He et al.\ (2015) proposed 
-\emph{Kaiming initialisation}, scaling variance by $2/n_\text{in}$:
-\begin{equation}
-  W_{ij}^{(\ell)} \sim \mathcal{N}\!\left(0, \; \frac{2}{n_\text{in}}\right).
-\end{equation}
-This accounts for the fact that ReLU activations output zero half of the time, 
-requiring larger variance to maintain signal propagation.  
-
-\subsubsection{Gain and activation dependence}
-Both Glorot and Kaiming schemes can be generalised with a \emph{gain} factor 
-$g$ that depends on the activation function:
-\[
-  \mathrm{Var}[W_{ij}^{(\ell)}] = \frac{g^2}{n_\text{in}}.
-\]
-For example, $g=\sqrt{2}$ is recommended for ReLU, while $g=1$ is typical for 
-tanh and smooth activations. Choosing the correct gain ensures that variance 
-neither explodes nor decays through the network.  
-
-\subsubsection{Orthogonal and random normal initialisation}
-An alternative approach is to initialise each weight matrix as an orthogonal 
-matrix scaled by a variance factor. Orthogonal initialisation preserves the 
-norm of activations across layers, which can stabilize very deep networks.  
-
-Simpler schemes such as sampling from a standard normal distribution without 
-scaling are generally inferior: they do not respect the scaling needs of 
-different architectures or activation functions, and often result in 
-unstable training.  
-
-% For physics-informed networks, stable gradient propagation is crucial: 
-% losses often involve higher-order derivatives, and exploding Hessians 
-% can render training unstable. Empirically, Glorot initialisation with 
-% a tuned gain has been found robust for smooth activations, while Kaiming 
-% initialisation is well-suited for ReLU-like functions.  
-
-\subsection{Summary}
-Initialisation is particularly delicate in deep networks. Even small 
-imbalances in variance can compound exponentially with depth. Smooth 
-activations (SiLU, GELU, Mish) alleviate gradient instability but 
-require careful scaling, as their effective slope differs from ReLU or tanh.  
-
-Key takeaways include:
-\begin{itemize}
-  \item Proper scaling of variance prevents vanishing/exploding signals.  
-  \item Initialisation must match the activation function (Glorot for tanh/smooth, 
-  Kaiming for ReLU).  
-  \item Orthogonal schemes can improve stability in deep networks.  
-  \item For PINNs and scientific ML, initialisation is not merely a convenience 
-  but essential for stable computation of derivatives.  
-\end{itemize}
-
-Initialisation and activation choice thus form an inseparable pair: together
-they determine whether information propagates stably through the network. This is taken up again for physics-informed models in Section~\ref{sec:pinns}.
 
 \section{Architectures for many-body wavefunctions}
 \label{sec:architectures}
@@ -938,114 +779,46 @@ message-passing CTNN. Holding everything else fixed and varying only this choice
 the effect of the relational channel, which Chapter~\ref{ch:kernel} analyses through the
 geometry of the tangent kernel introduced in \S\ref{sec:theory-tangent-kernel}.
 
-\section{Expressivity, approximation, and generalisation}
+\section{What approximation theory does and does not establish}
 \label{sec:nn_approximation}
 
-The central reason neural networks have become the dominant model class in machine 
-learning is their \emph{expressivity}. However, in contrast with what classical statistical theory suggests, neural networks have been found to 
-mitigate the curse of dimensionality, generalise well despite overparameterization, and
-optimise effectively in highly non-convex landscapes. Understanding these phenomena
-has been a major focus of recent theoretical research. In this section, we review key
-results on the approximation capabilities of neural networks, with an emphasis on
-implications for physical modelling.
+The usual justification for using a neural network as a variational ansatz is that it can
+represent anything. It is worth disposing of that argument now, because the thesis is
+about what happens after it stops being relevant.
 
-\subsection{Universal approximation theorems}
-Foundational results established that neural networks are \emph{universal approximators}. 
-It has been proved that a feed-forward network with at least one 
-hidden layer and a suitable nonlinear activation (e.g.\ sigmoid, ReLU, tanh) can approximate 
-any continuous function on a compact set to arbitrary accuracy \cite{Cybenko1989,HORNIK1991251}. Formally:
+The universal approximation theorems say that a single hidden layer with a non-polynomial
+activation is dense in $C(K)$ on compacta: for any continuous $f$ and any $\varepsilon>0$
+there exist a width and a parameter vector achieving
+$\sup_{x\in K}|f(x)-f_\theta(x)|<\varepsilon$~\cite{Cybenko1989,HORNIK1991251,LeshnoEtAl1993-NonpolyActivationUniversality}.
+Sharper versions bound the width needed for a given accuracy, and show that depth can be
+exponentially more efficient than width for compositional targets. For our purposes these
+results establish exactly one thing, and it is worth stating in the negative:
+\emph{the ground state is not out of reach of the hypothesis class.} A network of the sizes
+used here can, in principle, express it.
 
-\begin{theorem}[Universal Approximation, informal]
-Let $f^\ast$ be continuous on a compact $K\subset\mathbb{R}^d$. 
-Then for any $\epsilon>0$, there exists a neural network $f_\theta$ with a single hidden 
-layer such that
-\[
-  \sup_{x\in K} |f_\theta(x) - f^\ast(x)| < \epsilon.
-\]
-\end{theorem}
+What they do not establish is anything about whether gradient-based training will find that
+representation, at what sample cost, or how the answer depends on how the function is
+parameterised. Those questions are the subject of this thesis, and the theorems are silent
+on all three. The existence proofs are non-constructive; the widths they guarantee are
+typically astronomical; and the same function can be represented by two networks whose
+optimisation behaviour is entirely different---which is, in miniature, the comparison
+Chapter~\ref{ch:kernel} makes.
 
-This result guarantees existence but says nothing about how many neurons are required, 
-how they should be trained, or how generalisation occurs.  
+One further result is worth keeping, because it does more than assert possibility. In high
+dimension a generic continuous target requires a network size growing exponentially in $d$,
+so approximation alone cannot explain why these methods work at all in $Nd$ dimensions.
+The escapes are all statements about \emph{structure} rather than capacity: targets of
+finite Barron norm admit dimension-independent
+rates~\cite{Barron1993-UniversalApprox}; compositional targets admit efficient
+representation by deep networks when the composition matches the architecture; and imposed symmetry reduces the effective
+domain by the order of the symmetry group. The last of these is the one we exploit
+directly, and the middle one is the reason the message-passing architectures of
+\S\ref{sec:architectures} are worth taking seriously: what makes them useful is not more
+capacity but a compositional form that matches the relational structure of the physics.
 
-\subsection{Depth versus width}
+That is the position the rest of the thesis works from. Representability is assumed;
+trainability, conditioning and the geometry of the parameterisation are what is measured.
 
-Cybenko's theorem establishes that a \emph{single} hidden layer with a
-nonpolynomial sigmoidal activation is a \emph{universal approximator}:
-for every continuous $f$ on a compact domain and every $\varepsilon>0$
-there exists a one–hidden–layer network whose output $g$ satisfies
-$\|f-g\|_\infty<\varepsilon$ \cite{Cybenko1989}. The result concerns
-\emph{existence} of an approximant and does not provide constructive
-bounds on the number of units required, rates of approximation, or
-generalisation guarantees.
-
-In practice, depth is introduced for efficiency, not for universality. By composing intermediate features, additional layers often reduce the number of units required to attain a target accuracy. For certain target classes, there are known separations where a one-hidden-layer network needs exponentially many neurons to match the accuracy achievable with a deep architecture of polynomial size. Hence modern models leverage depth primarily for parameter efficiency and a stronger inductive bias (via hierarchical feature reuse), while width remains the lever for raw capacity \cite{Berner_Grohs_Kutyniok_Petersen_2022}.
-\subsection{Curse of dimensionality}
-
-Classical approximation theory predicts that uniformly approximating a generic
-$f:\mathbb{R}^d\!\to\!\mathbb{R}$ requires resources that grow exponentially in $d$—the
-\emph{curse of dimensionality} (CoD). This perspective cannot explain the strong
-empirical performance of deep networks on very high–dimensional tasks, prompting
-a search for structural conditions under which the CoD does \emph{not} apply.
-
-A first resolution is \emph{low effective dimension}: if the data (and loss) live on a
-$d'\!\ll\!d$ manifold $M$ and error is measured in $L^p(\mu)$ with $\mathrm{supp}\,\mu\subset M$,
-then neural networks can learn local charts and partitions of unity and achieve rates
-that depend on $d'$ rather than the ambient $d$. This replaces ambient complexity
-by the intrinsic geometry of $M$, yielding polynomial (rather than exponential)
-scaling.
-
-A second route is \emph{spectral/Barron regularity}~\cite{Barron1993-UniversalApprox}:
-for targets with finite first Fourier
-moment (Barron class), two–layer networks attain a \emph{dimension–independent}
-$O(n^{-1/2})$ $L^2$–approximation error with $n$ hidden units. Deep and
-compositional Barron spaces extend this beyond smooth settings, providing broad
-families where the CoD provably disappears.
-
-A third line exploits \emph{PDE structure}. For many high–dimensional linear and
-semilinear parabolic/elliptic problems, stochastic representations (e.g., Feynman–Kac)
-and NN emulations of time–stepping yield approximation bounds whose complexity
-scales polynomially in $d$, again sidestepping the CoD under standard conditions.
-
-Depth then clarifies \emph{why} these escapes are efficient. Certain functions admit
-polynomial–size deep representations but require exponentially wide shallow ones
-(Eldan–Shamir separations), and deep ReLU networks generate exponentially more
-affine regions or oscillations per parameter than single–hidden–layer models. Thus,
-depth supplies the compositional mechanism that turns structure (manifolds,
-spectral regularity, PDE priors) into dimension–tolerant approximation.
-\subsection{Generalisation in overparameterized networks}
-\label{sec:generalization}
-
-Modern networks often have far more parameters than training samples, yet they fit the data \emph{and} perform well on new inputs. This looks paradoxical if we judge models only by parameter count. A better lens is to ask which interpolating solution the training dynamics actually pick: test error is governed less by how large the hypothesis class is and more by the \emph{kind} of function the algorithm converges to.
-
-Two ideas make this concrete. First, stability: if small changes in the dataset produce only small changes in the learned predictor, the train–test gap remains small even at scale,
-\[
-\bigl|\mathcal{R}(\hat\theta)-\hat{\mathcal{R}}(\hat\theta)\bigr| \ \text{is controlled}.
-\]
-Second, implicit regularization: stochastic gradient methods (with finite batches, step sizes, and momentum) do not search the space uniformly; they are biased toward predictors with lower effective complexity—e.g., larger margins, smaller norms, or flatter basins in parameter space. In very wide nets, the dynamics are well-approximated by a linearized (kernel-like) model that interpolates while implicitly minimizing a function-space norm; at realistic widths, the same bias persists in practice. This also explains \emph{double descent}: near the interpolation threshold test error can worsen, then improves again as capacity grows and the dynamics have more low-complexity interpolants to select from.
-
-\subsection{Optimisation in deep networks}
-\label{sec:optimization}
-
-Training is a large-scale, nonconvex problem, yet simple first-order methods reliably drive the loss to (near) zero. Two features help. Overparameterization and modern architectures (residual connections, normalisation) shape the landscape into broad, connected valleys of low loss and maintain usable descent directions through depth. As a result, poor isolated minima are less of a practical obstacle.
-
-Stochastic gradient descent can be viewed as gradient flow with noise whose effective “temperature’’ is set mainly by the learning-rate–to–batch-size ratio. A higher temperature encourages escape from sharp minima and biases the search toward wider, flatter regions that tend to generalise better; annealing the temperature over time refines the final solution. Momentum accelerates along coherent directions and damps high-frequency noise; normalisation keeps activations well-scaled so larger, stable steps are possible. In short, the optimiser does more than find zero training error—it determines \emph{which} zero-error solution you reach, and that choice largely sets generalisation quality.
-
-\subsection{Implications for physical modelling}
-In physical sciences, target functions such as wavefunctions are continuous, smooth 
-(except at singularities like cusps), and often structured by symmetries. 
-Neural networks thus provide a flexible ansatz space:
-\begin{enumerate}
-  \item They can approximate smooth functions and their derivatives, which is crucial 
-  when differential operators appear in the loss (as in PINNs).  
-  \item Depth allows efficient capture of multi-scale and compositional structure, 
-  relevant for many-body interactions.  
-  \item Constraints such as permutation invariance or antisymmetry can be incorporated 
-  to encode physics explicitly.  
-\end{enumerate}
-
-These theoretical guarantees justify the use of neural networks as universal, symmetry-aware 
-function approximators, laying the groundwork for our discussions of activation functions, 
-initialisation strategies, and physics-informed extensions.  
 
 \section{Physics-Informed Neural Networks}
 \label{sec:pinns}
@@ -1058,18 +831,9 @@ constraints directly into the learning process, combining data-driven approximat
 with analytical structure. The idea of training a network against a differential operator
 predates the name by two decades~\cite{Lagaris1998-ANNforODEPDE}; what
 \cite{raissi2019pinns} added was automatic differentiation, which makes the residual
-cheap enough to evaluate that it can drive the optimisation directly.  Figure \ref{fig:activation_derivatives} illustrates how the behaviour of neural networks changes when working with higher order derivatives, as is common in PINNs. 
-%this is a plot of the different activation functions for first, second and third order derivative showing
-%how behaviour changes with PINNs, the file is runder all_activations_shared_legend.pdf
+cheap enough to evaluate that it can drive the optimisation directly.
 
-\begin{figure}[htbp]
-  \centering
-  \includegraphics[width=0.8\textwidth]{all_activations_shared_legend.pdf}
-  \caption{Comparison of common activation functions and their first, second, 
-  and third derivatives. Smooth activations (GELU, Mish) yield stable 
-  derivatives, while Tanh and Sigmoid have less stable higher derivatives.}
-  \label{fig:activation_derivatives}
-\end{figure}
+
 
 \subsection{Formulation of PINNs}
 Let $u:\Omega \subset \mathbb{R}^d \to \mathbb{R}$ denote the unknown solution 
@@ -1127,55 +891,62 @@ Gradient-based training tends to fit low-frequency components first, delaying co
 \medskip
 Mitigating these challenges requires careful design of architectures, activations, initialisation, loss weighting, and sampling strategies. These topics are explained and discussed in detail in \cite{De_Ryck_2024}
 
-\subsection{Relevance to this thesis}
-For scientific machine learning, PINNs provide a principled framework 
-for embedding physical structure into neural networks. In this thesis, 
-they motivate the choice of smooth activations (for stable derivatives), 
-careful initialisation (to prevent exploding Hessians), and architectural 
-constraints (to encode symmetry and physical laws).  
-Thus, PINNs serve both as a methodological tool and as a theoretical lens 
-for understanding the interplay between learning and physics.  
+\subsection{Where this thesis sits}
+The four difficulties above are not a list of things that might go wrong. Each of them
+recurs, by name, in the results. Sobolev approximation is why the activation is chosen for
+its higher derivatives rather than its values. Residual-to-error stability is why a small
+residual is never taken as evidence of a good state without an independent energy
+evaluation. Sampling and generalisation, in this setting, becomes the question of whether
+an importance-weighted estimator has a variance at all, which is what bounds the
+Markov-chain-free programme. And optimisation conditioning is the subject of the entire
+tangent-kernel analysis.
 
-\subsection{Implications for scientific machine learning}
-For physics-informed models, generalisation takes on a slightly different meaning: 
-the goal is not merely prediction on unseen data, but consistency with 
-underlying physical laws. Inductive biases (symmetry, smoothness, conservation laws) 
-are therefore not optional but essential. Implicit regularization from 
-gradient-based optimisation complements these biases by favoring solutions 
-that are both smooth and physically plausible. Generalisation in neural networks arises from an interplay of:
-\begin{enumerate}
-  \item Algorithmic stability of gradient-based methods,  
-  \item Implicit bias toward simple, smooth, low-complexity solutions, and  
-  \item Architectural inductive biases encoding domain knowledge.  
-\end{enumerate}
-In scientific computing, these mechanisms explain why neural networks, 
-despite their size, can approximate physically meaningful solutions.  
-They also justify the careful design choices of activations, initialisation, 
-and constraints emphasized throughout this chapter.  
+The one that turns out to be decisive was not obvious in advance. A strong-form residual
+loss, differentiating through the Laplacian, meets a structural obstruction the moment it
+is asked to train a nodal surface: the learning signal lives where $E_L$ diverges. The
+weak form, which keeps the local energy as a reward and never differentiates it, sidesteps
+that. Appendix~\ref{app:catch22} shows why, and it is the reason the collocation programme
+of Chapter~\ref{ch:kernel} takes the form it does.
 
-\medskip
-\noindent\textbf{Mitigation in practice.}
-The challenges discussed for PINNs do not resolve themselves; they must be engineered away. 
-In brief: use weak/variational formulations (or energy principles) when higher-order derivatives make strong forms unstable; 
-hard–enforce essential boundary conditions and adapt weights for the rest; 
-non-dimensionalize and balance loss terms to improve conditioning; 
-prefer smooth activations and architectures that control derivatives; 
-exploit symmetry, equivariance, and locality to reduce effective complexity; 
-precondition optimisation with second-order or natural-gradient methods (e.g., L\,-BFGS, Stochastic Reconfiguration); 
-and design sampling (importance/stratified, curricula in time/space) to close the generalisation gap. 
-Together, these measures turn inductive bias into concrete numerical stability and reliable, law-consistent generalisation.
-
-\section{Summary and Outlook}
+\section{The four facts the Methods are designed around}
 \label{sec:ml_summary}
 
-Three threads from this chapter carry into the rest of the thesis. Framing learning as
-empirical risk minimisation makes \emph{generalisation}---not fitting---the real problem, and
-locates it in the inductive bias of the model rather than in raw capacity. The optimisation
-view adds that the training \emph{trajectory} matters as much as the objective: gradient
-descent carries its own implicit bias, and the natural gradient re-expresses that trajectory
-in the geometry of the model's own outputs, the geometry we will later read directly through
-the tangent kernel. The physics-informed view supplies the binding constraint: a wavefunction
-ansatz must be differentiated twice, cleanly, to yield a local energy, so smooth activations,
-stable initialisation, and hard-wired symmetries are prerequisites rather than cosmetic
-choices. These are the principles that guide the architecture and diagnostics of the chapters
-that follow.
+The two traditions of this chapter and the last describe the same objects in different
+words, and it is worth putting the dictionary down before the construction begins. The
+quantum geometric tensor of variational Monte Carlo \emph{is} the Fisher metric of
+information geometry. Stochastic reconfiguration \emph{is} natural-gradient descent under
+it. The neural tangent kernel is that metric's Gram dual, and the sampling measure that a
+physicist chooses for a Metropolis chain is the same object a statistician calls a proposal
+distribution. Neither community needs the other's vocabulary to do its own work, which is
+why the identifications are easy to miss; but once they are made, a question about
+architecture and a question about optimisation become questions about the same matrix.
+
+What that matrix has to contend with, for this problem, comes down to four facts.
+
+\emph{The objective contains a second-order operator.} The local energy carries a
+Laplacian, so training differentiates through second derivatives of the network. This is
+what dictates smooth activations, controlled initialisation, and a determinant that is
+never asked to do anything violent (\S\ref{sec:ffnn}).
+
+\emph{The interaction is singular, and the state carries nodes.} The Coulomb term diverges
+at coalescence, and the trial function vanishes on a surface whose location is itself being
+learned. Both are places where $E_L=\hat H\Psi/\Psi$ can blow up, and the cusp conditions
+of \S\ref{subsec:cusp} say that the first divergence can be cancelled analytically if the
+short-range form is built in rather than learned.
+
+\emph{The measure is part of the method.} The objective is an expectation under
+$|\Psi_\theta|^2$, so the sampling distribution enters the gradient, the metric, and the
+estimate of both. Whether that metric can be estimated at all turns out to decide whether
+preconditioning helps or hurts (\S\ref{sec:theory-tangent-kernel}).
+
+\emph{Correlation is relational.} What one electron should do depends on where the others
+are, and the two architecture classes of \S\ref{sec:architectures} differ precisely in how
+far that dependence is allowed to propagate.
+
+Chapter~\ref{ch:trial_wavefunction} answers the first two by construction, hard-wiring
+antisymmetry and the cusp and conditioning the geometry so that the learned part can be
+small and smooth. Chapter~\ref{ch:optimisation} answers the third, by treating the sampling
+measure as a design variable rather than a fixed background. The fourth is left open on
+purpose: both architectures are built, and which of them is better---and why---is what the
+results are for.
+

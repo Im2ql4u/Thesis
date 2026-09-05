@@ -8,23 +8,20 @@ Nietzsche}{\textit{Human, All Too Human}}
 \label{ch:discussion}
 \endgroup
 
-Architecture, optimiser and sampling measure looked at the outset like three separate
-choices, and they turned out to be one geometry. Architecture fixes the shape of the
-variational tangent space, message passing compressing it in the correlator and holding it
-open in the nodes. The optimiser inverts the metric on that space, which earns its cost
-only while the metric is both badly conditioned and still measurable. And the sampling
-measure decides what the metric is estimated from in the first place: $|\Psi|^2$ conditions
-itself and stays on target, whereas a fixed covering proposal loses the conditioning first
-and the state afterwards.
+Architecture, optimisation and sampling act on the same object. Architecture fixes the
+shape of the variational tangent space; the optimiser inverts the metric on that space, and
+earns its cost only while that metric is both badly conditioned and still estimable; and
+the sampling measure determines what the metric is estimated from, $|\Psi|^2$ conditioning
+itself and remaining on target where a fixed covering proposal loses first the conditioning
+and then the state.
 
-That leaves the question of what any of it establishes. The energies agree with an external
-reference over part of the grid and with nothing at all over the rest, and the two
-situations license quite different claims. Several of the internal quantities that make the
-architecture comparison vivid are not properties of the state. The Markov-chain-free route
-works inside a boundary whose location we had to find by crossing it. And the picture, if
-it is right, says something about systems larger than these.
+The interpretive questions that remain concern what this evidence supports. The energies
+agree with an external reference over part of the grid and with nothing over the rest, and
+the two situations license different claims. Several of the internal quantities used in the
+architecture comparison are not properties of the state. The Markov-chain-free route
+operates inside a boundary whose location was established by crossing it.
 
-\section{What the energies establish}
+\section{Scope of the energy benchmarks}
 \label{sec:energy-discussion}
 
 The energies are the least interesting result in this thesis and the most necessary one.
@@ -55,7 +52,7 @@ exponent. The deep-Wigner numbers therefore deserve to be taken seriously as var
 predictions, which is a weaker thing than being validated, and we do not call them
 validated anywhere.
 
-\section{How far the internal numbers can be pushed}
+\section{Interpretation of the internal diagnostics}
 \label{sec:repr-discussion}
 
 Nothing obliges a trained network to organise itself in a way anyone can interpret.
@@ -100,7 +97,7 @@ after its energy contribution has gone, since a conventional single-round networ
 onto one collective mode exactly where the copresheaf network does not, and pays half a
 percent for the collapse. Falling quiet and falling over are different things.
 
-\section[Where MCMC-free training stops]{Where Markov-chain-free training stops, and why}
+\section{Boundaries of Markov-chain-free training}
 \label{sec:collocation-discussion}
 
 ``An accurate many-body wavefunction trained with no Markov chain'' is the kind of
@@ -169,7 +166,7 @@ that the two are complementary rather than rival: collocation for fast, parallel
 chain-free exploration and pretraining; SR for final accuracy at large $N$ or weak
 confinement.
 
-\section{What the picture predicts}
+\section{Implications and extensions}
 \label{sec:implications}
 
 If the argument of this thesis is right, it should hold well outside the quantum dot, and

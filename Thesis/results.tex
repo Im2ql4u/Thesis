@@ -6,45 +6,36 @@ a thousandfold.}{Aristotle}{\textit{On the Heavens}}
 \begingroup
 \let\clearpage\relax
 \let\cleardoublepage\relax
-\chapter{The state, and the physics inside it}
+\chapter{Energies, Wigner-molecule structure, and the learned representation}
 \label{ch:results}
 \endgroup
 
 A variational wavefunction is both an answer and an instrument, and this chapter uses it
 as each in turn.
 
-The quantum dot is an unforgiving place to try. The Coulomb interaction is singular
-wherever two electrons meet. The kinetic energy carries second derivatives, which
-magnify any error in the wavefunction's curvature. And the confinement $\omega$ sweeps
-the physics across three decades of correlation strength---from a compact,
-kinetic-energy-dominated droplet at $\omega=1$ to a dilute Wigner molecule at
-$\omega=10^{-3}$, where the electrons settle several oscillator lengths apart and the
-repulsion between them, not the trap, decides the shape of the state. We work at
-$N\in\{2,6,12,20\}$ electrons and $\omega\in\{1.0,\,0.5,\,0.1,\,0.01,\,0.001\}$.
+The quantum dot is an unforgiving test. The Coulomb interaction is singular wherever two
+electrons meet; the kinetic energy carries second derivatives, which magnify any error in
+the wavefunction's curvature; and the confinement $\omega$ sweeps the physics across three
+decades of correlation strength, from a compact, kinetic-energy-dominated droplet at
+$\omega=1$ to a dilute Wigner molecule at $\omega=10^{-3}$, where the electrons settle
+several oscillator lengths apart and their mutual repulsion rather than the trap determines
+the structure of the state. We work at $N\in\{2,6,12,20\}$ electrons and
+$\omega\in\{1.0,\,0.5,\,0.1,\,0.01,\,0.001\}$.
 
-Three questions follow one another. \emph{Can the state be trusted?}
-Section~\ref{sec:energy-overview} puts the energies against every published reference
-that exists---diffusion Monte Carlo for $N\le12$, and the tabulated $N{=}20$ energies of
-Haas~\cite{HaasHFQD}, which are not DMC and are treated as the weaker benchmark they
-are. Those references reach down to $\omega=0.1$ for every $N$, and to $\omega=0.01$ for
-$N{=}2$. Below that, for $N\ge6$, nothing published exists, and the boundary is marked
-wherever it occurs, because it is the single most important feature of the tables.
+Section~\ref{sec:energy-overview} benchmarks the energies against every published reference
+that exists: diffusion Monte Carlo for $N\le12$, and the tabulated $N{=}20$ energies of
+Haas~\cite{HaasHFQD}, which are not DMC and are treated as the weaker benchmark.
+Those references reach down to $\omega=0.1$ for every $N$, and to $\omega=0.01$ for
+$N{=}2$; below that, for $N\ge6$, no published value exists, and the boundary is marked
+wherever it occurs. Section~\ref{sec:wigner-molecule} then uses the trained wavefunction to
+follow the Wigner crossover---shell topologies, angular order, and melting---from two
+electrons to twenty. Section~\ref{sec:repr-analysis} examines the internal representation
+that carries it: a correlator on one to three effective directions whose content, but not
+dimensionality, reorganises across regimes, alongside a backflow whose share of the work
+shifts as the trap weakens. Several of those internal quantities are gauge-like, fixed by
+the training route rather than by the state, and are read accordingly.
 
-\emph{What does the state show us?} Section~\ref{sec:wigner-molecule} turns the trained
-wavefunction on the physics and follows the Wigner crossover from the inside---shell
-topologies, angular order, and melting---from two electrons up to twenty. The structure
-we are looking for is invisible in the observable one would naturally plot, which is why
-it has to be looked for this way.
-
-\emph{And how does the network hold all of that?} Section~\ref{sec:repr-analysis}
-dissects the trained wavefunction itself. The answer is smaller than the physics that
-produced it: a correlator living on one to three effective directions, whose
-\emph{content} reorganises across regimes while its dimensionality does not, alongside a
-backflow that divides the labour with it in a way that shifts as the trap weakens. One
-caveat governs how those internal numbers may be read, and it is stated where they are:
-several of them are gauge-like, fixed by the training route rather than by the state.
-Separating those from what is invariant is the business of the next chapter.
-\section{Training, and the energies it reaches}
+\section{Training protocol and ground-state energies}
 \label{sec:energy-overview}
 Unless otherwise stated, we first apply residual-based pretraining to obtain a
 well-conditioned initialiser, and then run a Stochastic Reconfiguration (SR)
@@ -86,22 +77,21 @@ another.
 
 \subsection{Energies}
 
-The tables in this section are the thesis's only contact with an external ground
-truth, and what matters in them is not the raw energy. It is
-\emph{where the agreement holds}: a method that matches DMC at $\omega=1$ and
-drifts at $\omega=0.1$ is a different object from one that holds across the whole
-benchmarked range, because the physics changes character between those points while
-the architecture does not. The second is \emph{where the tables stop}. Below
-$\omega=0.1$ there is no DMC reference for $N\ge6$, and the numbers reported there
-are variational predictions rather than validated ones. That boundary is the single
-most important feature of what follows, and we have marked it everywhere it occurs
-rather than letting a uniformly formatted table imply a uniform level of evidence.
+These tables are the thesis's only contact with an external ground truth. Two features of
+them carry more information than the raw energies. The first is \emph{where the agreement
+holds}: a method that matches DMC at $\omega=1$ and drifts at $\omega=0.1$ differs from one
+that holds across the whole benchmarked range, since the physics changes character between
+those points while the architecture does not. The second is \emph{where the tables stop}.
+Below $\omega=0.1$ no DMC reference exists for $N\ge6$, so the values reported there are
+variational predictions rather than validated ones. That boundary is marked wherever it
+occurs, rather than allowing a uniformly formatted table to imply a uniform level of
+evidence.
 
 Table~\ref{tab:Residual} begins with the easiest case, and its purpose is
 diagnostic rather than competitive: two electrons are few enough that the
 architecture can be tested nearly in isolation. It reports two-electron energies
-from \emph{residual-only} training (PINN and PINN+BF). The result to notice is a
-negative one---for $N{=}2$, backflow is \emph{not} required to reach DMC accuracy;
+from \emph{residual-only} training (PINN and PINN+BF). For $N{=}2$, backflow is
+\emph{not} required to reach DMC accuracy;
 it slightly reduces the variance and smooths convergence, and nothing more. The
 Slater--Jastrow correlator already places the nodes well enough at this size. This
 matters because it establishes a baseline against which the backflow's later
@@ -663,7 +653,7 @@ spin-projection sector}, not as proven global-spin ground states. Determining th
 spin ordering across the crossover, by comparing sectors of different $S$, is left to
 future work.
 
-\subsection{What the crossover looks like, taken together}
+\subsection{The crossover across diagnostics}
 \label{sec:wigner-synthesis}
 
 Six diagnostics, four particle numbers, five confinements---and they agree. As $\omega$
@@ -704,7 +694,7 @@ reveals about the physics is what later lets us train it more cheaply.
 That is the state seen from outside. How much of it did the network need to hold
 internally, and in what form?
 
-\section{What the network holds}
+\section{The learned representation}
 \label{sec:repr-analysis}
 
 The physics of the last section is elaborate---rings, occupancies, angular stiffness, a
@@ -997,7 +987,7 @@ further correlation-hole deepening.
 
 %% ──────────────────────────────────────────────────────────────────────
 
-\subsection{What this is, and what it is not}
+\subsection{Limits of component-level interpretation}
 \label{sec:repr-synthesis}
 
 Taken together these measurements describe a division of labour. The correlator supplies a

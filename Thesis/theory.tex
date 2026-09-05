@@ -6,30 +6,20 @@ is an attunement of opposite tensions, like that of the bow and the lyre.}{Herac
 \begingroup
 \let\clearpage\relax
 \let\cleardoublepage\relax
-\chapter{The problem, and the language for stating it}
+\chapter{The many-body problem and its numerical difficulty}
 \label{sec:theory}
 \endgroup
 
-$N$ electrons in a two-dimensional harmonic trap, repelling one another through the Coulomb
-interaction. The Hamiltonian fits on one line and contains nothing exotic, and every
-difficulty in the thesis comes from three of its properties.
+The system is $N$ electrons in a two-dimensional harmonic trap, repelling one another
+through the Coulomb interaction. Its Hamiltonian is elementary, and three of its properties
+make the numerical solution difficult.
 
-The electrons are identical fermions, so the wavefunction changes sign under exchange and
-that sign structure turns out to be the expensive part of the problem. The interaction
-diverges where two of them meet, so the local energy $\hat H\Psi/\Psi$ diverges too unless
-the wavefunction is built to cancel it. And the kinetic term is a second derivative, which
-means that any method evaluating the energy pointwise is exposed to the curvature of
-whatever function it has been handed.
-
-The sections below are chosen with those three in view. \S\ref{sec:qm-setup} fixes the
-many-body problem and the notation. \S\ref{sec:secondquant} introduces the vocabulary of
-electronic structure---occupation numbers, the mean field, the exact diagonalisation---which
-we do not compute but do rely on, since \emph{correlation energy}, \emph{closed shell} and
-\emph{exact within a basis} are defined there and used throughout. \S\ref{sec:quantumdots}
-specialises to the quantum dot and derives the cusp conditions that disarm the singularity.
-\S\ref{sec:wigner-markers-theory} says what a Wigner molecule is and how one would know one.
-And \S\ref{sec:qmc-theory} covers the two Monte Carlo methods that supply this thesis's only
-external numbers, along with the approximation that limits what those numbers are worth.
+The electrons are identical fermions, so the wavefunction changes sign under exchange, and
+that sign structure is the expensive part of the problem. The interaction diverges where
+two electrons meet, so the local energy $\hat H\Psi/\Psi$ diverges with it unless the
+wavefunction is constructed to cancel the divergence. And the kinetic term is a second
+derivative, which exposes any method that evaluates the energy pointwise to the curvature
+of the function it is given.
 
 \section{The many-body problem}
 \label{sec:qm-setup}
@@ -68,14 +58,13 @@ $V_{\mathrm{int}}(r)=1/r$ in two dimensions. Everything that follows is an attem
 approximate the lowest eigenpair of Eq.~\eqref{eq:manybody-H}.
 
 
-\section{The vocabulary of electronic structure}
+\section{Concepts from electronic structure}
 \label{sec:secondquant}
 \label{sec:fci}
 
-The words \emph{correlation energy}, \emph{closed shell} and \emph{exact within a basis}
-recur throughout this thesis, and the accuracy claims are calibrated against them. They
-come from three ideas in quantum chemistry that are used constantly here and computed
-nowhere.
+Three concepts from quantum chemistry are used throughout this thesis and computed nowhere
+in it: correlation energy, closed-shell structure, and exactness within a basis. The
+accuracy claims of later chapters are calibrated against them.
 
 \paragraph{Second quantisation.} A first-quantised $N$-fermion state is an antisymmetric
 function expanded in Slater determinants of $M$ one-particle orbitals, and the number of
@@ -288,7 +277,7 @@ stability checks each one is subjected to. Quantum Wigner markers in parabolic d
 reviewed in Refs.~\cite{Egger_1999,manninen2007metalclustersquantumdots,Filinov_2001,Mazars_2008}.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\section{Quantum Monte Carlo, and what a benchmark is worth}
+\section{Quantum Monte Carlo and the status of its benchmarks}
 \label{sec:qmc-theory}
 
 Two stochastic methods supply the numbers this thesis is measured against, and the
@@ -379,7 +368,7 @@ $E_0$ and not by another approximation (\S\ref{sec:energy-discussion}). And impr
 becomes the thing to attempt, which is what the coordinate backflow of
 Chapter~\ref{ch:trial_wavefunction} is for.
 
-\subsection{What this leaves us needing}
+\subsection{Requirements on the trial state}
 
 Both methods take a trial state as given. VMC is only as good as the state it optimises,
 and fixed-node DMC only as good as the nodes it is handed, so the quality of the ansatz
@@ -404,7 +393,7 @@ looking for, in a literature that grew up asking quite different questions.
 \chapter{Machine Learning}
 \label{ch:ml_theory}
 
-\section{What learning means here}
+\section{The variational learning objective}
 \label{sec:ml-setup}
 
 Machine learning is usually introduced as \emph{empirical risk minimisation}: an unknown
@@ -415,16 +404,16 @@ proxy for the population risk $\mathcal R(\theta)=\mathbb E_P[\ell(f_\theta(X),Y
 gap between the two is the subject of the field: overfitting, the bias--variance tradeoff,
 regularisation, held-out validation~\cite{HastieTibshiraniFriedman2009-ESL,Berner_Grohs_Kutyniok_Petersen_2022}.
 
-Almost none of that applies here. There is no dataset.
-There is no train/test split, no held-out set, and nothing to overfit \emph{to}. The
+The variational problem considered here differs from that setting in two respects. There
+is no dataset: no train/test split, no held-out set, and nothing to overfit to. The
 objective is an expectation,
 \begin{equation}
   E[\Psi_\theta] \;=\; \mathbb E_{\mathbf R\sim|\Psi_\theta|^2}\big[E_L(\mathbf R)\big],
   \label{eq:vmc-objective-theory}
 \end{equation}
-under a distribution the model itself defines, and it is re-estimated from fresh samples at
-every step. A network that drove Eq.~\eqref{eq:vmc-objective-theory} to the exact ground
-state would not be memorising anything; it would be right.
+under a distribution the model itself defines, re-estimated from fresh samples at every
+step. The optimisation target is the physical state rather than predictive performance on
+unseen data.
 
 What replaces generalisation as the difficulty is already visible in the form of
 Eq.~\eqref{eq:vmc-objective-theory}. Its measure $|\Psi_\theta|^2$ moves: it changes with
@@ -436,17 +425,7 @@ so the objective reads the network's second derivatives rather than its values, 
 them near a singularity. Smoothness stops being a stylistic preference and becomes a
 requirement of the loss.
 
-So the chapter that follows selects for those two facts. \S\ref{sec:ml_optimization} treats
-optimisation, and in particular the geometry that a natural-gradient step exploits---the
-central analytical object of this thesis. \S\ref{sec:ffnn} covers only as much of network
-construction as the second-derivative requirement forces.
-\S\ref{sec:architectures} builds the two architecture classes whose comparison is the
-thesis's central architectural question. \S\ref{sec:nn_approximation} disposes of the
-approximation-theoretic argument for neural networks, which establishes less than it is
-usually taken to. And \S\ref{sec:pinns} sets out what happens when a differential operator
-is placed inside a training objective, which is where the two traditions meet.
-
-One term from the usual taxonomy does recur. The objectives here are \emph{unsupervised}:
+One term from the usual taxonomy recurs below. The objectives here are \emph{unsupervised}:
 no labelled targets exist, and the loss comes entirely from the physics the network is
 asked to satisfy. The exception is the second phase of residual pretraining, where a
 published reference energy is used as an explicit target, and that is why those runs are
@@ -600,7 +579,7 @@ architectures under matched conventions and a common probe measure---and read a 
 $d_{\mathrm{eff}}$ as ``this architecture concentrates its Fisher weight into fewer active
 directions,'' not as an absolute manifold dimension.
 
-\subsection{What survives into the rest of the thesis}
+\subsection{Tangent-space diagnostics}
 Convergence speed is not what matters about the optimiser here. A natural-gradient step is
 only as good as the metric it inverts, so the estimator of $S$ becomes part of the method
 rather than an implementation detail, and Chapter~\ref{ch:kernel} turns that into a
@@ -761,7 +740,7 @@ message-passing CTNN. Holding everything else fixed and varying only this choice
 the effect of the relational channel, which Chapter~\ref{ch:kernel} analyses through the
 geometry of the tangent kernel introduced in \S\ref{sec:theory-tangent-kernel}.
 
-\section{What approximation theory does and does not establish}
+\section{Approximation theory and its limits}
 \label{sec:nn_approximation}
 
 The usual justification for using a neural network as a variational ansatz is that it can
@@ -871,7 +850,7 @@ Gradient-based training tends to fit low-frequency components first, delaying co
 \medskip
 Mitigating these challenges requires careful design of architectures, activations, initialisation, loss weighting, and sampling strategies. These topics are explained and discussed in detail in \cite{De_Ryck_2024}
 
-\subsection{Where this thesis sits}
+\subsection{Relevance to this work}
 The four difficulties above are not a list of things that might go wrong. Each of them
 recurs, by name, in the results. Sobolev approximation is why the activation is chosen for
 its higher derivatives rather than its values. Residual-to-error stability is why a small
@@ -888,7 +867,7 @@ weak form, which keeps the local energy as a reward and never differentiates it,
 that. Appendix~\ref{app:catch22} shows why, and it is the reason the collocation programme
 of Chapter~\ref{ch:kernel} takes the form it does.
 
-\section{The four facts the Methods are designed around}
+\section{Constraints carried into the method}
 \label{sec:ml_summary}
 
 The two traditions of this chapter and the last have been describing the same objects in
@@ -896,9 +875,10 @@ different words. The quantum geometric tensor of variational Monte Carlo is the 
 metric of information geometry; stochastic reconfiguration is natural-gradient descent
 under it; the neural tangent kernel is that metric's Gram dual; and the sampling measure a
 physicist chooses for a Metropolis chain is what a statistician calls a proposal
-distribution. Neither community needs the other's vocabulary in order to do its own work,
-which is why the identifications are easy to miss. Once made, they collapse a question
-about architecture and a question about optimisation into questions about one matrix.
+distribution. Neither community needs the other's vocabulary in order to do its own work, which is why
+the identifications are easy to miss. They matter here because the architecture determines
+the spectrum of that metric, the optimiser inverts it, and the sampling measure determines
+how well it can be estimated.
 
 For this problem, four facts bear on that matrix.
 

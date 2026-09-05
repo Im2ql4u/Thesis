@@ -198,70 +198,34 @@ do, and what it can tell us about the electrons. We pursue four. The first three
 analytical centre: the geometry of the wavefunction's log-derivatives, captured by the
 quantum geometric tensor and the neural tangent kernel.
 \begin{enumerate}
-  \item \textbf{Architecture.} What does message passing buy that a separable network
-        cannot? We find it supplies a \emph{relational channel}—a way to condition
-        each particle on where the others are—that compresses the correlator onto
-        fewer effective directions, keeps the correlator's leading tangent modes aligned
-        with the physical collective modes of the Hamiltonian, and keeps the backflow
-        from collapsing to a single collective mode in the strongly correlated limit. A
-        separable network, by contrast, \emph{estimates} the correlation energy without
-        \emph{representing} it—a deficit already measurable at strong confinement, where
-        the energies are identical. The correlator's loss of physical alignment and the
-        backflow's rank collapse set in at the same confinement and shift together when
-        the correlator is swapped, supporting a common relational bottleneck in the
-        amplitude and nodal channels.
+  \item \textbf{Architecture.} What does a message-passing network learn that a separable
+        one cannot, given that both can be trained to the same energy? We compare the two
+        forms in the correlator and in the backflow, holding everything else fixed.
   \item \textbf{Optimiser.} When does natural-gradient (stochastic reconfiguration)
-        preconditioning actually change the result? Its value tracks the conditioning of
-        the tangent metric, but only while that metric can still be estimated. There are
-        three regimes, not two: negligible for well-conditioned, $|\Psi|^2$-sampled VMC;
-        decisive for the ill-conditioned collocation objective; and actively harmful once
-        the sampling that builds the metric has collapsed, where inverting it amplifies
-        noise rather than signal.
+        preconditioning change the result, and when is it unnecessary or harmful?
   \item \textbf{Paradigm.} Can an accurate wavefunction be trained \emph{without}
-        Markov-chain Monte Carlo, using importance-sampled collocation instead—and how
-        far into the correlated regime does that reach? Two walls turn out to bound it:
-        a statistical one, where the proposal loses the target and which a better
-        proposal moves, and beyond that a representational one, which it does not.
+        Markov-chain Monte Carlo, using importance-sampled collocation instead, and how
+        far into the correlated regime does that reach before it fails?
   \item \textbf{Physics.} Can the trained wavefunction serve as a scientific
         instrument for Wigner-molecule physics—shell topologies, angular order, and
         melting—and does its internal representation reflect that physics?
 \end{enumerate}
-These are not four separate stories. The same low-dimensional, physically collective
-structure that message passing captures is what natural gradients exploit, what
-$|\Psi|^2$ sampling stays aligned with, and what ultimately crystallises into the
-Wigner molecule itself.
 
-\paragraph{Diagnostics and relation to prior work.}
-To address these questions, we go beyond total energies. Alongside DMC
-benchmarks, we use:
-\begin{itemize}
-  \item automatic shell detection and shell-resolved reconstructions of the
-        pair distribution $g(r)$, testing whether the global $g(r)$ is
-        explained by shell geometry and combinatorics;
-  \item bond-orientational order parameters $|\Phi_m|$ and angular
-        Lindemann-like ratios, adapted from studies of classical Wigner and
-        Yukawa layers~\cite{Mazars_2008}, to quantify ring order and angular
-        stiffness;
-  \item the density parameter $r_s$, estimated from the first peak of $g(r)$
-        following Egger \emph{et al.}~\cite{Egger_1999}, to locate our dots
-        along the Fermi-liquid–to–Wigner scale;
-  \item representation-focused diagnostics for the neural ansatz: entropy
-        effective ranks of correlator and backflow features, principal
-        component ablations, and simple linear probes that relate latent axes
-        to physical observables (global size, radial variance, near-origin
-        mass);
-  \item tangent-kernel diagnostics of the ansatz itself: the quantum geometric
-        tensor and neural tangent kernel, the effective dimension of the
-        variational tangent space, and symmetric state overlaps used to compare
-        architectures and training paradigms on an invariant footing;
-  \item the local-energy variance $\Var(E_L)$, which vanishes only for an exact
-        eigenstate and so measures wavefunction quality where the energy has already
-        saturated; and, for the Markov-chain-free route, the effective sample size and
-        the Pareto shape parameter $\hat k$ of the importance weights, which between them
-        say whether a gradient estimated from those weights can be trusted at all.
-\end{itemize}
-All of these are applied as post-processing to $|\Psi|^2$ samples, so the same
-analysis could, in principle, be used to study classical, quantum-chemical, or
+\paragraph{Diagnostics.}
+Total energies alone cannot separate the models compared here, since both architectures can
+be trained to the same energy. Alongside the DMC benchmarks we therefore use three further
+classes of measurement. For the physics: automatic shell detection with shell-resolved
+reconstructions of the pair distribution $g(r)$, bond-orientational order parameters
+$|\Phi_m|$ and angular Lindemann-like ratios adapted from classical Wigner and Yukawa
+layers~\cite{Mazars_2008}, and the density parameter $r_s$ estimated from the first peak of
+$g(r)$ following Egger \emph{et al.}~\cite{Egger_1999}. For the learned representation:
+entropy effective ranks of correlator and backflow features, principal-component ablations,
+and linear probes relating latent axes to physical observables. And for the ansatz itself:
+the quantum geometric tensor and neural tangent kernel, the effective dimension of the
+variational tangent space, symmetric state overlaps, the local-energy variance $\Var(E_L)$,
+and---for the Markov-chain-free route---the effective sample size and the Pareto shape
+parameter $\hat k$ of the importance weights. All are applied as post-processing to
+$|\Psi|^2$ samples, so the same analysis could be applied to classical, quantum-chemical or
 other neural wavefunctions on the same footing.
 
 \paragraph{Main contributions.}
@@ -315,24 +279,12 @@ The main contributions of this thesis are:
 \end{enumerate}
 
 \paragraph{Thesis structure.}
-The remainder of the thesis is organised as follows. The next chapter sets out the
-theoretical background: the many-body Schrödinger equation in harmonic traps, the
-electronic-structure methods we benchmark against, the physics of Wigner molecules,
-and the machine-learning tools used here—neural function approximators,
-physics-informed objectives, neural quantum states, and the tangent-kernel geometry
-(quantum geometric tensor and neural tangent kernel) that serves as the analytical
-lens for the results. A method chapter then presents the concrete
-Slater–Jastrow(+backflow) PINN ansatz in its separable and message-passing forms, the
-optimisation pipeline (residual pretraining, stochastic reconfiguration, and
-importance-sampled collocation), and the diagnostics used throughout.
-
-The results are given in two chapters that do different jobs. The first establishes what
-we obtained: the energies against every available reference, the Wigner-molecule physics
-the trained states let us see, and the internal representation that carries it. The
-second asks why those choices worked and where they stop, reading architecture,
-conditioning and sampling through the geometry of the wavefunction's log-derivatives,
-and taking the Markov-chain-free training programme from its results to its two walls. A
-discussion then asks what all of it establishes, and a conclusion closes the loop from
-the physics back to the method. The appendices develop the conditioning theory
-(Laplacian and Coulomb), the collocation–backflow catch-22 that motivated the weak-form
-objective, and the full structural diagnostic tables.
+Chapters~\ref{sec:theory} and~\ref{ch:ml_theory} set out the physics and the
+machine-learning background the later chapters require. Chapters~\ref{ch:trial_wavefunction}
+to~\ref{ch:analysis} give the ansatz, the optimisation pipeline, and the diagnostics.
+Chapter~\ref{ch:results} reports the energies, the Wigner-molecule structure, and the
+learned representation; Chapter~\ref{ch:kernel} analyses architecture, optimisation and
+sampling through the tangent geometry, and reports the Markov-chain-free training
+programme. A discussion and a conclusion follow, and the appendices develop the
+conditioning theory, the collocation--backflow obstruction that motivated the weak-form
+objective, and the full diagnostic tables.

@@ -9,7 +9,7 @@
 %  thesis ansatz at DMC-quality energies; seed counts are stated.
 % =====================================================================
 \graphicspath{{../results/figures/results/}{../results/figures/results/kernel/}{../results/figures/}}
-\chapter[Why the method works]{Why the method works: geometry, optimisation, and sampling}
+\chapter{Architecture, optimisation, and sampling geometry}
 \label{ch:kernel}
 
 The previous chapter showed that the ansatz works: it reaches reference quality wherever a
@@ -17,23 +17,23 @@ reference exists, the states it produces are genuine Wigner molecules, and it ho
 structure on a handful of internal directions. Why it works is a separate and harder
 question.
 
-Consider what remains unexplained. Two networks of the same size, trained the same way and
-landing on the same energy, need not be the same object. A natural-gradient step that is
-decisive in one training regime does nothing in another. An importance-sampled objective
-reproduces a Markov chain's answer in one corner of the phase diagram and parts company
-with it in the next. These look like three unrelated puzzles, and they share one
-geometric answer.
+Three observations from that chapter remain unexplained. Two networks of the same size,
+trained the same way and landing on the same energy, need not be the same object. A
+natural-gradient step that is decisive in one training regime does nothing in another. And
+an importance-sampled objective reproduces a Markov chain's answer in one corner of the
+phase diagram and departs from it in the next.
 
-Everything turns on the per-sample log-derivative matrix
+All three can be examined through the per-sample log-derivative matrix
 \begin{equation}
   O_{ki} \;=\; \frac{\partial \log|\Psi_{\btheta}(\bx_k)|}{\partial \theta_i},
   \qquad k=1,\dots,B,\;\; i=1,\dots,P,
   \label{eq:kernel-O}
 \end{equation}
 and on its two Gram matrices, the quantum geometric tensor $S = O^{\!\top}O / B$ and the
-neural tangent kernel $K = OO^{\!\top}$. Architecture fixes the shape of that geometry,
-the optimiser inverts it, and the sampling measure decides whether it can be estimated at
-all. The chapter takes them in that order.
+neural tangent kernel $K = OO^{\!\top}$. The architecture determines the spectrum of $S$;
+stochastic reconfiguration preconditions the update by $S^{-1}$; and $S$ is itself
+estimated from whatever measure the batch was drawn from. The chapter takes the three in
+that order.
 
 The instrument throughout is the \emph{effective dimension} of the tangent space---the
 participation ratio of the QGT spectrum $\{\lambda_a\}$,
@@ -53,26 +53,20 @@ energies, which makes it a statement about internal consistency and not about ac
 The tooling is anchored on the analytic two-electron ground state, where the ansatz
 returns $E=3.000127$~Ha ($+0.004\%$) at squared overlap $1.000000$.
 
-We start with what message passing changes in the tangent geometry, in the amplitude and
-in the nodes; then ask what that geometry implies for the optimiser and for the measure
-that builds it; and then, treating the measure as something we may choose, remove the
-Markov chain from training altogether and find where the choice stops working. A caveat
-runs underneath all three and is itself a result: quantities living on a single
-component, such as the backflow's rank or its displacement magnitude, are gauge-like,
-fixed by the training route rather than by the state. \S\ref{sec:synthesis} sets out what
-the conclusions rest on instead, once there are conclusions to rest.
+One caveat applies throughout. Quantities living on a single component of the ansatz, such
+as the backflow's rank or its displacement magnitude, are gauge-like: they are fixed by the
+training route rather than by the state. \S\ref{sec:synthesis} identifies the observables
+that are not.
 
 % =====================================================================
-\section[Message passing and the variational geometry]{Message passing reorganises the variational geometry}
+\section{Message passing and the variational geometry}
 \label{sec:kernel-q1}
 
-What does a message-passing network learn that a separable one cannot? The answer is
-the same in both learnable objects, and it is a statement about the tangent kernel. In
-the correlator, message passing \emph{compresses}: the same ground state is reached along
-fewer effective directions. In the backflow it prevents a \emph{collapse}: the
-displacement field keeps its rank where a separable one loses it. We take them in turn.
+What does a message-passing network learn that a separable one cannot? The comparison is
+made twice, once for each learnable object, holding everything else fixed and varying only
+the architecture: first for the Jastrow correlator, then for the coordinate backflow.
 
-\subsection{The correlator: compression onto physical directions}
+\subsection{The correlator: tangent-space compression}
 \label{sec:kernel-q1a}
 
 At $N=6$, $\omega=1$ the two Jastrow families are \emph{energetically
@@ -210,7 +204,7 @@ $\approx\!0.77$ at $\omega=1$---the gap \emph{widens} with system size rather th
   \label{fig:nonphys}
 \end{figure}
 
-\subsection{The backflow: a collapse averted}
+\subsection{The backflow: rank collapse and its absence}
 \label{sec:kernel-q1b}
 
 The same relational channel is decisive, in a sharper form, in the backflow. Here we
@@ -307,7 +301,7 @@ effect.
   \label{fig:q1b-ablation}
 \end{figure}
 
-\subsection{One bottleneck, two channels}
+\subsection{A common relational bottleneck}
 The two are one statement about how relational information is \emph{routed}. The
 baselines are not blind to inter-particle structure---the DeepSet pools
 independently-encoded pairs, and the conventional backflow aggregates a single round of
@@ -348,7 +342,7 @@ common relational bottleneck beneath both rather than proving them literally ide
 \end{figure}
 
 % =====================================================================
-\section[Conditioning]{Conditioning: what the optimiser can do depends on the measure}
+\section{Conditioning and the sampling measure}
 \label{sec:kernel-cond}
 \label{sec:kernel-q2}
 \label{sec:kernel-q3}
@@ -360,7 +354,7 @@ $|\Psi|^2$---turn out to be the same question asked twice. Stochastic reconfigur
 inverts the metric $S$. The sampling measure is what builds $S$ in the first place. Neither
 can be understood without the other, so we take them together.
 
-\subsection{Whitening, and where it pays}
+\subsection{Natural-gradient preconditioning}
 Stochastic reconfiguration preconditions the gradient by the inverse QGT,
 $\btheta \leftarrow \btheta - \eta\, S^{-1}\nabla_{\btheta} E$; geometrically it \emph{whitens} the tangent
 kernel. At $N=2$ this is exact: the SR step aligns with the imaginary-time direction
@@ -403,7 +397,7 @@ keeps $\kappa(S)$ moderate and so lets Adam's diagonal preconditioning suffice--
 prediction there, not yet a measurement, and testing it is the obvious extension.
 
 % =====================================================================
-\subsection{The measure sets the conditioning, the variance, and the reach}
+\subsection{Consequences of the sampling measure}
 
 Between $|\Psi|^2$-sampled VMC and importance-sampled collocation the wavefunction family
 is identical; only the measure that defines the loss changes. That change has three
@@ -507,7 +501,7 @@ to within DMC uncertainty at strong confinement and to a few tenths of a percent
 gold standard well into the correlated regime for $N\in\{6,12\}$
 (Table~\ref{tab:collocation}). The rest of this section is why it works, where it stops, and what the stopping is made
 of.
-\subsection{The objective, and why it is stable}
+\subsection{The weak-form objective}
 \label{sec:colloc-method}
 The collocation training used here is exactly the MCMC-free pipeline specified in the
 Methods: a weak-form (REINFORCE) objective in which the local energy enters as a detached
@@ -603,7 +597,7 @@ REINFORCE term pulling toward the variational minimum and the direct
 term pulling toward a kinetic-energy minimum that is generally
 distinct.
 
-\subsection{What it achieves}
+\subsection{Collocation performance}
 \label{sec:colloc-results}
 
 \paragraph{$N{=}6$: near-reference accuracy across all~$\omega$.}
@@ -671,7 +665,7 @@ limitation is one of memory and gradient noise rather than of the method, we rep
 the $N{=}20$ collocation results, and the reversal that exposes the bottleneck, in
 Appendix~\ref{app:postcatch22:frontier} rather than here.
 
-\subsection{What worked and what did not}
+\subsection{Ablations and failed variants}
 \label{sec:colloc-negatives}
 
 Most of the method space we explored did not work. The failures are reported here beside
@@ -1104,7 +1098,7 @@ requires either (i)~memory-efficient backflow architectures
 (ii)~improved sampling that provides higher ESS at constant
 computational cost.
 
-\section[A proposal built from the physics]{A proposal built from the physics, and the wall beyond it}
+\section{A physics-informed proposal and its limit}
 \label{sec:kernel-q3-frontier}
 
 The ESS collapse of \S\ref{sec:kernel-q3} is a limitation of the \emph{proposal}, not
@@ -1195,7 +1189,7 @@ $\omega$ & $E$ & scaling est. & ratio \\
 \end{tabular}
 \end{table}
 
-\subsection[The remaining wall]{The remaining wall: a fine-tuned Slater--Jastrow balance, not the sampler}
+\subsection{The remaining limit: the Slater--Jastrow balance}
 Below $\omega=0.0035$ the cascade becomes unstable, and---informatively---the instability
 is \emph{non-monotonic} across proposal variants: wide-exploratory, tempered-tracking, and
 outward-anchored proposals each converge some rungs and diverge others. That pattern
@@ -1233,7 +1227,7 @@ bound it.
 
 % =====================================================================
 % =====================================================================
-\section{A gauge caveat, and what survives it}
+\section{Gauge dependence and robust observables}
 \label{sec:synthesis}
 
 Not every number above can be leaned on equally, and the ones that read most vividly are

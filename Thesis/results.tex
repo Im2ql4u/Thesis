@@ -66,7 +66,7 @@ the parameter count is independent of $N$ because particle
 interactions enter through permutation-equivariant features rather than
 per-particle weights.
 
-Three parameter budgets appear in this thesis and should not be confused. These
+Three parameter budgets are used for distinct purposes. These
 \emph{production} networks carry the SR--VMC energies above. The \emph{collocation}
 runs of Chapter~\ref{ch:kernel} use deliberately smaller models ($\sim\!25$k Jastrow-only,
 $\sim\!49$k with backflow), because that programme is limited by gradient noise and memory
@@ -77,8 +77,8 @@ another.
 
 \subsection{Energies}
 
-These tables are the thesis's only contact with an external ground truth, and two features
-of them carry more information than the energies themselves. The first is \emph{where the
+These tables are the thesis's only contact with an external benchmark, and two features of
+them carry more information than the energies themselves. The first is \emph{where the
 agreement holds}: a method that matches DMC at $\omega=1$ and drifts at $\omega=0.1$ differs from one
 that holds across the whole benchmarked range, since the physics changes character between
 those points while the architecture does not. The second is \emph{where the tables stop}.
@@ -139,7 +139,7 @@ The reference column collects the best available benchmark for each size: DMC fr
   relative deviations from the reference. A dash in the reference column marks
   $(N,\omega)$ for which no published DMC value exists (all $\omega=0.001$, and
   $\omega=0.01$ for $N\ge6$); the relative-error columns are correspondingly blank
-  there, as no external ground truth is available to score against.}
+  there, as no external benchmark is available to score against.}
   \label{tab:energies}
   \begin{threeparttable}
     \begin{tabular}{c|c|c|cc|cc}
@@ -254,8 +254,8 @@ the question they answer is the same one.
   \end{tabular}
 \end{table}
 
-Read against Table~\ref{tab:energies}, the comparison is closer than one might expect.
-At strong confinement the Markov-chain-free route is inside DMC uncertainty for
+Read against Table~\ref{tab:energies}: at strong confinement the Markov-chain-free route is
+inside DMC uncertainty for
 $N\in\{6,12\}$, and it stays within a few tenths of a percent of our own converged
 variational energies well into the correlated regime. It loses ground where the
 importance sampling loses the target---at $\omega\le0.1$, and at $N{=}20$, where it does
@@ -533,9 +533,8 @@ faster than the width.
 \subsection[Shell topology and angular order]{Shell topology, angular order, and the rotating Wigner molecule}
 \label{sec:wigner-angular}
 
-This subsection resolves an apparent contradiction: the densities plotted above look
-like smooth rings, yet we are about to claim the electrons form a crystal. Both are true, and the reason is symmetry. Because the
-Hamiltonian is rotationally invariant, so is its ground state, and any lab-frame
+The densities plotted above look like smooth rings, yet the electrons are localised. Both
+are true, and the reason is symmetry. Because the Hamiltonian is rotationally invariant, so is its ground state, and any lab-frame
 average necessarily smears an angularly ordered configuration into a featureless
 ring. The order is real; it simply lives in relative coordinates, and looking for it
 in the lab frame is looking in the one place it is guaranteed not to be. Everything
@@ -677,11 +676,9 @@ not proven global-spin ground states. And the shell-resolved reconstruction of $
 establishes decomposability rather than sampling correctness, which rests on the
 independent restart and chain diagnostics.
 
-\paragraph{From physics back to method.}
-These structural facts are also what make part of the method possible. The shell
-radius that grows as $\omega^{-2/3}$ and the angular order that sharpens as the trap
-weakens are exactly the quantities a sampler must respect to reach the Wigner regime
-without MCMC. Chapter~\ref{ch:kernel} uses them directly: an origin-centred proposal
+These structural facts also enter the method. The shell radius growing as
+$\omega^{-2/3}$ and the angular order sharpening as the trap weakens are the quantities a
+sampler must respect in order to reach the Wigner regime without MCMC. Chapter~\ref{ch:kernel} uses them directly: an origin-centred proposal
 aims where the wavefunction no longer has any mass, whereas a proposal built from the
 measured shell radius and angular order tracks it, and carries MCMC-free training far
 into the correlated regime (\S\ref{sec:kernel-q3-frontier}). What the trained model
@@ -710,8 +707,7 @@ The correlator (\S\ref{sec:repr-geom}), the displacement field
 (\S\ref{sec:repr-backflow}) and the coupling between them (\S\ref{sec:repr-coupling}) are
 probed in turn, with every diagnostic evaluated on samples drawn from $|\Psi|^2$.
 
-One caveat governs the whole section. The Jastrow and the
-backflow are partial substitutes: how the labour is divided between them is a nearly
+The Jastrow and the backflow are partial substitutes: how the labour is divided between them is a nearly
 flat direction of the loss, settled by the route the training took rather than by the
 state it arrived at. Quantities living on a single component---the backflow's rank and
 displacement magnitude, the per-branch loadings, the coupling itself---are therefore
@@ -784,7 +780,7 @@ intermediate-correlation regime where neither the shell picture nor the crystall
 a clean single-mode description.
 
 \paragraph{A $\phi\leftrightarrow\psi$ transition in the leading axis.}
-The more interesting variation is in \emph{which branch dominates PC1}.
+What varies across regimes is \emph{which branch dominates PC1}.
 At moderate-to-weak correlation ($\omega \geq 0.1$, $N\geq 6$),
 PC1 is predominantly $\psi$-loaded: the pair branch carries 60--73\% of the variance,
 meaning the correlator's primary degree of freedom tracks pair correlations.
@@ -803,9 +799,8 @@ the leading correlator coordinate shifts away from pair features toward the
 single-particle and auxiliary branches. The network reorganises the features through
 which it represents the state, and that reorganisation---not any growth in
 dimension---is how it adapts.
-The network discovers this distinction autonomously:
-regime changes appear as a rotation of a low-dimensional axis across branches,
-not as a growth of latent dimensionality.
+Nothing in the architecture imposes this behaviour: regime changes appear as a rotation of
+a low-dimensional axis across branches rather than as growth in latent dimensionality.
 
 
 %% ──────────────────────────────────────────────────────────────────────
@@ -883,9 +878,10 @@ holding everything else fixed (\S\ref{sec:kernel-q1b}).
 Yet the CKA between correlator features with and without backflow exceeds 0.99 in nearly all cases
 (and exceeds 0.979 everywhere).
 The correlator manifold is almost unperturbed by the displacement field.
-The two components therefore act on largely disjoint feature subspaces: the CTNN leaves the
-correlator's feature geometry almost unchanged while supplying configuration-dependent
-corrections that the globally organised correlator does not represent.
+The correlator's feature geometry is therefore almost unaffected by the presence of the
+displacement field, which is a statement about that geometry and not about the subspace the
+backflow occupies. Whether the two components are genuinely complementary, rather than
+merely uncorrelated on this measure, is tested by ablation in \S\ref{sec:kernel-q1b}.
 
 
 %% ──────────────────────────────────────────────────────────────────────
@@ -985,17 +981,17 @@ further correlation-hole deepening.
 \subsection{Limits of component-level interpretation}
 \label{sec:repr-synthesis}
 
-Taken together these measurements describe a division of labour. The correlator supplies a
-small set of learned collective coordinates, one to three directions whose leading axis
-tracks the dominant global coordinate of the cloud and changes identity rather than growing
-in number as the physics changes. The backflow supplies a high-rank, configuration-dependent
-displacement that leaves those coordinates almost untouched (CKA $>0.98$) and works instead
-in the space they do not span. At strong correlation the two operate independently; at
-moderate coupling they lock together, the displacements aligning with the correlator's
-gradient, and the switch happens sharply and where the physics switches.
+Taken together these measurements describe two components of very different character. The
+correlator occupies one to three directions, whose leading axis tracks the dominant global
+coordinate of the cloud and changes identity rather than growing in number as the physics
+changes. The displacement field is high-rank and configuration-dependent, and its presence
+leaves the correlator's feature geometry almost unchanged (CKA $>0.98$). The coupling
+between them is weak at strong correlation and strong at moderate coupling, where the
+displacements align with the correlator's gradient, and the change is sharp and coincides
+with the crossover in $\Gamma$.
 
-Every number in that account is real, and it remains an account of \emph{one} trained
-solution. Nothing here rules out a different training route dividing the same labour
-differently and arriving at the same energy, which for two partial substitutes is what one
-should expect. Deciding which of these features belong to the architecture requires holding
-everything else fixed and varying only the architecture.
+These measurements describe one trained solution and do not by themselves establish which
+properties are architecture-specific. A different training route could divide the same
+labour differently and arrive at the same energy, which for two partial substitutes is what
+one should expect. Deciding the question requires holding everything else fixed and varying
+only the architecture.

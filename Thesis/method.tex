@@ -91,8 +91,8 @@ The correlator reweights amplitudes \emph{within} nodal pockets; without backflo
 
 \section{Neural correlator $W_\theta$}
 \label{subsec:nqs}
-As with the backflow, the correlator comes in two forms that we compare directly
-(Q1a, Chapter~\ref{ch:kernel}): a \emph{separable} network that encodes particle- and
+As with the backflow, the correlator comes in two forms that are compared directly in
+\S\ref{sec:kernel-q1}: a \emph{separable} network that encodes particle- and
 pair-features independently and pools them, and a copresheaf \emph{message-passing}
 (CTNN) network. We describe the separable network first---it is the baseline and also
 supplies the safe features and analytic cusp shared by both---and then the CTNN.
@@ -201,7 +201,7 @@ skip connections back to the down-pass features (defaults $n_{\downarrow}=n_{\up
 A permutation-invariant readout over the final node and edge statistics returns the scalar
 $W_\theta(\tilde R)$, exactly as in~\eqref{eq:nqs-readout}. Holding the Slater reference,
 cusp, and training fixed and swapping only the separable readout for this V-cycle isolates
-the relational channel studied in Q1a (Chapter~\ref{ch:kernel}).
+the relational channel analysed in \S\ref{sec:kernel-q1}.
 
 \section{Backflow}
 \label{subsec:backflow-method}
@@ -555,9 +555,10 @@ Three first-order updates appear in the results, and their comparison is itself 
   \item \textbf{Plain SR}: the natural-gradient step above with a fixed diagonal damping
     $\lambda$.
   \item \textbf{CG-SR}: the same step solved matrix-free by preconditioned conjugate
-    gradients, with Tikhonov damping and a trust-region cap. It converges faster where $S$
-    is well conditioned and becomes unstable at weak confinement, where $S$ is nearly
-    singular.
+    gradients, with Tikhonov damping and a trust-region cap. It is most useful where $S$ is
+    anisotropic but still statistically resolved, and becomes unstable at weak confinement,
+    where the sampling that builds $S$ collapses and the empirical metric can no longer be
+    estimated (\S\ref{sec:kernel-cond}).
 \end{itemize}
 Solving the SR step without forming $S$ is what makes it affordable at
 $\mathcal{O}(10^5)$ parameters. The same obstacle is addressed from the other side by the
@@ -641,7 +642,9 @@ Coulomb repulsion) times an angular distribution over the ring, so that proposed
 configurations resemble electrons spread around the ring rather than clustered at the
 centre. This restores a usable ESS and carries MCMC-free training to $\omega\approx0.0035$
 (Chapter~\ref{ch:kernel}, \S\ref{sec:kernel-q3-frontier}), far past where the naive proposal
-collapses; the remaining wall is \emph{angular} crystallisation, analysed there. Difficult
+collapses. Angular crystallisation of the Wigner ring sets the next limit and is addressed
+there by a Dirichlet model of the angular gaps; what bounds the route below
+$\omega=0.0035$ is a separate, non-sampling failure of transfer between confinements. Difficult
 confinements are reached by \emph{cascade warm-starting}: parameters converged at one
 $\omega$ initialise the next, following $\omega:1.0\!\to\!0.5\!\to\!0.1\!\to\!0.01\!\to\!0.001$.
 Whether the two paradigms reach the same \emph{state}, and where they diverge, is one of the

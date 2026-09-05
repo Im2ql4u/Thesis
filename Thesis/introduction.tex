@@ -64,10 +64,9 @@ neural networks are used as \emph{variational ans\"atze} for quantum states
 log-probabilities for many-body configurations and is trained by variational
 Monte Carlo.
 
-One argument for this second use is routinely overstated, and disposing of it first
-clarifies what remains. Universal approximation results guarantee that a sufficiently
-large network can \emph{represent} any suitably regular function to arbitrary
-accuracy. They say nothing about whether gradient-based optimisation will
+Universal approximation establishes representational capacity, not trainability. The
+theorems guarantee that a sufficiently large network can \emph{represent} any suitably
+regular function to arbitrary accuracy. They say nothing about whether gradient-based optimisation will
 \emph{find} that representation, nor at what sample cost. This thesis measures that
 gap directly: the same ansatz, demonstrably able to express the ground state, is
 placed in training schemes that do and do not allow it to get there. Representability
@@ -80,8 +79,8 @@ electrons is already far beyond reach. Cheaper methods such as coupled cluster b
 their favourable scaling instead by deciding in advance which correlations may be
 described at all.
 
-A variational neural ansatz pays in neither currency. It is not an expansion whose
-size must grow with the space it covers, and it fixes no prior truncation on which
+A variational neural ansatz avoids both of those particular costs. It is not an expansion
+whose size must grow with the space it covers, and it fixes no prior truncation on which
 correlations are available. It is a parameterisation free, in principle, to
 concentrate its capacity wherever the solution actually varies. Whether it does so in
 practice is an empirical question, and this thesis treats it as one.
@@ -97,8 +96,8 @@ motivates a question that the size of the problem does not by itself settle. A
 twenty-electron dot is a function of forty coordinates, and any basis expansion of it
 grows combinatorially---but it does not follow that the solution itself is
 forty-dimensional in any useful sense. How many directions does the \emph{solved
-state} actually vary along? Not the dimension of the equation, but the dimension of
-the answer.
+state} actually vary along---which is a question about the solution rather than about the
+equation.
 
 We make that question quantitative through the geometry of the wavefunction's
 log-derivatives. Perturbing the parameters of a trained ansatz over an ensemble of
@@ -193,9 +192,8 @@ in a DeepSet---or as a \emph{message-passing} network in which the particles exc
 update information through explicit, transported edge state before a quantity is read out.
 
 Once such an ansatz reaches reference accuracy—which, as we will see, a surprisingly
-compact one does—the questions worth a thesis are \emph{why} its parts behave as they
-do, and what it can tell us about the electrons. We pursue four. The first three share an
-analytical centre: the geometry of the wavefunction's log-derivatives, captured by the
+compact one does—the remaining questions concern \emph{why} its parts behave as they do, and what it can
+tell us about the electrons. We address four. The first three share an analytical centre: the geometry of the wavefunction's log-derivatives, captured by the
 quantum geometric tensor and the neural tangent kernel.
 \begin{enumerate}
   \item \textbf{Architecture.} What does a message-passing network learn that a separable

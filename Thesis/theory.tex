@@ -95,8 +95,7 @@ operator $F=\hat h_0+\sum_{j\in\mathrm{occ}}(J_j-K_j)$, in which each electron m
 mean field of the others. Because $F$ depends on its own solutions, it is solved
 self-consistently.
 
-From this comes the definition the thesis leans on. The \emph{correlation energy} is
-whatever a single determinant cannot reach, $\Delta E = E_{\rm exact}-E_{\rm HF}$: a small
+The \emph{correlation energy} is whatever a single determinant cannot reach, $\Delta E = E_{\rm exact}-E_{\rm HF}$: a small
 fraction of the total and essentially all of the difficulty, which is why a method can look
 converged in total energy while representing the correlation badly, a distinction
 Chapter~\ref{ch:kernel} makes quantitative. A structural fact comes with it. When the
@@ -386,11 +385,10 @@ singularities amplifying one another. The cusp conditions of \S\ref{subsec:cusp}
 those two divergences can be made to cancel exactly, and hard-wiring that cancellation is
 the first design decision of Chapter~\ref{ch:trial_wavefunction}.
 
-That leaves the functional form. A compact antisymmetric state able to represent
-correlation without destroying local-energy conditioning is what the next chapter goes
-looking for, in a literature that grew up asking quite different questions.
+The remaining design choice is the functional form of the smooth correlation factor. The
+next chapter takes it from a literature that grew up asking different questions.
 
-\chapter{Machine Learning}
+\chapter{Neural networks as variational ans\"atze}
 \label{ch:ml_theory}
 
 \section{The variational learning objective}
@@ -561,11 +559,10 @@ directions carry appreciable Fisher weight at the solution, regardless of the ra
 parameter count $P$. A small $d_{\mathrm{eff}}$ means the state is reached along a few
 collective directions; a large one means the same solution is spread across many.
 Because these are properties of the tangent geometry rather than of the raw parameter
-count, and are stable across seeds and sampling measures for a given ansatz, they let
-us compare architectures, optimisers, and training paradigms on a common footing---
-which is exactly what the second results chapter (Chapter~\ref{ch:kernel}) does.
+count, and are stable across seeds and sampling measures for a given ansatz, they permit architectures,
+optimisers and training paradigms to be compared on a common footing.
 
-One caveat must be kept in view. The participation ratio $d_{\mathrm{eff}}$ is computed
+The participation ratio $d_{\mathrm{eff}}$ is parameterisation-dependent. It is computed
 from the QGT eigenvalues in the ordinary Euclidean parameter coordinates, and those
 eigenvalues are \emph{not} invariant under an arbitrary reparameterization: rescaling a
 single parameter $\theta_1\mapsto c\,\theta_1$ leaves the physical state untouched but
@@ -877,7 +874,7 @@ the identifications are easy to miss. They matter here because the architecture 
 the spectrum of that metric, the optimiser inverts it, and the sampling measure determines
 how well it can be estimated.
 
-For this problem, four facts bear on that matrix.
+Four properties of this problem bear on that metric.
 
 \emph{The objective contains a second-order operator.} The local energy carries a
 Laplacian, so training differentiates through second derivatives of the network. This is
@@ -899,10 +896,10 @@ preconditioning helps or hurts (\S\ref{sec:theory-tangent-kernel}).
 are, and the two architecture classes of \S\ref{sec:architectures} differ precisely in how
 far that dependence is allowed to propagate.
 
-Chapter~\ref{ch:trial_wavefunction} answers the first two by construction, hard-wiring
-antisymmetry and the cusp and conditioning the geometry so that the learned part can be
-small and smooth. Chapter~\ref{ch:optimisation} answers the third, by treating the sampling
-measure as a design variable rather than a fixed background. The fourth is left open on
-purpose: both architectures are built, and which of them is better---and why---is what the
-results are for.
+The first two are met by construction in Chapter~\ref{ch:trial_wavefunction}, which
+hard-wires antisymmetry and the cusp and conditions the geometry so that the learned part
+can remain small and smooth. The third is treated in Chapter~\ref{ch:optimisation}, where
+the sampling measure is a design variable rather than a fixed background. The fourth is not
+settled here: both architectures are constructed, and the comparison between them is
+reported in Chapter~\ref{ch:kernel}.
 

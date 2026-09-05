@@ -9,20 +9,15 @@ Aurelius}{\textit{Meditations}}
 \label{ch:conclusions}
 \endgroup
 
-The question this thesis was assigned was where to start, and the answer it arrived at
-closes on itself.
-
-We built a wavefunction and checked it against every external number that exists. The
-checked wavefunction then became an instrument, and through it we watched a Wigner
-molecule form: rings at definite occupancies, angular order stiffening as the trap
-weakens, a shell radius growing as $\omega^{-2/3}$. Those are facts about electrons, and
-they turned out to be precisely the facts a sampler needs in order to aim at the right part
-of configuration space. Rebuilding the proposal out of the measured shell geometry carried
-Markov-chain-free training from $\omega\approx0.01$ down to $\omega=0.0035$, into states
-the original method could not reach. So the physics we learned from the solution improved
-the solver, and the improved solver produced solutions we could not otherwise have learned
-from. How far around that circle we got, and where it broke, is what remains to be set
-down.
+The work formed a feedback cycle between solver and physics. A variational state was
+constructed and checked against every external benchmark available; the checked state was
+then used as an instrument, and resolved the shell geometry of the Wigner regime---rings at
+definite occupancies, angular order stiffening as the trap weakens, a shell radius growing
+as $\omega^{-2/3}$. Those measurements are what a sampler needs in order to place its mass
+correctly. Incorporating the measured geometry into the proposal extended
+Markov-chain-free training from the failure of the origin-centred sampler at
+$\omega\approx0.01$ down to $\omega=0.0035$, into states the original method could not
+reach.
 
 \section{The research questions answered}
 
@@ -36,7 +31,7 @@ physical dictionary finds it, matches the energy to four figures anyway, and car
 higher local-energy variance for it at every confinement. In the nodes the same channel
 shows up inverted: what message passing supplies at the Wigner crystal is not a
 contribution but the absence of a collapse. A conventional backflow falls onto one mode
-and costs half a percent; the copresheaf backflow, at that confinement, could be deleted
+and costs half a percent; the copresheaf backflow, at that confinement, can be deleted
 for $0.017\%$. Both channels give way at the same $\omega$, and a better correlator
 postpones both.
 
@@ -70,26 +65,24 @@ the ansatz, and none of it is visible in the density that one would naturally pl
 
 \section{Evidential status of the findings}
 
-The preface promised to be wrong on the record, which obliges a ledger. Three kinds of
-claim run through this thesis, they are not interchangeable, and the difference between
-them is easy to lose in a summary.
+The findings fall into three evidential categories, which are not interchangeable.
 
-\emph{Established against something outside this thesis.} The energies for $N\le12$ at
-$\omega\ge0.1$, and for $N{=}2$ down to $\omega=0.01$. Two independent methods agree
-there to a few hundredths of a percent. That is the whole of the external ground truth,
-and every relative error quoted anywhere else in this work depends on a reference we
-computed ourselves.
+\emph{Externally benchmarked.} The energies for $N\le12$ at $\omega\ge0.1$, and for
+$N{=}2$ down to $\omega=0.01$. Two independent methods agree
+there to a few hundredths of a percent. That is the whole of the external benchmark
+coverage---and, as \S\ref{subsec:dmc-theory} makes clear, a fixed-node DMC value is itself
+an approximation rather than ground truth. Every relative error quoted outside that range
+depends on a reference we computed ourselves.
 
-\emph{Internally consistent, and consistent in ways that could have failed.} The
-deep-Wigner energies, the structural picture, and the architecture comparison. Nothing
-here is validated from outside, but the internal agreements are not cheap: independent
-diagnostics that measure different things converge on the same crossover; the fitted
-energy exponent lands near the classical $2/3$ that nothing in the ansatz knows about;
-the shell topologies reproduce classical ground states nobody trained the network to
-reproduce; and the architecture result survives seeding, a change of probe measure, and
-a capacity ladder that runs against it.
+\emph{Internally supported.} The deep-Wigner energies, the structural picture, and the
+architecture comparison. None is validated from outside, but each rests on agreements that
+could have failed and did not: independent diagnostics measuring different quantities
+converge on the same crossover; the fitted energy exponent lands near the classical $2/3$,
+which enters the ansatz nowhere; the shell topologies reproduce classical ground states
+that the network was not trained on; and the architecture result survives seeding, a change
+of probe measure, and a capacity ladder that runs against it.
 
-\emph{Indicated, and no more.} How the tangent-space picture scales with size. The
+\emph{Indicated but not established.} How the tangent-space picture scales with size. The
 architecture comparison is seeded at $N{=}6$, rests on fewer models at $N{=}12$, and on a
 single production state at $N{=}20$. The trend runs in the direction the mechanism predicts
 and widens with particle number, but it is not settled, and settling it is a question of
@@ -133,10 +126,11 @@ collective structure the physics already possesses---the structure that, in real
 the Wigner molecule. That this holds in all three places is probably a fact about the
 system rather than about neural networks.
 
-The durable results came from the places where the attempt failed. A rank collapse that
-survived seeding and a dimension inversion that did not. A sampler blamed for a wall the
-ansatz had built. An importance-sampling bug whose signature, accuracy falling away at
-larger $N$ and weaker $\omega$, was exactly what an inadequate architecture would have
-produced, and which no amount of thinking about architectures would ever have found. Each
-of those cost months, and each of them is in this thesis rather than quietly absent from
-it, because a mistake that has been written down can be argued with.
+Several of the results reported here were reached only after an initial reading of the same
+data proved wrong: a rank collapse that survived seeding where a dimension inversion did
+not, a transfer failure first attributed to the sampler and later to the ansatz, and an
+importance-sampling error whose signature was indistinguishable from an architectural
+deficiency. Each was identified by a diagnostic that could separate the competing
+explanations, which is the methodological point the preceding chapters have tried to make
+concrete: a variational calculation is only as trustworthy as the tests that can tell its
+failure modes apart.

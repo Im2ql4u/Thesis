@@ -53,10 +53,10 @@ rather than about accuracy.
 The tooling is anchored on the analytic two-electron ground state, where the ansatz
 returns $E=3.000127$~Ha ($+0.004\%$) at squared overlap $1.000000$.
 
-One caveat applies throughout. Quantities living on a single component of the ansatz, such
-as the backflow's rank or its displacement magnitude, are gauge-like: they are fixed by the
-training route rather than by the state. \S\ref{sec:synthesis} identifies the observables
-that are not.
+Quantities defined on a single component of the ansatz, such as the backflow's rank or its
+displacement magnitude, are gauge-like: their values depend on how correlation is divided
+between the Jastrow and the backflow, which the loss barely constrains.
+\S\ref{sec:synthesis} sets out which observables do not depend on that division.
 
 % =====================================================================
 \section{Message passing and the variational geometry}
@@ -99,11 +99,9 @@ how each architecture spends its tangent directions, not a change of coordinates
   \label{fig:q1a-fairdim}
 \end{figure}
 
-One subtlety should be dispatched here, because the synthesis
-(\S\ref{sec:synthesis}) will caution that quantities split between the Jastrow and
-the backflow are gauge-like. That caution does not reach this comparison: it is
-between Jastrow families with \emph{no backflow present}, so there is no correlation
-to divide between two substitutable channels. What remains is a comparison of how two
+The gauge caveat of \S\ref{sec:synthesis} does not apply to this comparison. It is made
+between Jastrow families with \emph{no backflow present}, so there is no correlation to
+divide between two substitutable channels. What remains is a comparison of how two
 architectures spend their tangent directions on the same ground state, and it is
 stable across seeds and across the probe measure---a property of the correlator, not
 an accounting artefact.
@@ -116,7 +114,7 @@ reach $\sim\!3.7$ but occupy \emph{different} tangent subspaces. A single-seed d
 ``inversion'' at the crystal, reported in an earlier draft, did \emph{not} survive seeding
 and is retracted here as a worked cautionary result (see \S\ref{sec:synthesis}).
 
-\paragraph{The discriminator that survives where dimension does not.} $d_{\mathrm{eff}}$
+\paragraph{Local-energy variance.} $d_{\mathrm{eff}}$
 stops separating the families at the crystal, and rank will turn out to be gauge-like
 (\S\ref{sec:synthesis}). The local-energy variance does neither: it is defined on the
 state, vanishes only for an exact eigenstate, and is directly comparable between any two
@@ -185,9 +183,9 @@ fraction of the total at strong confinement, so the energy looks converged---whi
 nearly half its tangent budget along directions a compact physical dictionary does not resolve.
 A direction outside the dictionary need not be unphysical; the robust statement is that the
 CTNN's tangent space is far more completely accounted for by a small set of physical operators
-than the DeepSet's. The deficiency is intrinsic and present
-throughout; weak confinement merely removes the disguise, because there correlation \emph{is}
-the energy. At $N=12$ the contrast is starker still: the CTNN's dictionary-orthogonal mass stays
+than the DeepSet's. The gap is present at every confinement rather than appearing at weak
+coupling; weak confinement merely removes the disguise, because there correlation
+\emph{is} the energy. At $N=12$ the contrast is starker still: the CTNN's dictionary-orthogonal mass stays
 $\lesssim\!0.02$ across $\omega$, while a matched DeepSet (trained to $+0.2\%$) sits at
 $\approx\!0.77$ at $\omega=1$---the gap \emph{widens} with system size rather than closing.
 
@@ -199,7 +197,7 @@ $\approx\!0.77$ at $\omega=1$---the gap \emph{widens} with system size rather th
   $\omega=1$ the two correlators are indistinguishable in energy ($-0.001\%$) and in
   leading-mode physicality, yet the DeepSet already spends $44\%$ of its tangent variance on
   directions not resolved by the chosen physical-operator dictionary, against the CTNN's $6\%$. The excess is roughly constant
-  in $\omega$: the correlation deficit is intrinsic, disguised at high $\omega$ only because
+  in $\omega$: the gap is present throughout, disguised at high $\omega$ only because
   correlation is a small slice of the energy there.}
   \label{fig:nonphys}
 \end{figure}
@@ -232,10 +230,11 @@ $\omega$ & CTNN & conv & CTNN & conv & CTNN & conv \\
 
 The energy gap has a sharp structural signature. Let the \emph{backflow rank} be the
 participation ratio of the displacement field $\Delta\mathbf{x}$ (how many independent
-directions the backflow moves electrons along). The field lives in $2N$ dimensions, and we
-project out its centre of mass (Eq.~\ref{eq:bf-com}), so the attainable ceiling is
-$2N\!-\!2$: $10$, $22$, $38$ at $N=6,12,20$. Both architectures sit close to that ceiling at
-large $\omega$. Toward Wigner the \emph{conventional} backflow collapses to a single
+directions the backflow moves electrons along). The field lives in $2N$ dimensions---$12$, $24$ and $40$ at $N=6,12,20$---and the
+zero-mean projection of Eq.~\eqref{eq:bf-com} removes two of them from the accessible
+space. Both architectures sit near that limit at large $\omega$, and the participation
+ratio quoted here is a spectral statistic rather than a hard count, so it need not
+saturate at an integer. Toward Wigner the \emph{conventional} backflow collapses to a single
 collective mode (rank $\to1$) while the CTNN backflow stays near the ceiling
 (Table~\ref{tab:bf_rank}); the collapse sharpens with size ($10\!\to\!1$ at $N=6$,
 $22\!\to\!1$ at $N=12$, $35\!\to\!1$ at $N=20$). The tangent dimension tells the same story
@@ -371,26 +370,22 @@ $E_{\mathrm{Adam}}-E_{\mathrm{SR}}$ is large and positive (e.g.\ $+2.9$ at
 $N=6,\omega=1$), because the importance weights make the objective badly
 conditioned and plain Adam fails to converge it.
 
-So the verdict is neither ``SR wins'' nor ``SR ties''. \textbf{SR matters when the
-tangent metric is ill-conditioned and still estimable.} Its value is a
-function of $\kappa(S)$, set by the ansatz and the sampling measure, not an intrinsic
+\textbf{SR matters when the tangent metric is ill-conditioned and still estimable.} Its
+value is a function of $\kappa(S)$, set by the ansatz and the sampling measure, not an intrinsic
 property of the optimiser---which is exactly why an earlier low-$\omega$ VMC sweep
 saw a modest SR advantage that never grew into a decisive win.
 
-The claim needs one sharpening, because ``more ill-conditioned $\Rightarrow$ more
-useful SR'' cannot hold without bound: inverting $S$ requires $S$ itself to be
-\emph{reliably estimated}. SR helps when the tangent metric is anisotropic but its
+``More ill-conditioned $\Rightarrow$ more useful SR'' cannot hold without bound, since
+inverting $S$ requires $S$ itself to be \emph{reliably estimated}. SR helps when the tangent metric is anisotropic but its
 empirical estimate is trustworthy; once the sampling that builds $S$ collapses---as the
 importance weights do deep in the Wigner regime---the empirical $S$ becomes noisy and
 rank-deficient, and preconditioning by its inverse amplifies that noise rather than the
 signal. This is exactly the behaviour seen at ultra-weak confinement, where CG-SR on the
-collocation objective becomes unstable (Chapter~\ref{ch:results},
-\S\ref{sec:colloc-negatives}): not a counterexample to the conditioning story but its
-completion---SR pays off in the window where the metric is both ill-conditioned and
-estimable, and fails once estimation itself breaks down.
+collocation objective becomes unstable (\S\ref{sec:colloc-negatives}). SR pays off in the
+window where the metric is both ill-conditioned and estimable, and fails once estimation
+itself breaks down.
 
-One further boundary deserves to be drawn explicitly. The VMC equivalence of
-Adam and SR is established here at $N=2$ and $N=6$; we have not verified that it
+The VMC equivalence of Adam and SR is established here at $N=2$ and $N=6$; we have not verified that it
 survives to $N=12$ and $N=20$, where the conditioning of the VMC metric could in
 principle worsen with dimension. The mechanism we propose---that $|\Psi|^2$ sampling
 keeps $\kappa(S)$ moderate and so lets Adam's diagonal preconditioning suffice---is a
@@ -410,10 +405,10 @@ effective sample size falls to $0.11\%$ of the batch (about $5$ of the $4096$ re
 points---the normalisation used for every ESS figure in this thesis). When ESS collapses the
 gradient estimator is degenerate---a hard limit, not undertraining.
 
-This needs one reconciliation, because \S\ref{sec:colloc-reliability} below reports usable
-collocation energies at the same $(N,\omega)$ where the estimator is called degenerate here
-($+0.24$--$0.29\%$ across three seeds, Table~\ref{tab:reliability}). The two situations
-differ in the sampler and in the quantity being described. The sampler first: the collapse measured above is for the \emph{static} origin-centred
+\S\ref{sec:colloc-reliability} below nonetheless reports usable collocation energies at the
+same $(N,\omega)$---$+0.24$--$0.29\%$ across three seeds, Table~\ref{tab:reliability}---and
+the two situations differ in the sampler and in the quantity being described. The sampler
+first: the collapse measured above is for the \emph{static} origin-centred
 mixture, while the campaign's robust recipe refits its proposal every $30$ epochs and
 oversamples $16\times$. The campaign's \emph{baseline} rows, which keep the static
 proposal, are the ones that blow up ($+3.9$ to $+7.2\%$ at $\omega=0.001$). Second, and
@@ -499,8 +494,7 @@ On the same Slater--Jastrow--backflow ansatz, and with no
 Markov chain anywhere in the optimisation, the weak form recovers the variational energy
 to within DMC uncertainty at strong confinement and to a few tenths of a percent of our
 gold standard well into the correlated regime for $N\in\{6,12\}$
-(Table~\ref{tab:collocation}). The rest of this section is why it works, where it stops, and what the stopping is made
-of.
+(Table~\ref{tab:collocation}).
 \subsection{The weak-form objective}
 \label{sec:colloc-method}
 The collocation training used here is exactly the MCMC-free pipeline specified in the
@@ -509,8 +503,8 @@ reward (\S\ref{sec:method-collocation}, Eq.~\eqref{eq:reinforce-method}), an ana
 Gaussian-mixture proposal reweighted to $|\Psi_\theta|^2$ with ESS / Pareto-$\hat k$
 monitoring and tail controls (\S\ref{subsec:colloc-proposal}), and---in the Wigner
 regime---the physics-informed ring proposal with cascade warm-starting
-(\S\ref{subsec:colloc-wigner}). We do not repeat those definitions; this section reports what
-the pipeline achieves and where it fails. Two methodological findings shape what follows. First, among the optimisers (\S\ref{sec:sr-stage}), \textbf{Adam} was the robust
+(\S\ref{subsec:colloc-wigner}). Two methodological findings shape what follows. First, among
+the optimisers (\S\ref{sec:sr-stage}), \textbf{Adam} was the robust
 default across all regimes, whereas \textbf{CG-SR} converged faster at $\omega\!\ge\!0.1$ but
 diverged for $\omega\!\le\!0.01$, where the geometric tensor becomes ill-conditioned.
 Second, \textbf{cascade warm-starting}---initialising each confinement from the converged
@@ -620,8 +614,8 @@ points per epoch with an oversampling factor of~$8$, requiring
 ${\sim}32\text{k}$ proposal evaluations per gradient step. That is ten times the
 ${\sim}3{\times}10^3$ samples per step used by the SR route, but each is a single
 independent amplitude evaluation rather than a step of a correlated chain that must
-first equilibrate---so the two are comparable in wall-clock cost, and the collocation
-batch is embarrassingly parallel where the chain is not.
+first equilibrate. The collocation batch is also embarrassingly parallel where the chain
+is not, though we did not benchmark the two pipelines against a common wall-clock budget.
 
 The best $N{=}6$ result at $\omega{=}1.0$ was obtained through a
 three-stage continuation chain (see~\S\ref{subsec:colloc-wigner}):
@@ -736,15 +730,14 @@ many orders of magnitude, because parameters controlling short-range correlation
 parameters controlling the orbital envelope act on scales separated by
 $1/\sqrt{\omega}$.
 
-The obvious explanation is wrong, or at least incomplete. Ill-conditioning is what makes
-natural gradients \emph{useful}; a well-conditioned metric is one Adam can handle
-unaided. What disqualifies them is the failure to \emph{estimate} the metric. $F$ is
+Ill-conditioning alone does not account for the failure, because ill-conditioning is what
+makes natural gradients useful in the first place; a well-conditioned metric is one Adam
+handles unaided. What disqualifies them is the failure to \emph{estimate} the metric. $F$ is
 built from importance-resampled points, and when the ESS is low a handful of high-weight
 samples dominate it, leaving it noisy and rank-deficient. Tikhonov damping stabilises the
 inversion at the cost of washing out the curvature information that motivated it.
 
-So there are three regimes, not two. Where the metric is well conditioned, SR is sound
-and unnecessary. Where it is anisotropic and still estimable, SR is at its most
+Three regimes follow. Where the metric is well conditioned, SR is sound and unnecessary. Where it is anisotropic and still estimable, SR is at its most
 valuable---which is the collocation case of \S\ref{sec:kernel-cond}. And where
 importance-sampling collapse makes the empirical metric unreliable, inverting it
 amplifies the estimation noise and SR does active harm. The failures above are the third
@@ -1243,15 +1236,21 @@ $d_{\mathrm{eff}}$ inversion at the crystal that did not survive seeding, throug
 mislabelled backflow, to an artefactual rank collapse produced by training both components
 jointly from scratch.
 
-The conclusions of this chapter rest instead on four measurements that survive a change of
-gauge. Energy and ablation---delete a component and price it---carry the architecture
-comparison. $\Var(E_L)$ separates the two families where energy cannot and where
-$d_{\mathrm{eff}}$ has stopped trying, being lower for the message-passing ansatz at every
-confinement by factors of two to seven at matched protocol and production capacity
-(Table~\ref{tab:varEL}), and seed-cleanly so at the crystal. State overlap makes the
-comparison between training paradigms a claim about states rather than about numbers that
-happen to agree.
+The measurements used here fall into three classes, and the conclusions rest on the first
+two. \emph{State-level} quantities---the energy, the local-energy variance $\Var(E_L)$, and
+the symmetric overlap between two trained states---are properties of the wavefunction and
+are unaffected by how the parameters are arranged. $\Var(E_L)$ does most of the work,
+because it separates the two families where the energy cannot and where $d_{\mathrm{eff}}$
+no longer does: at matched protocol and production capacity it is lower for the
+message-passing ansatz at every confinement, by factors of two to seven
+(Table~\ref{tab:varEL}), with non-overlapping seeds at the crystal. \emph{Controlled
+interventions}---deleting a component and pricing the loss in energy---are not
+gauge-invariant in the same sense, since two parameterisations that divide correlation
+differently will report different ablation costs; they are reproducible statements about a
+fixed model and training protocol, and are used as such. \emph{Component-level}
+diagnostics---rank, displacement magnitude, per-branch loadings---are the gauge-dependent
+class.
 
-Rank belongs to neither list. It runs through this chapter as the clearest signature of the
-mechanism, a field collapsing onto a single mode being easy to see, but what carries the
-finding is the half percent of energy that collapses with it.
+Rank belongs to that third class. It appears throughout this chapter as the clearest
+signature of the mechanism, a field collapsing onto a single mode being easy to see, but
+what carries the finding is the half a percent of energy that collapses with it.

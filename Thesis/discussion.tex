@@ -24,53 +24,41 @@ operates inside a boundary whose location was established by crossing it.
 \section{Scope of the energy benchmarks}
 \label{sec:energy-discussion}
 
-The energies are the least interesting result in this thesis and the most necessary one.
-Every claim downstream---about what the network learned, about the structure read off the
-trained state---collapses if they do not hold. The question, then, is not whether the
-numbers are good but what having good numbers actually buys, and the answer differs at the
-two ends of the grid.
+Agreement with fixed-node DMC supports the energy scale of the variational states over the
+benchmarked regime, but it does not establish exactness, because the reference itself
+retains a nodal bias. Where the message-passing ansatz sits \emph{below} a published DMC
+value, as for $N{=}12$ at $\omega{=}1$, the natural reading is that a better nodal surface
+has been found: the variational principle bounds the energy from below by the exact ground
+state, not by the nodal constraint of the reference calculation. Establishing that would
+require the DMC trial nodes and a matched uncertainty analysis, which we have not done.
+What can be said without it is that two independent methods agree to a few hundredths of a
+percent wherever both exist.
 
-At the benchmarked end it buys less than it appears to. Agreement with a fixed-node DMC
-calculation is agreement with another approximation. Where our message-passing ansatz sits
-\emph{below} a published DMC value, as it does for $N{=}12$ at $\omega{=}1$, the natural
-reading is that a better nodal surface has been found rather than that something has gone
-wrong, since the variational principle bounds the energy from below by the exact ground
-state and not by the nodal constraint of the reference calculation. We adopt that reading,
-though establishing it would require the DMC trial nodes and a matched uncertainty
-analysis, which we have not done. Stripped of interpretation, what remains is that two
-independent methods agree to a few hundredths of a percent wherever both exist, and that is
-the strongest external statement available anywhere in this work.
-
-At the unbenchmarked end it buys more than it appears to, though only by inheritance, and
-the inheritance has to be argued rather than assumed. Below $\omega=0.1$ no published value
-exists for $N\ge6$. What carries across the boundary is not accuracy but conditioning: the
-same architecture, protocol, trap-unit scaling, soft-core features and analytic cusp,
-applied across three decades of $\omega$ without adjustment. A method retuned at each
-confinement would carry nothing. This one carries its own behaviour, and the energies it
-produces join the benchmarked regime smoothly and then follow the classical scaling
-exponent. The deep-Wigner numbers therefore deserve to be taken seriously as variational
-predictions, which is a weaker thing than being validated, and we do not call them
-validated anywhere.
+Below $\omega=0.1$ no published value exists for $N\ge6$, and nothing about that agreement
+transfers as accuracy. What does transfer is conditioning. The same architecture, protocol,
+trap-unit scaling, soft-core features and analytic cusp are applied across three decades of
+$\omega$ without adjustment, so the behaviour observed inside the benchmarked range is the
+behaviour of the same object outside it. A method retuned at each confinement would carry
+nothing across the boundary. The energies produced there join the benchmarked regime
+smoothly and follow the classical scaling exponent, and should be read as variational
+predictions supported by continuity of protocol and by independent structural diagnostics,
+rather than as validated numbers.
 
 \section{Interpretation of the internal diagnostics}
 \label{sec:repr-discussion}
 
-Nothing obliges a trained network to organise itself in a way anyone can interpret.
-High-dimensional function approximators are entitled to be incomprehensible, and usually
-are. What is surprising here is less that the internal organisation can be read than that
-it is so small, and small along the grain of the physics rather than of the
-parameterisation: a real-space transition involving shells, ring occupancies and angular
-stiffness, held on one to three effective directions whose identity changes across the
-crossover while their number does not.
+The trained correlator occupies one to three effective directions across the whole
+confinement range, and what changes at the crossover is the identity of those directions
+rather than their number---a real-space transition involving shells, ring occupancies and
+angular stiffness, carried on a latent geometry of very low dimension.
 
-That invites being read as a discovery about neural wavefunctions, and it cannot quite be
-one, for a reason that reaches well past this thesis. The Jastrow and the backflow are
-partial substitutes, so any measurement made on one of them alone---its rank, its
-displacement magnitude, its share of the energy---records a division of labour that the
-loss barely constrains and that a different training route could have settled differently
-while arriving at the same state. Such quantities are gauge-like. Reporting them is
-legitimate; treating them as properties of the architecture is not. Every claim that
-reversed during this project was of that kind.
+That low rank is not, by itself, an architecture-level property. Because the Jastrow and
+the backflow are partially substitutable, any measurement made on one of them alone---its
+rank, its displacement magnitude, its share of the energy---records a division of labour
+that the loss barely constrains and that a different training route could have settled
+differently while arriving at the same state. Such quantities are gauge-like. Reporting
+them is legitimate; treating them as properties of the architecture is not. Every claim
+that reversed during this project was of that kind.
 
 What survives a change of training route is what can be measured on the state itself or
 by deleting part of it: the energy, the local-energy variance, the price of removing a
@@ -92,19 +80,17 @@ The practical upshot is a design rule rather than a theorem. For parabolic dots 
 compact smooth correlator with a moderately wide backflow is a sound default: the
 correlator behaves like a learned set of collective coordinates, while the backflow acts as
 a local correction channel that switches on where the near-field physics is delicate and
-falls quiet in the Wigner limit. The \emph{kind} of backflow keeps mattering, however, long
-after its energy contribution has gone, since a conventional single-round network collapses
-onto one collective mode exactly where the copresheaf network does not, and pays half a
-percent for the collapse. Falling quiet and falling over are different things.
+falls quiet in the Wigner limit. The \emph{kind} of backflow continues to matter after its energy
+contribution has gone: a conventional single-round network collapses onto one collective
+mode where the copresheaf network does not, and pays half a percent for the collapse. The
+small energetic contribution of the copresheaf backflow in the Wigner regime should
+therefore be distinguished from the rank collapse of the conventional one.
 
 \section{Boundaries of Markov-chain-free training}
 \label{sec:collocation-discussion}
 
-``An accurate many-body wavefunction trained with no Markov chain'' is the kind of
-sentence that travels further than its evidence, so the boundaries have to be drawn before
-the claim is made. The collocation programme also consumed the most time and produced the
-most failures of anything here, and the two facts are related: the method works inside a
-regime whose edges had to be found by walking off them.
+The collocation programme consumed more time and produced more failures than anything else
+reported here, and its central claim needs its boundaries stated before it is made.
 
 \paragraph{What ``MCMC-free'' does and does not mean.}
 Three distinctions are easily conflated.
@@ -152,7 +138,7 @@ Distinguishing the two matters practically, because it says where effort should 
 general lessons survive the distinction in any case. Any importance-sampled scheme applied
 to a weakly confined many-body system will meet the first chain in that order, and any
 second-order method applied to one must certify that the metric it inverts is statistically
-resolved at the sample sizes in use. Neither statement is about quantum dots.
+resolved at the sample sizes in use. Neither statement is specific to quantum dots.
 
 \paragraph{Where the two routes actually stand.}
 Compared directly against the SR route, collocation is competitive for

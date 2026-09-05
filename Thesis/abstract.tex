@@ -25,9 +25,9 @@ reference energies of an earlier master's thesis to the same order. Below \(\ome
 external benchmark exists for \(N\ge6\), and that boundary is marked wherever it occurs.
 
 Message passing introduces a relational channel, and its effect is visible in the tangent
-geometry before it is visible in the energy. In the correlator it compresses the ground
-state onto roughly half as many effective tangent directions as a single-pass network of
-matched or larger capacity, aligns those directions with the collective modes of the
+geometry before it is visible in the energy. In the correlator, reference-quality
+solutions are represented along roughly half as many effective tangent directions as a
+single-pass network of matched or larger capacity needs, aligns those directions with the collective modes of the
 Hamiltonian, and yields a local-energy variance lower by factors of two to seven at every
 confinement---while the two networks agree in energy to four figures. In the nodes the same
 channel shows as a collapse averted: toward the Wigner crystal a conventional backflow
@@ -38,10 +38,10 @@ deficits. SR helps in proportion to how ill-conditioned the tangent metric is, b
 while that metric remains estimable; once the sampling that builds it collapses, inverting
 it does harm. Importance-sampled collocation matches SR--VMC while its sampling stays
 healthy and reaches a Wigner molecule at \(\omega=0.0035\) with no Markov chain in the
-optimisation. Two limits bound that route: a statistical one, which a proposal built from
-the measured shell geometry moves back by a factor of three in \(\omega\), and beyond it a
-representational one, arising from a fine-tuned Slater--Jastrow cancellation, which no
-proposal repairs.
+optimisation. Two limits bound that route: a statistical one, which a proposal built from the measured
+shell geometry moves back by a factor of three in \(\omega\), and beyond it a failure of
+transfer between confinements, arising from a fine-tuned Slater--Jastrow cancellation that
+no change of proposal repairs.
 
 The trained states are then used to map the Fermi-liquid-to-Wigner crossover from the
 inside. We give topology-resolved shell, bond-orientational, and stiffness diagnostics,
@@ -50,7 +50,6 @@ cosine similarity \(0.989\!-\!1.000\): at \(\omega=10^{-3}\) the \(N=6\) dot is 
 ring with a robust \((1,5)\leftrightarrow(0,6)\) near-degeneracy (radial mode
 \(\approx114\,a_0\)), the \(N=12\) dot a two-shell molecule with a modal \((3,9)\) split,
 and the \(N=20\) dot a three-shell molecule that collapses toward a single shell within one
-decade in \(\omega\). The shell geometry recovered this way is what the physics-informed
-proposal is built from, so the structure the method resolves is also what extends its
-reach.
+decade in \(\omega\). The shell radius and angular order measured here are the inputs to the
+physics-informed proposal described above.
 \clearpage

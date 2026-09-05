@@ -1311,3 +1311,29 @@ sweep, which should be last since it depends on stable pagination.
   restructuring settles.
 
 116 pages, clean build. Remaining work is in `STRUCTURE_PLAN_2026-09-05.md`.
+
+---
+
+## 2026-09-05 --- Reduction pass complete (steps 1-5 of the cutting plan)
+
+- 7.3.3 rebuilt. It had been a list of eight positives and negatives, and it also
+  carried three duplications I introduced when folding the chapter-8 mechanism
+  subsections in: CG-SR, Langevin and the N=20 backflow were each described twice.
+  Merged, then converted to an attempt/outcome/mechanism table with prose kept for
+  the two cases that carry the argument. Section down from 8 pages to 7.
+- Full radial diagnostics moved to a new Appendix E. Chapter 6 keeps a compact
+  table of r_mode and gamma, the two quantities the prose uses.
+- Typesetting: the hyperparameter table overflowed after gaining a parameter-count
+  column; a long inline proposal density overflowed its line; both fixed. Short
+  optional titles added for the eight longest headings, repairing the running heads
+  and the contents listing. One 2.9pt overfull remains in the theory chapter,
+  below visibility.
+- The introduction's "Thesis structure" paragraph still described the old
+  arrangement. Rewritten.
+- Page-count note: intermediate builds reported 115-119 pages for the same source.
+  latexmk needs three passes to converge here; only the final figure is meaningful.
+  Always check `Output written` from the last pass, not the first.
+
+Final state: 119 pages, clean build, no undefined references or citations.
+Paragraph-header density: Ch 6 = 14 (was 33), Ch 7 = 24 (was 33), Ch 8 = 3 (was
+23), Ch 9 = 4.

@@ -1241,3 +1241,40 @@ Build: 121 pages, 0 errors, 0 undefined references or citations.
   `raissi2019pinns`, `zaheer2018deepsets` (DeepSet appears 18 times in Ch. 7),
   `CarleoTroyer2017-ScienceNQS`, `HolzmannCeperley2003-Backflow`. Genuinely
   absent: Jastrow 1955, Feynman-Cohen 1956, Barron 1993, minSR/Rende 2024.
+
+---
+
+## 2026-09-05 --- Full restructure of chapters 6-8
+
+Executed the merged plan in `STRUCTURE_PLAN_2026-09-05.md`. Two commits; builds
+clean at 118 pages with no undefined references or citations.
+
+- **Ch 6, "The state, and the physics inside it"** (21 -> 16 pp). Collocation moved
+  out to Ch 7; only its energy table stays, beside the SR-VMC table, because
+  MCMC-free training is a result and not a mechanism. Wigner physics and
+  representations swapped. The decisive argument for the swap was that 6.2
+  forward-referenced the Gamma crossover of 6.3 three times against its definition
+  further down the chapter; reordering turns those into backward references.
+- **Ch 7, "Why the method works: geometry, optimisation, and sampling"** (12 -> 20 pp).
+  Absorbed the whole collocation programme plus the four mechanism subsections that
+  had been stranded in Ch 8. Q1/Q1a/Q1b/Q2/Q3 headings replaced with descriptive
+  ones; Q2 and Q3 merged into a single conditioning section. Opening cut from four
+  framing devices to a short lead. Title no longer claims a single lens, since the
+  Wigner-proposal work is not tangent-kernel analysis.
+- **Ch 8** (11 -> 4 pp). Rewritten from scratch to a new charter: what the energies
+  establish, how far the internal numbers can be pushed, where MCMC-free training
+  stops and why, what the picture predicts. Three keeper paragraphs moved into Ch 6
+  beside their evidence (the fixed-node argument, the total-spin caveat, the
+  decomposability scoping).
+- **Ch 9** gained an explicit research-question to section mapping, so dropping the
+  Q labels costs no traceability.
+- Style pass over the new connective prose, per a note on register: cut the
+  significance-announcements, broke compound sentences into declaratives, let the
+  numbers stand unaccompanied.
+
+Paragraph-header density is now 15 in Ch 6 (was 33) and 3 in Ch 8 (was 23).
+
+**Not yet done** (steps 6-8 of the plan): the 6.2 diagnostic-catalogue trim, which
+would move the Lindemann, quantile and FWHM tables to an appendix; the
+`\paragraph{}` thinning pass over Ch 7, which now carries 33; and the typesetting
+sweep, which should be last since it depends on stable pagination.

@@ -40,11 +40,11 @@ another approximation, not with the truth. Where our message-passing ansatz sits
 \emph{below} a published DMC value---$N{=}12$ at $\omega{=}1$, for instance---the natural
 reading is not that something has gone wrong but that a better nodal surface has been
 found; the variational principle bounds the energy from below by the exact ground state,
-not by somebody else's node. That reading is plausible and we adopt it, but establishing
-it would require the DMC trial nodes and a matched uncertainty analysis, which we have
-not done. The honest statement is that at $\omega\ge0.1$ two independent methods agree to
-a few hundredths of a percent, and that this is the strongest external statement
-available.
+not by the nodal constraint of the reference calculation. That reading is plausible and
+we adopt it, though establishing it would require the DMC trial nodes and a matched
+uncertainty analysis, which we have not done. What can be said without qualification is
+that at $\omega\ge0.1$ two independent methods agree to a few hundredths of a percent.
+That is the strongest external statement available.
 
 More, at the bottom end---but only by inheritance, and the inheritance has to be argued
 rather than assumed. Below $\omega=0.1$ no published value exists for $N\ge6$. What
@@ -129,24 +129,41 @@ unsupervised solution of the Schr\"odinger equation.
 guided by the variational objective alone and cross-checked against the fitted Wigner
 scaling curve, never against an external benchmark.
 
-\paragraph{One mechanism explains every failure.}
-The boundary is not a collection of separate difficulties. Proposal--target mismatch
-inflates the tail of the importance weights; the inflated tail destroys the gradient
-estimator; a destroyed estimator makes the optimisation seed-dependent and the empirical
-metric unreliable; and once the metric is unreliable, inverting it---which is what
-natural-gradient preconditioning does---amplifies the noise instead of the signal. Every
-negative result in Chapter~\ref{ch:kernel} is a station on that one chain. Langevin
-refinement fails because it breaks the proposal the weights are computed against. CG-SR
-fails at low $\omega$ not because the metric is ill-conditioned but because it can no
+\paragraph{There are two walls, and they are different.}
+Most of the failures lie on a single chain, and it is worth stating in order.
+Proposal--target mismatch inflates the tail of the importance weights; the inflated tail
+destroys the gradient estimator; a destroyed estimator makes the optimisation
+seed-dependent and the empirical metric unreliable; and once the metric is unreliable,
+inverting it---which is what natural-gradient preconditioning does---amplifies the noise
+instead of the signal. Langevin refinement joins that chain at the first link, by
+breaking the proposal the weights are computed against. CG-SR joins it at the last:
+it fails at low $\omega$ not because the metric is ill-conditioned but because it can no
 longer be estimated. The $N{=}20$ reversal, where a Jastrow-only ansatz beats the
-backflow it should in principle beat, is the same chain reached through memory rather
-than through confinement: the backflow's edge tensor forces the collocation budget down
-until the gradient degrades.
+backflow it should in principle beat, reaches the same chain through memory rather than
+through confinement, the edge tensor forcing the collocation budget down until the
+gradient degrades. That chain is a sampling-quality chain, and a better proposal moves
+it: rebuilding the proposal from the Wigner shell pushes the wall from $\omega\approx0.01$
+down to $\omega=0.0035$.
 
-Any importance-sampled scheme applied to a weakly confined many-body system will meet
-that chain in that order. Any second-order method applied to one must certify that the
-metric it inverts is statistically resolved at the sample sizes in use. Neither statement
-is about quantum dots.
+Below $0.0035$ something else takes over, and conflating the two would be a mistake.
+There the obstacle is not the sampler. Metropolis walkers initialised directly on the
+classical shell relax inward regardless; the backflow displacement transfers correctly
+and is simply far too small to bridge the gap; and the collapse is non-monotonic across
+proposal variants in a way that a sampling failure would not be. What fails is the
+warm start. The Wigner peak at these confinements exists only because the Jastrow
+amplifies an exponentially suppressed determinant back up by a comparable factor, and a
+$23\%$ change in $\omega$ perturbs both sides of that cancellation. The balance tips and
+the density falls back to the non-interacting shell. This is a representational
+limitation---the ansatz is not covariant enough in $\ell$---not a statistical one, and
+no improvement to the proposal will remove it.
+
+Two walls, then, of different kinds. The first is statistical and yields to a better
+measure. The second is representational and will not. Distinguishing them matters
+practically: it says where effort should go. And the general lessons survive the
+distinction. Any importance-sampled scheme applied to a weakly confined many-body system
+will meet the first chain in that order, and any second-order method applied to one must
+certify that the metric it inverts is statistically resolved at the sample sizes in use.
+Neither statement is about quantum dots.
 
 \paragraph{Where the two routes actually stand.}
 Compared directly against the SR route, collocation is competitive for
@@ -166,12 +183,14 @@ confinement.
 If the argument of this thesis is right, the same three statements should hold well
 outside the quantum dot.
 
-\emph{The proposal is the bottleneck, not the objective.} The chain above says the
-Markov-chain-free route fails through its sampler and nowhere else. That makes the
-obvious next move a better sampler rather than a better loss---normalising flows trained
-against $|\Psi|^2$, or the physics-informed proposals of
-\S\ref{sec:kernel-q3-frontier} generalised beyond ring geometries. Rebuilding the proposal from the Wigner shell lifted the effective sample size by
-$15$--$47\times$ without any training at all.
+\emph{Up to the frontier, the proposal is the bottleneck rather than the objective.}
+That makes the next move a better sampler rather than a better loss---normalising flows
+trained against $|\Psi|^2$, or the physics-informed proposals of
+\S\ref{sec:kernel-q3-frontier} generalised beyond ring geometries. Rebuilding the
+proposal from the Wigner shell lifted the effective sample size by $15$--$47\times$
+without any training at all. Past the frontier the target changes: what is needed there
+is an $\ell$-covariant parametrisation, or an objective anchored on the shell
+\emph{amplitude}, so that a converged state survives being carried to a weaker trap.
 
 \emph{Relational structure will matter more, not less, with $N$.} The tangent-space gap
 between message-passing and separable correlators widens with particle number in the

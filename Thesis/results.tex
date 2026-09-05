@@ -322,21 +322,6 @@ $N=2,6,12,20$ and $\omega\in\{1,0.5,0.1,0.01,0.001\}$~\cite{Egger_1999,manninen2
 No one of them is decisive on its own. They fail in different ways, which is why they are
 reported together.
 
-\paragraph{A caveat on total spin.}
-Our reference states are the closed-shell singlets of the non-interacting problem, with
-$N_\uparrow=N_\downarrow$ held fixed throughout. This is safe at weak coupling, but in the
-deep-Wigner regime the ground-state \emph{spin} can change: for parabolic dots the
-interaction can drive spin transitions as it strengthens (for instance an
-$S=0\!\to\!S=1$ change for $N=6$ at strong coupling)~\cite{Egger_1999}. Fixing
-$N_\uparrow=N_\downarrow$ does not by itself pin the total spin, since an $S=1$ state also
-has an $S_z=0$ component. We do not scan total spin here, so the weak-trap energies and
-structures below should be read as the lowest states we find \emph{within the fixed
-spin-projection sector}, not as proven global-spin ground states. Determining the true
-spin ordering across the crossover, by comparing sectors of different $S$, is left to
-future work.
-
-\paragraph{Localization and energy partitioning.}
-
 % ──────────────────────────────────────────────────────────────────────
 \subsection{Observables and diagnostics}
 \label{sec:wigner-diagnostics}
@@ -689,55 +674,45 @@ scope, the ansatz is not only reproducing the energy but also the detailed two-b
 correlation structure expected from classical and quantum studies of parabolic Coulomb
 clusters.
 
-\subsection{Synthesis: the Wigner--molecule crossover}
+\paragraph{A caveat on total spin.}
+Our reference states are the closed-shell singlets of the non-interacting problem, with
+$N_\uparrow=N_\downarrow$ held fixed throughout. This is safe at weak coupling, but in the
+deep-Wigner regime the ground-state \emph{spin} can change: for parabolic dots the
+interaction can drive spin transitions as it strengthens (for instance an
+$S=0\!\to\!S=1$ change for $N=6$ at strong coupling)~\cite{Egger_1999}. Fixing
+$N_\uparrow=N_\downarrow$ does not by itself pin the total spin, since an $S=1$ state also
+has an $S_z=0$ component. We do not scan total spin here, so the weak-trap energies and
+structures below should be read as the lowest states we find \emph{within the fixed
+spin-projection sector}, not as proven global-spin ground states. Determining the true
+spin ordering across the crossover, by comparing sectors of different $S$, is left to
+future work.
+
+\subsection{What the crossover looks like, taken together}
 \label{sec:wigner-synthesis}
 
-Across $N=2,6,12,20$ we observe a consistent, internally validated
-structural evolution as $\omega$ decreases from 1 to $10^{-3}$:
+Six diagnostics, four particle numbers, five confinements---and they agree. As $\omega$
+falls from $1$ to $10^{-3}$ the densities expand and develop rings; the shell topology
+resolves into the discrete finite-$N$ patterns that classical Coulomb clusters
+predict---$(1,5)$ at $N{=}6$, $(3,9)$ at $N{=}12$, $(1,7,12)$ at
+$N{=}20$~\cite{schweigert1994spectralpropertieschargedparticles,Kong_2002}; the shells
+separate and stiffen; rotation-registered angular order rises while lab-frame order
+stays near zero, which is what a freely rotating molecule looks like; the Lindemann
+disorder falls; and the energy partitioning approaches the classical virial form, with
+$\Gamma$ reaching ${\sim}40$ for $N{=}12$ at the weakest trap. None of these was built
+into the ansatz. The commensurate $(3,9)$ sector at $N{=}12$ carries real weight in
+$(1,11)$ and $(2,10)$ besides, which is the quantum rotational mixing the rotating-Wigner-molecule
+picture
+predicts~\cite{manninen2007metalclustersquantumdots,Filinov_2001}. At $N{=}20$ the
+three-shell structure and its collapse toward a single shell within one decade in
+$\omega$ is the sharpest transition in the series, and the sector-resolved $|\Phi_m|$
+measured conditionally on shell occupancy have not, to our knowledge, been reported
+before for $N\ge12$ parabolic dots.
 
-\begin{enumerate}
-\item \textbf{One-body densities} show dramatic spatial expansion and
-      ring formation at $\omega=10^{-3}$
-      (Figs.~\ref{fig:onebody_grid},~\ref{fig:onebody_n20}).
-\item \textbf{Shell topology} reveals discrete finite-$N$ Wigner patterns
-      at $\omega=10^{-3}$---$(1,5)$ for $N{=}6$, $(3,9)$ for $N{=}12$,
-      $(1,7,12)$ for $N{=}20$---consistent with classical ground-state
-      analyses~\cite{schweigert1994spectralpropertieschargedparticles,Kong_2002}.
-      Sharp topology collapses occur between $10^{-3}$ and $10^{-2}$ for the
-      larger systems.
-\item \textbf{Shell radii and separation gaps} provide a quantitative
-      real-space counterpart: shells are widely separated and stable in the
-      Wigner regime, while both radii and gaps shrink rapidly with
-      increasing $\omega$.
-\item \textbf{Rotation-registered angular order} demonstrates strong
-      polygon-like internal localization (including multi-shell ordering for
-      $N{=}12$ and $N{=}20$).
-      Lab-frame measures remain comparatively small, consistent with free
-      global rotation of the molecule.
-\item \textbf{Lindemann disorder} rises strongly with
-      $\omega$---independently confirming progressive melting---while
-      the Wigner point supports simultaneously stiff shells
-      (e.g.\ $L_{\rm out}\!\approx\!0.22$--$0.27$ for $N{=}12,20$).
-\item \textbf{Energy ratios} show the interaction-to-kinetic ratio $\Gamma$
-      growing to $\sim\!40$ for $N{=}12$ at $\omega=10^{-3}$, and the
-      virial condition $V_{\rm int}\!\approx\!2V_{\rm trap}$ approaching
-      its classical value.
-\end{enumerate}
-
-The commensurate $(3,9)$ sector for $N{=}12$ aligns with known classical
-ground states, but with finite weight in competing
-$(1,11)$ and $(2,10)$ sectors reflecting quantum rotational
-mixing~\cite{manninen2007metalclustersquantumdots,Filinov_2001}.
-Our sector-resolved ring-order parameters $|\Phi_m|$ are extracted
-\emph{within} a fully variational quantum ansatz and measured conditionally on
-shell occupancy, which---to our knowledge---has not been reported before for
-$N\geq 12$ parabolic dots.
-The $N{=}20$ results extend this picture to three concentric shells and
-demonstrate that topology collapse, angular-order loss, and Lindemann melting
-all coincide within the same narrow $\omega$ window, providing a sharp
-quantitative trajectory from localized Wigner molecule to the denser,
-more weakly ordered liquid
-state~\cite{Egger_1999,Filinov_2001,schweigert1994spectralpropertieschargedparticles,Kong_2002}.
+Two qualifications bound all of it. The states are the lowest we find within a fixed
+spin-projection sector, and we have not scanned total spin, so these are
+not proven global-spin ground states. And the shell-resolved reconstruction of $g(r)$
+establishes decomposability rather than sampling correctness, which rests on the
+independent restart and chain diagnostics.
 
 \paragraph{From physics back to method.}
 These structural facts are also what make part of the method possible. The shell
@@ -746,11 +721,12 @@ weakens are exactly the quantities a sampler must respect to reach the Wigner re
 without MCMC. Chapter~\ref{ch:kernel} uses them directly: an origin-centred proposal
 aims where the wavefunction no longer has any mass, whereas a proposal built from the
 measured shell radius and angular order tracks it, and carries MCMC-free training far
-into the correlated regime (\S\ref{sec:kernel-q3-frontier}). What the trained model reveals about the
-physics is what later lets us train it more cheaply.
+into the correlated regime (\S\ref{sec:kernel-q3-frontier}). What the trained model
+reveals about the physics is what later lets us train it more cheaply.
 
 So much for the state seen from outside. How much of that did the network need to hold
 internally? Less than one would think.
+
 \section{What the network holds}
 \label{sec:repr-analysis}
 
@@ -862,9 +838,9 @@ the non-interacting shell structure provides a good zeroth-order description,
 and the correlator's primary role is refining pair correlations on top of that.
 When interactions dominate ($\omega \lesssim 0.01$),
 the leading correlator coordinate shifts away from pair features toward the
-single-particle/orbital-derived and auxiliary branches: the network reorganises the
-features through which it represents the state
-becomes the dominant variational degree of freedom.
+single-particle and auxiliary branches. The network reorganises the features through
+which it represents the state, and that reorganisation---not any growth in
+dimension---is how it adapts.
 The network discovers this distinction autonomously:
 regime changes appear as a rotation of a low-dimensional axis across branches,
 not as a growth of latent dimensionality.
@@ -936,15 +912,11 @@ The backflow transformation is not a low-rank collective mode
 such as a breathing or rigid rotation; the displacement field spans essentially all COM-free spatial directions, so each
 particle receives a correction
 conditioned on the full configuration.
-This full-rank behaviour is a property of the \emph{message-passing} backflow
-specifically, and it is exactly the point at which the companion chapter finds the
-two architectures part ways: toward the Wigner crystal a \emph{conventional},
-single-round-message backflow collapses to a single collective mode (rank~$\to 1$) and
-its energy degrades---its one round of pairwise messages failing to sustain the relative
-displacement the crystal demands---whereas the CTNN stays near the $2N{-}2$ ceiling because its
-copresheaf edge-transport does sustain it (Chapter~\ref{ch:kernel},
-\S\ref{sec:kernel-q1b}). The high rank reported here is thus not incidental---it is
-the structural signature of the mechanism that makes message passing worth its cost.
+The field stays near that ceiling across the whole grid, including the deepest Wigner
+points, where one might have expected the correction to become collective. Whether that
+is a property of \emph{this} architecture or of trained backflows generally is not
+something the present measurement can decide; Chapter~\ref{ch:kernel} settles it by
+holding everything else fixed (\S\ref{sec:kernel-q1b}).
 
 Yet the CKA between correlator features with and without backflow exceeds 0.99 in nearly all cases
 (and exceeds 0.979 everywhere).

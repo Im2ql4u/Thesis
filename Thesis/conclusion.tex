@@ -9,118 +9,138 @@ Aurelius}{\textit{Meditations}}
 \label{ch:conclusions}
 \endgroup
 
-This thesis set out from a single question---what does it actually take to solve
-the many-body Schr\"odinger equation with a neural network, and what has the network
-understood once it has---and the most durable answers came from the places where the
-attempt failed. The quantum-dot benchmarks served a
-dual purpose throughout: they test the numerical stability and expressivity of the
-Slater--Jastrow PINN+backflow ansatz, and they provide a controlled setting in which
-to study Wigner-molecule formation and the internal representations learned by the
-network. What follows separates what has been demonstrated from what has been
-observed, and both from what has merely been made plausible; that separation is
-itself one of the results.
+The question this thesis was assigned was where to start. The answer it arrived at has a
+shape, and the shape is a loop.
 
-On the \emph{energy} side, a single trap-unit-normalised architecture with soft-core
-pair features and an explicit cusp reaches DMC-level accuracy for two-electron dots and
-holds sub-$0.1\%$ relative errors for $N\in\{6,12\}$ across $\omega\in\{0.1,0.5,1.0\}$
-(\S\ref{sec:energy-overview}). It extrapolates smoothly to $\omega=10^{-3}$, where
-no DMC data exist and internal checks---scaling exponents, virial ratios, structural
-diagnostics---carry the reliability of what are then variational predictions. These
-accuracies come from a modest SR tail on residual-based pretraining, which says that
-conditioning and inductive bias matter at least as much as raw sample count.
+We built a wavefunction and checked it against every external number that exists. The
+checked wavefunction then became an instrument, and what it showed us was a Wigner
+molecule---rings at definite occupancies, angular order that stiffens as the trap
+weakens, a shell radius growing as $\omega^{-2/3}$. Those are facts about electrons. They
+are also, it turned out, exactly the facts a sampler needs in order to aim at the right
+part of configuration space. Building the proposal out of the measured shell geometry
+carried Markov-chain-free training from $\omega\approx0.01$ down to $\omega=0.0035$,
+into states the original method could not reach. The physics we learned from the
+solution improved the solver, and the improved solver produced solutions we could not
+otherwise have learned from.
 
-On the \emph{structural} side, the weak-trap states develop bona fide Wigner-molecule
-structure rather than being vaguely ``strongly correlated'' dots
-(Sec.~\ref{sec:wigner-molecule}). As $\omega$ falls, every system studied
-$(N=2,6,12,20)$ crosses over smoothly: radii and localisation ratios move toward large
-stiff configurations, the energy partitioning approaches the classical virial form
-$V_{\rm int}\approx 2V_{\rm trap}$, and shell structures and bond orders emerge that match
-classical Coulomb-cluster topologies---a single rotating ring mixing $(1,5)$ and $(0,6)$ at
-$N{=}6$, a modal two-shell $(3,9)$ molecule at $N{=}12$, and a three-shell molecule at
-$N{=}20$ that collapses toward a single shell within one decade in $\omega$. Shell-resolved reconstructions of $g(r)$ recover
-the global pair structure from shell geometry and combinatorics alone (a decomposition
-check; sampling correctness rests on the independent restart and chain diagnostics).
-Throughout, $N_\uparrow=N_\downarrow$ is held fixed and total-spin sectors are not
-scanned, so these are statements about the studied spin-projection sector rather than a
-claim to have settled the global spin ordering.
+That loop is the thesis. Everything below is an account of how far around it we got, and
+where it broke.
 
-On the \emph{representation} side, that real-space richness is carried by a strikingly
-simple latent geometry (\S\ref{sec:repr-analysis}). The correlator occupies one to
-two effective directions whose leading axes act as collective coordinates for global size
-and radial fluctuation, with angular and topological information held in conditional
-distributions on them; across regimes the leading axis changes identity in a
-$\phi\leftrightarrow\psi$ recomposition rather than growing in dimension. The backflow
-is by contrast a high-dimensional displacement field whose energetic leverage sits in
-near-field configurations at intermediate traps. One earlier reading---that the optimiser
-simply switches backflow off---proves architecture-specific and is corrected here: it is
-the \emph{conventional} backflow that collapses to a single collective mode at the Wigner
-crystal and loses accuracy, its single round of pairwise messages failing to sustain the
-relative displacement the crystal demands, while the copresheaf message-passing backflow
-holds both its rank and its accuracy. The energetic reading is narrower than it first
-appears: at the crystal the copresheaf backflow is itself nearly inert, so what message
-passing buys in the nodes there is the absence of a collapse that would otherwise cost
-half a percent. How these internal numbers may be read is itself a
-result: component-level quantities are gauge-like, so the load-bearing conclusions rest on
-the invariants---energy, local-energy variance, ablation, and state overlap---not on the
-ranks.
+\section{What was asked, and what came back}
 
-On the \emph{method} side, the tangent kernel connects these observations to the design
-choices that produced them (Chapter~\ref{ch:kernel}). Message passing earns its cost by
-supplying a relational channel: it compresses the correlator onto fewer effective tangent
-directions---at consistently lower local-energy variance---and sustains a high-rank
-backflow where a single round of pairwise messages cannot. As the trap weakens the
-relational work migrates from the nodes to the amplitude: deleting the backflow costs
-$5.6\%$ at $\omega{=}1$ but under $0.02\%$ at the crystal, while deleting the correlator's
-messages costs more and more. The sharper statement concerns physical structure rather than dimension
-count---message passing keeps the correlator's leading tangent modes aligned with the
-Hamiltonian's collective modes, whereas a separable network reaches the same energy with
-much of its tangent capacity along directions a compact physical dictionary does not
-resolve. That gap is present at every confinement, disguised at strong confinement only
-because correlation is then a small slice of the energy; and it appears coupled to the
-backflow, since the correlator's loss of alignment and the backflow's rank collapse set in
-at the same confinement and shift together under a correlator swap, supporting a common
-relational bottleneck. Natural-gradient preconditioning helps in proportion to how
-ill-conditioned the tangent metric is, so long as that metric stays estimable---little for
-$|\Psi|^2$-sampled VMC, decisively for collocation, and harmfully once importance
-sampling collapses. The same conditioning story explains why an MCMC-free,
-importance-sampled scheme equals VMC while its sampling is healthy and, with a proposal
-built from the Wigner shell itself, reaches a genuine Wigner molecule at $\omega=0.0035$
-with no Markov chain in the gradient optimisation (checkpoint selection and final
-certification use MCMC).
+\paragraph{Architecture.} What does message passing buy that a separable network cannot?
+A relational channel---and, measured through the tangent kernel, a specific one
+(\S\ref{sec:kernel-q1}). A message-passing correlator reaches the same ground state along
+half as many effective directions as a separable network of matched or larger capacity,
+and those directions are the collective modes of the Hamiltonian rather than an arbitrary
+basis. The separable network spends nearly half its tangent budget where no compact
+physical dictionary finds it, matches the energy to four figures anyway, and carries a
+higher local-energy variance for it at every confinement. In the nodes the same channel
+shows up inverted: what message passing supplies at the Wigner crystal is not a
+contribution but the absence of a collapse. A conventional backflow falls onto one mode
+and costs half a percent; the copresheaf backflow, at that confinement, could be deleted
+for $0.017\%$. Both channels give way at the same $\omega$, and a better correlator
+postpones both.
 
-\paragraph{Where each question was answered.} The four questions posed in
-\S\ref{sec:research-questions} are settled in the following places.
-\emph{Architecture}---what message passing buys a separable network cannot---is
-\S\ref{sec:kernel-q1}: a correlator compressed onto half as many effective tangent
-directions, those directions identified with the Hamiltonian's collective modes, a
-consistently lower $\Var(E_L)$, and a nodal displacement that does not collapse.
-\emph{Optimiser}---when natural-gradient preconditioning pays---is
-\S\ref{sec:kernel-cond}: when the tangent metric is anisotropic and still estimable, and
-not otherwise. \emph{Paradigm}---whether an accurate wavefunction can be trained without
-a Markov chain---is \S\ref{sec:kernel-mcmcfree} for the energies and reliability and
-\S\ref{sec:kernel-q3-frontier} for the deep-Wigner reach, with the boundaries of the
-claim drawn in \S\ref{sec:collocation-discussion}. And \emph{physics}---whether the
-trained state serves as an instrument---is \S\ref{sec:wigner-molecule}.
+\paragraph{Optimiser.} When does natural-gradient preconditioning earn its cost?
+When the tangent metric is anisotropic \emph{and still estimable}
+(\S\ref{sec:kernel-cond}). That is a narrower claim than the usual one and it has three
+regimes rather than two. Under $|\Psi|^2$ sampling the metric is well enough conditioned
+that Adam already suffices. On the collocation objective it is badly conditioned and
+stochastic reconfiguration is what makes the optimisation work at all. And once the
+sampling that builds the metric collapses, inverting it amplifies the noise rather than
+the signal, and the method that was decisive becomes harmful. Ill-conditioning is not the
+criterion. Estimability is.
 
-\paragraph{Limitations and outlook.} Three limits bound these conclusions. External
-ground truth reaches only to $\omega=0.1$; below it the accuracy statements are internal
-consistency rather than benchmarked error, and the deep-Wigner energies should be read as
-variational predictions supported by physical scaling, not as validated numbers. The
-architecture comparison is cleanest at $N=6$, where it is seeded; the $N=12$ contrast rests
-on fewer trained models and the $N=20$ analysis on a single production state, so the
-size-scaling of the tangent-space picture is indicative rather than settled. And the
-message-passing backflow that carries the crystal is quadratic in particle number---affordable
-at these sizes, but the first thing that must change to reach the hundreds of electrons where
-the same relational structure should matter most. None of these undermines the central
-finding; they mark where it has been established and where it remains to be pushed.
+\paragraph{Paradigm.} Can an accurate wavefunction be trained without a Markov chain? Yes,
+inside a regime whose edges we had to find by walking off them
+(\S\ref{sec:kernel-mcmcfree}). With no chain anywhere in the gradient, the weak-form
+objective reaches DMC accuracy at $N\in\{6,12\}$ under strong confinement and stays
+within a few tenths of a percent of our own converged energies well into the correlated
+regime. It fails where the importance sampling loses the target, and it fails through one
+chain of causes---proposal mismatch, weight-tail inflation, gradient noise, an
+unestimable metric---which a better proposal moves rather than removes.
 
-Taken together, these findings converge on a single theme. What makes the difference
-across architecture, optimiser, and training paradigm is not raw capacity but alignment
-with the low-dimensional, physically collective structure of the problem---the same
-structure that, in real space, \emph{is} the Wigner molecule. A compact correlator
-supplies learned collective coordinates; a message-passing backflow keeps the nodal
-correction from collapsing onto one mode as a single-round network does; natural gradients and $|\Psi|^2$
-sampling keep the optimisation pointed along those directions. The quantum-dot results
-thus provide both a stringent validation of the method and a template for the same
-ideas in more complex finite fermion systems, where the trade-offs between global
-structure, local correlation, and representation are expected to recur.
+\paragraph{Physics.} Can the trained state serve as an instrument? It can, and the
+evidence is that six independent diagnostics agree when they need not have
+(\S\ref{sec:wigner-molecule}). Shell topologies match the classical Coulomb-cluster
+predictions at every size we studied, with the competing sectors carrying the weight a
+rotating molecule should give them. The reconstructions of $g(r)$ from shell geometry
+alone reach cosine similarity $0.989$--$1.000$. At $N{=}20$ a three-shell molecule
+collapses toward a single shell within one decade in $\omega$. None of this was put into
+the ansatz, and none of it is visible in the density that one would naturally plot.
+
+\section{What is established, what is consistent, and what is indicated}
+
+The preface promised to be wrong on the record. That obliges a ledger, because these
+three are not the same kind of claim and the difference is easy to lose.
+
+\emph{Established against something outside this thesis.} The energies for $N\le12$ at
+$\omega\ge0.1$, and for $N{=}2$ down to $\omega=0.01$. Two independent methods agree
+there to a few hundredths of a percent. That is the whole of the external ground truth,
+and every relative error quoted anywhere else in this work depends on a reference we
+computed ourselves.
+
+\emph{Internally consistent, and consistent in ways that could have failed.} The
+deep-Wigner energies, the structural picture, and the architecture comparison. Nothing
+here is validated from outside, but the internal agreements are not cheap: independent
+diagnostics that measure different things converge on the same crossover; the fitted
+energy exponent lands near the classical $2/3$ that nothing in the ansatz knows about;
+the shell topologies reproduce classical ground states nobody trained the network to
+reproduce; and the architecture result survives seeding, a change of probe measure, and
+a capacity ladder that runs against it.
+
+\emph{Indicated, and no more.} The size-scaling of the tangent-space picture. The
+architecture comparison is seeded at $N{=}6$, rests on fewer models at $N{=}12$, and on a
+single production state at $N{=}20$. The trend is in the right direction and widens with
+particle number, which is what the mechanism predicts. It is not settled, and settling it
+is a question of compute rather than of interpretation.
+
+To that ledger belongs one further entry, which is methodological rather than physical.
+Quantities defined on a single component of the ansatz---the backflow's rank, its
+displacement magnitude, its share of the energy---are gauge-like. The Jastrow and the
+backflow are substitutes, so the division of labour between them is a nearly flat
+direction of the loss that the training route settles and the state does not. Every claim
+that reversed during this project was of that kind. What survives is what can be measured
+on the state or by deletion, and the conclusions above rest only on those.
+
+\section{Where it stops, and what would move it}
+
+Two walls bound the Markov-chain-free route, and they are different in kind. The first is
+statistical: the proposal loses the target, and a better proposal moves the wall---from
+$\omega\approx0.01$ to $\omega=0.0035$, in our case, by building the proposal out of the
+physics. The second is representational and does not yield to sampling at all. Below
+$\omega=0.0035$ a converged state does not survive transfer to a weaker trap, because the
+Wigner peak exists only through a near-cancellation between an exponentially suppressed
+determinant and a Jastrow that amplifies it back, and a $23\%$ change in $\omega$ tips
+that balance. Walkers placed directly on the classical shell relax inward regardless.
+No proposal can repair that. What is needed is an $\ell$-covariant parametrisation, or an
+objective anchored on the shell amplitude rather than on the energy alone.
+
+Three other things would move the picture, in rough order of how much they would move it.
+A backflow that is not quadratic in particle number: the $\mathcal{O}(N^2 h)$ edge tensor
+is what stops the method at twenty electrons, and it stops it for reasons of memory
+rather than of physics. A proposal that adapts on its own---a normalising flow, or the
+shell-informed construction of \S\ref{sec:kernel-q3-frontier} generalised past ring
+geometries. And the same architecture study repeated at $N{=}12$ and $N{=}20$ with the
+seeding the $N{=}6$ comparison already has, which would turn the last entry of the ledger
+from indicated into established.
+
+\section{A closing thought}
+
+The three axes of this thesis---what the network is, how it is optimised, and what
+measure defines the loss---looked at the outset like three separate engineering choices.
+They are one geometry. Architecture sets the shape of the variational tangent space. The
+optimiser inverts the metric on that space. The sampling measure decides whether the
+metric can be estimated at all. Read that way, the recurring finding is not about neural
+networks in particular: what matters is not capacity but alignment with the
+low-dimensional, collective structure the problem actually has---which, in real space,
+\emph{is} the Wigner molecule.
+
+The most durable results here came from the places where the attempt failed, and they
+came only because the failures had been made measurable: a rank collapse that survived
+seeding and a dimension inversion that did not; a sampler blamed for a wall the ansatz
+had built; an importance-sampling bug whose signature---accuracy falling away at larger
+$N$ and weaker $\omega$---was exactly what an inadequate architecture would have
+produced, and which no amount of thinking about architectures would ever have found.
+That is what the record was for.

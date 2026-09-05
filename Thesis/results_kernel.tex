@@ -52,39 +52,16 @@ energies, which makes it a statement about internal consistency and not about ac
 The tooling is anchored on the analytic two-electron ground state, where the ansatz
 returns $E=3.000127$~Ha ($+0.004\%$) at squared overlap $1.000000$.
 
-\paragraph{What follows, in short.}
-A message-passing correlator reaches the ground state in half as many effective tangent
-directions as a separable network of matched or larger capacity ($1.40\pm0.17$ against
-$3.25\pm0.03$ at $N{=}6$, $\omega{=}1$, seeded, $\sim\!11\sigma$), and those directions
-are the collective modes of the Hamiltonian itself---breathing, correlation hole,
-relative excitation---to $R^2=1.00$ at the exact two-electron anchor and
-$R^2\!\gtrsim\!0.93$ at $N{=}6$. The separable network spends nearly half its tangent
-budget where no compact physical dictionary can find it, and carries a higher
-$\Var(E_L)$ for it at every confinement, while matching the energy to four figures.
+\paragraph{The road.} We begin with what message passing changes in the tangent
+geometry, in the amplitude and in the nodes; then ask what that geometry implies for the
+optimiser and for the measure that builds it; then, taking the measure as something we
+may choose, remove the Markov chain from training altogether and find where the choice
+stops working. One caveat runs underneath all three and is itself a result: quantities
+living on a single component---backflow rank, displacement magnitude---are gauge-like,
+fixed by the training route rather than by the state. What the conclusions rest on
+instead is set out in \S\ref{sec:synthesis}, once there are conclusions to rest.
 
-In the nodes the same channel shows up as a collapse averted rather than a contribution
-made. Toward the Wigner crystal a conventional backflow falls onto a single collective
-mode---rank $10\!\to\!1$ at $N{=}6$, $22\!\to\!1$ at $N{=}12$---and loses half a percent
-of the energy, while the copresheaf field stays near its $2N$ ceiling and holds
-$\sim\!0.02\%$. Deleting the copresheaf backflow outright at that confinement costs
-$0.017\%$. So the message-passing backflow earns its place there not by what it adds but
-by what it declines to do: a backflow collapsed onto one mode does not sit idle, it
-drags the nodes with it. Correlator and backflow give way at the same $\omega$, and a
-better correlator postpones both.
-
-The optimiser and the sampler follow from the same geometry. Stochastic reconfiguration
-whitens the tangent kernel, so its value tracks $\kappa(S)$: negligible where
-$|\Psi|^2$ sampling has already conditioned the metric, decisive on the collocation
-objective, harmful once the sampling that builds the metric has collapsed. And a
-Markov-chain-free objective reaches the \emph{same state} as variational Monte Carlo
-while its importance sampling stays healthy, then diverges from it when the sampling
-fails---though a proposal built from the Wigner shell itself carries it to
-$\omega=0.0035$ before the wall.
-
-One caveat runs underneath and is itself a result. Quantities living on a single
-component---backflow rank, displacement magnitude---are gauge-like, fixed by the training
-route rather than by the state. The invariants are energy, local-energy variance, and
-ablation, with state overlap carrying the comparison between training paradigms.
+% =====================================================================
 \section{Message passing reorganises the variational geometry}
 \label{sec:kernel-q1}
 
@@ -370,7 +347,6 @@ common relational bottleneck beneath both rather than proving them literally ide
 \end{figure}
 
 % =====================================================================
-% =====================================================================
 \section{Conditioning: what the optimiser can do depends on the measure}
 \label{sec:kernel-cond}
 \label{sec:kernel-q2}
@@ -439,8 +415,8 @@ effective sample size falls to $0.11\%$ of the batch (about $5$ of the $4096$ re
 points---the normalisation used for every ESS figure in this thesis). When ESS collapses the
 gradient estimator is degenerate---a hard limit, not undertraining.
 
-This needs one reconciliation, because Chapter~\ref{ch:results} reports usable collocation
-energies at the same $(N,\omega)$ where the estimator is called degenerate here
+This needs one reconciliation, because \S\ref{sec:colloc-reliability} below reports usable
+collocation energies at the same $(N,\omega)$ where the estimator is called degenerate here
 ($+0.24$--$0.29\%$ across three seeds, Table~\ref{tab:reliability}). Two things differ.
 First, the sampler: the collapse measured above is for the \emph{static} origin-centred
 mixture, while the campaign's robust recipe refits its proposal every $30$ epochs and

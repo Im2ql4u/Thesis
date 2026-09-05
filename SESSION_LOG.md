@@ -1337,3 +1337,50 @@ sweep, which should be last since it depends on stable pagination.
 Final state: 119 pages, clean build, no undefined references or citations.
 Paragraph-header density: Ch 6 = 14 (was 33), Ch 7 = 24 (was 33), Ch 8 = 3 (was
 23), Ch 9 = 4.
+
+---
+
+## 2026-09-05 --- Front half rebuilt against the second half
+
+Implemented `FRONT_HALF_PLAN_2026-09-05.md`. Two commits; 119 pages down to 113,
+clean build, no undefined references, no overfull boxes.
+
+**Chapter 1** (9 -> 6 pp). Retitled and reopened around the three features of the
+Hamiltonian that make the problem hard. Hilbert-space formalism cut from two pages
+to two paragraphs; 164 lines of commented-out Rayleigh-Ritz material deleted.
+Second quantisation, HF and FCI merged into one section that says at the outset
+that none of it is computed here and that the point is three definitions the
+accuracy claims are calibrated against.
+
+The variational-methods section was rebuilt around what the second half asks of
+it. The fixed-node approximation had been one subordinate clause in a subsection
+called "Conclusion", yet the whole of 8.1 argues from it. It now gets the sign
+problem, the nodal constraint, its cost, and the three consequences 8.1 and 9.1
+depend on. The zero-variance principle gets its own paragraph, since Var(E_L) is
+now a headline discriminator. Sherman-Morrison determinant updates and recursive
+Laplacian routines deleted: the thesis uses autodiff and never performs a rank-1
+update, so that passage described a different implementation.
+
+Fixed the reference-state mislabelling: the closed-shell determinant was called an
+"RHF reference" though its orbitals are harmonic-oscillator eigenstates and no SCF
+is performed anywhere.
+
+**Chapter 2** (13 -> 8 pp). The framing was wrong, not merely generic: 2.1 opened
+on empirical risk minimisation and 2.7 carried that forward as "generalisation,
+not fitting, is the real problem". There is no dataset, no train/test split and
+nothing to overfit to. Rewritten to say what the difficulty actually is - a moving
+measure, and an objective that depends on second derivatives. The activation
+survey (nine functions, three initialisation schemes, three pages) reduced to the
+argument the thesis needs. The generalisation and loss-landscape subsections
+deleted. 2.5 rewritten so it agrees with the introduction's "representability is
+cheap; trainability is the difficulty" instead of contradicting it. 2.7 turned
+from a summary into a handoff: the dictionary between the two traditions, then the
+four facts the Methods answer.
+
+**Methods** now opens by naming those constraints, so the construction reads as
+forced. The k-hat threshold theory added next to its definition in 4.5, with
+chapter 7's inline duplicate cut to a sentence.
+
+Correction to the review: I had listed the overlap estimator as missing from the
+front half. It is defined in 5.3, carefully, with the modulus-versus-signed
+caveat. Three of the four gaps were real, not four.

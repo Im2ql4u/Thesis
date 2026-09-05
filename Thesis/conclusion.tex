@@ -31,12 +31,13 @@ conditioning and inductive bias matter at least as much as raw sample count.
 
 On the \emph{structural} side, the weak-trap states develop bona fide Wigner-molecule
 structure rather than being vaguely ``strongly correlated'' dots
-(Sec.~\ref{sec:wigner-molecule}). As $\omega$ falls, all three systems $(N=2,6,12)$ cross
-over smoothly: radii and localisation ratios move toward large stiff configurations, the
-energy partitioning approaches the classical virial form $V_{\rm int}\approx 2V_{\rm
-trap}$, and shell structures and bond orders emerge that match classical Coulomb-cluster
-topologies---a single rotating ring mixing $(1,5)$ and $(0,6)$ at $N{=}6$, a modal
-two-shell $(3,9)$ molecule at $N{=}12$. Shell-resolved reconstructions of $g(r)$ recover
+(Sec.~\ref{sec:wigner-molecule}). As $\omega$ falls, every system studied
+$(N=2,6,12,20)$ crosses over smoothly: radii and localisation ratios move toward large
+stiff configurations, the energy partitioning approaches the classical virial form
+$V_{\rm int}\approx 2V_{\rm trap}$, and shell structures and bond orders emerge that match
+classical Coulomb-cluster topologies---a single rotating ring mixing $(1,5)$ and $(0,6)$ at
+$N{=}6$, a modal two-shell $(3,9)$ molecule at $N{=}12$, and a three-shell molecule at
+$N{=}20$ that collapses toward a single shell within one decade in $\omega$. Shell-resolved reconstructions of $g(r)$ recover
 the global pair structure from shell geometry and combinatorics alone (a decomposition
 check; sampling correctness rests on the independent restart and chain diagnostics).
 Throughout, $N_\uparrow=N_\downarrow$ is held fixed and total-spin sectors are not
@@ -55,16 +56,22 @@ simply switches backflow off---proves architecture-specific and is corrected her
 the \emph{conventional} backflow that collapses to a single collective mode at the Wigner
 crystal and loses accuracy, its single round of pairwise messages failing to sustain the
 relative displacement the crystal demands, while the copresheaf message-passing backflow
-holds full rank and its accuracy. How these internal numbers may be read is itself a
+holds both its rank and its accuracy. The energetic reading is narrower than it first
+appears: at the crystal the copresheaf backflow is itself nearly inert, so what message
+passing buys in the nodes there is the absence of a collapse that would otherwise cost
+half a percent. How these internal numbers may be read is itself a
 result: component-level quantities are gauge-like, so the load-bearing conclusions rest on
-the invariants---energy, overlap, ablation---not on the ranks.
+the invariants---energy, local-energy variance, ablation, and state overlap---not on the
+ranks.
 
 On the \emph{method} side, the tangent kernel connects these observations to the design
 choices that produced them (Chapter~\ref{ch:kernel}). Message passing earns its cost by
 supplying a relational channel: it compresses the correlator onto fewer effective tangent
-directions and sustains a full-rank backflow where a separable network cannot, and at the
-crystal the inter-particle messages account for essentially the entire backflow
-contribution. The sharper statement concerns physical structure rather than dimension
+directions---at consistently lower local-energy variance---and sustains a high-rank
+backflow where a single round of pairwise messages cannot. As the trap weakens the
+relational work migrates from the nodes to the amplitude: deleting the backflow costs
+$5.6\%$ at $\omega{=}1$ but under $0.02\%$ at the crystal, while deleting the correlator's
+messages costs more and more. The sharper statement concerns physical structure rather than dimension
 count---message passing keeps the correlator's leading tangent modes aligned with the
 Hamiltonian's collective modes, whereas a separable network reaches the same energy with
 much of its tangent capacity along directions a compact physical dictionary does not
@@ -97,8 +104,8 @@ Taken together, these findings converge on a single theme. What makes the differ
 across architecture, optimiser, and training paradigm is not raw capacity but alignment
 with the low-dimensional, physically collective structure of the problem---the same
 structure that, in real space, \emph{is} the Wigner molecule. A compact correlator
-supplies learned collective coordinates; a message-passing backflow supplies the
-relational corrections a single-round-message network cannot sustain; natural gradients and $|\Psi|^2$
+supplies learned collective coordinates; a message-passing backflow keeps the nodal
+correction from collapsing onto one mode as a single-round network does; natural gradients and $|\Psi|^2$
 sampling keep the optimisation pointed along those directions. The quantum-dot results
 thus provide both a stringent validation of the method and a template for the same
 ideas in more complex finite fermion systems, where the trade-offs between global

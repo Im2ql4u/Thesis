@@ -1211,3 +1211,33 @@ Build: 121 pages, 0 errors, 0 undefined references or citations.
   cross-references.
 - Visually verified the Introduction opening; the PDF remains 122 pages with no
   errors or unresolved references.
+
+---
+
+## 2026-09-05 --- Triage of external audit (40 items), no edits applied
+
+- Verified all 40 items of an external LLM audit against the LaTeX source, the
+  generated tables, and the run data in `results/`. Wrote the prioritised
+  triage to `AUDIT_TRIAGE_2026-09-05.md`. No thesis files were modified.
+- Roughly 30 of 40 items are real. Items 17, 28, 35 and 39 are misreads and are
+  documented as such so they are not acted on.
+- Found one defect the audit missed, and it is the most serious: the
+  kinetic->Coulomb backflow-ablation claim (`results_kernel.tex:274-278`, echoed
+  in the headline block at line 93 and in the abstract) is contradicted by its
+  own data. `scripts/run_message_ablation.py` evaluates all four ablation arms on
+  a single fixed sample set drawn from the full model, so `V_coul` is identical
+  across arms by construction and every measured delta is kinetic. The quoted
+  "dV_Coul ~ +0.017" is the ablation cost in *percent* (0.000113/0.69035 =
+  0.0164%) relabelled as a Hartree value. No Coulomb-resolved ablation data
+  exists anywhere in `results/`. Recommendation is deletion, not a rerun.
+- Second-order consequence: deleting the CTNN backflow at omega=0.01 costs
+  +0.017%, while a retrained conventional backflow costs +0.58% (Table 7.1). The
+  honest Q1b framing is that message passing buys the *absence of a pathology* at
+  the crystal, not a positive energetic contribution.
+- Confirmed Var(E_L) is declared the master discriminator in section 7.5 with no
+  reported value anywhere in the document (six mentions, zero numbers), and that
+  state overlap is declared an invariant but never computed for Q1.
+- Bibliography audit: 47 of 99 `.bib` entries are cited. Uncited but needed:
+  `raissi2019pinns`, `zaheer2018deepsets` (DeepSet appears 18 times in Ch. 7),
+  `CarleoTroyer2017-ScienceNQS`, `HolzmannCeperley2003-Backflow`. Genuinely
+  absent: Jastrow 1955, Feynman-Cohen 1956, Barron 1993, minSR/Rende 2024.

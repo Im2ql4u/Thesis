@@ -329,7 +329,10 @@ small residual COM drift seen in ablations.}
 
 \subsection{Effect on the nodes and variational safety}
 Because only $\mathrm{SD}$ is evaluated at $\tilde R'$, backflow changes the \emph{nodes} but leaves the correlator exponent on $\tilde R$. No Jacobian term is introduced (we are not performing a change of variables of the full wavefunction).
-This ``Feynman--Cohen style'' design targets fixed-node error directly while keeping the amplitude model simple and smooth.
+This ``Feynman--Cohen style''~\cite{FeynmanCohen1956-Backflow} design targets fixed-node
+error directly while keeping the amplitude model simple and smooth; the same idea in its
+modern quantum-Monte-Carlo form is due to Holzmann and
+Ceperley~\cite{HolzmannCeperley2003-Backflow}.
 
 \subsection{Regularization, initialisation, and cost}
 We found the following defaults robust across $(N,\omega)$:
@@ -363,7 +366,9 @@ size effects. The controlled correlator/backflow study fixes each pair of varian
 same capacity tier; the reported ground-state energies use the wider production networks. A
 key point is that the message-passing and separable variants are held at comparable
 parameter counts, so a difference in outcome cannot be attributed to one simply being
-larger. All settings below are those of the accompanying code
+larger---and where Chapter~\ref{ch:kernel} departs from matched capacity it does so in the
+\emph{separable} network's favour, scaling the DeepSet from $20$k to $164$k parameters
+against a fixed $80$k CTNN without closing the gap. All settings below are those of the accompanying code
 (\texttt{scripts/run\_depth\_analysis.py} for the comparison tiers;
 \texttt{scripts/source\_state\_check.py} for the production widths).
 
@@ -374,15 +379,15 @@ V-cycle). The two correlator variants (and the two backflow variants) are matche
 capacity within the comparison tier.}
 \label{tab:hyperparams}
 \small
-\begin{tabular}{llll}
+\begin{tabular}{lllll}
 \hline
-Component & Variant & Comparison tier & Production \\
+Component & Variant & Comparison tier & Production & Params \\
 \hline
-Correlator & CTNN (V-cycle) & node/edge $32$, bottleneck $16$, rounds $2{+}2$ & width $128$, $2$ layers \\
-           & DeepSet        & pair-MLP $64\times4$, out $32$                 & width $128$, $2$ layers \\
-Backflow   & CTNN (copresheaf) & node/edge $64$, $1$ round                   & width $128$, $3$ layers \\
-           & Conventional      & msg $64$, node-MLP $64\times3$              & width $128$, $3$ layers \\
-Readout    & (correlator)   & hidden $64$, $2$--$3$ layers, SiLU            & --- \\
+Correlator & CTNN (V-cycle) & node/edge $32$, bottleneck $16$, rounds $2{+}2$ & width $128$, $2$ layers & $79.8$k \\
+           & DeepSet        & pair-MLP $64\times4$, out $32$                 & width $128$, $2$ layers & $47.7$k \\
+Backflow   & CTNN (copresheaf) & node/edge $64$, $1$ round                   & width $128$, $3$ layers & $83$k \\
+           & Conventional      & msg $64$, node-MLP $64\times3$              & width $128$, $3$ layers & $83$k \\
+Readout    & (correlator)   & hidden $64$, $2$--$3$ layers, SiLU            & --- & --- \\
 \hline
 Optimiser  & Adam           & $\mathrm{lr}=5\times10^{-4}$ (BF), $5\times10^{-5}$ (Jastrow) & \\
            & CG-SR          & Tikhonov damping $\lambda$, trust-region cap, CG restarts & \\
@@ -543,7 +548,11 @@ $\lambda$; and
 (iii) \textbf{CG-SR}, the same step solved matrix-free by (preconditioned) conjugate
 gradients with Tikhonov damping and a trust-region cap, which converges faster where $S$ is
 well conditioned but becomes unstable in the weak-confinement regime where $S$ is nearly
-singular. Under $|\Psi|^2$ sampling the Adam and SR \emph{fixed points} coincide; they differ
+singular. Solving the SR step without forming $S$ is what makes it affordable at
+$\mathcal{O}(10^5)$ parameters; the same obstacle is addressed from the other side by the
+minSR and kernel-formulation reductions, which exploit the fact that the number of samples,
+not the number of parameters, sets the true rank of the
+problem~\cite{ChenHeyl2024-minSR,Rende2024-KernelSR}. Under $|\Psi|^2$ sampling the Adam and SR \emph{fixed points} coincide; they differ
 in conditioning and in the collocation regime, which is the subject of
 \S\ref{sec:kernel-q2}.
 

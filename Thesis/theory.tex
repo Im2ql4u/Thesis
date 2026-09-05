@@ -434,10 +434,14 @@ few-electron quantum dots (e.g.\ $N=2,6$) this makes high-accuracy FCI feasible 
 $M$; for larger $N$ the determinant growth becomes the bottleneck.
 
 \subsection{Role in this thesis}
-HF provides physically meaningful orbitals and an upper bound; FCI (in the same one-particle
-basis) provides benchmark energies for small systems. We use these as references to assess the
-accuracy of our variational Slater–Jastrow/PINN results for 2D quantum dots. For larger $N$
-(where FCI is prohibitive) we rely on variational energies plus uncertainty estimates.
+These methods set the vocabulary rather than supply the numbers. HF fixes what
+\emph{correlation energy} means---the part of the exact energy a single determinant cannot
+reach---and FCI names the exact answer within a finite one-particle basis, so that
+``$0.05\%$ from the reference'' has a scale attached to it. We compute neither here. Our
+determinant is built from harmonic-oscillator orbitals rather than HF orbitals, and our
+external benchmark is diffusion Monte Carlo~\cite{Pederiva2000-QD-DMC}, which for these
+systems is both more accurate than an affordable FCI and available at the particle numbers
+we care about. The reader should carry forward the definitions, not expect the tables.
 \section{Quantum Dots}
 
 \subsection{Model and units}
@@ -536,139 +540,52 @@ For electron–nucleus coalescence ($\mu_{eA}\!\approx\!1$, $Z_i Z_j=-Z_A$):
 \paragraph{Why this matters.}
 These conditions ensure the kinetic energy’s $r^{-1}$ singularity cancels the Coulomb $r^{-1}$
 term so that $E_L$ remains finite as particles coalesce. Enforcing the cusp explicitly improves conditioning.
+
 \section{Structural diagnostics and Wigner markers}
 \label{sec:wigner-markers-theory}
 
-This section introduces the structural diagnostics conceptually---what each marker
-means and why it detects Wigner order; the precise computational procedures used in
-this thesis (estimators, thresholds, and stability protocol) are collected in the
-Analysis chapter (Chapter~\ref{ch:analysis}).
+A Wigner molecule is not defined by a single number, so the crossover has to be read from
+several markers at once. This section says what each one measures and why it responds to
+Wigner order; the estimators, thresholds and stability protocol are defined once, in the
+Analysis chapter (\S\ref{sec:analysis-struct}), and the measurements themselves are in
+Chapter~\ref{ch:results}.
 
-Unless stated otherwise, curves are accumulated in \emph{trap units}
-$\tilde{\mathbf r}=\sqrt{\omega}\,\mathbf r$ so that length scales align across $\omega$, 
-while headline distances are reported in \emph{Bohr} (physical units $\mathbf r$).
-Production chains are thinned; we split samples into halves for stability checks 
-(acceptance window, JSD between halves, reproducibility under restarts).
+\paragraph{Radial localisation.} The pair distribution $g(r)$ and the radial probability
+$P(r)$ say how far apart the electrons sit and how tightly that distance is fixed. The
+informative quantity is not the typical radius---which simply grows as the trap weakens---but
+the \emph{ratio} of the radial width to it. A distribution that becomes relatively narrower
+around a growing radius is a shell stiffening; one that merely dilates is a droplet
+expanding. This is the finite-system analogue of a Lindemann criterion.
 
-\subsection{Pair distribution $g(r)$, $P(r)$, and width markers}
-\label{subsec:gr-pr-theory}
+\paragraph{Shell topology.} In a parabolic trap the classical minimum energy configuration
+is a set of concentric rings with definite occupancies---$(1,5)$ at $N{=}6$, $(3,9)$ at
+$N{=}12$~\cite{schweigert1994spectralpropertieschargedparticles,Kong_2002}. Detecting those
+occupancies frame by frame turns a qualitative picture into a distribution over topologies,
+which is what makes it possible to say that a state is \emph{mostly} $(3,9)$ with real
+weight on $(2,10)$---a rotating molecule fluctuating between near-degenerate shellings
+rather than a single frozen crystal.
 
-We estimate the (spin-summed) pair distribution $g(r)$ via a shell‐area corrected histogram in trap units,
-\begin{equation}
-g(r_\alpha)\;=\;\frac{A_{\mathrm{eff}}}{N(N-1)}\;
-\frac{\big\langle\sum_{i<j}\mathbf{1}\{r_{ij}\!\in[r_\alpha^-,r_\alpha^+)\}\big\rangle}
-{2\pi r_\alpha\,\Delta r_\alpha},\qquad
-r_{ij}=\|\tilde{\mathbf r}_i-\tilde{\mathbf r}_j\|_2,
-\end{equation}
-with $A_{\mathrm{eff}}=\pi R_{0.95}^2$ and $R_{0.95}$ the $95\%$ quantile of single‐particle radii (trap units).
-We form the normalised radial probability in $d{=}2$,
-\(
-P(r)\propto r\,g(r),
-\)
-and report the mode $r_{\mathrm{mode}}$, mean $\bar r$, standard deviation $\sigma_r$, FWHM, and quantiles $q_{10},q_{50},q_{90}$ (in Bohr).
-A compact width–to–scale marker is
-\begin{equation}
-\gamma \;=\; \sigma_r / r_{\mathrm{mode}},
-\label{eq:gamma-theory}
-\end{equation}
-which decreases as correlations stiffen (narrow distribution around a larger typical radius).\footnote{For $N{=}2$, $\gamma$ is complemented by the pair–distance Lindemann $\gamma_{r_{12}}=\mathrm{std}(r_{12})/\mathrm{mode}(r_{12})$, cf.\ Sec.~\ref{subsec:n2-scaling}.}
+\paragraph{Orientational order.} Radial structure alone cannot distinguish a ring of
+electrons at fixed angular spacing from a ring free to slide. The bond-orientational order
+parameter $\Phi_m$ measures $m$-fold angular order on a detected ring after removing global
+rotation, and an angular Lindemann number measures how stiff those spacings are. Both are
+standard in two-dimensional Coulomb and Yukawa
+systems~\cite{Mazars_2008,Filinov_2001}, and together with the radial markers they separate
+angular from radial melting---the two need not happen at the same $\omega$.
 
-\paragraph{Sanity anchors at $\boldsymbol{\omega\!=\!10^{-3}}$.}
-For $N{=}6$ and $N{=}12$, $P(r)$ exhibits sharp peaks with small $\gamma$; these are the expected Wigner-side shapes.\,
-For $N{=}2$ we additionally report the near-origin mass 
-$\int_0^{0.25\,r_{\mathrm{mode}}}\!\rho_1(r)\,dr$ and 
-$\Pr(r_{12}\!\le 0.25\,\mathrm{mode}(r_{12}))$, both $\ll 1$ as required by the cusp and strong repulsion.
+\paragraph{Classical scaling.} Finally, the strong-coupling limit makes a parameter-free
+prediction: inter-particle distances should approach $r\propto\omega^{-2/3}$. Fitting the
+measured exponent and watching it approach $-2/3$ from above is an external check on the
+whole picture, since nothing in the ansatz knows about that number.
 
-\subsection{Automatic shell detection and topology labeling}
-\label{subsec:shells-theory}
-
-For each frame we sort single‐particle radii $\tilde s_1\le\cdots\le \tilde s_N$ (trap units),
-compute gaps $g_k=\tilde s_{k+1}-\tilde s_k$, and flag a frame as \emph{two‐shell} if
-\begin{equation}
-\max_k g_k \;\ge\; \tau\,\mathrm{median}(g_k),
-\qquad \tau\in[2.0,3.0] \ \text{(robust)}.
-\end{equation}
-The cut radius is the midpoint of the maximal gap; the inner multiplicity $n_{\mathrm{in}}$ defines the topology 
-$(n_{\mathrm{in}}, N-n_{\mathrm{in}})$.
-We report:
-(i) the fraction of two‐shell frames,
-(ii) the histogram over $n_{\mathrm{in}}$ among two‐shell frames, and
-(iii) for selected topologies (e.g.\ $(1,5)$ or $(3,9)$) their fraction among \emph{all} frames.
-
-\paragraph{II/IO/OO decomposition (what is being added).}
-On two‐shell frames we decompose pairs into inner–inner (II), inner–outer (IO), and outer–outer (OO), 
-accumulate $g_{\mathrm{II}},g_{\mathrm{IO}},g_{\mathrm{OO}}$, and reconstruct
-\[
-\tilde g(r)=w_{\mathrm{II}}g_{\mathrm{II}}+w_{\mathrm{IO}}g_{\mathrm{IO}}+w_{\mathrm{OO}}g_{\mathrm{OO}},
-\]
-with empirical weights from pair counts.
-We report $\cos\angle(g,\tilde g)$ (cosine similarity); values $\approx 1$ indicate that the observed $g(r)$ is explained by shell geometry rather than sampling artifacts.
-
-\paragraph{Sanity anchors at $\boldsymbol{\omega\!=\!10^{-3}}$.}
-For $N{=}6$, $w_{\mathrm{OO}}\!:\!w_{\mathrm{IO}}\!\approx\!2\!:\!1$ and $\cos\angle(g,\tilde g)\!=\!1.000$ within numerical precision.
-For $N{=}12$, the two‐shell fraction is $0.906$–$0.990$ across $\tau\in\{3.0,2.5,2.0\}$ and $\cos\angle(g,\tilde g)\!\in[0.989,1.000]$ depending mildly on $\tau$/seed.\,
-The \emph{modal} inner multiplicity at $\omega\!=\!10^{-3}$ is $(3,9)$, while $(2,10)$ and $(1,11)$ retain substantial weight—consistent with a rotating two-shell Wigner molecule. 
-For classical references to shellings and near-degeneracies in parabolic/cluster confinements, see
-Schweigert–Peeters and Kong–Partoens–Peeters.\cite{schweigert1994spectralpropertieschargedparticles,Kong_2002}
-
-\subsection{Orientational order and angular “Lindemann”}
-\label{subsec:orient-theory}
-
-After recentring each detected ring (inner/outer) to remove global rotations, with angles $\{\phi_k\}_{k=1}^n$, we use the bond–orientational order
-\begin{equation}
-\Phi_m \;=\; \frac{1}{n}\sum_{k=1}^n e^{\,\mathrm{i} m \phi_k},
-\qquad m=n,
-\end{equation}
-so that $|\Phi_m|\in[0,1]$ measures $n$‐fold orientational order (e.g.\ $m{=}5$ for $(1,5)$; $m{=}9$ for the outer ring of $(3,9)$).\,
-As a complementary, dimensionless \emph{angular Lindemann} number we use
-\begin{equation}
-\lambda_\phi \;=\; \frac{\mathrm{std}(\Delta\phi)}{\mathbb{E}[\Delta\phi]},
-\qquad 
-\Delta\phi\;=\;\text{nearest‐neighbour angular spacings on the ring}.
-\end{equation}
-Smaller $\lambda_\phi$ indicates a stiffer (more Wigner‐like) ring.
-This follows the spirit of bond–orientational order used in 2D Coulomb/Yukawa systems,\cite{Mazars_2008,Filinov_2001}
-with the Lindemann idea adapted from melting criteria to angular spacings on a fixed-$n$ ring.
-
-\paragraph{Sanity anchors at $\boldsymbol{\omega\!=\!10^{-3}}$.}
-For $N{=}6$, phase-aligned $(1,5)$ and $(0,6)$ sectors show comparable order 
-($|\Phi_5|\!\approx\!0.48$, $|\Phi_6|\!\approx\!0.52$) with $\lambda_\phi\!\approx\!0.29$—a single-ring rotating Wigner molecule.
-For $N{=}12$, $(3,9)$ frames have strong order 
-($|\Phi_3|\!\approx\!0.67$, $|\Phi_9|\!\approx\!0.50$) and small $\lambda_\phi$ ($\sim\!0.24$–$0.26$).
-$(2,10)$ exhibits very tight inner order ($|\Phi_2|\!\approx\!0.73$) with a softer outer ring ($|\Phi_{10}|\!\approx\!0.42$), and $(1,11)$ has weak outer order and a softly vibrating centre—precisely the \emph{rotating Wigner molecule} (RWM) picture of fluctuating orientations across near-degenerate shellings.\cite{Egger_1999,manninen2007metalclustersquantumdots}
-
-\subsection{Scaling check and two-body benchmarks ($N=2$)}
-\label{subsec:n2-scaling-theory}
-
-To connect with the classical strong‐coupling limit we fit 
-\begin{equation}
-r_{\mathrm{mode}}(\omega) \;=\; C\,\omega^{\alpha}
-\end{equation}
-by linear regression in $\big(\log\omega,\log r_{\mathrm{mode}}\big)$ and compare with the two-body classical scaling $\alpha_{\mathrm{cl}}=-2/3$.
-At $\omega\!=\!10^{-3}$ the $r_{12}$ histogram is sharply peaked and the near-origin mass in $\rho_1$ and $p(r_{12})$ is $\ll 1$, validating the cusp implementation while confirming deep Wigner localization (see also Ref.~\cite{Egger_1999} for the crossover criterion in dots).
-
-\subsection{Reporting and stability checks}
-\label{subsec:sanity-theory}
-
-For all scalars and histograms we report standard errors from block averages over thinned frames.
-We verify: 
-(i) acceptance in the target window,
-(ii) Jensen–Shannon divergence and $\ell_2$ distance between split halves (stationarity),
-(iii) robustness of topology fractions and $|\Phi_m|$ under $\tau\in[2.0,3.0]$ and mild pre‐smoothing of radii, and
-(iv) reproducibility of $g(r)$, $P(r)$, and bond-order metrics under independent sampler restarts.
-All diagnostics operate directly on saved bundles 
-$\{\mathbf{X}_{\mathrm{Bohr}},\,r,\,g(r)\}$.
-
-\paragraph{Interpretation guide (link to Results).}
-Across $\omega\in\{1.0,0.5,0.1,0.01,10^{-3}\}$ these diagnostics map the fluid$\to$Wigner crossover: 
-$\gamma$ and $\lambda_\phi$ shrink, shell gaps sharpen, and shell-resolved $|\Phi_m|$ becomes nonzero after phase alignment. 
-For $N{=}6$ this manifests as a single-ring RWM with $(1,5)$–$(0,6)$ near-degeneracy; 
-for $N{=}12$ as a two-shell RWM with modal $(3,9)$ but sizable $(2,10)$ and $(1,11)$ weights.
-Classical shelling and near-degeneracies in finite Coulomb clusters\cite{schweigert1994spectralpropertieschargedparticles,Kong_2002}
-and quantum Wigner markers in parabolic dots\cite{Egger_1999,manninen2007metalclustersquantumdots,Filinov_2001,Mazars_2008}
-provide the theoretical backdrop for reading these plots.
-
-% ------------------------------------------------------------
+\paragraph{How to read them together.} As $\omega$ falls, the width ratios and angular
+Lindemann numbers shrink, shell gaps sharpen, the shell-resolved $|\Phi_m|$ become nonzero
+after phase alignment, and the radial exponent approaches its classical value. No one of
+these is decisive---a narrow $P(r)$ can be an artefact of poor sampling, and a large
+$|\Phi_m|$ can be a fluctuation on a short chain---but they fail in different ways, which is
+why Chapter~\ref{ch:results} reports them together and Chapter~\ref{ch:analysis} states the
+stability checks each one is subjected to. Quantum Wigner markers in parabolic dots are
+reviewed in Refs.~\cite{Egger_1999,manninen2007metalclustersquantumdots,Filinov_2001,Mazars_2008}.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Variational Methods}
@@ -734,7 +651,7 @@ DMC simulates the imaginary-time evolution using a combination of diffusion, dri
 QMC methods have been successfully applied to various quantum systems:
 \begin{itemize}
     \item \textbf{Hydrogen Atom:} A simple trial wavefunction $\Psi_T(r)=e^{-\alpha r}$ yields the exact ground state for $\alpha=1$, illustrating zero variance.
-    \item \textbf{Harmonic Traps:} In systems confined by harmonic potentials, Jastrow factors like $\exp[-ar_{ij}/(1+\beta r_{ij})]$ model inter-particle repulsion while Slater determinants maintain the proper fermionic symmetry.
+    \item \textbf{Harmonic Traps:} In systems confined by harmonic potentials, Jastrow factors~\cite{Jastrow1955-ManyBodyCorrelation} like $\exp[-ar_{ij}/(1+\beta r_{ij})]$ model inter-particle repulsion while Slater determinants maintain the proper fermionic symmetry.
 \end{itemize}
 
 \subsubsection{Computational Efficiency}
@@ -1340,7 +1257,8 @@ that depend on $d'$ rather than the ambient $d$. This replaces ambient complexit
 by the intrinsic geometry of $M$, yielding polynomial (rather than exponential)
 scaling.
 
-A second route is \emph{spectral/Barron regularity}: for targets with finite first Fourier
+A second route is \emph{spectral/Barron regularity}~\cite{Barron1993-UniversalApprox}:
+for targets with finite first Fourier
 moment (Barron class), two–layer networks attain a \emph{dimension–independent}
 $O(n^{-1/2})$ $L^2$–approximation error with $n$ hidden units. Deep and
 compositional Barron spaces extend this beyond smooth settings, providing broad
@@ -1398,9 +1316,12 @@ initialisation strategies, and physics-informed extensions.
 Traditional machine learning focuses on fitting models to labeled data. 
 In scientific applications, however, governing equations such as differential 
 equations encode a wealth of prior information about the system. 
-\emph{Physics-Informed Neural Networks (PINNs)} integrate these constraints 
-directly into the learning process, combining data-driven approximation 
-with analytical structure.  Figure \ref{fig:activation_derivatives} illustrates how the behaviour of neural networks changes when working with higher order derivatives, as is common in PINNs. 
+\emph{Physics-Informed Neural Networks (PINNs)}~\cite{raissi2019pinns} integrate these
+constraints directly into the learning process, combining data-driven approximation
+with analytical structure. The idea of training a network against a differential operator
+predates the name by two decades~\cite{Lagaris1998-ANNforODEPDE}; what
+\cite{raissi2019pinns} added was automatic differentiation, which makes the residual
+cheap enough to evaluate that it can drive the optimisation directly.  Figure \ref{fig:activation_derivatives} illustrates how the behaviour of neural networks changes when working with higher order derivatives, as is common in PINNs. 
 %this is a plot of the different activation functions for first, second and third order derivative showing
 %how behaviour changes with PINNs, the file is runder all_activations_shared_legend.pdf
 

@@ -81,6 +81,15 @@ the parameter count is independent of $N$ because particle
 interactions enter through permutation-equivariant features rather than
 per-particle weights.
 
+Three parameter budgets appear in this thesis and should not be confused. These
+\emph{production} networks carry the SR--VMC energies above. The \emph{collocation}
+runs of \S\ref{sec:collocation} use deliberately smaller models ($\sim\!25$k Jastrow-only,
+$\sim\!49$k with backflow), because that programme is limited by gradient noise and memory
+rather than by capacity. And the \emph{controlled comparison} of Chapter~\ref{ch:kernel}
+uses its own matched ladder (Table~\ref{tab:hyperparams}), so that architecture can be
+varied with size held fixed. Numbers from one budget are never compared with numbers from
+another.
+
 \subsection{Energies}
 
 The tables in this section are the thesis's only contact with an external ground
@@ -130,8 +139,8 @@ Table~\ref{tab:energies} compares diffusion Monte Carlo (DMC) references with
 our \emph{final} PINN+BF energies after residual pretraining and an SR tail.
 From the ultra–shallow two-electron case ($\omega{=}0.01$) to the many-electron
 systems, absolute deviations are small; for $N{=}2$ they lie within DMC
-uncertainties, and for $N\!\in\!\{6,12\}$ the relative deviations are 
-typically in the range $0.01$–$0.08\%$ (see also
+uncertainties, and for $N\!\in\!\{6,12\}$ the relative deviations span
+$0.008$–$0.05\%$ (see also
 Fig.~\ref{fig:rel_error_vs_omega}).
 
 \begin{table}[htbp]
@@ -194,21 +203,20 @@ The reference column collects the best available benchmark for each size: DMC fr
   references as a function of trap frequency $\omega$ for the cases where
   DMC data are available. For $N{=}2$ the deviations are at or below the DMC
   error bars ($\sim 10^{-3}\,\%$), while for $N{=}6$ and $N{=}12$ the errors
-  remain in the range $2.5\times 10^{-2}$–$5\times 10^{-2}\,\%$ across
-  $\omega$, with no sign of deterioration in the shallow- or tight-trap
-  limits.}
+  span $0.008$–$0.05\,\%$ across $\omega$, with no sign of deterioration in the
+  shallow- or tight-trap limits.}
   \label{fig:rel_error_vs_omega}
 \end{figure}
 
 \paragraph{Summary.}
 The pattern is clean wherever we can check it. For $N{=}2$ the ansatz reaches DMC
 accuracy at every $\omega$ for which a DMC number exists, and for $N\!\in\!\{6,12\}$
-the relative deviation stays within roughly $0.01$–$0.08\%$ across the benchmarked
+the relative deviation stays within $0.008$–$0.05\%$ across the benchmarked
 range ($\omega\ge0.1$; Fig.~\ref{fig:rel_error_vs_omega}). Below $\omega=0.1$ there
 is no DMC reference for $N\ge6$, and we make no claim of absolute accuracy there;
-what we can say is that the energies join smoothly onto the benchmarked regime and,
-in the deep-Wigner limit, follow the physical energy scaling derived in
-\S\ref{sec:wigner-energy}. The efficiency is as notable as the accuracy: the SR
+what we can say is that the energies join smoothly onto the benchmarked regime and, in
+the deep-Wigner limit, follow the power-law scaling fitted in \S\ref{sec:wigner-energy},
+whose exponent sits close to the classical Wigner value $2/3$. The efficiency is as notable as the accuracy: the SR
 tail converges in $10^3$–$3\times10^3$ iterations of $\sim 3{\times}10^3$ samples
 each, a modest optimisation budget for a fully many-body wavefunction. We attribute
 this stability to a small set of conditioning choices---
@@ -248,8 +256,8 @@ substitutes, so how the labour is divided between them is a nearly flat directio
 the loss, settled by the training route rather than by the state. Quantities living on
 a single component---the backflow's rank and displacement magnitude, the per-branch
 loadings, the coupling between the two networks---are therefore \emph{gauge-like};
-\S\ref{sec:synthesis} establishes why, and the invariants are energy, state
-overlap, and ablation. The anatomy below is not weakened by this: it is a faithful
+\S\ref{sec:synthesis} establishes why, and the invariants are energy,
+local-energy variance, and ablation. The anatomy below is not weakened by this: it is a faithful
 dissection of one high-quality solution, and the regularities it shows are the more
 telling for being ones the network was free \emph{not} to adopt.
 
@@ -410,7 +418,7 @@ specifically, and it is exactly the point at which the companion chapter finds t
 two architectures part ways: toward the Wigner crystal a \emph{conventional},
 single-round-message backflow collapses to a single collective mode (rank~$\to 1$) and
 its energy degrades---its one round of pairwise messages failing to sustain the relative
-displacement the crystal demands---whereas the CTNN retains its full rank because its
+displacement the crystal demands---whereas the CTNN stays near the $2N{-}2$ ceiling because its
 copresheaf edge-transport does sustain it (Chapter~\ref{ch:kernel},
 \S\ref{sec:kernel-q1b}). The high rank reported here is thus not incidental---it is
 the structural signature of the mechanism that makes message passing worth its cost.
@@ -1095,8 +1103,8 @@ The Pfaffian ansatz replaces the Slater determinant with a more
 general antisymmetric form $\text{Pf}[A_{ij}]$, which in principle
 offers richer nodal topology.
 Representative results: $E{=}20.261\pm0.004$ and
-$E{=}20.245\pm0.005$ at $N{=}6$, $\omega{=}1.0$ (both ${\sim}0.4\%$
-above DMC), compared to $+0.009\%$ for BF+Jastrow.
+$E{=}20.245\pm0.005$ at $N{=}6$, $\omega{=}1.0$ ($+0.50\%$ and $+0.43\%$
+above DMC), compared to $+0.013\%$ for BF+Jastrow.
 The Pfaffian's greater expressivity was not exploitable within the
 current training pipeline; the simpler BF+Jastrow family
 consistently outperformed it.
@@ -1138,6 +1146,8 @@ training-time importance sampling.
   All tabulated rows use the backflow+Jastrow (BF) architecture; the
   memory-limited $N{=}20$ case is discussed separately in
   Appendix~\ref{app:postcatch22:frontier}.
+  The \%\,err column scores the ``Campaign (best)'' energy where that column exists
+  ($N{=}6,12$) and the ``Multi-stage'' energy for $N{=}2$, where it does not.
   Parentheses denote $1\sigma$ statistical uncertainty on the last
   digit(s).}
   \label{tab:collocation}
@@ -1172,18 +1182,20 @@ $\omega\in\{0.01,0.001\}$, where the electrons are separated by
 ${\sim}30$--$120\,a_0^\ast$ (a few oscillator lengths) and no DMC reference is available,
 the energies stay within $0.1$--$0.25\%$ of our converged variational gold
 standard; this is agreement between two independent training paradigms on
-the same ansatz, not a certificate of absolute accuracy. The best result at
-$\omega{=}1.0$ is $E{=}20.1613\pm 0.0023$, an error of $+0.009\%$,
-indistinguishable from DMC.
+the same ansatz, not a certificate of absolute accuracy. The best campaign result at
+$\omega{=}1.0$ is $E{=}20.1620\pm0.0056$ ($+0.013\%$), and the best multi-stage run
+$E{=}20.1613\pm0.0023$ ($+0.010\%$); both are indistinguishable from DMC.
 
 These results are achieved without any Markov chain in the training gradients.
 MCMC enters only outside the gradient loop: a small Metropolis probe periodically selects the
 best checkpoint, and the final heavy evaluation certifies the energy.
 The training itself uses $4096$ importance-resampled collocation
 points per epoch with an oversampling factor of~$8$, requiring
-${\sim}32\text{k}$ proposal evaluations per gradient step---modest
-compared to the ${\sim}3{\times}10^3$ MCMC samples per step in the
-SR-based approach.
+${\sim}32\text{k}$ proposal evaluations per gradient step. That is ten times the
+${\sim}3{\times}10^3$ samples per step used by the SR route, but each is a single
+independent amplitude evaluation rather than a step of a correlated chain that must
+first equilibrate---so the two are comparable in wall-clock cost, and the collocation
+batch is embarrassingly parallel where the chain is not.
 
 The best $N{=}6$ result at $\omega{=}1.0$ was obtained through a
 three-stage continuation chain (see~\S\ref{subsec:colloc-wigner}):
@@ -1193,14 +1205,16 @@ $\text{lr}{=}5{\times}10^{-4}$), followed by a low-LR continuation
 hard-focus stage (500~epochs, $\text{lr}{=}2{\times}10^{-4}$).
 Each stage inherited the full checkpoint from the previous one.
 The monotonic improvement across stages---$+0.08\%$,
-$+0.05\%$, $+0.009\%$---demonstrates that patient multi-stage
+$+0.05\%$, $+0.010\%$---demonstrates that patient multi-stage
 polishing is effective within the collocation framework.
 
 \paragraph{$N{=}12$: sub-$0.03\%$ at strong confinement.}
 For twelve electrons, the BF+Jastrow collocation results track DMC
-closely at $\omega\ge 0.5$, with errors of $+0.018\%$ and
-$+0.028\%$ at $\omega{=}1.0$ and $0.5$ respectively.
-At $\omega{=}0.1$ the error increases to $+0.122\%$, reflecting the
+closely at $\omega\ge 0.5$, with best-run errors of $+0.009\%$ and
+$+0.024\%$ at $\omega{=}1.0$ and $0.5$ respectively
+(Table~\ref{tab:collocation}; the hand-tuned multi-stage chains reach
+$+0.018\%$ and $+0.029\%$).
+At $\omega{=}0.1$ the error increases to $+0.102\%$, reflecting the
 growing difficulty of importance sampling in 24~dimensions at weak
 confinement.
 The ESS at $\omega{=}0.1$ is typically $5$--$15$ per epoch
@@ -1419,8 +1433,11 @@ a mean, standard deviation, and worst-case error.
 
 \begin{table}[htbp]
   \centering
-  \caption{Reliability campaign: relative energy errors (\% above DMC) for
-  $N{=}6$ across five trap frequencies.
+  \caption{Reliability campaign: relative energy errors for
+  $N{=}6$ across five trap frequencies, scored against the reference column of
+  Table~\ref{tab:collocation}---DMC at $\omega\ge0.1$, and our own converged
+  variational (PINN+CTNN) energy at $\omega\le0.01$, where no DMC value exists.
+  The latter are therefore measures of internal consistency, not of absolute accuracy.
   Each cell shows the final IS-evaluated error for one
   $(\omega,\,\text{recipe},\,\text{seed})$ combination.
   Bold entries mark the best result at each $\omega$.
@@ -1523,7 +1540,7 @@ regime of infinite-variance importance weights.
 \paragraph{Step 2: $\hat{k}$ inflation and gradient quality.}
 The Pareto shape parameter $\hat{k}$ of the importance weight
 distribution, estimated via the PSIS diagnostic of
-Vehtari~et~al.~(2024)\nocite{Vehtari2024}, provides a precise
+Vehtari~et~al.~\cite{Vehtari2024}, provides a precise
 measure of gradient reliability.
 When $\hat{k} < 0.7$, the importance-weighted gradient estimator
 has finite variance and the central limit theorem applies normally.

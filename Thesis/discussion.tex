@@ -33,8 +33,8 @@ show that the Slater--Jastrow PINN, with and without backflow, achieves
 DMC-level accuracy for two-electron dots and maintains sub-$0.1\%$ errors
 for $N\in\{6,12\}$ across a wide range of trap frequencies. At the same
 time, it extrapolates in a controlled way into ultra-weak traps
-($\omega=10^{-3}$) where no DMC data are available. That last clause carries
-the weight, and we return to what it can and cannot support below.
+($\omega=10^{-3}$) where no DMC data are available. What that extrapolation can and
+cannot support is the subject of the rest of this section.
 
 \paragraph{Two electrons: architecture test and SR refinement.}
 For $N{=}2$, residual-only training provides a clean test of the bare
@@ -65,9 +65,8 @@ correlator alone.
 The more demanding tests are the many-electron dots in
 Table~\ref{tab:energies}. For $N\in\{6,12\}$ and the traps with DMC
 references ($\omega\in\{0.1,0.5,1.0\}$), the final PINN+BF energies are
-consistently close to DMC and always slightly higher, as required by
-variationality. Relative deviations fall in the band
-$0.026\text{--}0.048\%$, corresponding to absolute errors of order
+consistently close to DMC and in every case slightly above it. Relative deviations
+fall in the band $0.008\text{--}0.05\%$, corresponding to absolute errors of order
 $10^{-3}$--$10^{-2}$\,Ha for the interacting cases, with no sign of catastrophic
 growth in error with either particle number or trap strength. The worst
 relative deviations occur at intermediate $\omega$ and remain safely below
@@ -103,8 +102,8 @@ $0.5158$\,Ha for $N{=}12$) should be viewed as variational predictions
 rather than benchmarked numbers. Several internal checks, however, support
 their reliability.
 
-First, the energies connect smoothly to the DMC-validated points at
-$\omega=0.01$ under the log--log scaling analysis of $T$, $V_{\rm int}$ and
+First, the energies connect smoothly to the $\omega=0.01$ points---themselves
+externally validated only at $N{=}2$---under the log--log scaling analysis of $T$, $V_{\rm int}$ and
 $V_{\rm trap}$ in Sec.~\ref{sec:wigner-molecule}, with exponents and virial
 ratios consistent with classical expectations in the Wigner regime.
 Second, for $N{=}2$ at $\omega=10^{-3}$, independent MCMC diagnostics
@@ -427,7 +426,7 @@ Taken together, the representation results show a clear regime dependence:
         already message-passing backflow buys little here; the architectural
         \emph{kind} of backflow, however, still matters---a conventional
         single-round-message network collapses and loses accuracy exactly where the
-        copresheaf CTNN holds full rank and does not (Chapter~\ref{ch:kernel}).
+        copresheaf CTNN holds its rank and does not (Chapter~\ref{ch:kernel}).
 \end{itemize}
 From a design perspective, this suggests that Slater--Jastrow PINNs with a
 small, smooth correlator and moderately wide backflow layers are a natural
@@ -604,7 +603,8 @@ The ESS quantifies this overlap.
 Empirically, the ESS per epoch scales roughly as:
 \begin{itemize}
 \item $N{=}6$: ESS $\sim 50$--$500$ at $\omega{=}1.0$, $\sim 5$--$50$
-  at $\omega{=}0.01$, $\sim 2$--$10$ at $\omega{=}0.001$.
+  at $\omega{=}0.01$, $\sim 2$--$10$ at $\omega{=}0.001$ (adaptive proposal; with the
+  static origin mixture the $\omega{=}0.01$ figure is $\sim\!1$--$5$).
 \item $N{=}12$: ESS $\sim 30$--$200$ at $\omega{=}1.0$, $\sim 5$--$15$
   at $\omega{=}0.1$, $\sim 1$ at $\omega{=}0.01$ (training fails).
 \item $N{=}20$: ESS $\sim 2$--$15$ at $\omega{=}1.0$, $\sim 1$--$5$ at
@@ -618,10 +618,11 @@ prevent it: eventually, the number of proposal samples needed to
 maintain a given ESS grows exponentially, making the approach
 intractable.
 
-This explains the systematic pattern in Table~\ref{tab:collocation}:
-accuracy degrades smoothly from excellent ($+0.009\%$) at
-$(N{=}6, \omega{=}1.0)$ to poor ($+5.68\%$) at
-$(N{=}20, \omega{=}0.1)$, following the trajectory of ESS collapse.
+This explains the systematic pattern across
+Table~\ref{tab:collocation} and Appendix~\ref{app:postcatch22:frontier}:
+accuracy degrades smoothly from excellent ($+0.013\%$) at
+$(N{=}6,\ \omega{=}1.0)$ to poor ($+5.53\%$) at
+$(N{=}20,\ \omega{=}0.1)$, following the trajectory of ESS collapse.
 
 
 \subsection{The optimiser regime boundary}
@@ -801,7 +802,7 @@ chain,'' not as an unsupervised solution of the Schr\"odinger equation.
 (iii)~The deep-Wigner cascade of Chapter~\ref{ch:kernel} is the one regime that is both
 Markov-chain-free \emph{and} reference-free: below $\omega=0.1$ no DMC value exists, so
 the cascade is guided only by the variational objective and cross-checked against the
-physical energy-scaling law, never against an external benchmark.
+fitted Wigner scaling curve, never against an external benchmark.
 
 \paragraph{The proposal distribution is the bottleneck.}
 The systematic pattern of ESS collapse with increasing $N$ and

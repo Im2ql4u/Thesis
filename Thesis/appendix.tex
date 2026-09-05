@@ -176,11 +176,11 @@ In many-body Schr\"odinger problems, small $\ell$ arises from nodal structure,
 strong localization, and short-range correlation features; in all such regimes,
 the Laplacian makes the strong residual extremely curvature-sensitive.
 
-\section{Barron/spectral perspective}
+\section{Barron/spectral perspective: the Laplacian}
 \label{app:laplacian:barron}
 
 The conditioning story above can be rephrased in approximation terms.
-In spectral Barron-type viewpoints, function classes are controlled by norms that
+In spectral Barron-type viewpoints~\cite{Barron1993-UniversalApprox}, function classes are controlled by norms that
 weight the Fourier transform by powers of frequency (or related spectral weights).
 A key implication is that applying derivatives systematically increases the
 importance of high-frequency tails \cite{De_Ryck_2024}.
@@ -451,7 +451,7 @@ This formal expansion explains why the Coulomb singularity can severely inflate
 the effective spectral spread of the training operator, aligning with the
 operator-conditioning viewpoint \cite{De_Ryck_2024}.
 
-\section{Barron/spectral perspective}
+\section{Barron/spectral perspective: the Coulomb singularity}
 \label{app:coulomb:barron}
 
 Coulomb forces the \emph{true} 2D solution to have cusp-like, non-smooth short-range
@@ -459,7 +459,7 @@ structure, so approximating the \emph{strong residual} requires representing
 high-frequency content that is not well captured by globally smooth/low-complexity
 function classes.
 
-In spectral/Barron-style approximation theories, approximation quality is governed
+In spectral/Barron-style approximation theories~\cite{Barron1993-UniversalApprox}, approximation quality is governed
 by spectral decay and norms that weight the Fourier tail \cite{De_Ryck_2024}.
 A cusp (or a linear node times a cusp in $J$) implies slower spectral decay than a globally
 smooth function.
@@ -1152,7 +1152,7 @@ degrades its gradients more than its extra flexibility repays. Polishing the
 Jastrow checkpoints at reduced learning rate improved the $\omega{=}1.0$ error from
 ${\sim}{+}2.6\%$ to $+1.32\%$ over ${\sim}400$ epochs and the $\omega{=}0.5$ error
 from ${\sim}{+}7.0\%$ to $+2.74\%$ ($E=96.447\pm0.015$); the best $\omega{=}0.1$
-result was $+5.53\%$ ($E=31.637\pm0.008$). These are honest first numbers. The gap to
+result was $+5.53\%$ ($E=31.637\pm0.008$). The gap to
 the sub-percent accuracy reached at $N{=}6,12$ follows from the memory-forced capacity
 reduction and the gradient noise it brings, not from the collocation objective; closing
 it is a question of a more memory-frugal backflow, not of a different method.

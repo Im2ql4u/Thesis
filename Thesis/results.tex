@@ -44,7 +44,7 @@ backflow that divides the labour with it in a way that shifts as the trap weaken
 caveat governs how those internal numbers may be read, and it is stated where they are:
 several of them are gauge-like, fixed by the training route rather than by the state.
 Separating those from what is invariant is the business of the next chapter.
-\section{Training protocol and energy overview}
+\section{Training, and the energies it reaches}
 \label{sec:energy-overview}
 Unless otherwise stated, we first apply residual-based pretraining to obtain a
 well-conditioned initialiser, and then run a Stochastic Reconfiguration (SR)
@@ -302,6 +302,7 @@ numerically tame from the shallowest trap to the tightest.
 
 Wherever an external number exists, the state matches it. We can stop asking whether it
 is right, and start asking what it knows.
+
 \section{Wigner--molecule crossover}
 \label{sec:wigner-molecule}
 
@@ -488,67 +489,42 @@ interaction-driven swelling and shell formation.
 \subsection{Radial localization and pair correlations}
 \label{sec:wigner-radial}
 
-Table~\ref{tab:two_e_summary} summarizes the single-particle radial law for
-$N{=}2$ and Table~\ref{tab:N6} for $N{=}6$ across all five trap strengths.
-In both cases $r_{\rm mode}$ grows as a power law
-($r_{\rm mode}\!\sim\!\omega^{\alpha}$ with $\alpha\simeq-0.62$ for
-$N{=}2$, close to the classical two-body scaling $-2/3$) while the
-localization ratio $\gamma$ shrinks, signaling stiffening of the
-single-particle shell.
+Two numbers carry this subsection. The typical radius $r_{\rm mode}$ grows as a power
+law, $r_{\rm mode}\!\sim\!\omega^{\alpha}$ with $\alpha\simeq-0.62$ at $N{=}2$---close to
+the classical two-body value $-2/3$, which nothing in the ansatz knows about. And the
+width-to-scale ratio $\gamma=\sigma_r/r_{\rm mode}$ falls, which is the shell stiffening
+rather than merely dilating (Table~\ref{tab:radial-compact}).
 
 \begin{table}[H]
 \centering
-\caption{Radial diagnostics for $N{=}2$ across $\omega$ (Bohr units).}
-\label{tab:two_e_summary}
-\begin{tabular}{lcccccccc}
+\caption{Radial localisation across the confinement range. $r_{\rm mode}$ is the mode of
+the single-particle radial density in Bohr; $\gamma=\sigma_r/r_{\rm mode}$ is the
+width-to-scale ratio, which falls as the shell stiffens. Full diagnostics---mean, width,
+FWHM, quantiles, ring-angle spread and pair Lindemann ratio---are in
+Appendix~\ref{app:structural-tables}.}
+\label{tab:radial-compact}
+\begin{tabular}{lcccc}
 \toprule
-$\omega$
-& $r_{\rm mode}$
-& $\langle r\rangle$
-& $\sigma_r$
-& FWHM
-& $q_{10}$
-& $q_{50}$
-& $q_{90}$
-& $\gamma$ \\
+ & \multicolumn{2}{c}{$N{=}2$} & \multicolumn{2}{c}{$N{=}6$} \\
+\cmidrule(lr){2-3}\cmidrule(lr){4-5}
+$\omega$ & $r_{\rm mode}$ & $\gamma$ & $r_{\rm mode}$ & $\gamma$ \\
 \midrule
-1.00  & 1.435  & 1.632  & 0.705  & 1.743  & 0.735  & 1.581  & 2.581  & 0.491 \\
-0.50  & 2.303  & 2.475  & 1.007  & 2.466  & 1.209  & 2.409  & 3.829  & 0.437 \\
-0.10  & 3.601  & 3.830  & 1.728  & 4.449  & 1.640  & 3.714  & 6.127  & 0.480 \\
-0.01  & 14.191 & 14.593 & 5.615  & 13.602 & 7.390  & 14.322 & 22.038 & 0.396 \\
-0.001 & 64.292 & 63.953 & 18.479 & 43.977 & 40.392 & 63.814 & 87.714 & 0.287 \\
+1.00  & $1.44$  & $0.491$ & $2.09$   & $0.442$ \\
+0.50  & $2.30$  & $0.437$ & $3.07$   & $0.445$ \\
+0.10  & $3.60$  & $0.480$ & $8.17$   & $0.429$ \\
+0.01  & $14.19$ & $0.396$ & $33.15$  & $0.420$ \\
+0.001 & $64.29$ & $0.287$ & $113.55$ & $0.421$ \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-\begin{table}[H]
-\centering
-\caption{Radial and angular diagnostics for $N{=}6$ across $\omega$
-(Bohr; angles in radians).}
-\label{tab:N6}
-\begin{tabular}{c|ccccc}
-\toprule
-$\omega$ & $r_{\rm mode}$ & $\sigma_r$ & $\gamma$
-& $\sigma(\text{ring angles})$ & $\gamma_{r_{ij}}$ \\
-\midrule
-1.00  & 2.0907   & 0.9249  & 0.4424 & 0.7046 & 0.3538 \\
-0.50  & 3.0702   & 1.3648  & 0.4445 & 0.6943 & 0.3397 \\
-0.10  & 8.1686   & 3.5025  & 0.4288 & 0.6842 & 0.3149 \\
-0.01  & 33.1538  & 13.9094 & 0.4195 & 0.6497 & 0.2889 \\
-0.001 & 113.5542 & 47.8076 & 0.4210 & 0.6368 & 0.2664 \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-At $\omega=10^{-3}$, the $N{=}2$ pair has mode separation
-$r_{12}\!\approx\!122$, Lindemann ratio $\gamma_{r_{12}}\!\approx\!0.20$,
-and a relative-angle distribution sharply peaked near $\pi$
-($\sigma(\pi-\Delta\phi)\!\approx\!0.35$), establishing a dilute,
-strongly anti-aligned Wigner dimer.
-For $N{=}6$ the ring angular fluctuations and pair Lindemann both decrease
-monotonically, but $\gamma$ plateaus near $0.42$: the single shell stiffens
-internally even though the radial profile broadens due to the growing
-equilibrium radius.
+The two sizes stiffen differently, and the difference is physical. At $\omega=10^{-3}$
+the $N{=}2$ pair sits at separation $r_{12}\!\approx\!122$ with Lindemann ratio
+$\gamma_{r_{12}}\!\approx\!0.20$ and a relative angle sharply peaked at $\pi$: a dilute,
+anti-aligned dimer. At $N{=}6$ the ring's angular fluctuations and pair Lindemann ratio
+fall monotonically while $\gamma$ plateaus near $0.42$. The shell is stiffening
+internally even as its radial profile broadens, because the equilibrium radius is growing
+faster than the width.
 
 \begin{figure}[htp]
   \centering
@@ -565,7 +541,7 @@ equilibrium radius.
 \end{figure}
 
 % ──────────────────────────────────────────────────────────────────────
-\subsection{Shell topology, angular order, and the rotating Wigner molecule}
+\subsection[Shell topology and angular order]{Shell topology, angular order, and the rotating Wigner molecule}
 \label{sec:wigner-angular}
 
 This subsection resolves an apparent contradiction: the densities plotted above look

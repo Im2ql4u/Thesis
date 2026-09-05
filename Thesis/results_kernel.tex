@@ -9,7 +9,7 @@
 %  thesis ansatz at DMC-quality energies; seed counts are stated.
 % =====================================================================
 \graphicspath{{../results/figures/results/}{../results/figures/results/kernel/}{../results/figures/}}
-\chapter{Why the method works: geometry, optimisation, and sampling}
+\chapter[Why the method works]{Why the method works: geometry, optimisation, and sampling}
 \label{ch:kernel}
 
 The previous chapter showed that the ansatz works. It reaches reference quality wherever
@@ -62,7 +62,7 @@ fixed by the training route rather than by the state. What the conclusions rest 
 instead is set out in \S\ref{sec:synthesis}, once there are conclusions to rest.
 
 % =====================================================================
-\section{Message passing reorganises the variational geometry}
+\section[Message passing and the variational geometry]{Message passing reorganises the variational geometry}
 \label{sec:kernel-q1}
 
 What does a message-passing network learn that a separable one cannot? The answer is
@@ -267,7 +267,7 @@ $\omega$ & CTNN & conv & CTNN & conv & CTNN & conv \\
 \end{tabular}
 \end{table}
 
-\paragraph{Why, mechanistically.} We price each component by ablation on a \emph{common
+\paragraph{Pricing each component by deletion.} We price each component by ablation on a \emph{common
 probe}: configurations are drawn once from the full model's $|\Psi|^2$ and every arm is
 re-evaluated on them, so the trap and Coulomb terms are held fixed by construction and each
 figure below is the change in the kinetic term at fixed measure---the instantaneous cost of
@@ -347,7 +347,7 @@ common relational bottleneck beneath both rather than proving them literally ide
 \end{figure}
 
 % =====================================================================
-\section{Conditioning: what the optimiser can do depends on the measure}
+\section[Conditioning]{Conditioning: what the optimiser can do depends on the measure}
 \label{sec:kernel-cond}
 \label{sec:kernel-q2}
 \label{sec:kernel-q3}
@@ -523,13 +523,10 @@ checkpoint of a stronger one---was decisive for reaching the deep-Wigner regime,
 the transfer of correlation structure across $\omega$.
 
 
-\paragraph{Architecture variants.}
 \label{sec:colloc-architectures}
-
-Three ansatz families were explored within the collocation
-framework, all built on the same Slater--Jastrow core:
-$\Psi(\mathbf{R}) = \det[\phi_i(\mathbf{r}_j + \Delta\mathbf{r}_j)]
-\cdot e^{J(\mathbf{R})}$.
+Three ansatz families were tried within this framework, all built on the same
+Slater--Jastrow core $\Psi(\mathbf{R}) = \det[\phi_i(\mathbf{r}_j + \Delta\mathbf{r}_j)]
+\,e^{J(\mathbf{R})}$ and differing only in what dresses it.
 
 \paragraph{Jastrow-only (no backflow).}
 The Jastrow factor is parameterised by a graph neural network
@@ -676,217 +673,120 @@ Appendix~\ref{app:postcatch22:frontier} rather than here.
 \subsection{What worked and what did not}
 \label{sec:colloc-negatives}
 
-The collocation programme explored a large space of methods, and most of that
-space did not work. We report the successful and the failed variants together,
-because the failures identify which assumptions are load-bearing. Each failure below was, at the time, an
-intuitively reasonable idea; each turned out to violate a specific assumption that
-the method had never been forced to state. A working configuration tells you that
-some set of choices is sufficient. A failure, if you chase it far enough to name
-the mechanism, tells you which choice was load-bearing and why---and that is the
-kind of statement that transfers to a system other than this one. We therefore
-report the mechanism in each case, not just the fact that the attempt was
-abandoned.
+Most of the method space we explored did not work. The failures are reported here beside
+the successes, because a working configuration tells you only that some set of choices is
+sufficient, whereas a failure chased far enough to name its mechanism tells you which
+choice was load-bearing---and that transfers to systems other than this one. Each attempt
+below was, at the time, an intuitively reasonable idea. Each turned out to violate an
+assumption the method had never been forced to state.
 
-\paragraph{Positive: pure REINFORCE over mixed objectives.}
-Setting $\beta{=}0$ in the hybrid loss (pure REINFORCE, no direct
-weak-form term) was consistently more stable and produced better
-final energies than any nonzero~$\beta$.
-The direct term
-$\tilde{E}{=}\tfrac{1}{2}\|\nabla\log\Psi\|^2{+}V$ provided
-a cheaper but noisier gradient signal; at $\beta{>}0$ it interfered
-with the REINFORCE gradient by pulling toward a local-kinetic
-minimum that did not correspond to the variational minimum.
+\begin{table}[htbp]\centering
+\caption{Collocation variants tried, and what each one settled. Errors are relative to
+the reference of Table~\ref{tab:collocation}. The three marked $\dagger$ are taken up in
+prose below; the rest are recorded for completeness.}
+\label{tab:colloc-variants}
+\small
+\setlength{\tabcolsep}{5pt}
+\renewcommand{\arraystretch}{1.15}
+\begin{tabular}{@{}p{0.24\linewidth} p{0.17\linewidth} p{0.51\linewidth}@{}}
+\toprule
+Attempt & Outcome & Mechanism \\
+\midrule
+Pure REINFORCE ($\beta{=}0$) over the hybrid objective
+  & adopted
+  & The direct weak-form term is cheaper but minimises a different functional; at
+    $\beta>0$ it pulls toward a kinetic-energy minimum distinct from the variational one,
+    and the two gradients oscillate against each other. \\
+Cascade warm-start from higher $\omega$
+  & essential
+  & Cold starts never converged at $\omega{=}0.01$ for $N\ge6$. Cascading from
+    $\omega{=}0.1$ cut the initial error from ${\sim}30\%$ to ${\sim}5\%$ and made
+    $+0.15\%$ reachable in ${\sim}1000$ epochs. \\
+ESS-adaptive oversampling with instability rollback
+  & essential
+  & Raises the proposal budget when overlap degrades and reverts on energy spikes.
+    Without both, $\omega{=}0.001$ diverged within a few hundred epochs. \\
+CG-SR below $\omega\simeq0.01$ $\dagger$
+  & abandoned
+  & $+4$--$36\%$ against $+0.15$--$0.24\%$ from Adam. Not ill-conditioning but
+    unestimability; see below. \\
+Langevin proposal refinement $\dagger$
+  & abandoned
+  & Worse in every configuration tested ($+153\%$ against $+5.7\%$ at $N{=}20$,
+    $\omega{=}0.1$). The weights are computed against a proposal the samples have
+    stopped following; see below. \\
+Finite-difference residual loss
+  & abandoned
+  & $+0.22\%$ at $N{=}6$, $\omega{=}1$ against $+0.010\%$ from REINFORCE. Sensitive to
+    the step size and to noise in the Laplacian estimate. \\
+Neural Pfaffian ansatz
+  & abandoned
+  & $+0.43\%$ at $N{=}6$, $\omega{=}1$, forty times the BF+Jastrow error. The larger
+    parameter space amplifies importance-sampling gradient noise faster than the richer
+    nodal topology repays. \\
+Backflow at $N{=}20$ $\dagger$
+  & abandoned
+  & $+18\%$ against $+1.45\%$ for Jastrow-only. A memory limit rather than a
+    conceptual one; see \S\ref{sec:colloc-arch-discussion}. \\
+\bottomrule
+\end{tabular}
+\end{table}
 
-\paragraph{Positive: cascade warm-start for low~$\omega$.}
-Cold-start training at $\omega{=}0.01$ never converged for
-$N{\ge}6$.
-Cascade initialisation from $\omega{=}0.1$ made the
-$\omega{=}0.01$ regime accessible, reducing the initial error from
-${\sim}30\%$ (random init) to ${\sim}5\%$ (warm-started) and enabling
-subsequent optimisation to reach $+0.15\%$ within ${\sim}1000$ epochs.
+\paragraph{Why natural gradients stop helping.}
+CG-SR gave the fastest convergence and the best final energies at $\omega\ge0.1$, and
+then failed outright below it. The obvious explanation is ill-conditioning: at weak
+confinement the Fisher matrix
+$F_{ij}=\EE[\partial_i\log|\Psi|^2\,\partial_j\log|\Psi|^2]$ has eigenvalues spanning
+many orders of magnitude, because parameters controlling short-range correlation and
+parameters controlling the orbital envelope act on scales separated by
+$1/\sqrt{\omega}$.
 
-\paragraph{Positive: ESS-adaptive oversampling + rollback.}
-The combination of ESS-adaptive oversampling (automatically
-increasing the proposal budget when overlap is poor) and
-instability rollback (reverting to a good checkpoint when the
-energy spikes) was essential for the ultra-low-$\omega$ results.
-Without these mechanisms, training at $\omega{=}0.001$ diverged
-within a few hundred epochs.
+The obvious explanation is wrong, or at least incomplete. Ill-conditioning is what makes
+natural gradients \emph{useful}; a well-conditioned metric is one Adam can handle
+unaided. What disqualifies them is the failure to \emph{estimate} the metric. $F$ is
+built from importance-resampled points, and when the ESS is low a handful of high-weight
+samples dominate it, leaving it noisy and rank-deficient. Tikhonov damping stabilises the
+inversion at the cost of washing out the curvature information that motivated it.
 
-\paragraph{Negative: CG-SR at ultra-low~$\omega$.}
-Natural-gradient preconditioning via CG-SR produced excellent results
-at $\omega\ge 0.1$ (fastest convergence, best final energies for
-$N{=}6,12$).
-However, at $\omega\le 0.01$ the Fisher information matrix becomes
-extremely ill-conditioned: the eigenvalues span many orders of
-magnitude because the wavefunction's sensitivity to parameters
-varies enormously across the diffuse, weakly confined state.
-CG-SR updates in this regime produced errors of $+4$--$36\%$
-for $N{=}6$ at $\omega{=}0.01$ and $\omega{=}0.001$, compared to
-$+0.15\%$ and $+0.24\%$ from Adam with per-parameter adaptive
-learning rates.
-Ill-conditioning alone does not decide whether SR helps; what matters is whether
-the metric is \emph{also} statistically resolvable. This gives a three-regime
-picture (\S\ref{sec:kernel-cond}): where the metric is
-well-conditioned, Adam already suffices and SR buys little; where it is anisotropic
-but still estimable, SR is most valuable; and where importance-sampling collapse
-makes the empirical metric itself unreliable, inverting it amplifies sampling noise
-and does harm. The failures above are the third regime, not the second.
+So there are three regimes, not two. Where the metric is well conditioned, SR is sound
+and unnecessary. Where it is anisotropic and still estimable, SR is at its most
+valuable---which is the collocation case of \S\ref{sec:kernel-cond}. And where
+importance-sampling collapse makes the empirical metric unreliable, inverting it
+amplifies the estimation noise and SR does active harm. The failures above are the third
+regime, not the second, and the practical implication is about the estimator rather than
+the curvature: any second-order method applied to a weakly confined many-body system must
+certify that the metric it inverts is statistically resolved at the sample sizes in use.
 
-\paragraph{Negative: Langevin proposal refinement.}
-To address the ESS catastrophe at high~$N$, we implemented
-overdamped Langevin dynamics on the proposal samples:
-$\mathbf{R}' = \mathbf{R} + \varepsilon\,\nabla_{\mathbf{R}}
-\log|\Psi(\mathbf{R})|^2 + \sqrt{2\varepsilon}\,\boldsymbol\eta$,
-applied for $K{=}10$--$20$ steps before importance resampling.
-The intent was to push proposal samples toward high-$|\Psi|^2$
-regions without running a full MCMC chain.
-
-This approach was systematically worse than standard importance
-resampling in every configuration tested:
-\begin{itemize}
-\item $N{=}20$, $\omega{=}0.1$: Langevin VMC error $+153\%$ vs.\
-  standard $+5.7\%$ (catastrophic divergence).
-\item $N{=}20$, $\omega{=}1.0$: Langevin $+5.2\%$ vs.\ standard
-  $+1.5\%$.
-\item $N{=}6$, $\omega{=}0.001$: Langevin $+0.30\%$ vs.\ Adam
-  $+0.24\%$.
-\end{itemize}
-The failure mechanism is that $K{=}10$--$20$ Langevin steps from a
-Gaussian starting point in $Nd{=}40$ dimensions do not equilibrate
-to $|\Psi|^2$.
-The resulting non-equilibrium sample distribution biases the
-REINFORCE gradient, which in turn pushes the wavefunction to
-concentrate further around the biased distribution---a
-positive-feedback loop that rapidly destroys the ansatz.
-Langevin refinement would require either much longer chains
-($K{\gtrsim}100$, negating the computational advantage over MCMC) or
-a Metropolis--Hastings acceptance step (reintroducing MCMC).
-
-\paragraph{Negative: finite-difference residual loss.}
-The FD collocation loss, which computes $E_L$ via graph-safe
-finite differences and penalises its spread, was tested extensively.
-Representative BF results at $N{=}6$, $\omega{=}1.0$:
-$E{=}20.204\pm0.002$ ($+0.22\%$), compared to $+0.009\%$ from
-REINFORCE.
-FD training was more sensitive to step-size $h$ and noise in the
-Laplacian estimate, and never matched the REINFORCE objective for
-final accuracy.
-
-\paragraph{Negative: Neural Pfaffian.}
-Despite its richer antisymmetric structure, the Pfaffian ansatz
-underperformed the simpler BF+Jastrow family in all collocation
-experiments.
-The best Pfaffian result at $N{=}6$, $\omega{=}1.0$ was
-$E{=}20.245\pm0.005$ ($+0.43\%$), more than $40{\times}$ worse
-than BF+Jastrow.
-The Pfaffian's larger parameter space amplified the gradient
-noise from importance sampling, making it harder to optimise
-reliably.
-
-\paragraph{Negative: backflow at $N{=}20$.}
-Backflow training at $N{=}20$ was severely limited by memory.
-The edge-feature tensor scales as $\mathcal{O}(N^2 \times h_{\text{bf}})$,
-requiring $h_{\text{bf}}$ to be reduced from $128$ to $48$--$64$
-for $N{=}20$.
-This reduced-capacity backflow achieved only $+18\%$ error at
-$\omega{=}1.0$, compared to $+1.45\%$ for the Jastrow-only ansatz.
-The gradient signal at $N{=}20$ is too noisy for the additional
-backflow parameters to be trained effectively; the simpler Jastrow
-network with its smaller parameter count permits higher
-oversampling and better gradient quality.
-
-\paragraph{What the failures have in common.} Read together, these five negatives
-are not five unrelated disappointments. Four of them---CG-SR, Langevin refinement,
-the Pfaffian's parameter count, and the backflow at $N{=}20$---fail through the same
-channel: a quantity that must be \emph{estimated} from a finite sample degrades
-faster than the quantity it is meant to improve. Natural gradients need an estimate
-of the metric; Langevin needs samples that have actually equilibrated; a larger
-parameter space needs a correspondingly better-resolved gradient. In each case the
-method is not wrong in principle, and would be perfectly sound given samples we
-cannot afford. What fails is the estimate, and it fails precisely in the regime
-where the correction was supposed to help. This is the thread that
-\S\ref{sec:colloc-reliability} follows deliberately, from the proposal mismatch at
-one end to the evaluation bottleneck at the other. Stated here, it can be carried
-into that analysis rather than rediscovered at its conclusion.
-
-
-%% ═══════════════════════════════════════════════════════════════════════
-%% SUBSECTION:  Reliability analysis and the gradient-quality chain
-%% ═══════════════════════════════════════════════════════════════════════
-\paragraph{Negative: Langevin proposal refinement, revisited.}
+\paragraph{Why pushing the samples uphill makes things worse.}
 \label{sec:colloc-langevin-discussion}
+Langevin refinement was motivated by an intuition that is hard to argue with. If the
+Gaussian proposal overlaps $|\Psi|^2$ poorly, evolve the samples up the score
+$\nabla_{\mathbf R}\log|\Psi|^2$ for $K$ steps before reweighting, and the overlap should
+improve. It failed in every configuration tested, and the reason is standard in the MCMC
+literature and easy to miss in an importance-sampling setting.
 
-Langevin refinement was motivated by a natural intuition: if the Gaussian proposal
-overlaps $|\Psi|^2$ poorly, evolving samples up the score $\nabla_{\mathbf{R}}\log|\Psi|^2$
-before resampling should improve that overlap. It fails for a reason that is standard
-in the MCMC literature and easy to overlook in an importance-sampling context. The
-weights $w_i = |\Psi(\mathbf{R}_i)|^2/q(\mathbf{R}_i)$ are valid only if the
-$\mathbf{R}_i$ are drawn from $q$; after $K$ Langevin steps from an out-of-equilibrium
-start, the effective density is some intermediate $\tilde q$ depending on $K$ and
-$\varepsilon$, while the weights still divide by $q$. The resulting gradient bias is
-not noise---it pushes the wavefunction toward regions the Langevin dynamics favours,
-which shifts $\tilde q$ further in the same direction, and the loop closes. The
-measured errors in \S\ref{sec:colloc-negatives} confirm the mechanism experimentally.
-Correcting it requires running to equilibrium, adding a Metropolis--Hastings step, or
-computing annealed weights along the non-equilibrium path; the first two are MCMC by
-another name, which defeats the purpose, and the third is expensive enough to
-forfeit the advantage the collocation route exists to provide.
+The weights $w_i=|\Psi(\mathbf R_i)|^2/q(\mathbf R_i)$ are valid only if the
+$\mathbf R_i$ came from $q$. After $K$ steps from an out-of-equilibrium start the samples
+follow some intermediate $\tilde q$ that depends on $K$ and $\varepsilon$, while the
+weights still divide by $q$. The resulting bias is not noise. It pushes the wavefunction
+toward the regions the Langevin dynamics favours, which moves $\tilde q$ further the same
+way, and the loop closes on itself---which is what the $+153\%$ in the table is. Ten to
+twenty steps in $Nd{=}40$ dimensions do not equilibrate. Fixing it means running to
+equilibrium, adding a Metropolis--Hastings step, or computing annealed weights along the
+non-equilibrium path. The first two are MCMC under another name; the third costs enough
+to forfeit the advantage that made the route worth taking.
 
-\paragraph{The three-regime optimiser boundary.}
-\label{sec:colloc-optim-discussion}
-
-The sharp failure of natural-gradient preconditioning (CG-SR) below
-$\omega \lesssim 0.01$ reveals an important structural feature of the
-optimisation landscape.
-
-The Fisher information matrix $F_{ij} = \EE[\partial_i \log|\Psi|^2
-\cdot \partial_j \log|\Psi|^2]$ characterises the curvature of
-parameter space as seen by the wavefunction.
-Ill-conditioning alone does not determine whether SR helps. Natural gradients are
-most valuable when the metric is anisotropic but remains statistically resolvable;
-what disqualifies them is not curvature but the failure to estimate it. In strong
-confinement ($\omega \ge 0.1$) the wavefunction is compact and all parameters
-contribute to its structure in a comparable manner, so $F$ is well-conditioned, its
-inverse is a sound preconditioner, and Adam is in any case close behind.
-
-At ultra-weak confinement ($\omega \le 0.01$), two effects conspire---and it is the
-second, not the first, that is decisive:
-\begin{enumerate}
-\item \textbf{Scale separation.} The wavefunction extends over
-  ${\sim}1/\sqrt{\omega}$ oscillator lengths, creating a large
-  separation between the scale of the Jastrow correlator and the
-  scale of the orbital envelope.
-  Parameters controlling short-range correlations (cusp, pair features)
-  contribute very differently to $F$ than parameters controlling
-  long-range structure (orbital widths, backflow offsets).
-\item \textbf{Sampling starvation.} The Fisher matrix is estimated from
-  importance-resampled points.
-  When the ESS is low, the estimate of $F$ is dominated by a few
-  high-weight samples, making it noisy and rank-deficient.
-  Tikhonov damping can stabilise the inversion, but at the cost of
-  washing out the very curvature information that motivates natural
-  gradients.
-\end{enumerate}
-
-Adam, by contrast, maintains per-parameter adaptive learning rates
-using only first and second moment estimates of the gradient.
-It makes no attempt to model parameter-space curvature globally,
-and therefore does not fail when the curvature is pathological.
-The price is slower convergence in well-conditioned regimes
-(where CG-SR can take larger, more informed steps), but the
-benefit is robustness in ill-conditioned regimes where CG-SR
-diverges.
-
-The resulting picture has three regimes rather than two. Where the metric is
-well-conditioned, SR is sound but unnecessary. Where it is anisotropic and still
-estimable, SR is at its most valuable---which is the collocation case of
-\S\ref{sec:kernel-cond}. Where importance-sampling collapse makes the empirical
-metric itself unreliable, its inversion amplifies estimation noise and SR becomes
-actively harmful. The practical implication for future work is therefore about the
-\emph{estimator}, not the curvature: any natural-gradient or second-order method
-applied to weakly confined many-body systems must certify that the metric it inverts
-is statistically resolved at the sample sizes in use.
+\paragraph{What the failures have in common.}
+Read together these are not separate disappointments. Four of them---CG-SR, Langevin,
+the Pfaffian's parameter count, and the backflow at $N{=}20$---fail through one channel: a
+quantity that must be \emph{estimated} from a finite sample degrades faster than the
+quantity it was meant to improve. Natural gradients need an estimate of the metric.
+Langevin needs samples that have actually equilibrated. A larger parameter space needs a
+correspondingly better-resolved gradient. None of these methods is wrong in principle,
+and each would be sound given samples we cannot afford. What fails is the estimate, and
+it fails precisely in the regime where the correction was supposed to help. That thread is
+what \S\ref{sec:colloc-reliability} follows deliberately, from the proposal mismatch at
+one end to the evaluation bottleneck at the other.
 
 \subsection{Reliability analysis: the gradient-quality chain}
 \label{sec:colloc-reliability}
@@ -1207,7 +1107,7 @@ requires either (i)~memory-efficient backflow architectures
 (ii)~improved sampling that provides higher ESS at constant
 computational cost.
 
-\section{A proposal built from the physics, and the wall beyond it}
+\section[A proposal built from the physics]{A proposal built from the physics, and the wall beyond it}
 \label{sec:kernel-q3-frontier}
 
 The ESS collapse of \S\ref{sec:kernel-q3} is a limitation of the \emph{proposal}, not
@@ -1216,15 +1116,18 @@ physics-informed proposal that extends MCMC-free collocation deep into the Wigne
 regime, the mechanism that limits it, and the wall that remains.
 
 \subsection{The origin-centred proposal misses the Wigner shell}
-Every proposal in the standard pipeline is a mixture of \emph{origin-centred} Gaussians
-$q(\mathbf{R})=\frac1K\sum_k \mathcal{N}(\mathbf{R};0,\sigma_{f,k}^2/\omega)$. But as
-$\omega\to0$ the electrons localise into a Wigner molecule on a \emph{shell} far from the
-origin: the classical $N=6$ minimum is the $(1,5)$ configuration---one central electron,
-five on a ring at radius
-$1.334\,\omega^{-2/3}$~\cite{schweigert1994spectralpropertieschargedparticles,Kong_2002}---which
-in oscillator units sits at
-$1.96/2.87/4.22\,\ell$ for $\omega=0.1/0.01/0.001$, moving outward as the trap weakens,
-past the reach of a width-$2\ell$ origin Gaussian. The proposal aims where $|\Psi|^2$ has
+Every proposal in the standard pipeline is a mixture of \emph{origin-centred} Gaussians,
+\begin{equation}
+  q(\mathbf{R})\;=\;\frac{1}{K}\sum_k \mathcal{N}\!\left(\mathbf{R};\,0,\,
+  \sigma_{f,k}^{2}/\omega\right).
+\end{equation}
+But as $\omega\to0$ the electrons localise into a Wigner molecule on a \emph{shell} far
+from the origin. The classical $N=6$ minimum is the $(1,5)$ configuration: one central electron
+and five on a ring of radius $1.334\,\omega^{-2/3}$
+\cite{schweigert1994spectralpropertieschargedparticles,Kong_2002}. In oscillator units
+that ring sits at $1.96$, $2.87$ and $4.22\,\ell$ for $\omega=0.1$, $0.01$ and $0.001$,
+moving outward as the trap weakens and past the reach of a width-$2\ell$ origin
+Gaussian. The proposal aims where $|\Psi|^2$ has
 no mass; hence the collapse.
 
 \subsection{The Wigner-ring proposal}
@@ -1295,7 +1198,7 @@ $\omega$ & $E$ & scaling est. & ratio \\
 \end{tabular}
 \end{table}
 
-\subsection{The remaining wall: a fine-tuned Slater--Jastrow balance, not the sampler}
+\subsection[The remaining wall]{The remaining wall: a fine-tuned Slater--Jastrow balance, not the sampler}
 Below $\omega=0.0035$ the cascade becomes unstable, and---informatively---the instability
 is \emph{non-monotonic} across proposal variants: wide-exploratory, tempered-tracking, and
 outward-anchored proposals each converge some rungs and diverge others. That pattern

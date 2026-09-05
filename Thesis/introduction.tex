@@ -315,10 +315,15 @@ physics-informed objectives, neural quantum states, and the tangent-kernel geome
 lens for the results. A method chapter then presents the concrete
 Slater–Jastrow(+backflow) PINN ansatz in its separable and message-passing forms, the
 optimisation pipeline (residual pretraining, stochastic reconfiguration, and
-importance-sampled collocation), and the diagnostics used throughout. The results are
-given in two chapters. The first treats accuracy, the learned representation, and the
-Wigner-molecule physics for $N\in\{2,6,12,20\}$; the second reads the architecture,
-optimiser, and training paradigm through the tangent kernel. A discussion and a
-concluding chapter follow, and the appendices develop the conditioning theory
-(Laplacian and Coulomb) and the collocation–backflow catch-22 that motivated the
-weak-form objective.
+importance-sampled collocation), and the diagnostics used throughout.
+
+The results are given in two chapters that do different jobs. The first establishes what
+we obtained: the energies against every available reference, the Wigner-molecule physics
+the trained states let us see, and the internal representation that carries it. The
+second asks why those choices worked and where they stop, reading architecture,
+conditioning and sampling through the geometry of the wavefunction's log-derivatives,
+and taking the Markov-chain-free training programme from its results to its two walls. A
+discussion then asks what all of it establishes, and a conclusion closes the loop from
+the physics back to the method. The appendices develop the conditioning theory
+(Laplacian and Coulomb), the collocation–backflow catch-22 that motivated the weak-form
+objective, and the full structural diagnostic tables.

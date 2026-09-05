@@ -1180,3 +1180,56 @@ The post-catch-22 phase supports six robust conclusions.
 \end{enumerate}
 
 
+\chapter{Structural diagnostics in full}
+\label{app:structural-tables}
+
+Chapter~\ref{ch:results} reports the two radial quantities the argument turns
+on---$r_{\rm mode}$ and the width-to-scale ratio $\gamma$. The complete diagnostics are
+collected here: the mean radius, width, FWHM and decile quantiles for $N{=}2$, and the
+ring-angle spread and pair Lindemann ratio for $N{=}6$. Estimators and stability
+protocol are defined in \S\ref{sec:analysis-struct}. All lengths are in Bohr; angles in
+radians.
+
+\begin{table}[H]
+\centering
+\caption{Radial diagnostics for $N{=}2$ across $\omega$ (Bohr units).}
+\label{tab:two_e_summary}
+\begin{tabular}{lcccccccc}
+\toprule
+$\omega$
+& $r_{\rm mode}$
+& $\langle r\rangle$
+& $\sigma_r$
+& FWHM
+& $q_{10}$
+& $q_{50}$
+& $q_{90}$
+& $\gamma$ \\
+\midrule
+1.00  & 1.435  & 1.632  & 0.705  & 1.743  & 0.735  & 1.581  & 2.581  & 0.491 \\
+0.50  & 2.303  & 2.475  & 1.007  & 2.466  & 1.209  & 2.409  & 3.829  & 0.437 \\
+0.10  & 3.601  & 3.830  & 1.728  & 4.449  & 1.640  & 3.714  & 6.127  & 0.480 \\
+0.01  & 14.191 & 14.593 & 5.615  & 13.602 & 7.390  & 14.322 & 22.038 & 0.396 \\
+0.001 & 64.292 & 63.953 & 18.479 & 43.977 & 40.392 & 63.814 & 87.714 & 0.287 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[H]
+\centering
+\caption{Radial and angular diagnostics for $N{=}6$ across $\omega$
+(Bohr; angles in radians).}
+\label{tab:N6}
+\begin{tabular}{c|ccccc}
+\toprule
+$\omega$ & $r_{\rm mode}$ & $\sigma_r$ & $\gamma$
+& $\sigma(\text{ring angles})$ & $\gamma_{r_{ij}}$ \\
+\midrule
+1.00  & 2.0907   & 0.9249  & 0.4424 & 0.7046 & 0.3538 \\
+0.50  & 3.0702   & 1.3648  & 0.4445 & 0.6943 & 0.3397 \\
+0.10  & 8.1686   & 3.5025  & 0.4288 & 0.6842 & 0.3149 \\
+0.01  & 33.1538  & 13.9094 & 0.4195 & 0.6497 & 0.2889 \\
+0.001 & 113.5542 & 47.8076 & 0.4210 & 0.6368 & 0.2664 \\
+\bottomrule
+\end{tabular}
+\end{table}

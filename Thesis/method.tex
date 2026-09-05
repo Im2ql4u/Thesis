@@ -379,19 +379,21 @@ V-cycle). The two correlator variants (and the two backflow variants) are matche
 capacity within the comparison tier.}
 \label{tab:hyperparams}
 \small
-\begin{tabular}{lllll}
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{@{}l l l l r@{}}
 \hline
 Component & Variant & Comparison tier & Production & Params \\
 \hline
-Correlator & CTNN (V-cycle) & node/edge $32$, bottleneck $16$, rounds $2{+}2$ & width $128$, $2$ layers & $79.8$k \\
-           & DeepSet        & pair-MLP $64\times4$, out $32$                 & width $128$, $2$ layers & $47.7$k \\
-Backflow   & CTNN (copresheaf) & node/edge $64$, $1$ round                   & width $128$, $3$ layers & $83$k \\
-           & Conventional      & msg $64$, node-MLP $64\times3$              & width $128$, $3$ layers & $83$k \\
-Readout    & (correlator)   & hidden $64$, $2$--$3$ layers, SiLU            & --- & --- \\
+Correlator & CTNN (V-cycle)    & node/edge $32$, bottleneck $16$, $2{+}2$ rounds & width $128$, $2$ layers & $79.8$k \\
+           & DeepSet           & pair-MLP $64\times4$, out $32$                  & width $128$, $2$ layers & $47.7$k \\
+Backflow   & CTNN (copresheaf) & node/edge $64$, $1$ round                       & width $128$, $3$ layers & $83$k \\
+           & Conventional      & msg $64$, node-MLP $64\times3$                  & width $128$, $3$ layers & $83$k \\
+Readout    & (correlator)      & hidden $64$, $2$--$3$ layers, SiLU              & ---                     & --- \\
 \hline
-Optimiser  & Adam           & $\mathrm{lr}=5\times10^{-4}$ (BF), $5\times10^{-5}$ (Jastrow) & \\
-           & CG-SR          & Tikhonov damping $\lambda$, trust-region cap, CG restarts & \\
-Batch      & collocation    & $n_{\rm coll}\sim3\times10^3$, oversample $m=8$--$16$ & \\
+\multicolumn{5}{@{}l}{Optimiser: Adam, $\mathrm{lr}=5\times10^{-4}$ (backflow),
+  $5\times10^{-5}$ (Jastrow); CG-SR with Tikhonov damping $\lambda$,} \\
+\multicolumn{5}{@{}l}{\quad trust-region cap and CG restarts. Collocation batch
+  $n_{\rm coll}\sim3\times10^3$, oversampling $m=8$--$16$.} \\
 \hline
 \end{tabular}
 \end{table}

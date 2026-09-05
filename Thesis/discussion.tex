@@ -8,837 +8,192 @@ Nietzsche}{\textit{Human, All Too Human}}
 \label{ch:discussion}
 \endgroup
 
-This chapter asks what the preceding results mean, which is a different question
-from what they are. Four threads run through it, and they are ordered by how much
-interpretation they require: the energies, where an external benchmark does part of
-the arguing for us; the Wigner regime, where the trained state is used as an
-instrument and the burden of proof shifts onto internal consistency; the learned
-representations, where the quantities are informative but partly gauge-dependent
-and must be read with that in mind; and the collocation programme, where the
-central claim---that a Markov chain is not necessary---needs its boundaries drawn
-as carefully as its successes.
+This chapter asks what the preceding results mean, which is a different question from
+what they are. It does not re-report them.
 
-\section{Discussion of energy results}
+The three threads of this thesis turned out to be one geometry. Architecture sets the
+shape of the variational tangent space---message passing compresses it in the correlator
+and keeps it from collapsing in the nodes. The optimiser inverts the metric on that
+space, and is worth its cost exactly when the metric is badly conditioned and still
+measurable. The training paradigm chooses which measure defines the metric in the first
+place: $|\Psi|^2$ conditions itself and stays on target, while a fixed covering proposal
+loses first the conditioning and then the state. Everything below follows from taking
+that seriously.
+
+Four things remain to be said. What the energies do and do not establish. How far the
+internal numbers can be pushed, given that several of them are gauge-dependent. Where
+the boundary of Markov-chain-free training actually lies, and why it lies there. And
+what the picture predicts for systems larger than these.
+
+\section{What the energies establish}
 \label{sec:energy-discussion}
 
-The energies are the least interesting result in this thesis and the most necessary
-one. They establish that the ansatz works; everything downstream---every claim about
-what the network learned, every structural diagnostic read off the trained
-state---is worthless if it does not. So the question to press here is not whether
-the numbers are good, but whether they are good \emph{for the right reason}, and
-whether the regimes where no benchmark exists inherit any of that credibility.
+The energies are the least interesting result in this thesis and the most necessary one.
+Everything downstream---every claim about what the network learned, every structural
+diagnostic read off the trained state---is worthless if they do not hold. So the question
+worth pressing is not whether the numbers are good. It is what having good numbers
+actually buys.
 
-The benchmarks in Tables~\ref{tab:Residual} and~\ref{tab:energies}
-show that the Slater--Jastrow PINN, with and without backflow, achieves
-DMC-level accuracy for two-electron dots and maintains sub-$0.1\%$ errors
-for $N\in\{6,12\}$ across a wide range of trap frequencies. At the same
-time, it extrapolates in a controlled way into ultra-weak traps
-($\omega=10^{-3}$) where no DMC data are available. What that extrapolation can and
-cannot support is the subject of the rest of this section.
+It buys less than it appears to, and more than it appears to, in two different places.
 
-\paragraph{Two electrons: architecture test and SR refinement.}
-For $N{=}2$, residual-only training provides a clean test of the bare
-architecture. Across $\omega\in\{1.0,0.5,0.1,0.01\}$, both the plain PINN
-and PINN+BF track DMC references at the $\sim 10^{-4}$\,Ha level or better
-(Table~\ref{tab:Residual}), with deviations fully compatible with quoted
-uncertainties except at the shallowest pretraining point $\omega=0.01$.
-There, residual-only PINN+BF remains variational but sits
-$\sim 3\times 10^{-4}$\,Ha above DMC, indicating a small residual bias
-from the PDE-based training alone.
+Less, at the top end. Agreement with a fixed-node DMC calculation is agreement with
+another approximation, not with the truth. Where our message-passing ansatz sits
+\emph{below} a published DMC value---$N{=}12$ at $\omega{=}1$, for instance---the natural
+reading is not that something has gone wrong but that a better nodal surface has been
+found; the variational principle bounds the energy from below by the exact ground state,
+not by somebody else's node. That reading is plausible and we adopt it, but establishing
+it would require the DMC trial nodes and a matched uncertainty analysis, which we have
+not done. The honest statement is that at $\omega\ge0.1$ two independent methods agree to
+a few hundredths of a percent, and that this is the strongest external statement
+available.
 
-The SR tail in Table~\ref{tab:energies} removes this bias. For
-$N{=}2$ and all $\omega\ge 0.01$, the SR-refined PINN+BF energies are
-statistically indistinguishable from DMC, with relative deviations
-$\lesssim 10^{-3}\,\%$. Thus, once the ansatz is well conditioned, a short
-SR phase suffices to close the last few $10^{-4}$\,Ha of variational gap
-without changing the qualitative structure learned during residual training.
+More, at the bottom end---but only by inheritance, and the inheritance has to be argued
+rather than assumed. Below $\omega=0.1$ no published value exists for $N\ge6$. What
+transfers there is not accuracy but \emph{conditioning}: the same architecture, the same
+protocol, the same trap-unit scaling and soft-core features and analytic cusp, applied
+across three decades of $\omega$ without adjustment. A method that had to be retuned at
+each confinement would carry nothing across the boundary. This one does not, and its
+energies join the benchmarked regime smoothly and follow the classical scaling
+exponent once they are past it. That is a reason to take the deep-Wigner numbers
+seriously as variational predictions. It is not a reason to call them validated, and we
+do not.
 
-The comparison between PINN and PINN+BF in Table~\ref{tab:Residual} also
-confirms that backflow is \emph{not necessary} to reach DMC accuracy for
-two electrons. Energies with and without backflow agree within error bars
-at all traps, and the only visible effect of backflow in this case is a
-mild variance reduction and smoother optimisation in shallow traps. For
-$N{=}2$ the nodal structure is adequately captured by the Slater--Jastrow
-correlator alone.
-
-\paragraph{Scaling to $N{=}6$ and $N{=}12$.}
-The more demanding tests are the many-electron dots in
-Table~\ref{tab:energies}. For $N\in\{6,12\}$ and the traps with DMC
-references ($\omega\in\{0.1,0.5,1.0\}$), the final PINN+BF energies are
-consistently close to DMC and in every case slightly above it. Relative deviations
-fall in the band $0.008\text{--}0.05\%$, corresponding to absolute errors of order
-$10^{-3}$--$10^{-2}$\,Ha for the interacting cases, with no sign of catastrophic
-growth in error with either particle number or trap strength. The worst
-relative deviations occur at intermediate $\omega$ and remain safely below
-the percent level.
-
-One subtlety matters here, because the message-passing (CTNN) ansatz
-occasionally sits \emph{below} the quoted DMC reference (for example $N{=}12$,
-$\omega{=}1$: $65.6956$ vs.\ $65.7001$\,Ha). This does not violate the variational
-principle, which bounds the energy only from below by the \emph{exact} ground state,
-$E_{\rm VMC}\ge E_0$. The DMC benchmarks are \emph{fixed-node} calculations and therefore
-carry their own nodal (systematic) bias; a neural ansatz with a better nodal surface can
-legitimately lie below a fixed-node DMC value obtained with poorer nodes. We therefore do
-not treat sitting above the published DMC number as a requirement, and where the CTNN
-falls below it we read this as a plausibly improved nodal structure rather than an error
---- though establishing that rigorously would require the DMC trial nodes and a matched
-uncertainty analysis, which we have not undertaken.
-
-This is non-trivial for two reasons. First, the grid spans qualitatively
-different physical regimes: compact, kinetic-dominated states at
-$\omega=1.0$ and swollen, interaction-dominated states at $\omega=0.1$.
-Second, the same architecture and training protocol are used across all
-$(N,\omega)$, aside from trivial scaling in trap units. The fact that a
-single Slater--Jastrow+backflow ansatz maintains sub-$0.1\%$ accuracy
-across this grid suggests that the chosen combination of (i) trap-unit
-normalisation, (ii) soft-core pair features, and (iii) an explicit analytic
-cusp is robust with respect to both particle number and confinement.
-
-\paragraph{Ultra-weak traps and extrapolation to $\omega=10^{-3}$.}
-At $\omega=10^{-3}$ there are no DMC references in
-Table~\ref{tab:energies}, so the PINN+BF values
-($E\approx 0.0138$\,Ha for $N{=}2$, $0.1409$\,Ha for $N{=}6$,
-$0.5158$\,Ha for $N{=}12$) should be viewed as variational predictions
-rather than benchmarked numbers. Several internal checks, however, support
-their reliability.
-
-First, the energies connect smoothly to the $\omega=0.01$ points---themselves
-externally validated only at $N{=}2$---under the log--log scaling analysis of $T$, $V_{\rm int}$ and
-$V_{\rm trap}$ in Sec.~\ref{sec:wigner-molecule}, with exponents and virial
-ratios consistent with classical expectations in the Wigner regime.
-Second, for $N{=}2$ at $\omega=10^{-3}$, independent MCMC diagnostics
-(stable $r_{12}$ and $P(r)$ histograms, smooth local-energy distributions,
-consistent block estimates) indicate that sampling noise is well below the
-quoted uncertainties in Table~\ref{tab:energies}. Third, for $N{=}6$ and
-$N{=}12$, the structural and energy-based diagnostics in
-Sec.~\ref{sec:wigner-molecule} confirm that the states lie on the Wigner
-side of the crossover (correct shell topologies, near-classical virial
-ratios), with no indication of a mis-set energy scale.
-
-Within these caveats, the $\omega=10^{-3}$ energies can be regarded as
-working variational anchors, supported by the internal checks above, for the
-Wigner-molecule analysis in
-Sec.~\ref{sec:wigner-molecule} and for the representation analysis in
-Sec.~\ref{sec:repr-analysis}.
-
-\paragraph{Efficiency and conditioning.}
-From an algorithmic point of view, the benchmarks highlight the importance
-of conditioning. The SR tail uses only
-$\mathcal{O}(10^3)$ iterations with $\sim 3{\times}10^3$ samples each,
-i.e.\ a few million local-energy evaluations per $(N,\omega)$ point. This is
-modest compared to some earlier neural approaches to quantum dots that
-require orders of magnitude more samples to reach similar accuracy.
-
-The key design choices are: (i) working in trap units, which keeps typical
-coordinates $\mathcal{O}(1)$ from tight to shallow traps; (ii) soft-core
-pair features with $ds/dr\to 0$ at coalescence, which control gradients and
-Laplacian spikes near $r_{ij}=0$; and (iii) an explicit analytic cusp that
-imposes the correct short-range behaviour analytically rather than learning
-it numerically. Together, these keep local energies numerically tame even in
-ultra-weak traps where electrons are far apart and the wavefunction varies
-on long length scales.
-
-\paragraph{Energetic role of backflow.}
-Finally, the tables clarify the energetic role of backflow across regimes.
-For $N{=}2$, backflow is not needed to attain DMC-level accuracy. For
-$N\in\{6,12\}$ at intermediate traps ($\omega\in\{0.1,0.5\}$), backflow
-provides a modest but systematic improvement over residual-only baselines
-(not shown in Table~\ref{tab:energies}), bringing final errors into the
-$\mathcal{O}(10^{-2}\text{--}10^{-1})\%$ band. In the deepest Wigner cases
-($\omega=10^{-3}$), however, the backflow correction becomes energetically
-tiny (Sec.~\ref{sec:repr-analysis}): the Slater--Jastrow correlator already
-captures the dominant structure and the optimiser effectively \emph{turns
-off} backflow. This regime dependence is mirrored in the representation
-analysis, where backflow appears as a high-dimensional, predominantly local
-correction channel that is only variationally active away from the
-ultra-classical limit.
-
-
-\section{Discussion of the Wigner–molecule regime}
-\label{sec:wigner-discussion}
-
-Having established the wavefunction's accuracy wherever a benchmark exists, we now
-use it to probe Wigner-molecule structure. Everything up to this point asked whether
-the trained state is accurate; here we take that as given and ask what it can be
-used to see. That shift
-raises the evidential stakes considerably, because it is exactly the regime in which
-no DMC reference exists---so any structural claim has to be carried by internal
-consistency, by agreement between independent diagnostics that could easily have
-disagreed, and by the fact that the answers reproduce known classical topologies
-nobody trained the network to reproduce. The phrase ``strongly correlated'' is a
-label; what follows is an attempt to say something falsifiable instead.
-
-The structural diagnostics in Sec.~\ref{sec:wigner-molecule} show that the
-weakest traps considered place the dots firmly on the Wigner side of the
-crossover, in a sense that goes beyond that loose label. Three strands of evidence support this: (i) localization and
-energy partitioning, (ii) shell geometry and bond order, and
-(iii) topology statistics and reconstruction of $g(r)$.
-
-\paragraph{A caveat on total spin.}
-Our reference states are the closed-shell singlets of the non-interacting problem, with
-$N_\uparrow=N_\downarrow$ held fixed throughout. This is safe at weak coupling, but in the
-deep-Wigner regime the ground-state \emph{spin} can change: for parabolic dots the
-interaction can drive spin transitions as it strengthens (for instance an
-$S=0\!\to\!S=1$ change for $N=6$ at strong coupling)~\cite{Egger_1999}. Fixing
-$N_\uparrow=N_\downarrow$ does not by itself pin the total spin, since an $S=1$ state also
-has an $S_z=0$ component. We do not scan total spin here, so the weak-trap energies and
-structures below should be read as the lowest states we find \emph{within the fixed
-spin-projection sector}, not as proven global-spin ground states. Determining the true
-spin ordering across the crossover, by comparing sectors of different $S$, is left to
-future work.
-
-\paragraph{Localization and energy partitioning.}
-On the one-body level, the weak-trap radial laws $P(r)$ are sharply peaked
-at large radii with relatively small fluctuations. For the two-electron dot
-at $\omega=10^{-3}$ we find
-$r_{\rm mode}\approx 64.3$, $\langle r\rangle\approx 64.0$ and
-$\gamma=\sigma_r/r_{\rm mode}\approx 0.29$, with only
-$\sim 4.6\times 10^{-3}$ of the single-particle mass inside
-$r\le 0.25\,r_{\rm mode}$ (Table~\ref{tab:two_e_summary}). The pair
-distribution $p(r_{12})$ is peaked at $r_{12}^{\rm mode}\approx 122$ with
-Lindemann ratio $\gamma_{r_{12}}\approx 0.20$, and the relative angle is
-sharply anti-aligned, $\sigma(\pi-\Delta\phi)\approx 0.35$, with
-$p(r_{12}\le 0.25\,r_{12}^{\rm mode})\approx 2.6\times 10^{-3}$. These
-numbers are characteristic of a dilute, essentially two-site Wigner dimer
-rather than a delocalized Fermi liquid.
-
-For $N\in\{6,12\}$ the same pattern appears in the aggregate. Both
-$r_{\rm mode}$ and $r_{\rm rms}$ grow roughly as $\omega^{-0.6}$, the
-localization ratio $\gamma$ decreases only mildly with $N$ and $\omega$, and
-the extracted $\langle r^2\rangle\propto\omega^{-\beta}$ exponents
-$\beta\simeq 1.2\text{--}1.3$ exceed the non-interacting value $\beta=1$.
-At the same time, the energy partitioning approaches the classical virial
-limit: at $\omega=10^{-3}$,
-\[
-\frac{2\langle V_{\rm trap}\rangle}{\langle V_{\rm int}\rangle}
-\simeq 1.25,\;1.12,\;1.02 \quad\text{for}\quad N=2,6,12,
-\]
-with the $N{=}12$ dot satisfying $V_{\rm int}\approx 2V_{\rm trap}$ to
-within $2\%$ (Fig.~\ref{fig:wigner_ratios}). Combined with the log--log
-scaling exponents $\alpha_T\approx 1$ and
-$\alpha_{V_{\rm int}}\approx 0.66$, this indicates that the kinetic energy
-has become a small correction on top of a nearly classical potential-energy
-landscape, as expected in the Wigner-molecule limit.
-
-\paragraph{Shell geometry and bond order.}
-Beyond global localization, the weak-trap states exhibit robust shell
-structure with non-trivial bond order. For $N{=}6$ the dot retains a single
-pronounced shell across all $\omega\in[1,10^{-3}]$; what evolves is the
-stiffness of angular correlations. The ring Lindemann index decreases from
-$\sim 0.70$ at $\omega=1$ to $\sim 0.64$ at $\omega=10^{-3}$, while the
-pair-distance Lindemann ratio drops from $\sim 0.35$ to $\sim 0.27$
-(Table~\ref{tab:N6}). After angular registration, the electrons form a
-rotating Wigner ring with clear sixfold order.
-
-At $\omega=10^{-3}$, the $N{=}6$ ensemble is dominated by two symmetry
-classes, $(1,5)$ and $(0,6)$, with fractions $\approx 0.801$ and
-$\approx 0.199$. Both show strong ring order, with
-$|\Phi_5|\approx 0.60$, $|\Phi_6|\approx 0.66$ and ring Lindemann
-indices $\approx 0.21$. The shell itself never breaks; quantum fluctuations
-manifest primarily as rotations and occasional transitions between
-$(1,5)$ and $(0,6)$. This matches classical analyses where $(1,5)$ is the
-ground-state geometry and $(0,6)$ a proximate competitor.
-
-For $N{=}12$ the structure is richer but equally ordered. At $\omega=10^{-3}$
-the two-shell fraction is very high for a broad range of radial-gap
-thresholds, confirming that shelling is robust rather than a threshold
-artifact. Within the two-shell subset the inner-ring occupancy histogram is
-sharply peaked at $(3,9)$, with $(2,10)$ and $(1,11)$ as the leading
-subdominant topologies. On $(3,9)$ frames we find
-$|\Phi_3|\approx 0.69$, $|\Phi_9|\approx 0.53$ and Lindemann indices
-$\approx 0.22$ on both rings, i.e.\ clear threefold and ninefold bond order
-with small angular fluctuations. This is precisely the commensurate,
-multi-shell crystalline order expected for a twelve-electron Wigner molecule.
-
-\paragraph{Topology statistics and reconstruction}
-A more stringent test of the Wigner picture comes from shell-resolved
-reconstruction of the pair distribution. For $N{=}12$ at $\omega=10^{-3}$ we
-partition two-shell configurations into II/IO/OO pairs, form their individual
-histograms and weight them by the observed topology mixture
-$(0.045{:}0.409{:}0.545)$. The resulting synthetic $g(r)$ has cosine
-similarity $0.9982$ to the global $g(r)$
-(Fig.~\ref{fig:N12_w0001_decomposition}), i.e.\ is indistinguishable at our
-statistical resolution. The same holds for $N{=}6$, where the global $g(r)$
-is reproduced essentially exactly by an OO/IO mixture of $(1,5)$ and $(0,6)$
-sectors.
-
-Two implications follow, and the first needs its scope stated precisely. Because the
-sector histograms and the global $g(r)$ are built from the \emph{same} samples, this is
-a test of \emph{decomposability}, not of sampling correctness: it shows that once the
-shell occupancies and topology statistics are fixed, the global $g(r)$ is determined by
-shell geometry and combinatorics alone, leaving no residual structure unaccounted for.
-It cannot, and does not, rule out a sampling artefact common to both---that case rests
-independently on the restart, threshold and chain diagnostics. Second, subject to that
-scope, the ansatz is not only reproducing the energy but also the detailed two-body
-correlation structure expected from classical and quantum studies of parabolic Coulomb
-clusters.
-
-\paragraph{From dimer to multi-shell Wigner molecules.}
-Viewed across $N=2,6,12$ and decreasing $\omega$, a coherent Wigner-molecule
-picture emerges. The two-electron dot evolves into a dilute, strongly
-anti-aligned dimer with negligible overlap near the origin. The six-electron
-dot forms a single, stiff Wigner ring whose lab-frame symmetry is restored by
-rotation but whose co-rotating frame exhibits clear sixfold order and a
-quantum mixture of classically known $(1,5)$ and $(0,6)$ topologies. The
-twelve-electron dot, finally, develops a robust two-shell structure with a
-commensurate $(3,9)$ split as the modal configuration and topology fractions
-that track classical ground-state expectations.
-
-All of this structure is obtained from samples drawn from the same
-variational neural ansatz whose energies match or closely track DMC
-benchmarks. This gives strong evidence that the states analysed in
-Sec.~\ref{sec:repr-analysis} are bona fide Wigner molecules, and not
-artefacts of an over-flexible wavefunction. The next section discusses how
-this rich real-space structure is compressed into a remarkably low-dimensional
-latent geometry by the learned correlator, and how backflow behaves across
-the same regimes.
-
-
-\section{Discussion of learned representations}
+\section{How far the internal numbers can be pushed}
 \label{sec:repr-discussion}
 
 There is no guarantee that a trained network organises itself in a way anyone can
-interpret. High-dimensional function approximators are entitled to be
-incomprehensible, and frequently are. So the finding that structures this section is a surprising one: the internal
-organisation is not merely interpretable but \emph{simple}, and simple in a way that
-matches the physics rather than the parameterisation. The qualification, which
-follows immediately and matters, is that not every quantity we can measure on this
-state is a property \emph{of} the state.
+interpret. High-dimensional function approximators are entitled to be incomprehensible,
+and usually are. The surprise here is not that the internal organisation is
+interpretable but that it is \emph{small}, and small in a way that follows the physics
+rather than the parameterisation: a real-space transition involving shells, ring
+occupancies and angular stiffness, held on one to three effective directions whose
+identity---not whose number---changes across the crossover.
 
-The representation analysis in Sec.~\ref{sec:repr-analysis} reveals a
-surprisingly simple internal organization of the ansatz: the correlator
-$W_\theta$ lives on a low-dimensional manifold whose leading axes track
-global size and fluctuations of the electron cloud, while the BackflowNet
-implements a high-dimensional but predominantly local correction whose net energy
-becomes small in the deepest Wigner regimes. This mirrors the physical
-picture developed in Sec.~\ref{sec:wigner-molecule}. As established in
-\S\ref{sec:synthesis}, component-level quantities are gauge-like; the
-conclusions drawn below therefore rest on the invariants---energy, local-energy
-variance, and ablation.
+The temptation is to read that as a discovery about neural wavefunctions. It cannot
+quite be, and the reason is worth stating carefully, because it applies to a whole class
+of representation-analysis results and not only to ours.
 
-\paragraph{Low-dimensional correlator manifold.}
-Across all $(N,\omega)$, the entropy effective rank $r_{\rm eff}(Z)$ of the
-correlator features stays low across all $(N,\omega)$, spanning roughly $1$ to $3$
-(Table~\ref{tab:correlator-geom}).
-In the most extreme case, $N{=}2$ at $\omega=10^{-3}$, we find
-$r_{\rm eff}(Z)\approx 1.00$ with head--PC1 correlation $\approx 0.998$ and
-PC1 block power almost entirely in the pair branch $\psi$. PC ablations show
-that projecting onto the top-$k$ PCs rapidly recovers the head, while random
-$k$-dimensional subspaces leave most of the error intact: for
-$(N,\omega)=(2,10^{-3})$ the relative MAE drops from $\sim 4.5\times10^{-2}$
-with $k{=}1$ to $\sim 2.0\times10^{-5}$ with $k{=}12$, whereas random
-projections of the same dimension do not achieve comparable reductions.
+The Jastrow and the backflow are partial substitutes. Any measurement made on one of
+them alone---its rank, its displacement magnitude, its share of the energy---records a
+division of labour that the loss barely constrains, and that a different training route
+could have made differently while reaching the same state. Such quantities are
+gauge-like. Reporting them is not wrong; treating them as properties of the architecture
+is. Every claim that reversed during this project was of that kind.
 
-For $N\in\{6,12\}$ and for both quantum and Wigner regimes, the picture is
-similar. Effective ranks cluster between $\sim 1.3$ and $\sim 2.5$, head--PC1
-correlations remain $\gtrsim 0.95$, and a small number of principal
-directions captures the bulk of sensitivity. From a representation-learning
-perspective, the correlator behaves more like a low-dimensional order-parameter
-model than like a generic high-dimensional feature extractor.
+What survives is what can be measured on the state or by deletion: the energy, the
+local-energy variance, the price of removing a component, and the overlap between two
+states. And on those, the controlled comparison in Chapter~\ref{ch:kernel} does support
+a genuine architectural statement---one sharper than the dimension count that first
+suggested it. The low-rank geometry says \emph{how many} directions the correlator uses.
+The tangent-kernel analysis says \emph{which}, and that turns out to be the substantive
+question. The message-passing correlator's dominant directions are the Hamiltonian's own
+collective modes---breathing, correlation hole, relative excitation---to $R^2\approx1$
+across $\omega$ and up to $N{=}12$, while a separable network of matched or larger
+capacity leaves nearly half its tangent budget where no compact physical dictionary
+finds it. A direction outside the dictionary need not be unphysical; the robust claim is
+that one tangent space is far more completely accounted for by a small set of physical
+operators than the other. That gap is present at every confinement. Strong confinement
+merely disguises it, because correlation is a small slice of the energy there and the two
+networks agree to four figures.
 
-\paragraph{What the leading axes encode.}
-Linear probes from the correlator PCs to coarse physical summaries clarify
-what these axes represent. For $N{=}2$ (both at $\omega=0.01$ and
-$\omega=10^{-3}$), the first few PCs predict the mean radius and its variance
-essentially perfectly ($R^2(r_{\rm mean})\approx 1$,
-$R^2(r_{\rm var})\approx 1$), and even near-origin masses such as
-$\Pr(r\leq 0.25\,r_{\rm mode})$ are accurately captured. For $N\in\{6,12\}$,
-the leading PCs still track global size with $R^2(r_{\rm mean})$ close to
-unity and radial fluctuations with $R^2(r_{\rm var})$ in the range
-$0.4\text{--}0.85$ across regimes, while shell contrast and angular order
-remain only weakly linearly encoded. This is consistent with the structural
-analysis: the correlator primarily encodes how big the dot is and how widely
-its shells fluctuate, whereas detailed bond order and topology require
-explicit angular registration and conditioning on shell occupancy.
+The practical consequence is a design rule rather than a theorem. A compact, smooth
+correlator plus a moderately wide backflow is a good default for parabolic dots: the
+correlator behaves like a learned set of collective coordinates, and the backflow like a
+local correction channel that switches on where near-field physics is delicate and
+falls quiet in the Wigner limit. But the \emph{kind} of backflow keeps mattering after
+its energy contribution has gone. A conventional single-round network collapses onto one
+collective mode exactly where the copresheaf network does not, and pays half a percent
+for it. Falling quiet and falling over are not the same thing.
 
-\paragraph{Backflow as a local, high-dimensional correction.}
-Backflow behaves very differently. For $N{=}6$ and $N{=}12$ the displacement
-field $\Delta x$ has $r_{\rm eff}(\Delta x)$ in the range
-$\sim 10\text{--}22$ (Table~\ref{tab:backflow-geom}), with relatively
-flat PCA spectra and gradual reconstruction under PC ablation. Linear probes
-from $\Delta x$ PCs to global observables such as $r_{\rm mean}$,
-$r_{\rm var}$ or shell contrast yield negligible $R^2$, indicating that the
-backflow field does not act as a simple global rescaling or shape parameter.
-
-Near-field diagnostics of $\Delta E$ and $\|\Delta x\|^2$ support a
-predominantly local interpretation. At intermediate traps (e.g.\ $N{=}6$ or
-$12$ at $\omega=10^{-2}$), the lowest $q\%$ of configurations by $r_{\min}$
-carry a disproportionately large fraction of the backflow energy correction:
-for $N{=}12$ at $\omega=10^{-2}$ the lowest $5\%$ bin accounts for about six
-times its fair share of $\Delta E$ while the corresponding share of
-$\|\Delta x\|^2$ remains close to unity. Thus, many spatial modes contribute
-to the displacement field, but the \emph{energetic leverage} of backflow is
-concentrated in short-distance configurations where small nodal adjustments
-have a large impact on the local energy.
-
-\paragraph{Deep Wigner limit: the backflow's net contribution shrinks.}
-The extreme Wigner points provide a clean limit. For $N{=}2$ at
-$\omega=10^{-3}$, the backflow correction to the energy is
-$\Delta E\sim 10^{-7}$\,Ha with comparable uncertainty, head--PC1 alignment
-between no-BF and BF correlator features is essentially perfect (cosine~$=1$),
-and the ranks of $Z$ and $\Delta Z$ are both $\approx 1$. PC ablations of
-$\Delta x$ show that even though $r_{\rm eff}(\Delta x)$ can be nominally high,
-the field is effectively constant over the sampled manifold (PC ablation error
-$\sim 10^{-6}$), and near-field shares of both $\Delta E$ and
-$\|\Delta x\|^2$ are $\approx 1$. In the trained CTNN decomposition, then, the net
-energetic contribution assigned to backflow becomes small in the deep-Wigner regime.
-This does not imply that backflow is generically unnecessary here: Chapter~\ref{ch:kernel}
-shows that a \emph{conventional} backflow collapses in precisely this regime and loses
-accuracy, whereas the message-passing backflow retains the full-rank response the
-crystal demands. What is small is the energy assigned to one component in one trained
-decomposition---a gauge-like quantity---not the structural need for an adequate
-relational nodal channel.
-
-For $N{=}6$ and $N{=}12$ at $\omega=10^{-3}$ the pattern is similar, albeit
-less extreme. The correlator manifold remains low-rank with PC1 almost
-unchanged between no-BF and BF models, $r_{\rm eff}(\Delta Z)$ stays close to
-$r_{\rm eff}(Z)$, and the energetic effect of backflow is very small. Near-field
-shares of $\Delta E$ revert to values close to one. Once the system is deep in
-the Wigner-molecule regime and the static correlator has adjusted to the
-interaction-dominated landscape, there is simply little left for backflow to
-correct.
-
-Two qualifications keep this from being over-read, both from the tangent-kernel
-analysis of Chapter~\ref{ch:kernel}. First, ``idle'' describes the small \emph{net
-energy} of the message-passing backflow at these points, not the structure a backflow
-must supply: a \emph{conventional} backflow does not fall idle so
-gracefully. It collapses to a single collective mode (rank $\to1$) and \emph{loses}
-accuracy at the Wigner crystal, because the residual correlation there is relative and
-full-rank, and its single round of pairwise messages does not sustain it, whereas the
-CTNN's copresheaf transport does. Second, the ranks and displacement magnitudes quoted here are gauge-like
-(\S\ref{sec:synthesis}); what survives a change of training route is the
-ablation price and the gap between a conventional and a copresheaf backflow, not the
-component ranks.
-
-\paragraph{Regime dependence and architectural implications.}
-Taken together, the representation results show a clear regime dependence:
-\begin{itemize}
-  \item In \emph{weakly to moderately correlated} traps (larger $\omega$,
-        smaller $r_s$), the correlator remains low-rank but backflow carries
-        a non-trivial fraction of the energy correction, focused on
-        near-field configurations. Here it is beneficial to allocate
-        capacity to a reasonably wide BackflowNet with rich pairwise inputs,
-        while keeping the correlator compact.
-  \item In the \emph{deep Wigner} regime (ultra-weak traps such as
-        $\omega=10^{-3}$), the correlator alone captures most of the global
-        size/shelling and the relevant near-field structure, and the backflow's
-        \emph{net} energy contribution becomes small. Adding \emph{width} to an
-        already message-passing backflow buys little here; the architectural
-        \emph{kind} of backflow, however, still matters---a conventional
-        single-round-message network collapses and loses accuracy exactly where the
-        copresheaf CTNN holds its rank and does not (Chapter~\ref{ch:kernel}).
-\end{itemize}
-From a design perspective, this suggests that Slater--Jastrow PINNs with a
-small, smooth correlator and moderately wide backflow layers are a natural
-default for parabolic dots. The correlator behaves like a learned set of
-collective coordinates summarizing dot size and shell fluctuations, while
-backflow functions as a flexible local correction channel that is activated
-only where near-field physics is delicate. In the Wigner limit, the model
-naturally reduces to a static Wigner-molecule ansatz with low-rank latent
-geometry.
-
-\paragraph{Compression is physical alignment.}
-The low-rank latent geometry above says \emph{how many} directions the correlator uses; the
-tangent-kernel analysis of Chapter~\ref{ch:kernel} adds \emph{which} directions, and the
-distinction turns out to matter. Naming the leading tangent modes against a dictionary of
-physical operators shows that the message-passing correlator's dominant directions are the
-Hamiltonian's own collective modes---breathing, correlation-hole, relative excitation---to
-$R^2\!\approx\!1$ across $\omega$ and up to $N{=}12$, whereas a separable network of matched
-(or larger) capacity leaves nearly half of its tangent budget along directions a compact
-physical dictionary does not resolve. A direction outside the dictionary need not be unphysical;
-the robust reading is that the CTNN's tangent space is far more completely accounted for by a
-small set of physical operators than the DeepSet's. That gap is present at every confinement and
-is merely disguised at strong confinement, where correlation is a small slice of the energy and
-the two networks are indistinguishable in energy and even in leading-mode physicality. It also
-appears \emph{coupled} to the backflow: holding the backflow fixed and varying only the
-correlator, the correlator's loss of alignment and the backflow's rank collapse set in at the
-same confinement---evidence for a common relational bottleneck seen once in the amplitude and
-once in the nodes, rather than proof that the two are literally one deficit.
-
-\paragraph{Connection to the physical picture.}
-Finally, the learned representations dovetail with the structural analysis in
-Sec.~\ref{sec:wigner-molecule}. The same correlator that reproduces shell
-topologies, bond order and virial partitioning in the Wigner regime is found
-to live on a one- or two-dimensional manifold whose leading axis correlates
-almost perfectly with global size and radial spread. Backflow, in turn, is
-high-dimensional and local exactly in the regimes where shell structure is
-less rigid and close encounters are more frequent. This supports a physically
-meaningful decomposition: a small set of global ``collective coordinates''
-captured by $W_\theta$ and a many-body, predominantly local correction
-channel implemented by BackflowNet. The success of this decomposition in
-capturing both energies and detailed Wigner-molecule structure suggests that
-similar architectures may be effective for other strongly correlated finite
-fermion systems.
-
-
-%% ═══════════════════════════════════════════════════════════════════════
-%% SECTION:  Discussion of collocation-assisted training
-%% ═══════════════════════════════════════════════════════════════════════
-
-\section{Discussion of collocation-assisted training}
+\section{Where Markov-chain-free training stops, and why}
 \label{sec:collocation-discussion}
 
-Of everything in this thesis, the collocation programme is where the claim most
-needs its boundaries drawn before it is stated, because the headline---an accurate
-many-body wavefunction trained with no Markov chain---is the kind of sentence that
-travels further than its evidence. It is also the part that consumed the most time
-and produced the most failures, and the two facts are related: the method works
-within a regime whose edges had to be found by walking off them repeatedly. What
-follows therefore spends as much effort on where the approach breaks, and on the
-precise sense in which ``MCMC-free'' is meant, as on where it succeeds.
-
-The collocation experiments reported in Sec.~\ref{sec:collocation}
-demonstrate that a purely importance-sampled, MCMC-free training pipeline
-can produce wavefunctions of near-DMC accuracy for moderate particle
-numbers and confinement strengths, while revealing systematic limitations
-at large~$N$ and ultra-weak confinement.
-This section interprets these findings, identifies the mechanisms behind
-successes and failures, and discusses their broader implications.
-
-
-\subsection{The central result: MCMC-free training to DMC accuracy}
-
-The most significant finding is that collocation training---using only
-analytic Gaussian proposals and importance resampling, with no Markov
-chain at any stage of optimisation---achieves $+0.009\%$ accuracy
-relative to DMC for $N{=}6$ at $\omega{=}1.0$, and
-$+0.018\%$ for $N{=}12$ at the same confinement.
-These errors are comparable to the statistical uncertainty of the DMC
-references themselves and are achieved with a training budget that is
-modest by neural-network VMC standards.
-
-This result is non-trivial because the prevailing assumption in the
-neural quantum state community is that accurate wavefunction
-optimisation requires equilibrated MCMC sampling from $|\Psi|^2$
-throughout training.
-The collocation approach sidesteps this by treating the local energy as a
-\emph{reward signal} in a REINFORCE policy gradient, drawing points from
-a fixed analytic distribution and reweighting them.
-The price is higher gradient variance (because the proposal only
-partially overlaps $|\Psi|^2$), but this is compensated by the
-absence of autocorrelation, burn-in, and mixing overhead.
-
-For $N{=}6$ across all five confinement strengths tested
-($\omega \in \{1.0, 0.5, 0.1, 0.01, 0.001\}$), the worst collocation
-error is $+0.244\%$ at $\omega{=}0.001$, where electrons are
-separated by ${\sim}100\,a_0^\ast$ (about four oscillator lengths) in a 12-dimensional
-configuration space.
-That a simple Gaussian mixture with three width components can maintain
-usable overlap with $|\Psi|^2$ at such extreme aspect ratios
-speaks to the effectiveness of the $1/\omega$ scaling in the proposal
-width and to the robustness of the importance-resampling pipeline.
-The Gaussian mixture is only the first proposal one might try, however. Where it does
-eventually fail---the origin-centred form aims where a deep Wigner molecule no longer
-has any mass---Chapter~\ref{ch:kernel} replaces it with a proposal built from the
-Wigner shell itself and carries the same MCMC-free objective down to $\omega=0.0035$,
-a regime the Gaussian mixture cannot reach.
-
-
-\subsection{Why REINFORCE succeeds where residual losses fail}
-\label{sec:colloc-why-reinforce}
-
-The catch-22 analysis (Appendix~\ref{app:catch22}) identified a
-fundamental obstacle for direct PDE-residual training of the
-many-body Schr\"odinger equation: the backflow learning signal is
-concentrated near nodes and coalescence points where the local energy
-$E_L$ diverges, but these are precisely the configurations where
-second-derivative pathways are ill-conditioned.
-Backpropagating through the Laplacian in such regions produces
-pathological gradients that destabilise training.
-
-The REINFORCE formulation resolves this by construction.
-The Laplacian enters only through the \emph{reward} (the local energy
-in Eq.~\eqref{eq:local-energy}), and gradients act exclusively on the score
-function $\nabla_\theta \log|\Psi|$.
-The stability is subtler than the score simply being bounded. For a
-\emph{parameter-dependent} (backflow) node the score itself can diverge---
-$\nabla_\theta\log|\Psi|\supset(\nabla_\theta D)/D$ grows like $1/d_\theta$ as the learned
-determinant $D\!\to\!0$ near its node. What matters is that this divergence is
-\emph{integrable} under the $|\Psi|^2$ sampling measure, which weights it by
-$|\Psi|^2\sim d_\theta^2$ (and the near-node points are further suppressed by the
-importance screening). REINFORCE avoids the \emph{stronger}, non-integrable divergence
-of the strong-form residual, in which the Laplacian term $\nabla^2 D/D$ enters the
-gradient directly (Appendix~\ref{app:catch22}). Keeping the Laplacian in the
-\emph{reward} but out of the \emph{gradient flow} is what lets the collocation pipeline
-train backflow and Jastrow parameters stably in regimes where direct residual
-minimisation fails.
-
-The superiority of pure REINFORCE ($\beta{=}0$) over the hybrid
-objective ($\beta{>}0$) has a related explanation.
-The direct weak-form term $\tilde{E} = \tfrac{1}{2}\|\nabla\log\Psi\|^2 + V$
-is cheaper to evaluate (no Laplacian needed) but minimises a different
-functional: it drives the wavefunction toward low kinetic energy rather
-than low total energy.
-At nonzero~$\beta$, the resulting gradient conflict between the two
-objectives manifests as oscillatory behaviour in the energy, with the
-REINFORCE term pulling toward the variational minimum and the direct
-term pulling toward a kinetic-energy minimum that is generally
-distinct.
-
-
-\subsection{The sampling bottleneck and its regime dependence}
-\label{sec:colloc-sampling-discussion}
-
-The central limitation of collocation training is that
-importance-sampling quality degrades systematically with particle
-number and with decreasing confinement.
-This degradation is governed by two competing effects:
-\begin{enumerate}
-\item \textbf{Dimensionality.} The configuration space is $Nd$-dimensional.
-  A Gaussian proposal in $Nd$ dimensions has an overlap with
-  $|\Psi|^2$ that shrinks exponentially with~$Nd$ unless the proposal
-  is well matched to the target distribution.
-  For $N{=}6$ ($Nd{=}12$), a three-component mixture is sufficient;
-  for $N{=}20$ ($Nd{=}40$), it is marginal.
-\item \textbf{Correlation structure.} At low~$\omega$, the many-body
-  wavefunction develops strong inter-particle correlations
-  (Wigner-molecule structure) that make $|\Psi|^2$ highly
-  non-Gaussian: it concentrates on shell-like geometries with specific
-  inter-particle spacings.
-  An isotropic Gaussian proposal has no mechanism to capture this
-  structure.
-\end{enumerate}
-
-The ESS quantifies this overlap.
-Empirically, the ESS per epoch scales roughly as:
-\begin{itemize}
-\item $N{=}6$: ESS $\sim 50$--$500$ at $\omega{=}1.0$, $\sim 5$--$50$
-  at $\omega{=}0.01$, $\sim 2$--$10$ at $\omega{=}0.001$ (adaptive proposal; with the
-  static origin mixture the $\omega{=}0.01$ figure is $\sim\!1$--$5$).
-\item $N{=}12$: ESS $\sim 30$--$200$ at $\omega{=}1.0$, $\sim 5$--$15$
-  at $\omega{=}0.1$, $\sim 1$ at $\omega{=}0.01$ (training fails).
-\item $N{=}20$: ESS $\sim 2$--$15$ at $\omega{=}1.0$, $\sim 1$--$5$ at
-  $\omega{=}0.1$.
-\end{itemize}
-When the ESS approaches~$1$, the importance-weighted batch degenerates
-to a single effective sample, and the REINFORCE gradient becomes
-essentially a random vector.
-The ESS-adaptive oversampling mechanism delays this collapse but cannot
-prevent it: eventually, the number of proposal samples needed to
-maintain a given ESS grows exponentially, making the approach
-intractable.
-
-This explains the systematic pattern across
-Table~\ref{tab:collocation} and Appendix~\ref{app:postcatch22:frontier}:
-accuracy degrades smoothly from excellent ($+0.013\%$) at
-$(N{=}6,\ \omega{=}1.0)$ to poor ($+5.53\%$) at
-$(N{=}20,\ \omega{=}0.1)$, following the trajectory of ESS collapse.
-
-
-\subsection{The optimiser regime boundary}
-\label{sec:colloc-optim-discussion}
-
-The sharp failure of natural-gradient preconditioning (CG-SR) below
-$\omega \lesssim 0.01$ reveals an important structural feature of the
-optimisation landscape.
-
-The Fisher information matrix $F_{ij} = \EE[\partial_i \log|\Psi|^2
-\cdot \partial_j \log|\Psi|^2]$ characterises the curvature of
-parameter space as seen by the wavefunction.
-Ill-conditioning alone does not determine whether SR helps. Natural gradients are
-most valuable when the metric is anisotropic but remains statistically resolvable;
-what disqualifies them is not curvature but the failure to estimate it. In strong
-confinement ($\omega \ge 0.1$) the wavefunction is compact and all parameters
-contribute to its structure in a comparable manner, so $F$ is well-conditioned, its
-inverse is a sound preconditioner, and Adam is in any case close behind.
-
-At ultra-weak confinement ($\omega \le 0.01$), two effects conspire---and it is the
-second, not the first, that is decisive:
-\begin{enumerate}
-\item \textbf{Scale separation.} The wavefunction extends over
-  ${\sim}1/\sqrt{\omega}$ oscillator lengths, creating a large
-  separation between the scale of the Jastrow correlator and the
-  scale of the orbital envelope.
-  Parameters controlling short-range correlations (cusp, pair features)
-  contribute very differently to $F$ than parameters controlling
-  long-range structure (orbital widths, backflow offsets).
-\item \textbf{Sampling starvation.} The Fisher matrix is estimated from
-  importance-resampled points.
-  When the ESS is low, the estimate of $F$ is dominated by a few
-  high-weight samples, making it noisy and rank-deficient.
-  Tikhonov damping can stabilise the inversion, but at the cost of
-  washing out the very curvature information that motivates natural
-  gradients.
-\end{enumerate}
-
-Adam, by contrast, maintains per-parameter adaptive learning rates
-using only first and second moment estimates of the gradient.
-It makes no attempt to model parameter-space curvature globally,
-and therefore does not fail when the curvature is pathological.
-The price is slower convergence in well-conditioned regimes
-(where CG-SR can take larger, more informed steps), but the
-benefit is robustness in ill-conditioned regimes where CG-SR
-diverges.
-
-The resulting picture has three regimes rather than two. Where the metric is
-well-conditioned, SR is sound but unnecessary. Where it is anisotropic and still
-estimable, SR is at its most valuable---which is the collocation case of
-Chapter~\ref{ch:kernel}, Q2. Where importance-sampling collapse makes the empirical
-metric itself unreliable, its inversion amplifies estimation noise and SR becomes
-actively harmful. The practical implication for future work is therefore about the
-\emph{estimator}, not the curvature: any natural-gradient or second-order method
-applied to weakly confined many-body systems must certify that the metric it inverts
-is statistically resolved at the sample sizes in use.
-
-
-\subsection{Why Langevin refinement fails}
-\label{sec:colloc-langevin-discussion}
-
-Langevin refinement was motivated by a natural intuition: if the Gaussian proposal
-overlaps $|\Psi|^2$ poorly, evolving samples up the score $\nabla_{\mathbf{R}}\log|\Psi|^2$
-before resampling should improve that overlap. It fails for a reason that is standard
-in the MCMC literature and easy to overlook in an importance-sampling context. The
-weights $w_i = |\Psi(\mathbf{R}_i)|^2/q(\mathbf{R}_i)$ are valid only if the
-$\mathbf{R}_i$ are drawn from $q$; after $K$ Langevin steps from an out-of-equilibrium
-start, the effective density is some intermediate $\tilde q$ depending on $K$ and
-$\varepsilon$, while the weights still divide by $q$. The resulting gradient bias is
-not noise---it pushes the wavefunction toward regions the Langevin dynamics favours,
-which shifts $\tilde q$ further in the same direction, and the loop closes. The
-measured errors in \S\ref{sec:colloc-negatives} confirm the mechanism experimentally.
-Correcting it requires running to equilibrium, adding a Metropolis--Hastings step, or
-computing annealed weights along the non-equilibrium path; the first two are MCMC by
-another name, which defeats the purpose, and the third is expensive enough to
-forfeit the advantage the collocation route exists to provide.
-
-
-\subsection{Architectural trade-offs at scale}
-\label{sec:colloc-arch-discussion}
-
-The reversal of the backflow advantage at $N{=}20$ highlights an
-important architectural trade-off.
-The copresheaf backflow network (\texttt{CTNNBackflowNet})
-stores edge features of size
-$\mathcal{O}(N^2 \times h_{\text{bf}})$, which at $N{=}20$ with
-$h_{\text{bf}}{=}128$ requires ${\sim}10\times$ the memory of the
-Jastrow-only network.
-This forces a choice: reduce $h_{\text{bf}}$ (losing expressivity),
-reduce the collocation budget (losing gradient quality), or reduce
-the oversampling factor (losing ESS).
-All three options degrade the result.
-
-The Jastrow-only network, with ${\sim}25$k parameters and
-$\mathcal{O}(N^2)$ edge cost (no hidden-dimension multiplier),
-permits full-size collocation budgets ($n_{\text{coll}}{=}4096$,
-oversample${=}8$--$16$) even at $N{=}20$.
-The resulting gradient is less noisy, and the simpler loss landscape
-(fewer parameters) makes optimisation more reliable.
-
-This does not mean that backflow is unnecessary at $N{=}20$; it
-means that the current training pipeline cannot supply enough
-gradient signal to train backflow effectively at this scale.
-The implication is that scaling collocation to larger systems
-requires either (i)~memory-efficient backflow architectures
-(e.g.\ sparse attention, low-rank message passing), or
-(ii)~improved sampling that provides higher ESS at constant
-computational cost.
-
-
-\subsection{Comparison with MCMC-based results}
-\label{sec:colloc-comparison}
-
-A direct comparison with the SR-refined results in
-Table~\ref{tab:energies} illuminates the relative strengths of the
-two approaches:
-\begin{itemize}
-\item At $(N{=}6, \omega{=}1.0)$, collocation ($+0.009\%$) matches
-  the SR-refined result ($+0.026$--$0.048\%$ range for $N{=}6$) and
-  is competitive with or slightly better than it.
-  This is the regime where collocation is most effective, because
-  the configuration space is low-dimensional and the Gaussian proposal
-  overlaps well with $|\Psi|^2$.
-\item At $(N{=}12, \omega{=}0.1)$, collocation ($+0.122\%$) is
-  roughly $2$--$4{\times}$ worse than SR ($+0.040\%$ in
-  Table~\ref{tab:energies}).
-  Here the sampling bottleneck is beginning to bite, and the MCMC
-  sampler's ability to draw equilibrated samples from $|\Psi|^2$
-  gives it a clear advantage.
-\item At $N{=}20$, collocation results ($+1.4$--$5.7\%$) are
-  significantly worse than what an MCMC-based approach would be
-  expected to achieve, reflecting the exponential ESS degradation in
-  40 dimensions.
-\end{itemize}
-
-The SR pipeline also has its own scaling challenges: MCMC mixing
-times grow with particle number and correlation strength, and the
-SR step itself requires solving a $P{\times}P$ linear system
-($P{=}$number of parameters).
-But these challenges manifest at much larger $N$ than the collocation
-ESS collapse, because the MCMC sampler adapts to $|\Psi|^2$
-throughout training rather than relying on a fixed proposal.
-
-The practical conclusion is that collocation is competitive with MCMC
-for $N \lesssim 12$ and $\omega \gtrsim 0.01$, and that the two
-approaches are complementary: collocation for fast, parallelisable
-pretraining and exploration, MCMC for final refinement at larger $N$
-or lower $\omega$.
-
-
-\subsection{Implications and future directions}
-\label{sec:colloc-future}
-
-The collocation experiments have several implications for the
-broader effort to apply neural wavefunctions to many-body
-quantum systems.
-
-\paragraph{MCMC is not necessary for training.}
-The demonstration that REINFORCE with importance resampling can
-match DMC accuracy for $N{=}6,12$ challenges the assumption that
-MCMC is essential for neural wavefunction optimisation.
-This opens the door to fully parallel training pipelines that
-scale efficiently on modern hardware, particularly GPUs with
-large batch sizes.
+Of everything here, the collocation programme is the part whose claim most needs its
+boundaries drawn before it is stated. ``An accurate many-body wavefunction trained with
+no Markov chain'' is the kind of sentence that travels further than its evidence. It is
+also the part that consumed the most time and produced the most failures, and the two
+facts are related: the method works inside a regime whose edges had to be found by
+walking off them.
 
 \paragraph{What ``MCMC-free'' does and does not mean.}
 Three distinctions are easily conflated.
 (i)~The pipeline is \emph{Markov-chain-free}: no configuration is ever drawn from a
 Markov chain during training---samples come from an analytic proposal $q(\mathbf R)$ and
-are importance-reweighted. It is not free of Monte Carlo in the broader sense:
-importance sampling and multinomial resampling are themselves Monte-Carlo operations.
+are importance-reweighted. It is not free of Monte Carlo in the broader sense;
+importance sampling and multinomial resampling are Monte-Carlo operations themselves.
 (ii)~It is not, in general, \emph{reference-free}. Where a DMC energy exists
 ($\omega\ge0.1$), the residual pretraining anneals its target toward $E_{\rm DMC}$ and
-the instability-rollback monitors the relative error against it; the DMC value therefore
-enters the training signal, so those runs should be read as ``trained without a Markov
-chain,'' not as an unsupervised solution of the Schr\"odinger equation.
-(iii)~The deep-Wigner cascade of Chapter~\ref{ch:kernel} is the one regime that is both
-Markov-chain-free \emph{and} reference-free: below $\omega=0.1$ no DMC value exists, so
-the cascade is guided only by the variational objective and cross-checked against the
-fitted Wigner scaling curve, never against an external benchmark.
+the instability rollback monitors the relative error against it, so the DMC value enters
+the training signal. Those runs are trained without a Markov chain; they are not an
+unsupervised solution of the Schr\"odinger equation.
+(iii)~The deep-Wigner cascade is the one regime that is both Markov-chain-free
+\emph{and} reference-free: below $\omega=0.1$ no DMC value exists, so the cascade is
+guided by the variational objective alone and cross-checked against the fitted Wigner
+scaling curve, never against an external benchmark.
 
-\paragraph{The proposal distribution is the bottleneck.}
-The systematic pattern of ESS collapse with increasing $N$ and
-decreasing $\omega$ identifies the proposal distribution as the
-critical component to improve.
-Possible directions include normalising flows trained to approximate
-$|\Psi|^2$, diffusion-model proposals, or variational inference
-techniques that can adapt the proposal to the evolving wavefunction
-during training.
+\paragraph{One mechanism explains every failure.}
+The boundary is not a collection of separate difficulties. Proposal--target mismatch
+inflates the tail of the importance weights; the inflated tail destroys the gradient
+estimator; a destroyed estimator makes the optimisation seed-dependent and the empirical
+metric unreliable; and once the metric is unreliable, inverting it---which is what
+natural-gradient preconditioning does---amplifies the noise instead of the signal. Every
+negative result in Chapter~\ref{ch:kernel} is a station on that one chain. Langevin
+refinement fails because it breaks the proposal the weights are computed against. CG-SR
+fails at low $\omega$ not because the metric is ill-conditioned but because it can no
+longer be estimated. The $N{=}20$ reversal, where a Jastrow-only ansatz beats the
+backflow it should in principle beat, is the same chain reached through memory rather
+than through confinement: the backflow's edge tensor forces the collocation budget down
+until the gradient degrades.
 
-\paragraph{Natural gradients require careful conditioning.}
-The CG-SR failure at low~$\omega$ is not specific to collocation:
-any natural-gradient method applied to weakly confined systems will
-encounter the same ill-conditioning.
-This suggests that preconditioning strategies (block-diagonal Fisher
-approximations, Kronecker-factored curvature, or adaptive damping
-schedules) deserve attention in the neural quantum state context.
+That is a more useful conclusion than a list of things that did not work, because it is
+predictive. Any importance-sampled scheme applied to a weakly confined many-body system
+will meet the same chain in the same order, and any second-order method applied to one
+must certify that the metric it inverts is statistically resolved at the sample sizes in
+use. Neither statement is specific to quantum dots.
 
-\paragraph{Backflow scaling needs architectural innovation.}
-The $\mathcal{O}(N^2 \times h_{\text{bf}})$ memory scaling of
-current backflow networks limits their applicability beyond
-$N{\approx}12$.
-Memory-efficient architectures---sparse message passing, low-rank
-approximations, or local backflow corrections that avoid
-all-to-all edge features---are needed to extend the collocation
-approach to larger systems while retaining the nodal-surface
-corrections that backflow provides.
+\paragraph{Where the two routes actually stand.}
+Compared directly against the SR route, collocation is competitive for
+$N\lesssim12$ and $\omega\gtrsim0.1$, and loses ground below that. At $N{=}6$,
+$\omega{=}1$ the two are indistinguishable, both inside DMC uncertainty. At $N{=}12$,
+$\omega{=}0.1$ collocation is a few times worse. At $N{=}20$ it is not competitive at
+all. The SR pipeline has its own scaling problems---mixing times grow with $N$ and with
+correlation strength---but they arrive later, because an MCMC sampler adapts to
+$|\Psi|^2$ throughout training while a fixed proposal cannot. The natural reading is
+that the two are complementary rather than rival: collocation for fast, parallel,
+chain-free exploration and pretraining; SR for final accuracy at large $N$ or weak
+confinement.
 
-\paragraph{Collocation as a pretraining stage.}
-Perhaps the most practical near-term use of collocation is as a
-fast pretraining stage that conditions the wavefunction before
-MCMC-based refinement.
-The collocation-trained checkpoints already contain useful
-structural information (orbital shapes, Jastrow correlations,
-approximate nodal surfaces) that accelerates subsequent SR
-convergence.
-This two-stage protocol---collocation pretraining followed by SR
-polish---combines the embarrassing parallelism of collocation with
-the asymptotic accuracy of MCMC-based methods.
+\section{What the picture predicts}
+\label{sec:implications}
+
+If the argument of this thesis is right, the same three statements should hold well
+outside the quantum dot.
+
+\emph{The proposal is the bottleneck, not the objective.} The chain above says the
+Markov-chain-free route fails through its sampler and nowhere else. That makes the
+obvious next move a better sampler rather than a better loss---normalising flows trained
+against $|\Psi|^2$, or the physics-informed proposals of
+\S\ref{sec:kernel-q3-frontier} generalised beyond ring geometries. The measured jump
+when the proposal was rebuilt from the Wigner shell, an ESS improvement of $15$--$47\times$
+with no training at all, is the size of the prize.
+
+\emph{Relational structure will matter more, not less, with $N$.} The tangent-space gap
+between message-passing and separable correlators widens with particle number in the
+range we can measure---$\lesssim0.02$ against $\approx0.77$ dictionary-orthogonal mass at
+$N{=}12$. If that continues, the architectures that scale are the ones that maintain a
+transported edge representation rather than pooling pairwise features and discarding
+them.
+
+\emph{The quadratic backflow is the first thing that has to change.} The
+$\mathcal{O}(N^2 h_{\mathrm{bf}})$ edge tensor is what stops the method at twenty
+electrons, and it stops it for reasons of memory rather than of physics. Sparse or
+low-rank message passing, or a local backflow that avoids all-to-all edge features,
+would extend the reach without touching anything else in the pipeline---and, on the
+evidence of Chapter~\ref{ch:kernel}, without giving up the nodal correction that makes
+the backflow worth having at all.
+
+Finally, a caution that applies to this thesis more than to any of its predictions. The
+architecture comparison is cleanest at $N{=}6$, where it is seeded; the $N{=}12$ contrast
+rests on fewer trained models and the $N{=}20$ analysis on a single production state.
+The tangent-space picture is therefore established at one size and indicated at the
+others. Extending it is not a matter of interpretation but of compute.

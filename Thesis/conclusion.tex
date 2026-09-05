@@ -23,7 +23,7 @@ itself one of the results.
 On the \emph{energy} side, a single trap-unit-normalised architecture with soft-core
 pair features and an explicit cusp reaches DMC-level accuracy for two-electron dots and
 holds sub-$0.1\%$ relative errors for $N\in\{6,12\}$ across $\omega\in\{0.1,0.5,1.0\}$
-(Sec.~\ref{sec:energy-discussion}). It extrapolates smoothly to $\omega=10^{-3}$, where
+(\S\ref{sec:energy-overview}). It extrapolates smoothly to $\omega=10^{-3}$, where
 no DMC data exist and internal checks---scaling exponents, virial ratios, structural
 diagnostics---carry the reliability of what are then variational predictions. These
 accuracies come from a modest SR tail on residual-based pretraining, which says that
@@ -45,7 +45,7 @@ scanned, so these are statements about the studied spin-projection sector rather
 claim to have settled the global spin ordering.
 
 On the \emph{representation} side, that real-space richness is carried by a strikingly
-simple latent geometry (Sec.~\ref{sec:repr-discussion}). The correlator occupies one to
+simple latent geometry (\S\ref{sec:repr-analysis}). The correlator occupies one to
 two effective directions whose leading axes act as collective coordinates for global size
 and radial fluctuation, with angular and topological information held in conditional
 distributions on them; across regimes the leading axis changes identity in a
@@ -87,6 +87,20 @@ importance-sampled scheme equals VMC while its sampling is healthy and, with a p
 built from the Wigner shell itself, reaches a genuine Wigner molecule at $\omega=0.0035$
 with no Markov chain in the gradient optimisation (checkpoint selection and final
 certification use MCMC).
+
+\paragraph{Where each question was answered.} The four questions posed in
+\S\ref{sec:research-questions} are settled in the following places.
+\emph{Architecture}---what message passing buys a separable network cannot---is
+\S\ref{sec:kernel-q1}: a correlator compressed onto half as many effective tangent
+directions, those directions identified with the Hamiltonian's collective modes, a
+consistently lower $\Var(E_L)$, and a nodal displacement that does not collapse.
+\emph{Optimiser}---when natural-gradient preconditioning pays---is
+\S\ref{sec:kernel-cond}: when the tangent metric is anisotropic and still estimable, and
+not otherwise. \emph{Paradigm}---whether an accurate wavefunction can be trained without
+a Markov chain---is \S\ref{sec:kernel-mcmcfree} for the energies and reliability and
+\S\ref{sec:kernel-q3-frontier} for the deep-Wigner reach, with the boundaries of the
+claim drawn in \S\ref{sec:collocation-discussion}. And \emph{physics}---whether the
+trained state serves as an instrument---is \S\ref{sec:wigner-molecule}.
 
 \paragraph{Limitations and outlook.} Three limits bound these conclusions. External
 ground truth reaches only to $\omega=0.1$; below it the accuracy statements are internal

@@ -6,443 +6,137 @@ is an attunement of opposite tensions, like that of the bow and the lyre.}{Herac
 \begingroup
 \let\clearpage\relax
 \let\cleardoublepage\relax
-\chapter{Quantum Theory}
+\chapter{The problem, and the language for stating it}
 \label{sec:theory}
 \endgroup
 
-This chapter lays the foundation on which the rest of the thesis rests. We first introduce
-the mathematical framework of quantum mechanics, then discuss the challenges of many-body
-systems and how second quantization provides a more tractable approach. We then introduce
-the model systems used throughout this thesis to benchmark and test our methods, and present
-the Hartree--Fock method, a fundamental mean-field approach to approximating many-body
-wavefunctions. Finally, we discuss Full Configuration Interaction (FCI), which provides an
-exact solution to the many-body problem within a finite basis set, and Variational Monte
-Carlo (VMC), a stochastic method for approximating ground-state properties. The following
-chapter then shifts to machine learning---statistical learning theory, optimisation, neural
-networks, and physics-informed neural networks.
+The system this thesis solves can be written in one line. Everything hard about it follows
+from three features of that line, and this chapter is about those three.
 
-\section{Mathematical Foundations}
-At the centre of quantum mechanics lies a rich mathematical framework built upon linear algebra and functional analysis. This section introduces the essential mathematical concepts and notations that underpin quantum theory, including Dirac notation, operators, Hilbert spaces, and the representation of quantum states and observables.
-\subsection{Hilbert Spaces and Function Representations}
-In essence, quantum mechanics is formulated in complex vector spaces---specifically
-\emph{Hilbert spaces}: complex inner-product spaces that are \emph{complete} in the norm
-induced by their inner product, so that every Cauchy sequence converges within the space and
-limits and basis expansions are well defined~\cite{Rudin1976-Analysis}. For square-integrable
-functions the inner product is
-\[
-\braket{\phi|\psi} = \int \phi^*(x)\,\psi(x)\, dx,
-\]
-which, in the physics convention (linear in the second slot), obeys conjugate symmetry
-$\braket{\phi|\psi}=\braket{\psi|\phi}^*$, linearity in the ket
-$\braket{\phi|\alpha\psi_1+\beta\psi_2}=\alpha\braket{\phi|\psi_1}+\beta\braket{\phi|\psi_2}$,
-and positivity $\braket{\psi|\psi}\ge 0$ (with equality iff $\ket{\psi}=0$); it induces the
-norm $\|\psi\|=\sqrt{\braket{\psi|\psi}}$. An orthonormal basis $\{\psi_i\}$ satisfies
-$\braket{\psi_i|\psi_j}=\delta_{ij}$.
-A function \(a(x)\) expands in a basis \(\{\psi_i(x)\}\):
-\[
-a(x) = \sum_i \psi_i(x) a_i, \quad a_i = \int \psi_i^*(x)a(x) dx.
-\]
-The Dirac delta \(\delta(x-y)\) replaces the Kronecker delta in continuous spaces.
-A vector \(\ket{a}\) in an \(n\)-dimensional Hilbert space \(\mathcal{H}\) can be decomposed into a complete orthonormal basis \(\{\ket{i}\}\):  
-\[
-\ket{a} = \sum_i \ket{i}\braket{i|a} = \sum_i a_i \ket{i},
-\]
-where \(a_i = \braket{i|a}\) are complex coefficients. The completeness relation,  
-\[
-I = \sum_i \ket{i}\bra{i},
-\]
-ensures the basis spans \(\mathcal{H}\). Vectors in Dirac notation have dual "bra" counterparts \(\bra{a} = \ket{a}^\dagger\), enabling inner products \(\braket{a|b}\) and outer products \(\ket{a}\bra{b}\).
+We take $N$ electrons in a two-dimensional harmonic trap, interacting through the Coulomb
+repulsion. The Hamiltonian is elementary; the difficulty is that the electrons are
+identical fermions, that the interaction is singular where two of them meet, and that the
+kinetic term is a second derivative. Antisymmetry makes the state's sign structure the
+expensive part of the problem. The singularity makes the local energy divergent unless the
+wavefunction is built to cancel it. And the second derivative means that any method which
+evaluates the energy pointwise is exposed to the curvature of whatever function it is
+handed.
 
-\subsection{Operators and Matrix Representations}
-Linear operators \(\hat{\mathcal{O}}\) map vectors to vectors: \(\hat{\mathcal{O}}\ket{a} = \ket{b}\). Their adjoints \(\hat{\mathcal{O}}^\dagger\) satisfy \(\bra{a}\hat{\mathcal{O}}^\dagger = \bra{b}\). Hermitian operators (\(\hat{\mathcal{O}}^\dagger = \hat{\mathcal{O}}\)) represent observables, while unitary operators (\(\hat{\mathcal{O}}^\dagger = \hat{\mathcal{O}}^{-1}\)) preserve inner products \cite{BereraDelDebbio2021-QuantumMechanics,GriffithsSchroeter2018-IntroQM}.
- In a basis \(\{\ket{i}\}\), operators are represented by matrices:  
-\[
-O_{ij} = \bra{i}\hat{\mathcal{O}}\ket{j}.
-\]
-Non-commutativity of operators is quantified by the commutator:  
-\[
-[\hat{A}, \hat{B}] = \hat{A}\hat{B} - \hat{B}\hat{A}.
-\]
+What follows is selected rather than comprehensive. \S\ref{sec:qm-setup} fixes the
+many-body Schr\"odinger problem and the notation. \S\ref{sec:secondquant}--\S\ref{sec:fci}
+introduce the vocabulary of electronic structure---occupation numbers, the mean field, the
+exact diagonalisation---not because we compute them, but because \emph{correlation energy},
+\emph{closed shell} and \emph{exact within a basis} are defined there and are used
+throughout. \S\ref{sec:quantumdots} then specialises to the quantum dot and derives the
+cusp conditions, which is where the singularity is disarmed. \S\ref{sec:wigner-markers-theory}
+sets out what a Wigner molecule is and how one would know. And
+\S\ref{sec:qmc-theory} covers the two Monte Carlo methods that supply this thesis's only
+external numbers, together with the approximation that limits what those numbers are
+worth.
 
-\subsection{States in Hilbert Space}
+\section{The many-body problem}
+\label{sec:qm-setup}
 
-A (pure) quantum state is a normalised vector $\ket{\psi}\in\mathcal H$ (global phase is
-physically irrelevant). Computations proceed by choosing an orthonormal (ON) basis
-$\{\ket{i}\}_{i=1}^\infty$ and expanding
-\[
-\ket{\psi}=\sum_{i} c_i \ket{i}, \qquad
-c_i=\braket{i|\psi}, \qquad \sum_i |c_i|^2=\|\psi\|^2 .
-\]
-Completeness is the resolution of the identity,
-$\sum_i \ket{i}\!\bra{i}=\mathbb I$. For continuous ON bases (e.g.\ position),
-$\int \ket{x}\!\bra{x}\,dx=\mathbb I$ and the wavefunction is the coordinate
-representation $\psi(x)=\braket{x|\psi}$.
+Quantum mechanics is formulated in a complex Hilbert space: a complete inner-product space,
+so that limits and basis expansions are well
+defined~\cite{Rudin1976-Analysis}. A state is a normalised vector $\ket\psi$, observables
+are Hermitian operators, and expanding in an orthonormal basis $\{\ket i\}$ turns operators
+into matrices $O_{ij}=\bra i\hat{\mathcal O}\ket j$ and states into coefficient vectors
+$c_i=\braket{i|\psi}$. In the coordinate representation $\psi(x)=\braket{x|\psi}$ is the
+wavefunction. Choosing the basis to match the physics---harmonic-oscillator orbitals for
+confined charges, plane waves for periodic systems---is what makes a representation sparse,
+and it is the reason the orbitals of Chapter~\ref{ch:trial_wavefunction} are those of the
+trap itself.
 
-Different ON bases are related by a unitary change of basis. Given
-$\{\ket{i}\}$ and $\{\ket{\alpha}\}$,
-\[
-\ket{\alpha}=\sum_i U_{\alpha i}\ket{i}, \qquad
-U_{\alpha i}=\braket{\alpha|i}, \qquad U^\dagger U=\mathbb I .
-\]
-This freedom is exploited to match the physics (symmetry, locality, boundary conditions),
-e.g.\ harmonic-oscillator orbitals for confined charges or plane waves for
-periodic systems, leading to sparser representations and faster convergence.
+For $N$ particles the space is the $N$-fold tensor product $\mathcal H_1^{\otimes N}$, and a
+convenient fermionic basis is the set of Slater determinants $\{\ket{\Phi_I}\}$ built from
+$N$ distinct spin-orbitals, in which any state expands as
+$\ket\Psi=\sum_I C_I\ket{\Phi_I}$. That expansion is exact and, as \S\ref{sec:fci} makes
+precise, unaffordable.
 
-For $N$ particles the Hilbert space factorizes as
-$\mathcal H_N=\mathcal H_1^{\otimes N}$. With a single-particle ON set
-$\{\ket{\varphi_p}\}$, a convenient fermionic ON basis is the set of Slater determinants
-$\{\ket{\Phi_I}\}$ built from $N$ distinct orbitals; any $N$-body state expands as
-\[
-\ket{\Psi}=\sum_{I} C_I \ket{\Phi_I}, \qquad \sum_I |C_I|^2=\|\Psi\|^2 .
-\]
-In practice one truncates to a finite active space guided by energy scales and symmetry
-quantum numbers, which makes many-body calculations tractable while retaining the relevant
-physics.
-
-\section{Quantum Mechanics}
-\subsection{The Schrödinger Equation}
-
-In a Hilbert space $\mathcal H$, the time evolution of a normalised state $\ket{\Psi(t)}$ is
-postulated to be unitary and generated by the Hamiltonian $H$ \cite{BereraDelDebbio2021-QuantumMechanics,GriffithsSchroeter2018-IntroQM}:
-\[
-i\,\partial_t \ket{\Psi(t)} = H \ket{\Psi(t)}, \qquad (\hbar=1).
-\]
-If $H$ is time–independent, solutions separate as
-\[
-\ket{\Psi(t)}=\sum_n c_n\,e^{-iE_n t}\ket{\psi_n},
-\qquad H\ket{\psi_n}=E_n\ket{\psi_n},
-\]
-so $\{\ket{\psi_n}\}$ forms an orthonormal basis of stationary states.
-
-For an $N$-particle system in $d$ spatial dimensions, with coordinates
-$R=(\mathbf r_1,\ldots,\mathbf r_N)$, we use the many-body Hamiltonian
-\[
+Time evolution is unitary and generated by the Hamiltonian, $i\partial_t\ket{\Psi}=H\ket\Psi$,
+so for time-independent $H$ the problem reduces to its stationary eigenpairs. We work
+throughout in atomic units ($\hbar=m_e=e=1$) and with the many-body Hamiltonian
+\begin{equation}
 H = -\frac12 \sum_{i=1}^N \nabla_{\mathbf r_i}^2
-    \;+\; \sum_{i=1}^N V_{\text{ext}}(\mathbf r_i)
-    \;+\; \sum_{i<j} V_{\text{int}}(|\mathbf r_i-\mathbf r_j|),
-\]
-and the time-independent Schrödinger equation (TISE)
-\[
-H\,\Psi(R)=E\,\Psi(R), \qquad \int | \Psi(R) |^2\, dR = 1.
-\]
-Identical particles restrict $\Psi$ to the appropriate symmetry sector (symmetric for bosons,
-antisymmetric for fermions).
+    \;+\; \sum_{i=1}^N V_{\mathrm{ext}}(\mathbf r_i)
+    \;+\; \sum_{i<j} V_{\mathrm{int}}(|\mathbf r_i-\mathbf r_j|),
+\qquad H\Psi(R)=E\Psi(R),
+\label{eq:manybody-H}
+\end{equation}
+where $R=(\mathbf r_1,\ldots,\mathbf r_N)$ and $\Psi$ is normalised. Identical particles
+restrict $\Psi$ to a symmetry sector: symmetric for bosons, antisymmetric for fermions. For
+the quantum dots studied here $V_{\mathrm{ext}}(\mathbf r)=\tfrac12\omega^2r^2$ and
+$V_{\mathrm{int}}(r)=1/r$ in two dimensions. Everything that follows is an attempt to
+approximate the lowest eigenpair of Eq.~\eqref{eq:manybody-H}.
 
-Throughout we work in atomic units ($\hbar=m_e=e=1$) and focus on stationary problems.
-In the quantum-dot applications below we take
-$V_{\text{ext}}(\mathbf r)=\tfrac12 \omega^2 r^2$ and $V_{\text{int}}(r)=1/r$ (in 2D this is
-understood with the usual Laplacian in two dimensions). Our computations therefore amount to
-approximating low-lying eigenpairs $(E,\Psi)$ of the many-body Hamiltonian above using compact
-basis expansions and variational ansätze.
-% \subsubsection{Rayleigh--Ritz in a Finite Subspace}
-% Let $H$ be self-adjoint on a separable Hilbert space $\mathcal H$. For any nonzero $\ket{\psi}\in\mathcal H$,
-% the Rayleigh quotient
-% \[
-% E[\psi]\;=\;\frac{\braket{\psi|H|\psi}}{\braket{\psi|\psi}}
-% \]
-% satisfies $E[\psi]\ge E_0$, where $E_0$ is the exact ground-state energy. In practice we project
-% onto a finite-dimensional subspace
-% \[
-% \mathcal V_M=\mathrm{span}\{\ket{\varphi_p}\}_{p=1}^M
-% \]
-% (the \emph{computational basis}). The constrained minimization
-% $\min_{\psi\in \mathcal V_M\setminus\{0\}} E[\psi]$ yields the generalised eigenproblem
-% \[
-% \mathbf H\,\mathbf c \;=\; E\,\mathbf S\,\mathbf c,\qquad
-% H_{pq}=\braket{\varphi_p|H|\varphi_q},\quad
-% S_{pq}=\braket{\varphi_p|\varphi_q}.
-% \]
-% If $\{\varphi_p\}$ is orthonormal then $\mathbf S=\mathbf I$. More generally, $\mathbf S$ is
-% Hermitian positive definite and can be handled by (i) solving the generalised problem directly,
-% or (ii) orthonormalizing the basis via a Cholesky/Löwdin transform:
-% $\mathbf S=\mathbf L\mathbf L^\dagger$, $\ket{\tilde\varphi_p}=\sum_q (L^{-1})_{qp}\ket{\varphi_q}$,
-% so that in the orthonormal set one solves $\tilde{\mathbf H}\mathbf d=E\mathbf d$ with
-% $\tilde{\mathbf H}=\mathbf L^{-1\,\dagger}\mathbf H\,\mathbf L^{-1}$.
 
-% \paragraph{Monotonicity and bounds.}
-% Let $E_k^{(M)}$ denote Ritz values in $\mathcal V_M$ ordered increasingly. Then
-% $E_0^{(M+1)}\le E_0^{(M)}$ and $E_k^{(M)}\ge E_k$ (Hylleraas--Undheim--MacDonald). Thus,
-% increasing $M$ provides a systematic sequence of \emph{variational upper bounds}.
-% This justifies investing effort in basis choices that deliver fast convergence (e.g.\ harmonic
-% oscillator/Fock--Darwin orbitals for confined charges, plane waves for periodic systems).
+\section{The vocabulary of electronic structure}
+\label{sec:secondquant}
+\label{sec:fci}
 
-% \paragraph{Conditioning.}
-% The quality of Ritz estimates is limited not only by truncation but also by numerical
-% conditioning of $\mathbf S$ and $\mathbf H$. Near-linear dependencies in $\{\varphi_p\}$ inflate
-% $\kappa(\mathbf S)$ and degrade eigenpairs. In practice one removes small-eigenvalue directions
-% of $\mathbf S$ (thresholding in the Löwdin step) or re-optimises the one-body basis to improve
-% conditioning before diagonalization.
+Three ideas from quantum chemistry are used constantly in what follows without being
+computed anywhere in it. They are worth stating precisely, because the words
+\emph{correlation energy}, \emph{closed shell} and \emph{exact within a basis} mean
+particular things, and the accuracy claims of this thesis are calibrated against them.
 
-% \medskip
-
-% \subsubsection{Nonlinear Variational Ansatz}
-% Linear subspaces are often too rigid for many-body problems. We therefore adopt a parametric,
-% symmetry-respecting ansatz $\Psi_\theta$ (e.g.\ Slater–Jastrow with PINN/Jastrow/backflow factors)
-% and minimize the energy functional
-% \[
-% E(\theta)\;=\;\frac{\braket{\Psi_\theta|H|\Psi_\theta}}{\braket{\Psi_\theta|\Psi_\theta}}.
-% \]
-% Stationarity requires $\partial_{\theta_k}E(\theta^\star)=0$ for all $k$.
-
-% \paragraph{Normalisation and invariances.}
-% The energy is scale-invariant under $\Psi_\theta\!\mapsto\!\alpha\,\Psi_\theta$ ($\alpha\!\ne\!0$),
-% so we can work with unnormalized wavefunctions and write the ansatz in terms of a log-amplitude:
-% $\ln\Psi_\theta(R)=f_\theta(R)$ with $R=(\mathbf r_1,\dots,\mathbf r_N)$. Built-in fermionic
-% antisymmetry (e.g.\ Slater determinant), spin structure, short-/long-range constraints
-% (e.g.\ electron--electron cusp in Coulomb systems), and simple coordinate scalings (e.g.\
-% $r\!\mapsto\! r\sqrt{\omega}$ in harmonic traps) typically reduce variance and bias and
-% improve optimiser conditioning.
-
-% \paragraph{Zero-variance principle.}
-% Define the \emph{local energy}
-% \[
-% E_L(R)\;=\;\frac{(H\Psi_\theta)(R)}{\Psi_\theta(R)}.
-% \]
-% Then $E(\theta)=\mathbb E_{\pi_\theta}[E_L]$ with sampling density
-% $\pi_\theta(R)=|\Psi_\theta(R)|^2/\!\int |\Psi_\theta|^2$. Moreover,
-% $\mathrm{Var}_{\pi_\theta}(E_L)=0$ if and only if $\Psi_\theta$ is an exact eigenstate.
-% This makes the variance of $E_L$ a sensitive diagnostic of ansatz quality.
-
-% \medskip
-
-% \subsubsection{Monte Carlo Estimator and Local Energy}
-% For general many-body Hamiltonians
-% \[
-% H \;=\; -\tfrac12\sum_{i=1}^{N}\nabla_{\mathbf r_i}^2
-% \;+\;\sum_{i=1}^{N} V_{\mathrm{ext}}(\mathbf r_i)
-% \;+\;\sum_{i<j} V_{\mathrm{int}}(|\mathbf r_i-\mathbf r_j|),
-% \]
-% the local energy reads
-% \[
-% E_L(R)\;=\; -\tfrac12 \sum_{i}\frac{\nabla_{\mathbf r_i}^2\Psi_\theta(R)}{\Psi_\theta(R)}
-% \;+\;\sum_i V_{\mathrm{ext}}(\mathbf r_i)
-% \;+\;\sum_{i<j} V_{\mathrm{int}}(r_{ij}).
-% \]
-% With samples $\{R^{(s)}\}_{s=1}^{S}$ drawn from $\pi_\theta$, we estimate
-% \[
-% \widehat E=\frac{1}{S}\sum_{s=1}^S E_L(R^{(s)}),\qquad
-% \widehat{\sigma}^2_{E_L}=\frac{1}{S-1}\sum_{s=1}^S\Big(E_L(R^{(s)})-\widehat E\Big)^2.
-% \]
-% Because Markov-chain samples are correlated, the standard error is
-% \[
-% \mathrm{SE}(\widehat E)\;\approx\;\sqrt{\frac{\widehat{\sigma}^2_{E_L}}{S_{\mathrm{eff}}}},
-% \qquad
-% S_{\mathrm{eff}}\;=\;\frac{S}{2\tau_{\mathrm{int}}}\!,
-% \]
-% where $\tau_{\mathrm{int}}$ is the integrated autocorrelation time (estimated via blocking/batch
-% means). Acceptance rates and proposal scales (Metropolis, MALA) are tuned to keep
-% $\tau_{\mathrm{int}}$ moderate while maintaining stable exploration of high-probability regions.
-
-% \paragraph{Regularity and variance control.}
-% Finite variance requires sufficient smoothness of $\Psi_\theta$ so that $\nabla^2\Psi_\theta/\Psi_\theta$
-% remains integrable, particularly near nodal surfaces and coalescence points. Enforcing known
-% short-distance behaviour (e.g.\ cusp conditions) tames the kinetic-energy singularities and
-% reduces $\mathrm{Var}(E_L)$. In practice we also (i) centre observables, (ii) use large, well-mixed
-% chains, and (iii) report blocking-based confidence intervals.
-
-% \paragraph{Reweighting for small parameter moves.}
-% When updating $\theta\mapsto\theta'$, one may reuse samples via importance reweighting
-% $w_s \propto |\Psi_{\theta'}(R^{(s)})|^2/|\Psi_{\theta}(R^{(s)})|^2$ to form a low-variance
-% line-search along the proposed step. We restrict to small steps to control weight degeneracy.
-
-% \medskip
-
-% \subsubsection{Gradients and Stochastic Reconfiguration (Natural Gradient)}
-
-% Write the log-derivative observables
-% \[
-% O_k(R)\;=\;\partial_{\theta_k}\ln \Psi_\theta(R),
-% \qquad
-% \langle \cdot \rangle \equiv \mathbb E_{\pi_\theta}[\cdot].
-% \]
-% Assuming $H$ does not depend explicitly on $\theta$, the energy gradient admits the covariance form
-% \[
-% g_k\;=\;\partial_{\theta_k}E
-% \;=\;\big\langle \big(E_L-\langle E_L\rangle\big)\,O_k\big\rangle,
-% \]
-% which avoids differentiating $E_L$ itself. This is the standard VMC ``covariance trick.''
-
-% \paragraph{Derivation of SR from a linearized step.}
-% Consider the linearized ansatz
-% $\ket{\Psi_{\theta+\Delta\theta}} \approx \ket{\Psi_\theta}
-% + \sum_k \Delta\theta_k\,\partial_{\theta_k}\ket{\Psi_\theta}$.
-% Minimizing $E(\theta+\Delta\theta)$ to first order under a small-step constraint measured in the
-% overlap metric of $\mathcal H$ leads to the normal equations
-% \[
-% \mathbf S\,\Delta\theta\;=\;-\eta\,\mathbf g,
-% \qquad
-% S_{kl}\;=\;\langle O_k O_l\rangle - \langle O_k\rangle\langle O_l\rangle,
-% \]
-% where $\mathbf S$ is the covariance (Fisher) matrix of log-derivatives, $\mathbf g$ the gradient, and
-% $\eta>0$ a step scale. This is the \emph{Stochastic Reconfiguration} (SR) or \emph{natural-gradient}
-% update; it is equivalent to steepest descent under the Fubini--Study metric and closely related to
-% discrete imaginary-time evolution in the variational manifold.
-
-% \paragraph{Practical solver and regularization.}
-% We form $\mathbf g$ and apply conjugate gradients (CG) to the linear system using products
-% $\mathbf v\mapsto \mathbf S\mathbf v$ estimated from the same samples:
-% $\mathbf S\mathbf v \approx \frac{1}{S}\sum_s
-% \big(O(R^{(s)})-\bar O\big)\big(O(R^{(s)})-\bar O\big)^\top \mathbf v$.
-% To stabilize, we use Tikhonov damping and (optionally) diagonal loading:
-% $\mathbf S \leftarrow \mathbf S + \lambda\,\mathbf I + \epsilon\,\mathrm{diag}(\mathbf S)$,
-% with a trust-region rule limiting $\|\Delta\theta\|$.
-% Centering $O_k\!\leftarrow\!O_k-\langle O_k\rangle$ improves conditioning and reduces estimator bias.
-
-% \paragraph{Diagnostics.}
-% Convergence is monitored via (i) decay of $\|\mathbf g\|$, (ii) stabilization of $\widehat E$ and
-% its standard error, and (iii) reduction of $\mathrm{Var}(E_L)$. Ill-conditioning (large CG
-% iterations, noisy steps) typically indicates either insufficient sampling (large $\tau_{\mathrm{int}}$),
-% poorly constrained short-range behaviour, or highly correlated parameters; remedies include larger
-% batches, stronger damping, parameter tying, or revising the ansatz architecture.
-
-\section{Second Quantization}
-
-\subsection{Motivation: Why first-quantized wavefunctions don’t scale}
-In first quantization an $N$-fermion state is an antisymmetric function
-$\Psi(x_1,\dots,x_N)$ expanded in Slater determinants of $M$ one-particle orbitals.
-The number of configurations grows as $\binom{M}{N}$ (and permanents for bosons grow even faster),
-making storage and operator application increasingly intractable. We therefore move to the
-occupation-number formalism, which encodes antisymmetry and particle indistinguishability
-algebraically.
-
-\subsection{Fock space and occupation representation}
-Let $\{\ket{p}\}$ be an orthonormal set of one-particle \emph{spin-orbitals} (spatial orbital $+\,$spin).
-The fermionic Fock space is
-\[
-\mathcal F_- \;=\; \bigoplus_{n=0}^{\infty} \wedge^n \mathcal H_1,
-\]
-with vacuum $\ket{0}$ and occupation-number basis
-$\ket{n_1 n_2 \dots}$, $n_p\in\{0,1\}$. Creation/annihilation operators $a_p^\dagger, a_p$
-act by adding/removing a particle in $\ket{p}$ (subject to Pauli) and obey the canonical
-anticommutation relations (CAR)
+\paragraph{Second quantisation.} A first-quantised $N$-fermion state is an antisymmetric
+function expanded in Slater determinants of $M$ one-particle orbitals, and the number of
+such determinants is $\binom{M}{N}$. The occupation-number formalism replaces the
+bookkeeping with algebra. Over an orthonormal set of spin-orbitals $\{\ket p\}$ one defines
+creation and annihilation operators obeying the canonical anticommutation relations
 \[
 \{a_p, a_q^\dagger\}=\delta_{pq},\qquad \{a_p,a_q\}=\{a_p^\dagger,a_q^\dagger\}=0,
 \]
-with number operator $\,\hat n_p=a_p^\dagger a_p\,$. A Slater determinant occupying the set
-$I=\{p_1<\cdots<p_N\}$ is $\ket{\Phi_I}=a_{p_1}^\dagger\cdots a_{p_N}^\dagger\ket{0}$ and is
-represented by the bitstring $\ket{n_1 n_2 \dots}$ with $n_p=\mathbf 1_{p\in I}$.
-Unitary changes of one-particle basis $\ket{p'}=\sum_p U_{p'p}\ket{p}$ lift to
-$a_{p'}^\dagger=\sum_p U_{p'p} a_p^\dagger$, so physics is basis independent.
-
-\subsection{Operators in second quantization}
-Any \emph{one-body} operator $O=\sum_i O(i)$ has matrix elements
-$O_{pq}=\bra{p}O\ket{q}$ and becomes
+so that antisymmetry is carried by the operators rather than by the wavefunction, and a
+determinant is simply $\ket{\Phi_I}=a_{p_1}^\dagger\cdots a_{p_N}^\dagger\ket 0$. One- and
+two-body operators then take forms independent of $N$,
 \[
-O \;=\; \sum_{pq} O_{pq}\, a_p^\dagger a_q .
-\]
-A \emph{two-body} interaction $V=\tfrac12\sum_{i\ne j} v(i,j)$ has
-\[
-V \;=\; \frac12 \sum_{pqrs} \langle pq | v | rs \rangle \, a_p^\dagger a_q^\dagger a_s a_r
-\;=\; \frac14 \sum_{pqrs} \langle pq \Vert rs \rangle \, a_p^\dagger a_q^\dagger a_s a_r ,
-\]
-where $\langle pq|v|rs\rangle$ are two-electron integrals over spin-orbitals and
-$\langle pq\Vert rs\rangle=\langle pq|v|rs\rangle-\langle pq|v|sr\rangle$ denotes the
-antisymmetrized integral. In this form, operator algebra and particle indistinguishability
-are handled by the CAR, independent of $N$.
-
-% \paragraph{Why this helps.}
-% Second quantization (i) encodes antisymmetry algebraically, (ii) yields compact operator forms
-% that do not change with $N$, (iii) maps Slater determinants to bitstrings amenable to fast
-% updates, and (iv) cleanly supports truncations (active spaces) and unitary basis rotations used
-% throughout the rest of this thesis.
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\section{Hartree--Fock (HF)}
-
-Hartree--Fock (HF) approximates the $N$-fermion ground state by a single Slater determinant
-built from orthonormal spin–orbitals $\{\ket{p}\}_{p=1}^M$. In second quantization the
-Hamiltonian is
-\[
-H=\sum_{pq} h_{pq}\, a_p^\dagger a_q
-  + \frac{1}{4}\sum_{pqrs} (pq\Vert rs)\, a_p^\dagger a_q^\dagger a_s a_r,
-\]
-with one-body matrix elements $h_{pq}=\langle p|\hat h_0|q\rangle$ and antisymmetrized
-two-body integrals $(pq\Vert rs)=(pq|rs)-(pq|sr)$ over spin–orbitals.
-
-\subsection{HF energy functional and the Fock operator}
-Let $\ket{\Phi}=\prod_{i=1}^N a_i^\dagger\ket{0}$ be a Slater determinant (occupied
-spin–orbitals $i,j,\dots$). Its energy is
-\[
-E[\Phi]= \sum_{i} h_{ii} + \frac{1}{2}\sum_{i,j} (ij\Vert ij).
-\]
-Stationarity of $E[\Phi]$ under unitary rotations in the occupied+virtual subspace gives the
-HF equations
-\[
-F\,\ket{\phi_p}=\varepsilon_p\,\ket{\phi_p},
+O=\sum_{pq}O_{pq}\,a^\dagger_p a_q,
 \qquad
-F=\hat h_0 + \sum_{j\in\mathrm{occ}}
-\Big( J_j - K_j \Big),
+V=\tfrac14\sum_{pqrs}\langle pq\Vert rs\rangle\,a^\dagger_pa^\dagger_qa_sa_r,
 \]
-where $J_j$ and $K_j$ are the Coulomb and exchange operators generated by orbital $j$.
-In a fixed orthonormal one-particle basis $\{\ket{\mu}\}$ these become the matrix
-\emph{Roothaan--Hall} equations
-\[
-\mathbf F\,\mathbf C = \mathbf C\,\boldsymbol\varepsilon,\qquad
-F_{\mu\nu}=h_{\mu\nu}+\sum_{\lambda\sigma} P_{\lambda\sigma}
-\Big[(\mu\nu|\lambda\sigma)-\tfrac12(\mu\lambda|\nu\sigma)\Big],
-\]
-with the closed-shell density matrix $P_{\lambda\sigma}=2\sum_{i\in\mathrm{occ}} C_{\lambda i} C_{\sigma i}^*$
-(sum over occupied \emph{spatial} orbitals; the factor $2$ is the double occupancy that makes the
-$\tfrac12$ exchange coefficient correct).
-(For a non-orthogonal basis $S$, use $\mathbf F\mathbf C=\mathbf S\mathbf C\boldsymbol\varepsilon$.)
+with $\langle pq\Vert rs\rangle$ the antisymmetrised two-electron integral. This is the
+language in which the next two ideas are usually stated. Our own ansatz is first-quantised
+throughout---it is a function of real-space coordinates---so the formalism appears here as
+vocabulary and not as machinery.
 
-\paragraph{Self-consistency (SCF).}
-HF is solved iteratively:
-initialise $P^{(0)}$, build $\mathbf F[P^{(n)}]$, diagonalize to get $\mathbf C^{(n+1)}$,
-update $P^{(n+1)}$, and iterate until the total energy and/or $P$ change is below tolerance.
-Damping or DIIS mixing stabilizes convergence. The dominant costs are building two-electron
-contributions ($\mathcal O(M^4)$) and diagonalization ($\mathcal O(M^3)$).
+\paragraph{Hartree--Fock, and what correlation means.}
+Hartree--Fock approximates the ground state by a \emph{single} determinant, with the
+orbitals themselves optimised: stationarity of the determinant energy under orbital
+rotations gives the eigenproblem $F\ket{\phi_p}=\varepsilon_p\ket{\phi_p}$ for the Fock
+operator $F=\hat h_0+\sum_{j\in\mathrm{occ}}(J_j-K_j)$, in which each electron moves in the
+mean field of the others. Because $F$ depends on its own solutions, it is solved
+self-consistently.
 
-\paragraph{Remarks for quantum dots.}
-For parabolic confinement $V_\mathrm{ext}=\tfrac12\omega^2 r^2$ we typically choose
-2D harmonic-oscillator orbitals as the one-particle basis (the Cartesian orbitals used in
-our implementation), which respect the shell structure and accelerate convergence. Closed shells admit restricted HF (RHF); spin-polarized
-cases may require UHF. Koopmans’ theorem (orbital energies as removal/addition estimates)
-can provide a rough diagnostic but is not used for final energetics here.
+Two things follow that this thesis uses. The first is a definition: the
+\emph{correlation energy} is what a single determinant cannot reach,
+$\Delta E = E_{\rm exact}-E_{\rm HF}$. It is a small fraction of the total energy and
+essentially all of the difficulty, which is why a method can look converged in total energy
+while representing the correlation badly---a distinction Chapter~\ref{ch:kernel} makes
+quantitative. The second is a structural fact: when the occupied orbitals fill complete
+shells, the determinant is a spin singlet and is unique, with no degenerate manifold to
+choose from. Those \emph{closed-shell} particle numbers are the ones studied here.
 
-\medskip
+\paragraph{Full configuration interaction, and the cost of being exact.}
+Expanding in \emph{all} $N$-electron determinants of a given basis and diagonalising,
+$\ket\Psi=\sum_I C_I\ket{\Phi_I}$ with $H\mathbf C=E\mathbf C$, gives the exact ground state
+\emph{within that basis}. The Slater--Condon rules make $H$ extremely sparse---determinants
+differing by more than two spin-orbitals do not couple---so the diagonalisation is done
+iteratively and symmetry sectors can be treated separately. What cannot be avoided is the
+$\binom{M}{N}$ growth of the space itself. For the twenty-electron dot studied here, an
+accurate one-particle basis puts the determinant count far beyond reach. This is the
+combinatorial wall that motivates variational methods in the first place.
 
-\section{Full Configuration Interaction (FCI)}
+\paragraph{Why none of it is computed here.} Our determinant is built from
+harmonic-oscillator orbitals rather than self-consistent HF orbitals, and our external
+benchmark is diffusion Monte Carlo~\cite{Pederiva2000-QD-DMC}, which for these systems is
+both more accurate than an affordable FCI and available at the particle numbers we care
+about. The reader should carry forward the definitions and not expect the tables.
 
-FCI gives the exact ground state \emph{within the chosen one-particle basis} by expanding in
-\emph{all} $N$-electron Slater determinants,
-\[
-\ket{\Psi}=\sum_{I} C_I \ket{\Phi_I},\qquad
-H\mathbf C=E\,\mathbf C.
-\]
-The determinant space has dimension $\binom{M}{N}$ for fixed spin–orbitals $M$ and particles
-$N$ (or smaller with symmetry constraints). FCI thus captures the full correlation energy
-$\Delta E=E_\mathrm{FCI}-E_\mathrm{HF}$ in that basis and serves as the gold-standard benchmark.
 
-\subsection{Slater--Condon rules and sparsity}
-Matrix elements $\langle \Phi_I|H|\Phi_J\rangle$ are nonzero only if $\Phi_I$ and $\Phi_J$
-differ by at most two spin–orbitals:
-\begin{itemize}
-\item \emph{Diagonal:} $H_{II}=\sum_{i\in I} h_{ii} + \tfrac12\sum_{i,j\in I} (ij\Vert ij)$.
-\item \emph{Singles $i\!\to\!a$:} $H_{0,i^a}=F_{ia}$; in canonical HF orbitals, $F_{ia}=0$
-(Brillouin’s theorem), so the HF determinant does not couple to singles.
-\item \emph{Doubles $ij\!\to\!ab$:} $H_{0,ij^{ab}}=(ij\Vert ab)$.
-\end{itemize}
-This locality yields a very sparse Hamiltonian in the determinant basis and enables iterative
-eigensolvers without forming $\mathbf H$ explicitly.
-
-\subsection{Diagonalization and symmetry reduction}
-In practice one targets the lowest eigenpairs with Davidson or Lanczos iterations. Symmetries
-($N$, $S_z$, total spin $S$ if spin-adapted CSFs are used, and $L_z$ in an angular-momentum-adapted basis)
-block-diagonalize the problem and dramatically shrink the working space and memory. For
-few-electron quantum dots (e.g.\ $N=2,6$) this makes high-accuracy FCI feasible for moderate
-$M$; for larger $N$ the determinant growth becomes the bottleneck.
-
-\subsection{Role in this thesis}
-These methods set the vocabulary rather than supply the numbers. HF fixes what
-\emph{correlation energy} means---the part of the exact energy a single determinant cannot
-reach---and FCI names the exact answer within a finite one-particle basis, so that
-``$0.05\%$ from the reference'' has a scale attached to it. We compute neither here. Our
-determinant is built from harmonic-oscillator orbitals rather than HF orbitals, and our
-external benchmark is diffusion Monte Carlo~\cite{Pederiva2000-QD-DMC}, which for these
-systems is both more accurate than an affordable FCI and available at the particle numbers
-we care about. The reader should carry forward the definitions, not expect the tables.
 \section{Quantum Dots}
+\label{sec:quantumdots}
 
 \subsection{Model and units}
 We consider $N$ spin-$\tfrac12$ fermions in $d{=}2$ with harmonic confinement and Coulomb repulsion,
@@ -472,7 +166,7 @@ Write single-particle spin-orbitals as $\varepsilon_\alpha(x)=\phi_\alpha(\mathb
 with $x=(\mathbf r,s)$. Because $\chi_\uparrow$ and $\chi_\downarrow$ are orthogonal and $H$ is
 spin-independent, the Slater determinant simplifies:
 
-\paragraph{Closed shells (RHF).}
+\paragraph{Closed shells.}
 For even $N$ with doubly occupied spatial orbitals
 $\{\phi_1,\ldots,\phi_{N/2}\}$, the determinant factorizes into two identical spatial determinants,
 one for each spin:
@@ -482,8 +176,16 @@ one for each spin:
 \det[\phi_a(\mathbf r_i)]_{i\in\uparrow,a=1..N/2}\;
 \det[\phi_a(\mathbf r_j)]_{j\in\downarrow,a=1..N/2}\;\times\; \Xi_{S=0,S_z=0},
 \]
-where $\Xi$ is the singlet spin function. This is the \emph{restricted} HF (RHF) reference and a
-natural starting point for correlated ansätze.
+where $\Xi$ is the singlet spin function. A word on what this reference is and is not. It
+has the \emph{form} of a restricted closed-shell determinant, but its orbitals are the
+harmonic-oscillator eigenstates of the trap, not orbitals optimised self-consistently in
+the mean field of the other electrons. It is therefore the closed-shell
+\emph{non-interacting} reference, not an RHF one, and no self-consistent-field calculation
+is performed anywhere in this thesis. The distinction matters for how the later results
+should be read: everything the correlator and the backflow achieve is measured against a
+determinant that has not been given the benefit of a mean field, so what they recover
+includes the orbital relaxation an HF calculation would have supplied as well as the
+correlation beyond it.
 
 % \paragraph{Open shells.}
 % When the top shell is partially filled, the noninteracting ground space is degenerate.
@@ -496,6 +198,7 @@ natural starting point for correlated ansätze.
 % correlation factor.
 
 \subsection{Kato’s Cusp Conditions (2D Coulomb systems)}
+\label{subsec:cusp}
 
 For Coulomb interactions the potential diverges as $1/r$ at coalescence. Finiteness of the
 local energy
@@ -588,85 +291,119 @@ stability checks each one is subjected to. Quantum Wigner markers in parabolic d
 reviewed in Refs.~\cite{Egger_1999,manninen2007metalclustersquantumdots,Filinov_2001,Mazars_2008}.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\section{Variational Methods}
+\section{Quantum Monte Carlo, and what a benchmark is worth}
+\label{sec:qmc-theory}
 
-Quantum Monte Carlo (QMC) methods offer powerful tools for solving the many-body Schrödinger equation through stochastic sampling. These methods yield accurate ground-state properties by estimating expectation values of observables with controlled approximations. Among the various QMC techniques, Variational Monte Carlo (VMC) and Diffusion Monte Carlo (DMC) are particularly notable; VMC optimizes a trial wavefunction based on the variational principle, while DMC projects out the ground state through imaginary-time evolution \cite{Kroese2014-WhyMonteCarlo, KosztinFaberSchulten1996-IntroDMC}.
+Two stochastic methods supply the numbers this thesis is measured against, and the
+difference between what they guarantee is the whole of its external evidence. Variational
+Monte Carlo optimises a trial state under the variational principle. Diffusion Monte Carlo
+projects toward the ground state in imaginary time. Only the first is what we do; only the
+second is what we are scored against; and neither is exact for fermions.
 
-\subsection{Variational Monte Carlo (VMC)}
-\subsubsection{The Variational Principle}
-The variational principle guarantees that for any normalised trial wavefunction $\Psi_T(\mathbf{R}; \boldsymbol{\alpha})$, the expectation value
+\subsection{Variational Monte Carlo}
+\label{subsec:vmc-theory}
+
+For any normalised trial state $\Psi_T(\mathbf R;\boldsymbol\alpha)$ the Rayleigh quotient
 \[
-E[\Psi_T] = \frac{\langle \Psi_T | \hat{H} | \Psi_T \rangle}{\langle \Psi_T | \Psi_T \rangle}
+E[\Psi_T] = \frac{\braket{\Psi_T|\hat H|\Psi_T}}{\braket{\Psi_T|\Psi_T}} \;\ge\; E_0
 \]
-provides an upper bound to the true ground-state energy $E_0$. Here, $\mathbf{R} = (\mathbf{r}_1,\dots,\mathbf{r}_N)$ and $\boldsymbol{\alpha}$ represents the set of variational parameters. Optimising $\boldsymbol{\alpha}$ minimizes $E[\Psi_T]$.
-
-\subsubsection{Sampling}
-In VMC, the probability density is defined as
+bounds the exact ground-state energy from below, so minimising it over $\boldsymbol\alpha$
+can only improve the estimate. Writing the expectation as an average of the \emph{local
+energy}
+\begin{equation}
+  E_L(\mathbf R) \;=\; \frac{\hat H\Psi_T(\mathbf R)}{\Psi_T(\mathbf R)}
+  \label{eq:local-energy-theory}
+\end{equation}
+over configurations drawn from $P(\mathbf R)=|\Psi_T(\mathbf R)|^2/\!\int|\Psi_T|^2$ turns
+the integral into a sampling problem,
 \[
-P(\mathbf{R}) = \frac{|\Psi_T(\mathbf{R})|^2}{\int |\Psi_T(\mathbf{R})|^2\, d\mathbf{R}},
+  E[\Psi_T] \;\approx\; \frac{1}{N_{\rm MC}}\sum_{i} E_L(\mathbf R_i),
 \]
-and configurations are sampled using the Metropolis-Hastings algorithm, initially described in \cite{Metropolis1953}, with acceptance probability
+with the configurations generated by Metropolis--Hastings~\cite{Metropolis1953} at
+acceptance
 \[
-A(\mathbf{R} \to \mathbf{R}') = \min\!\left(1, \frac{|\Psi_T(\mathbf{R}')|^2}{|\Psi_T(\mathbf{R})|^2}\, \frac{T(\mathbf{R}' \to \mathbf{R})}{T(\mathbf{R} \to \mathbf{R}')}\right),
+A(\mathbf R \to \mathbf R') = \min\!\left(1,\;
+\frac{|\Psi_T(\mathbf R')|^2}{|\Psi_T(\mathbf R)|^2}\,
+\frac{T(\mathbf R'\to\mathbf R)}{T(\mathbf R\to\mathbf R')}\right),
 \]
-where $T$ is the proposal density (for a symmetric proposal the ratio is unity and the
-acceptance reduces to the Metropolis form). When a drift is added, a \emph{quantum force}
+optionally drifted by the quantum force $\mathbf F=2\nabla\ln|\Psi_T|$ toward regions of
+high density~\cite{KalosLevesqueVerlet1974-ImportanceSampling}.
+
+\paragraph{The zero-variance principle.}
+One property of Eq.~\eqref{eq:local-energy-theory} does more work in this thesis than the
+energy itself. If $\Psi_T$ were an exact eigenstate, $\hat H\Psi_T=E\Psi_T$ pointwise, and
+$E_L$ would be \emph{constant} over the whole of configuration space. Its variance
+\begin{equation}
+  \Var(E_L) \;=\; \big\langle E_L^2\big\rangle - \big\langle E_L\big\rangle^2
+  \label{eq:varEL-theory}
+\end{equation}
+therefore vanishes only at an exact eigenstate, and decreases as the trial state improves.
+This makes it a measure of wavefunction quality that is independent of any external
+reference---which matters here for two reasons. It keeps saying something after the energy
+has saturated, when two ansätze agree to four figures and the energy can no longer tell
+them apart. And it is defined on the state rather than on any component of it, so it
+survives changes of parameterisation that quantities such as a component's rank do not.
+Chapter~\ref{ch:kernel} uses it in both roles.
+
+\subsection{Diffusion Monte Carlo, and the fixed-node constraint}
+\label{subsec:dmc-theory}
+
+DMC removes the dependence on a trial state by projection. In imaginary time
+$\tau=it$ the Schr\"odinger equation becomes a diffusion equation,
 \[
-\mathbf{F}(\mathbf{R}) = 2\, \nabla \ln |\Psi_T(\mathbf{R})|,
+-\frac{\partial \Psi(\mathbf R,\tau)}{\partial\tau} = (\hat H - E_T)\,\Psi(\mathbf R,\tau),
 \]
-further guides the sampling toward regions of high probability. This leads to what is known as importance sampling. A more precise discussion of this is found in \cite{Chin1990-QuadraticDMC,VanKampen1992-StochasticProcesses}.
+whose long-time limit is the ground state, provided the initial state overlaps it. The
+evolution is simulated by an ensemble of walkers that diffuse, drift along the quantum
+force, and are branched or killed with weight
+$w=\exp[-(E_L(\mathbf R)-E_T)\Delta\tau]$, so that the walker density converges on the
+ground-state density.
 
-\subsubsection{Local Energy and Parameter Optimisation}
-The local energy is defined as
-\[
-E_L(\mathbf{R}) = \frac{\hat{H}\Psi_T(\mathbf{R})}{\Psi_T(\mathbf{R})}.
-\]
-If $\Psi_T$ were exact, $E_L(\mathbf{R})$ would be constant. In practice, the variational energy is approximated by averaging $E_L$ over many configurations:
-\[
-E[\Psi_T] \approx \frac{1}{N_{\text{MC}}} \sum_{i=1}^{N_{\text{MC}}} E_L(\mathbf{R}_i).
-\]
-Variational parameters are then optimised (using gradient descent or stochastic reconfiguration) to reduce both the energy and its variance.
+That argument works because a diffusion equation propagates a \emph{probability}. For
+bosons the ground state is nodeless and can be treated as one directly. For fermions it
+cannot: antisymmetry forces $\Psi$ to change sign, and a signed density is not a
+probability. Splitting it into positive and negative populations is formally possible but
+their difference is swamped by their sum at a rate exponential in $N\tau$---the
+\emph{fermion sign problem}~\cite{PanMeng2024-SignProblemQMC}.
 
-\subsection{Diffusion Monte Carlo (DMC)}
-\subsubsection{Imaginary-Time Evolution and Projection}
-DMC refines the trial wavefunction by projecting out the ground state through imaginary-time evolution. The Schrödinger equation becomes
-\[
--\frac{\partial \Psi(\mathbf{R}, \tau)}{\partial \tau} = \Bigl(\hat{H} - E_T\Bigr)\Psi(\mathbf{R}, \tau),
-\]
-where $\tau = it$ and $E_T$ is a trial energy. As $\tau \to \infty$, $\Psi(\mathbf{R}, \tau)$ converges to the ground-state wavefunction provided the initial state has nonzero overlap with it.
+The standard escape is to impose the sign structure rather than sample it. The
+\emph{fixed-node} approximation confines the walkers to the nodal pockets of a trial state
+$\Psi_T$, killing any walker that crosses a node. Within each pocket the wavefunction has a
+definite sign, the projection is well posed, and the method returns the exact ground-state
+energy \emph{of the problem with those nodes imposed as a boundary condition}. That energy
+is a rigorous upper bound on $E_0$, and it is exact only if the nodes are. Otherwise it
+carries a systematic \emph{nodal bias} that no amount of sampling removes.
 
-\subsubsection{Stochastic Implementation}
-DMC simulates the imaginary-time evolution using a combination of diffusion, drift, and branching:
-\begin{enumerate}
-    \item \textbf{Diffusion and Drift:} Particles execute random walks, with drift guided by the quantum force $\mathbf{F}(\mathbf{R})$, steering them toward regions where $\Psi_T$ is large.
-    \item \textbf{Branching/Death:} Walkers are assigned a weight,
-    \[
-    w(\mathbf{R}, \Delta\tau) = \exp\!\Bigl[-\Bigl(E_L(\mathbf{R}) - E_T\Bigr)\Delta\tau\Bigr],
-    \]
-    which determines whether they are replicated or removed, ensuring that the walker distribution evolves toward the ground-state probability density.
-\end{enumerate}
+Three consequences follow, and all three are load-bearing later.
+\emph{First}, a published DMC energy is not ground truth; it is the best energy attainable
+inside somebody's nodal surface. \emph{Second}, a variational state whose nodes are better
+than that surface may legitimately lie \emph{below} a fixed-node DMC number without
+violating anything---the variational principle bounds the energy from below by $E_0$, not
+by another approximation (\S\ref{sec:energy-discussion}). \emph{Third}, improving nodes is
+therefore the thing worth doing, which is what the coordinate backflow of
+Chapter~\ref{ch:trial_wavefunction} exists to attempt.
 
-\subsection{Applications and Numerical Considerations}
-\subsubsection{Model Systems}
-QMC methods have been successfully applied to various quantum systems:
-\begin{itemize}
-    \item \textbf{Hydrogen Atom:} A simple trial wavefunction $\Psi_T(r)=e^{-\alpha r}$ yields the exact ground state for $\alpha=1$, illustrating zero variance.
-    \item \textbf{Harmonic Traps:} In systems confined by harmonic potentials, Jastrow factors~\cite{Jastrow1955-ManyBodyCorrelation} like $\exp[-ar_{ij}/(1+\beta r_{ij})]$ model inter-particle repulsion while Slater determinants maintain the proper fermionic symmetry.
-\end{itemize}
+\subsection{What this leaves us needing}
 
-\subsubsection{Computational Efficiency}
-Key factors in achieving efficient QMC simulations include:
-\begin{itemize}
-    \item \textbf{Efficient Determinant Updates:} For a single-particle move, the Sherman--Morrison
-    formula updates the inverse Slater matrix in $\mathcal{O}(N^2)$ rather than recomputing the
-    determinant from scratch at $\mathcal{O}(N^3)$.
-    \item \textbf{Optimised Gradient and Laplacian Calculations:} Recursive methods and efficient numerical routines for evaluating $\nabla\Psi_T/\Psi_T$ and $\nabla^2\Psi_T/\Psi_T$ are essential.
-\end{itemize}
+Both methods take a trial state as given. VMC is only as good as the state it optimises;
+fixed-node DMC is only as good as the nodes it is handed. The quality of the ansatz is
+therefore not a detail of the implementation but the object of study, and it is
+constrained from three directions at once.
 
-\subsection{Conclusion}
-Variational and Diffusion Monte Carlo methods together provide a robust framework for studying quantum systems. VMC offers a flexible approach for optimising trial wavefunctions, while DMC projects toward the ground state through imaginary-time evolution---though
-for fermions the practical fixed-node variant is variational only within the imposed
-nodal surface, and retains a nodal bias unless those nodes are exact. These methods, working in concert, enable accurate and efficient investigations of systems from simple atoms to strongly correlated materials. Ongoing improvements in trial wavefunction design and stochastic algorithms continue to extend the reach of QMC in modern computational physics.
+It must be \emph{antisymmetric}, exactly and by construction, since the sign structure is
+what makes the problem hard---which in practice means a determinant, multiplied by a
+symmetric correlation factor of the kind Jastrow introduced for strongly interacting
+systems~\cite{Jastrow1955-ManyBodyCorrelation}. It must place its \emph{nodes} well, since that is where the
+remaining systematic error lives. And it must be smooth enough that
+$E_L=\hat H\Psi/\Psi$---which contains a Laplacian, and a Coulomb potential that diverges
+at coalescence---can be evaluated without the two singularities amplifying each other. The
+cusp conditions of \S\ref{subsec:cusp} are exactly the statement that those two
+divergences can be made to cancel, and hard-wiring that cancellation is the first design
+decision of Chapter~\ref{ch:trial_wavefunction}.
+
+What remains is to choose the functional form. A compact antisymmetric state that can
+represent correlation without destroying local-energy conditioning is what the next
+chapter goes looking for, in the machine-learning literature.
 
 \chapter{Machine Learning}
 \label{ch:ml_theory}

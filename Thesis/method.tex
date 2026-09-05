@@ -604,9 +604,19 @@ $\ell=1/\sqrt\omega$ and the three components cover core, bulk, and tails. A bat
 $n_{\rm coll}$ points is obtained by multinomial resampling on $p_i=w_i/\sum_j w_j$ from
 $m\,n_{\rm coll}$ candidates ($m\!\approx\!8$--$16$). Reweighting quality is tracked by the
 effective sample size $\mathrm{ESS}=(\sum_i w_i)^2/\sum_i w_i^2$ and, as a heavier-tailed
-diagnostic, the Pareto $\hat k$ of the weights~\cite{Vehtari2024}; both degrade when $q$
-ceases to overlap $|\Psi_\theta|^2$, the failure mode that bounds the paradigm at large $N$
-and weak $\omega$. Three controls manage the tails: weight tempering ($w\!\to\!w^{\alpha}$,
+diagnostic, the Pareto shape parameter $\hat k$ of the
+weights~\cite{Vehtari2024}. The second deserves a word, because it is not merely a second
+opinion on the first. Importance weights are heavy-tailed, and $\hat k$ estimates the tail
+index of the generalised Pareto distribution fitted to the largest of them. The threshold
+that matters is a statement about moments: for $\hat k<1/2$ the weights have finite
+variance and the reweighted estimator obeys a central limit theorem; between $1/2$ and $1$
+the variance is infinite but the mean still exists, and convergence is slow enough that
+$\hat k\approx0.7$ is the practical limit of trustworthiness; above $1$ the mean itself is
+undefined and no sample size repairs it. An ESS can look survivable while $\hat k$ says the
+estimator has no variance to speak of, which is why we track both. Both degrade when $q$
+ceases to overlap $|\Psi_\theta|^2$, and that degradation is the failure mode which bounds
+the paradigm at large $N$ and weak $\omega$ (Chapter~\ref{ch:kernel},
+\S\ref{sec:colloc-reliability}). Three controls manage the tails: weight tempering ($w\!\to\!w^{\alpha}$,
 $\alpha<1$), log-weight clipping at an upper quantile, and ESS-adaptive oversampling that
 raises $m$ when the achieved ESS falls below a floor. An instability-rollback reverts to the
 last good checkpoint and decays the learning rate if the energy jumps beyond a threshold.

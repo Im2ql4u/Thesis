@@ -194,9 +194,9 @@ update information through explicit, transported edge state before a quantity is
 
 Once such an ansatz reaches reference accuracy—which, as we will see, a surprisingly
 compact one does—the questions worth a thesis are \emph{why} its parts behave as they
-do, and what it can tell us about the electrons. We pursue four. The first three we
-read through a single lens: the geometry of the wavefunction's log-derivatives,
-captured by the quantum geometric tensor and the neural tangent kernel.
+do, and what it can tell us about the electrons. We pursue four. The first three share an
+analytical centre: the geometry of the wavefunction's log-derivatives, captured by the
+quantum geometric tensor and the neural tangent kernel.
 \begin{enumerate}
   \item \textbf{Architecture.} What does message passing buy that a separable network
         cannot? We find it supplies a \emph{relational channel}—a way to condition
@@ -211,13 +211,17 @@ captured by the quantum geometric tensor and the neural tangent kernel.
         the correlator is swapped, supporting a common relational bottleneck in the
         amplitude and nodal channels.
   \item \textbf{Optimiser.} When does natural-gradient (stochastic reconfiguration)
-        preconditioning actually change the result? Its value tracks the conditioning
-        of the tangent metric: negligible for well-conditioned, $|\Psi|^2$-sampled
-        VMC, decisive for the ill-conditioned collocation objective.
+        preconditioning actually change the result? Its value tracks the conditioning of
+        the tangent metric, but only while that metric can still be estimated. There are
+        three regimes, not two: negligible for well-conditioned, $|\Psi|^2$-sampled VMC;
+        decisive for the ill-conditioned collocation objective; and actively harmful once
+        the sampling that builds the metric has collapsed, where inverting it amplifies
+        noise rather than signal.
   \item \textbf{Paradigm.} Can an accurate wavefunction be trained \emph{without}
         Markov-chain Monte Carlo, using importance-sampled collocation instead—and how
-        far into the correlated regime does that reach before the sampling loses the
-        target?
+        far into the correlated regime does that reach? Two walls turn out to bound it:
+        a statistical one, where the proposal loses the target and which a better
+        proposal moves, and beyond that a representational one, which it does not.
   \item \textbf{Physics.} Can the trained wavefunction serve as a scientific
         instrument for Wigner-molecule physics—shell topologies, angular order, and
         melting—and does its internal representation reflect that physics?
@@ -249,7 +253,12 @@ benchmarks, we use:
   \item tangent-kernel diagnostics of the ansatz itself: the quantum geometric
         tensor and neural tangent kernel, the effective dimension of the
         variational tangent space, and symmetric state overlaps used to compare
-        architectures and training paradigms on an invariant footing.
+        architectures and training paradigms on an invariant footing;
+  \item the local-energy variance $\Var(E_L)$, which vanishes only for an exact
+        eigenstate and so measures wavefunction quality where the energy has already
+        saturated; and, for the Markov-chain-free route, the effective sample size and
+        the Pareto shape parameter $\hat k$ of the importance weights, which between them
+        say whether a gradient estimated from those weights can be trusted at all.
 \end{itemize}
 All of these are applied as post-processing to $|\Psi|^2$ samples, so the same
 analysis could, in principle, be used to study classical, quantum-chemical, or
@@ -300,9 +309,9 @@ The main contributions of this thesis are:
         recomposition across regimes, while backflow spans many local modes. We take
         care to separate the parts of this picture that are \emph{gauge-like}—fixed by
         how correlation is divided between the Jastrow and the backflow, two
-        substitutable channels—from the invariants (energy, state overlap, and the
-        energetic price of ablating a component) on which the architectural conclusions
-        actually rest.
+        substitutable channels—from the invariants (energy, the local-energy variance, the
+        energetic price of ablating a component, and the overlap between two trained
+        states) on which the architectural conclusions actually rest.
 \end{enumerate}
 
 \paragraph{Thesis structure.}

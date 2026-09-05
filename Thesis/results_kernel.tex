@@ -944,14 +944,10 @@ $65\text{k}$ proposal), and $\hat{k}$ rises above 1.0, entering the
 regime of infinite-variance importance weights.
 
 \paragraph{Step 2: $\hat{k}$ inflation and gradient quality.}
-The Pareto shape parameter $\hat{k}$ of the importance weight
-distribution, estimated via the PSIS diagnostic of
-Vehtari~et~al.~\cite{Vehtari2024}, provides a precise
-measure of gradient reliability.
-When $\hat{k} < 0.7$, the importance-weighted gradient estimator
-has finite variance and the central limit theorem applies normally.
-When $\hat{k} > 1.0$, the variance of the estimator is infinite
-and the gradient signal is dominated by a few extreme samples.
+The tail index $\hat{k}$ of the importance weights turns that mismatch into a statement
+about whether the gradient exists (\S\ref{subsec:colloc-proposal}): below $0.7$ the
+estimator is trustworthy, above $1.0$ its variance is infinite and a handful of samples
+dictates the update.
 
 Table~\ref{tab:khat-regime} summarises the average $\hat{k}$ across
 the campaign.

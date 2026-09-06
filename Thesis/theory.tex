@@ -190,7 +190,7 @@ local energy
 \[
 E_L(R)=\frac{(H\Psi)(R)}{\Psi(R)}
 \]
-requires that the kinetic singularity cancels the $1/r$ divergence. Kato’s theorem, first showed in \cite{Kato1957-EigenfunctionsManyParticle}, gives the
+requires that the kinetic singularity cancels the $1/r$ divergence. Kato’s theorem, first proved in \cite{Kato1957-EigenfunctionsManyParticle}, gives the
 necessary short–distance behaviour of the (spherically averaged) wavefunction. Let $r_{ij}$ be the
 interparticle distance, $\mu_{ij}=m_i m_j/(m_i+m_j)$ the reduced mass (in a.u.), $Z_i$ the charge
 number (electron $Z=-1$, nucleus $Z=+Z_A$), and $D$ the spatial dimension. Then
@@ -200,13 +200,14 @@ number (electron $Z=-1$, nucleus $Z=+Z_A$), and $D$ the spatial dimension. Then
 \quad\text{(s-wave / opposite-spin channel)}.
 \]
 For \emph{identical fermions} the s-wave is excluded; the leading channel is $p$-wave
-($\ell=1$), and the wavefunction carries a linear node at coalescence. The general
+(relative angular momentum $k=1$), and the wavefunction carries a linear node at
+coalescence. The general
 like-spin cusp is then
 \[
 \left.\frac{\partial}{\partial r_{ij}}\ln \overline{\Psi}\right|_{r_{ij}\to 0}
-\;=\; \frac{2\,\mu_{ij}\,Z_i Z_j}{2\ell + D - 1}
+\;=\; \frac{2\,\mu_{ij}\,Z_i Z_j}{2k + D - 1}
 \;=\; \frac{2\,\mu_{ij}\,Z_i Z_j}{D+1}
-\quad\text{(like-spin, $\ell=1$)}.
+\quad\text{(like-spin, $k=1$)}.
 \]
 
 \paragraph{Specializing to 2D electrons (atomic units).}
@@ -292,7 +293,7 @@ For any normalised trial state $\Psi_T(\mathbf R;\boldsymbol\alpha)$ the Rayleig
 \[
 E[\Psi_T] = \frac{\braket{\Psi_T|\hat H|\Psi_T}}{\braket{\Psi_T|\Psi_T}} \;\ge\; E_0
 \]
-bounds the exact ground-state energy from below, so minimising it over $\boldsymbol\alpha$
+bounds the exact ground-state energy from above, so minimising it over $\boldsymbol\alpha$
 can only improve the estimate. Writing the expectation as an average of the \emph{local
 energy}
 \begin{equation}
@@ -529,7 +530,10 @@ the per-sample log-derivatives---the \emph{score}---of an ansatz $\Psi_\theta$ a
 \end{equation}
 for a batch of $B$ configurations drawn from $|\Psi_\theta|^2$ and $P$ parameters
 $\theta$ (here $\theta$ collects \emph{all} variational parameters). Its centred Gram
-matrices define two dual objects. The \emph{quantum geometric tensor} (QGT),
+matrices define two dual objects. Throughout, $O$ is taken \emph{column-centred},
+$O_{ki}\mapsto O_{ki}-\tfrac1B\sum_{k'}O_{k'i}$, which is what makes the Gram matrix a
+covariance rather than a second moment and is how it is formed in the implementation
+(\S\ref{sec:sr-stage}). The \emph{quantum geometric tensor} (QGT) is then
 \begin{equation}
   S = \tfrac{1}{B}\,O^{\!\top}O \in \mathbb{R}^{P\times P},
 \end{equation}
@@ -549,8 +553,10 @@ $B<P$.
 The analysis is organised around two scalars read from that spectrum. The
 \emph{condition number}
 $\kappa(S)=\lambda_{\max}/\lambda_{\min}$ measures how anisotropic the tangent metric
-is, and therefore how far a natural-gradient step departs from a Euclidean one---the
-quantity that decides when SR is worth its cost. The \emph{effective dimension}
+is, and therefore how far a natural-gradient step departs from a Euclidean one. It is the
+quantity one would expect to decide when SR is worth its cost; Chapter~\ref{ch:kernel}
+measures it and finds that it does not, which is how the estimability criterion of that
+chapter arises. The \emph{effective dimension}
 \begin{equation}
   d_{\mathrm{eff}}(S) = \frac{\left(\sum_a \lambda_a\right)^2}{\sum_a \lambda_a^2}
 \end{equation}

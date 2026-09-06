@@ -57,14 +57,14 @@ behaviour of the same object outside it. A method retuned at each confinement wo
 nothing across the boundary. The energies produced there join the benchmarked regime
 smoothly and follow the classical scaling exponent, and should be read as variational
 predictions supported by continuity of protocol and by independent structural diagnostics,
-rather than as validated numbers.
+and not as validated numbers.
 
 \section{Interpretation of the internal diagnostics}
 \label{sec:repr-discussion}
 
 The trained correlator occupies one to three effective directions across the whole
 confinement range, and what changes at the crossover is the identity of those directions
-rather than their number---a real-space transition involving shells, ring occupancies and
+and not their number---a real-space transition involving shells, ring occupancies and
 angular stiffness, carried on a latent geometry of very low dimension.
 
 That low rank is not, by itself, an architecture-level property, for the reason
@@ -128,7 +128,7 @@ unreliable; and inverting an unreliable metric, which is what natural-gradient
 preconditioning does, amplifies the noise instead of the signal. Langevin refinement joins
 that chain at the first link, by breaking the proposal the weights are computed against.
 CG-SR joins it at the last, failing at low $\omega$ because the metric can no longer be
-estimated rather than because it is ill-conditioned. Even the $N{=}20$ reversal, where a
+estimated and not because it is ill-conditioned. Even the $N{=}20$ reversal, where a
 Jastrow-only ansatz beats the backflow it should in principle beat, arrives at the same
 chain through memory instead of confinement, the edge tensor forcing the collocation budget
 down until the gradient degrades. Everything on that chain is a sampling problem, and a
@@ -160,7 +160,7 @@ $\omega{=}0.1$ collocation is a few times worse. At $N{=}20$ it is not competiti
 all. The SR pipeline has its own scaling problems---mixing times grow with $N$ and with
 correlation strength---but they arrive later, because an MCMC sampler adapts to
 $|\Psi|^2$ throughout training while a fixed proposal cannot. The natural reading is
-that the two are complementary rather than rival: collocation for fast, parallel,
+that the two are complementary and not rival: collocation for fast, parallel,
 chain-free exploration and pretraining; SR for final accuracy at large $N$ or weak
 confinement.
 
@@ -172,7 +172,7 @@ in three particular ways.
 
 \emph{Up to the frontier, the proposal is the bottleneck rather than the objective.}
 That makes the next move a better sampler rather than a better loss---normalising flows
-trained against $|\Psi|^2$, or the physics-informed proposals of
+trained against $|\Psi|^2$~\cite{Vehtari2024}, or the physics-informed proposals of
 \S\ref{sec:kernel-q3-frontier} generalised beyond ring geometries. Rebuilding the
 proposal from the Wigner shell lifted the effective sample size by $15$--$32\times$
 without any training at all. Past the frontier the target changes: what is needed there
@@ -183,14 +183,16 @@ is an $\ell$-covariant parametrisation, or an objective anchored on the shell
 between message-passing and separable correlators widens with particle number in the
 range we can measure---$\lesssim0.02$ against $\approx0.77$ dictionary-orthogonal mass at
 $N{=}12$. If that continues, the architectures that scale are the ones that maintain a
-transported edge representation rather than pooling pairwise features and discarding
-them.
+transported edge representation instead of pooling pairwise features and discarding
+them---the direction message-passing neural quantum states have taken for extended fermion
+systems~\cite{Pescia2024-MessagePassingNQS,KimEtAl2023-UltracoldFermiNQS}.
 
 \emph{The quadratic backflow is the first thing that has to change.} What stops the method
 at twenty electrons is the $\mathcal{O}(N^2 h_{\mathrm{bf}})$ edge tensor, a memory limit
 rather than a physical one. Sparse or low-rank message passing, or a local backflow that
-avoids all-to-all edge features,
-would extend the reach without touching anything else in the pipeline---and, on the
+avoids all-to-all edge features---or the sample-side reductions of minSR and the kernel
+formulation~\cite{ChenHeyl2024-minSR,Rende2024-KernelSR}, which attack the same cost from
+the other side---would extend the reach without touching anything else in the pipeline---and, on the
 evidence of Chapter~\ref{ch:kernel}, without giving up the nodal correction that is the
 reason for having a backflow at all.
 

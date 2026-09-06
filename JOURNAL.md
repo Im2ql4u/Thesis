@@ -1736,3 +1736,29 @@ No experiments run; writing session.
   Wigner-as-instrument framing), discussion.tex (chapter framing + all four
   section openings), conclusion.tex (opening).
 - 121 pages, 0 undefined refs, 0 undefined citations.
+
+## 2026-09-06 — Audit repairs, and two analyses promoted out of results/
+
+- Forensic audit of the full thesis against the artefacts in `results/`. 54
+  findings; all A and B items fixed. Build clean: 0 warnings, 0 overfull boxes,
+  0 undefined references, 125 pages.
+- Var(E_L) at N=6, omega=0.01 reseeded from `2026-07-02_N6_w001_{ctnn,deepset}_s{0,1,2}`:
+  CTNN 1.845e-5 vs DeepSet 3.348e-5, ratio **1.81** (not 7.4, which was a single
+  cascade run). Seeds do not overlap, so the ordering stands.
+- Added the capacity-matched Var(E_L) point at omega=1 from
+  `eq_N6w1_dsmatch_{adam,sr}` (89.4k) against `2x2_N6w1_ctnn_{adam,sr}` (79.8k):
+  2.75e-2 vs 9.38e-2, **ratio 3.4** — wider at matched size than the production
+  comparison showed. The capacity objection resolves in the CTNN's favour.
+- kappa(S) measured from the stored spectra: 1e7–1e10 under |Psi|^2 for both
+  architectures. Tabulated as Table 7.4. Refutes "kappa moderate" and supports the
+  estimability criterion.
+- Bond-order null `0.886/sqrt(n)` derived, MC-verified, and applied across the grid.
+  Ratio 1.00–1.03 at omega >= 0.01, 1.19–1.65 at omega=1e-3.
+- `shell_model_fit.csv` (held-out polygon fit vs angle-randomised null, 15 cells)
+  and `shell_summary.csv` promoted into Appendix E. cos_poly 0.987–0.999 against
+  a null of 0.936–0.996, with Delta-cos growing monotonically as omega falls at
+  every N.
+- N=6 outer-shell radius vs classical `1.334 w^-2/3`: 1.247 / 1.188 / 1.098 /
+  1.032 / 1.017 from omega=1 to 1e-3; exponent -0.637 full grid, -0.650 low-omega.
+- Chapter 7 figure resolutions measured: 357–501 effective dpi. The PNG-vs-PDF
+  concern raised in the audit was unfounded and is withdrawn.

@@ -568,3 +568,86 @@ remaining visually subordinate to the quotation.
 include a source line; chapter epigraphs should remain short enough to sit above
 the opening prose without forcing a page break.
 **Confidence:** high
+
+---
+
+## 2026-09-06 — Report bond-orientational order against its random-angle null
+
+**Decision:** Every `|Phi_n|` on which an ordering claim rests is reported
+together with its ratio to the random-angle expectation
+`<|Phi_n|>_random = sqrt(pi)/(2 sqrt(n)) ~= 0.886/sqrt(n)`, and the null is
+stated in Methods 5.1.3 and tabulated in Appendix E.1.
+
+**Alternatives considered:** Keep reporting raw `|Phi_n|` and let the reader
+supply the baseline; or report only the ratio.
+
+**Reasoning:** `Phi_n = n^-1 sum exp(i n phi_k)` is a two-dimensional random walk
+of n unit steps, so a completely disordered five-particle ring returns
+`|Phi_5| ~= 0.40`. The measured values at omega >= 0.01 are 0.397-0.434 across all
+N - indistinguishable from no order. Without the null, those numbers read as
+partial order everywhere and the crossover reads as gradual; with it, the ratio
+is 1.00-1.03 at omega >= 0.01 and 1.19-1.65 at omega=1e-3, so angular ordering is
+localised to the last decade. Keeping the raw value alongside the ratio preserves
+comparability with the classical Wigner literature, which quotes `|Phi_n|`.
+
+**Constraints introduced:** Any future ring-order diagnostic must state the
+occupancy n it was computed at, since the null depends on it; comparisons of
+`|Phi_n|` across shells of different occupancy are meaningless without dividing
+through.
+
+**Confidence:** high — the null is analytic and was confirmed by Monte Carlo to
+three decimals at every n in use.
+
+---
+
+## 2026-09-06 — Prefer the shell-resolved radius to r_mode for the classical check
+
+**Decision:** The comparison against the classical Wigner scaling is made on the
+fitted outer-shell radius, not on `r_mode`. Appendix E.3 carries it; 6.2.4 and
+the conclusion point there.
+
+**Alternatives considered:** Continue fitting `r_mode(omega)` and quote the
+exponent; or fit both and report the pair.
+
+**Reasoning:** `r_mode` is the mode of the *single-particle* radial density, which
+for a (1,5) topology mixes the central electron with the ring and is therefore
+not the ring radius. Fitted over the full grid it gives -0.54 (N=2) and -0.58
+(N=6), reaching -0.62 only on a weak-trap subset whose window was never stated.
+The shell-resolved radius gives -0.637 over the full grid and -0.650 over the
+weak half, and - the part that matters - lands within 1.7% of the classical
+*prefactor* 1.334 at omega=1e-3, with the ratio falling monotonically from 1.247.
+Testing a prefactor as well as a power is a strictly stronger external check, and
+it is also the quantity the physics-informed proposal of 7.4 consumes.
+
+**Constraints introduced:** Any scaling claim in the thesis must name which radius
+it fits and over which omega window.
+
+**Confidence:** high
+
+---
+
+## 2026-09-06 — kappa(S) is reported, and demoted from criterion to counterexample
+
+**Decision:** The condition number is measured and tabulated (Table 7.4) rather
+than asserted, and the optimiser argument no longer rests on it.
+
+**Alternatives considered:** Drop kappa from the thesis entirely, since no value
+was ever reported; or keep the qualitative claim.
+
+**Reasoning:** kappa was introduced in 2.2.5 and 5.3 as one of the two organising
+scalars and then never given a number anywhere in 105 pages, while the one
+qualitative claim made about it - that the VMC metric is "well enough conditioned
+(kappa moderate)" - is contradicted by the stored spectra, which give 1e7-1e10
+for both architectures at every capacity, including precisely the models where
+Adam and SR agree to four decimals. Reporting it turns a weak premise into
+evidence for the thesis's own conclusion: raw conditioning does not separate the
+regime where SR is unnecessary from the regime where it is essential, so the
+criterion has to be estimability, which is what 9.1 already says. The table also
+now carries the batch-size caveat that B < P makes kappa a property of the
+empirical metric rather than of the manifold.
+
+**Constraints introduced:** kappa may only be compared at fixed batch size; any
+future collocation-side comparison must match B against Table 7.4.
+
+**Confidence:** high for the measurement; the collocation-side mechanism remains
+an argument from the estimator, not a second measurement, and is labelled as such.

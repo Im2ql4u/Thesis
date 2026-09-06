@@ -246,7 +246,7 @@ each ordered pair $(i,j)$ with $i\neq j$,
       \tilde{\mathbf x}_i,\ \tilde{\mathbf x}_j,\ \mathbf r_{ij},\
       \tilde r_{ij}^{\rm soft},\ (\tilde r_{ij}^{\rm soft})^2
     \big)\cdot w_{ij}^{\rm spin},
-  \qquad \tilde r_{ij}^{\rm soft}=\sqrt{\tilde r_{ij}^2+\varepsilon^2},
+  \qquad \tilde r_{ij}^{\rm soft}=\sqrt{\tilde r_{ij}^2+\varepsilon_{\rm bf}^2},
   \label{eq:bf-message}
 \end{equation}
 with $\phi_\beta$ a small MLP and $w_{ij}^{\rm spin}\in\{0,1\}$ a spin mask (same-spin only
@@ -341,7 +341,10 @@ Ceperley~\cite{HolzmannCeperley2003-Backflow}.
 \subsection{Regularization, initialisation, and cost}
 \label{sec:bf-init}
 We found the following defaults robust across $(N,\omega)$:
-(i) $\varepsilon\in[10^{-6},10^{-4}]$ (trap units) for the soft norm;
+(i) $\varepsilon_{\rm bf}\in[10^{-6},10^{-4}]$ (trap units) for the backflow soft norm of
+\eqref{eq:bf-message} --- distinct from, and far smaller than, the pair-feature softening
+$\varepsilon\in[0.15,0.30]$ of \eqref{eq:safe-feats}, which sets a physical short-range
+scale, not merely a removed kink;
 (ii) bounded output $\tanh$ with a learnable scale $s_\beta$ initialised in $[0.02,0.10]$;
 (iii) optional gate $\chi_{\rm bf}$ with $r_g\approx 0.3$ (trap units).
 Zero-initialising the last layer of $\psi_\beta$ makes the ansatz start exactly at the Slater nodes and improves optimiser stability.
@@ -380,8 +383,12 @@ against a fixed $80$k CTNN without closing the gap. All settings below are those
 \begin{table}[htbp]\centering
 \caption{Representative architecture and training hyperparameters. Widths are hidden
 dimensions; ``rounds'' are message-passing steps ($n_\downarrow{+}n_\uparrow$ for the
-V-cycle). The two correlator variants (and the two backflow variants) are matched in
-capacity within the comparison tier.}
+V-cycle). The Params column gives the \emph{production} counts, which are the widths
+carrying the energies of \S\ref{sec:energy-overview} and the $\Var(E_L)$ comparison of
+Table~\ref{tab:varEL}; they are not matched between the correlator variants, and
+\S\ref{sec:kernel-q1a} therefore also reports the capacity-matched $89.4$k DeepSet and the
+full $20$k--$164$k ladder. The comparison-tier column gives the matched settings used for
+the depth analysis.}
 \label{tab:hyperparams}
 \small
 \setlength{\tabcolsep}{4pt}
@@ -447,10 +454,10 @@ Our optimisation follows two stages that mirror the implementation:
     \qquad \alpha \in [0,1],
   \end{equation}
   with a smooth cosine schedule $\alpha=\alpha(t)$ that ramps from $\alpha_{\rm start}$ to $\alpha_{\rm end}$ over a prescribed fraction of epochs (code: \texttt{alpha\_start}, \texttt{alpha\_end}, \texttt{alpha\_decay\_frac}). Setting the \texttt{objective} to \texttt{"residual"} uses $E_{\rm eff}=\mu$; \texttt{"energy"} uses $E_{\rm eff}=E_{\rm DMC}$; and \texttt{"energy\_var"} uses the annealed blend above.
-  \item \textbf{Stochastic Reconfiguration (stage II).} After residual pretraining, we refine with SR (natural–gradient VMC). Writing $O(\tilde R)=\partial_\theta \log\Psi_\theta(\tilde R)$,
+  \item \textbf{Stochastic Reconfiguration (stage II).} After residual pretraining, we refine with SR (natural–gradient VMC). Writing $\bar O(\tilde R)=\partial_\theta \log\Psi_\theta(\tilde R)-\mathbb{E}_\pi[\partial_\theta\log\Psi_\theta]$ for the centred score,
   \begin{equation}
-    S \;=\; \mathbb{E}_\pi\!\big[O^\top O\big],\qquad
-    g \;=\; 2\,\mathbb{E}_\pi\!\big[(E_L-\mathbb{E}_\pi[E_L])\,O\big],
+    S \;=\; \mathbb{E}_\pi\!\big[\bar O^\top \bar O\big],\qquad
+    g \;=\; 2\,\mathbb{E}_\pi\!\big[(E_L-\mathbb{E}_\pi[E_L])\,\bar O\big],
   \end{equation}
   we solve the damped normal equations
   \begin{equation}
@@ -741,6 +748,19 @@ $g_k=s_{k+1}-s_k$, and flag the frame as \emph{two‐shell} if the largest gap e
 \end{equation}
 The cut radius is the midpoint of the maximal gap; the inner multiplicity $n_{\mathrm{in}}$ defines the topology 
 $(n_{\mathrm{in}}, N-n_{\mathrm{in}})$.
+
+\paragraph{More than two shells.} At $N{=}20$ and weak confinement a single cut is not
+enough, and the detector is applied recursively. Having placed one cut, we re-apply the same
+robust-gap test \emph{within} each resulting group, accepting a further cut only if that
+group contains at least three particles and its own maximal gap again exceeds
+$\tau\,\mathrm{median}(g_k)$ computed over the whole frame---so the threshold is global and
+a shell is never split by a gap that is small on the scale of the configuration. Recursion
+stops when no group qualifies, which for the systems here never yields more than three
+shells. A frame is labelled by the resulting occupancy vector
+$(n_1,\dots,n_S)$ ordered outward, so that the two-shell case above is the $S{=}2$ member of
+the same family; the $N{=}20$ deep-Wigner topology $(1,7,12)$ is an $S{=}3$ assignment with
+cuts after the first and eighth particle. Topology fractions and their robustness under
+$\tau$ are reported exactly as in the two-shell case.
 Shelling and discrete ring occupancies are well known in parabolic Coulomb clusters
 and quantum dots~\cite{schweigert1994spectralpropertieschargedparticles,Kong_2002,manninen2007metalclustersquantumdots};
 our detector provides a reproducible, data-driven assignment in that spirit.
@@ -776,7 +796,48 @@ As a complementary, dimensionless \emph{angular Lindemann} number we use
 \qquad 
 \Delta\phi\;=\;\text{nearest‐neighbour angular spacing on the ring}.
 \end{equation}
-Smaller $\lambda_\phi$ indicates a stiffer (more Wigner‐like) ring.
+Smaller $\lambda_\phi$ indicates a stiffer (more Wigner‐like) ring. This is the quantity
+abbreviated ``Lind'' in Chapter~\ref{ch:results}; where a shell index is attached, as in
+$\lambda_{\rm in}$ and $\lambda_{\rm out}$, it is the same estimator evaluated on that
+shell alone.
+
+\paragraph{Registered and lab-frame order.}
+Two further scalars are used for the multi-shell cases, and both are needed because
+$|\Phi_{n_s}|$ is defined shell by shell while the question at $N{=}20$ is whether the
+\emph{molecule} is ordered. For a frame with shells $s=1,\dots,S$ and occupancies $n_s$ we
+define a configuration-level order parameter in two frames. In the \emph{lab} frame,
+\begin{equation}
+  C_{\rm global} \;=\; \Big|\;\Big\langle \tfrac{1}{S'}\textstyle\sum_{s:\,n_s\ge3}
+  \Phi_{n_s}\Big\rangle_{\rm frames}\Big| ,
+  \label{eq:Cglobal}
+\end{equation}
+the modulus of the \emph{frame-averaged} complex order parameter, averaged over the
+$S'$ shells carrying at least three particles. Because a freely rotating molecule visits all
+orientations, the complex phases cancel and $C_{\rm global}\to0$ however ordered the
+molecule is internally: it measures \emph{pinning} to the lab frame, not order. In the
+\emph{co-rotating} frame each configuration is first registered by removing the phase of its
+outermost shell, $\Phi_{n_s}\mapsto\Phi_{n_s}e^{-i\arg\Phi_{n_S}}$, before averaging:
+\begin{equation}
+  \tilde C_{\rm global} \;=\; \Big|\;\Big\langle \tfrac{1}{S'}\textstyle\sum_{s:\,n_s\ge3}
+  \Phi_{n_s}\,e^{-i\arg\Phi_{n_S}}\Big\rangle_{\rm frames}\Big| .
+  \label{eq:Ctilde}
+\end{equation}
+This retains the \emph{relative} angular arrangement of the shells while discarding the
+global orientation, so a rigid molecule tumbling freely gives $\tilde C_{\rm global}$ near
+its single-frame value and $C_{\rm global}$ near zero. The pair
+$(\tilde C_{\rm global}, C_{\rm global})$ is therefore the direct test of the rotating
+Wigner-molecule picture, and it is reported that way in \S\ref{sec:wigner-angular}.
+Finally, $L_{n,\rm reg}$ denotes the angular Lindemann number $\lambda_\phi$ evaluated on
+the shell of occupancy $n$ after the same registration, so that global rotation does not
+inflate the measured spacing fluctuations.
+
+\paragraph{The random-angle null.}
+None of these is interpretable without a baseline. For $n$ particles at independent uniform
+angles, $\Phi_n$ is a two-dimensional random walk of $n$ unit steps, so
+$\langle|\Phi_n|\rangle=\sqrt\pi/(2\sqrt n)\approx0.886/\sqrt n$ and
+$\langle|\Phi_n|^2\rangle=1/n$. A five-particle ring with no angular order whatever returns
+$|\Phi_5|\approx0.40$. We therefore report $|\Phi_n|$ together with its ratio to this null
+wherever the ordering claim depends on it (Appendix~\ref{app:structural-tables:shells}).
 This is a Lindemann–type orientational metric tailored to finite rings, motivated by
 the use of Lindemann criteria to diagnose intershell rotational (angular) melting in mesoscopic
 Coulomb clusters and dots~\cite{schweigert1994spectralpropertieschargedparticles,Filinov_2001}.
@@ -852,7 +913,16 @@ Let $\{\lambda_i\}_{i=1}^D$ be the eigenvalues of $\mathrm{Cov}(\tilde Z)$
 r_{\rm eff}(Z)\;=\;\exp\!\Big(-\sum_{i=1}^D p_i\log p_i\Big),
 \]
 which equals $1$ for perfectly one-dimensional representations and increases
-with spectral spread.
+with spectral spread. Two spectral counts appear in this thesis and they are not the same
+number. $r_{\rm eff}=\exp(H_1)$ above is the exponential of the Shannon entropy of the
+spectrum; the \emph{participation ratio}
+$d_{\rm eff}=(\sum_a\lambda_a)^2/\sum_a\lambda_a^2$ of \S\ref{sec:theory-tangent-kernel} is
+the exponential of the R\'enyi-2 entropy. Since R\'enyi entropies decrease in their order,
+$d_{\rm eff}\le r_{\rm eff}$ always, with equality only for a flat spectrum. Chapter
+\ref{ch:results} reports $r_{\rm eff}$ for feature covariances and Chapter~\ref{ch:kernel}
+reports $d_{\rm eff}$ for the tangent metric and for the displacement field, so the same
+object can carry two slightly different counts in the two chapters; each table names which
+is used.
 
 \subsection{PC ablations of the head}
 \label{subsec:repr-pc-ablate}
@@ -913,7 +983,10 @@ the cusp handles most short-range structure.
 \paragraph{Field spectrum.}
 We vectorize the backflow displacement per frame,
 $\delta=\mathrm{vec}(\Delta x)\in\mathbb{R}^{Nd}$, standardize across frames,
-and compute $r_{\rm eff}(\Delta x)$ via Sec.~\ref{subsec:repr-erank}.
+and compute the entropy effective rank $r_{\rm eff}(\Delta x)$ of
+Sec.~\ref{subsec:repr-erank}. Chapter~\ref{ch:kernel} reports the participation ratio of
+the same spectrum instead, which is the smaller of the two counts; the ceiling
+$2N-d$ set by the zero-mean projection~\eqref{eq:bf-com} is common to both.
 
 \paragraph{Where backflow acts.}
 On the same thinned frames we evaluate local energies with and without backflow,
@@ -940,6 +1013,30 @@ $u_1^{\rm noBF}$ and $u_1^{\rm BF}$, and report the cosine similarity
 Cosines near $1$ indicate that backflow acts as a structured reweighting along the same dominant axis,
 rather than rotating the correlator’s manifold.
 
+\paragraph{Centred kernel alignment.}
+The PC1 cosine compares one direction. To compare the two feature \emph{geometries} as a
+whole we use linear centred kernel alignment~\cite{Kornblith2019-CKA}. With
+$\tilde Z^{\rm noBF},\tilde Z^{\rm BF}\in\mathbb{R}^{K\times D}$ column-centred on the same
+$K$ frames,
+\begin{equation}
+  \mathrm{CKA}\big(\tilde Z^{\rm noBF},\tilde Z^{\rm BF}\big)
+  \;=\;
+  \frac{\big\|\,(\tilde Z^{\rm noBF})^{\!\top}\tilde Z^{\rm BF}\,\big\|_F^{2}}
+       {\big\|(\tilde Z^{\rm noBF})^{\!\top}\tilde Z^{\rm noBF}\big\|_F\;
+        \big\|(\tilde Z^{\rm BF})^{\!\top}\tilde Z^{\rm BF}\big\|_F} \;\in[0,1],
+  \label{eq:cka}
+\end{equation}
+which is invariant to orthogonal transformations and to isotropic scaling of either
+representation, and equals $1$ only when the two Gram matrices are proportional. It is the
+quantity reported in Table~\ref{tab:backflow-geom}. Two cautions attach to it. CKA compares
+the \emph{geometry of the feature cloud}, so a high value says the correlator's
+representation is unchanged by the presence of backflow---not that the backflow occupies the
+same subspace, and not that the two components are functionally independent. And CKA is
+known to saturate near $1$ whenever both representations are dominated by a few shared
+high-variance directions, which is exactly the regime here
+(\S\ref{subsec:repr-erank}); values above $0.99$ should therefore be read as ``no detectable
+reorganisation'' rather than as a quantitative distance.
+
 \subsection{Uncertainty and stability}
 \label{subsec:repr-uncertainty}
 For scalars we report standard errors over blocks.
@@ -963,7 +1060,7 @@ family, developed with the geometry of \S\ref{sec:theory-tangent-kernel}, descri
 \emph{tangent space}, and it is these that carry the architecture, optimiser, and
 paradigm comparisons of Chapter~\ref{ch:kernel}. From a batch we assemble the centred
 score matrix $O_{ki}=\partial_{\theta_i}\log|\Psi_\theta(\mathbf x_k)|$ and form the
-quantum geometric tensor $S=O^{\!\top}O/B$ (or, when $B<P$, the tangent kernel
+quantum geometric tensor $S=O^{\!\top}O/B$ from the \emph{centred} $O$ (or, when $B<P$, the tangent kernel
 $K=OO^{\!\top}$, whose nonzero spectrum equals that of $S$ up to the overall factor $B$). From the spectrum
 $\{\lambda_a\}$ we report the effective dimension
 $d_{\mathrm{eff}}=(\sum_a\lambda_a)^2/\sum_a\lambda_a^2$ and the condition number
@@ -972,6 +1069,60 @@ $d_{\mathrm{eff}}$ are made on a \emph{common probe set}---all models scored on 
 configurations, not on each model's own $|\Psi|^2$---so that the comparison reflects the
 ansatz and not its sampling measure, and we report only participation ratios that have
 converged in the batch size.
+
+\paragraph{A physical-operator dictionary.}
+Counting tangent directions says how many; naming them says which. We therefore project the
+leading tangent modes onto a small, fixed dictionary of one- and two-body operators chosen
+before the fits were run, each written as a scalar function of a configuration whose
+parameter-space image is obtained by the same score construction as $O$:
+\begin{equation}
+\begin{aligned}
+  \mathcal{D}_1 &= \textstyle\sum_i \tilde r_i^{\,2}
+    &&\text{breathing / monopole, the generator of $\partial_\omega$;}\\
+  \mathcal{D}_2 &= \textstyle\sum_i \tilde r_i^{\,2}\cos 2\theta_i
+    &&\text{quadrupole, the lowest shape distortion;}\\
+  \mathcal{D}_3 &= \textstyle\sum_{i<j} e^{-\tilde r_{ij}^{2}/2\sigma_h^{2}}
+    &&\text{correlation hole, with $\sigma_h$ the fitted hole width;}\\
+  \mathcal{D}_4 &= \textstyle\sum_{i<j} \tilde r_{ij}
+    &&\text{pair-linear, the leading long-range pair response.}
+\end{aligned}
+\label{eq:dictionary}
+\end{equation}
+Writing $D\in\mathbb{R}^{B\times4}$ for the centred matrix of these four functions on the
+probe batch and $v_a\in\mathbb{R}^{B}$ for the $a$th tangent-kernel eigenvector, the
+\emph{naming} score of a mode is the coefficient of determination of its least-squares
+regression on the dictionary,
+\begin{equation}
+  R^2_a \;=\; 1-\frac{\|(I-P_D)\,v_a\|^2}{\|v_a\|^2},
+  \qquad P_D=D(D^{\!\top}D)^{-1}D^{\!\top},
+  \label{eq:mode-naming}
+\end{equation}
+and the \emph{dictionary-orthogonal tangent mass} is the eigenvalue-weighted share of the
+leading $A$ modes lying outside that span,
+\begin{equation}
+  M_\perp \;=\; \frac{\sum_{a\le A}\lambda_a\,\|(I-P_D)v_a\|^2}{\sum_{a\le A}\lambda_a},
+  \qquad A=10 .
+  \label{eq:nonphys-mass}
+\end{equation}
+Finally, \emph{correlation-hole capture} is $R^2$ of Eq.~\eqref{eq:mode-naming} computed
+against the single operator $\mathcal{D}_3$, i.e.\ the share of the leading mode explained
+by the hole channel alone.
+
+The dictionary is a \emph{chosen, non-exhaustive} probe, and nothing here establishes that
+it spans the physically meaningful directions. A large $M_\perp$ means the tangent space is
+poorly accounted for by these four operators; it does not mean the remaining directions are
+unphysical. What the comparison licenses is a relative statement between two architectures
+scored against the same dictionary on the same probe batch, and that is how
+Chapter~\ref{ch:kernel} uses it.
+
+\paragraph{Reporting the condition number.}
+$\kappa(S)=\lambda_{\max}/\lambda_{\min}$ is quoted with two caveats that its definition
+forces. Our batches have $B<P$, so $S$ is rank-deficient by construction and $\lambda_{\min}$
+is the smallest \emph{sample-supported} eigenvalue rather than an intrinsic one; the value of
+$\kappa$ therefore depends on $B$ and is a property of the empirical metric the optimiser
+actually sees, not of the variational manifold. That is the relevant object for the question
+we ask of it---whether preconditioning by $S^{-1}$ helps---but it means $\kappa$ may not be
+compared across batch sizes, and we hold $B$ fixed wherever we compare it.
 
 To ask whether two trained models are the \emph{same} state rather than merely equal in
 energy, we use a symmetric, importance-sampled squared overlap,
@@ -991,9 +1142,12 @@ the comparisons made here this is an accurate proxy for the signed overlap: both
 share the same Slater reference, and the correlator and cusp enter as a strictly positive
 exponential, so the sign of $\Psi$ is fixed by the determinant and the two states agree in
 sign except on the measure-suppressed set where their backflows carry a configuration
-across a node differently. Where the two states genuinely diverge the modulus overlap is
-an upper bound on the signed one, so a reported $\mathcal{S}^2\to0$ is if anything
-conservative. These quantities---together with the energetic price of ablating a
+across a node differently. The direction of the bound matters, and it is worth being explicit about which claim it
+protects. The modulus overlap is an \emph{upper} bound on the signed one, so a reported
+$\mathcal{S}^2\to0$ is conservative---the states are at least that different---while a
+reported $\mathcal{S}^2\approx1$ is \emph{not} by itself evidence that they agree in sign.
+For the $\mathcal{S}^2\approx1$ readings the weight is carried by the structural argument
+above (shared Slater reference, strictly positive correlator), not by the bound. These quantities---together with the energetic price of ablating a
 component---are invariant to how correlation is divided between the Jastrow and the
 backflow, and it is on them, rather than on the gauge-dependent component ranks of the
 previous section, that the architectural conclusions of Chapter~\ref{ch:kernel} rest.

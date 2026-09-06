@@ -1421,3 +1421,87 @@ Body prose came down 2.8%, against a 10-15% target taken from the external
 review. The structural deletions are done; the shortfall is in distributed
 clause-level trimming, which is the remaining work and needs a reader's judgement
 rather than a pattern match.
+
+---
+
+## 2026-09-06 — Forensic pre-submission audit, and acting on it
+
+A full forensic read of the thesis (all 6,427 source lines, all 116 rendered
+pages), with every table cross-checked against the artefacts in `results/`, then
+a repair pass over everything it found. 54 findings, ranked A-D; the A and B
+items are all fixed and the build is clean (0 LaTeX warnings, 0 overfull boxes,
+0 undefined references, 125 pages).
+
+**What the audit found that mattered most.** Almost nothing touched a result.
+The physics, the method and the arithmetic were overwhelmingly sound: I
+recomputed the Kato cusps in both spin channels and both dimensions, the
+coordinate decomposition and 2D Laplacian identity of Appendix B, the NTK/QGT
+spectral relation, the rank ceilings, the virial exponents, all 30 cells of the
+reliability campaign, the cascade scaling fit, the classical ring radii, and all
+13 rows of Table 6.3 - every one reproduced. What was wrong was bookkeeping:
+numbers that had drifted from the artefacts that produced them, and caveats that
+lived in the Results but not in the front matter.
+
+Six things were submission-blocking.
+
+1. `\pagestyle{fancy}` had no `\fancyhead` configuration, so fancyhdr's default
+   put `\leftmark` and `\rightmark` on the same line. On every page of Chapter 7
+   they were printed *on top of each other* - page 64 read
+   `MESSAGECHAPSTINCRANDATHEIVARIAUTIRONAPTHEOSMAHTON`. Seventeen pages of
+   gibberish that no build warning flags, because the boxes do not overflow.
+
+2. Table 7.2's `omega=0.01` ratio of 7.4 - the source of "factors of two to
+   seven" in the abstract - was one cascade run. The three-seed replication that
+   the same paragraph quotes gives 1.81. Both sets of numbers were correct and
+   nobody had divided them.
+
+3. "Cosine similarity 0.989-1.000" appeared in the abstract, introduction and
+   conclusion and *nowhere in the body*; the one body value, 0.9982, did not
+   match the mix-fit artefact either (which gives 0.99999999996, near-exact by
+   construction).
+
+4. Sections 8.1 and 9.2 said "two independent methods agree" while 8.3 admitted
+   the DMC value enters the training signal.
+
+5. Three wrong percent-errors in Table 6.2, worst at N=20 omega=1 (-0.0024
+   printed, -0.0054 actual) - the flagship number, also quoted in Methods 4.8.
+
+6. The headline N=20 structural result used four diagnostics defined nowhere,
+   and Methods described only a two-shell detector for a three-shell result.
+
+**Two things the audit turned up that improved the science rather than repairing
+it.** Both were sitting unused in `results/`.
+
+The bond-order parameter had no null. For n independent uniform angles
+`<|Phi_n|> = 0.886/sqrt(n)`, so `|Phi_5| = 0.40` means *no angular order at all* -
+and the measured values at omega >= 0.01 are 0.397-0.434, i.e. exactly the null.
+Read against it, the ratio is 1.00-1.03 everywhere except omega=1e-3, where it
+jumps to 1.19-1.65. Angular order switches on in the last decade rather than
+strengthening gradually, and the Lindemann numbers show radial stiffening
+precedes it. This is a sharper and more defensible claim than the raw numbers
+supported, and it was invisible without the baseline.
+
+And `structural_tables_shell_model_fit/` held a held-out polygon shell fit with an
+angle-randomised null across all 15 (N,omega) cells - the g(r) test that can
+actually fail - which had never made it into the thesis. Likewise the measured
+N=6 ring radius against the classical `1.334 w^-2/3`: ratio 1.247 -> 1.017 as
+omega falls, exponent -0.637. A prefactor as well as a power, and nothing in the
+ansatz knows the number. Both are now in Appendix E.
+
+**One correction to my own audit.** I flagged the six Chapter 7 PNGs as a print-
+quality risk against the vector figures elsewhere. Measured, they run 357-501
+effective dpi at their rendered widths - comfortably above print threshold. Not a
+defect; the finding was wrong and is withdrawn. What *was* wrong with the figures
+was `q1_unification.png`, whose embedded suptitle was baked in clipped and spilled
+past both margins without producing an overfull box. Cropped, with the original
+kept as `*_withtitle.png`.
+
+**Deliberately not done.** The |Phi_m| and Lindemann values quoted in prose in
+6.2.5 differ modestly from the all-frames modal-topology values now tabulated in
+Appendix E (|Phi_5| = 0.597 vs 0.654 at omega=1e-3; Lind 0.225 vs 0.149). I did
+not silently replace measured numbers whose provenance I could not establish.
+Both sets support the same conclusion against the null, but which analysis run is
+canonical needs settling before submission.
+
+Full audit report, with the per-finding evidence and the recomputations:
+https://claude.ai/code/artifact/56d1f820-2dca-48a5-affc-cfefc1265b1e

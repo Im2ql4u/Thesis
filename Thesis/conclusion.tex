@@ -25,8 +25,7 @@ reach.
 A relational channel---and, measured through the tangent kernel, a specific one
 (\S\ref{sec:kernel-q1}). A message-passing correlator reaches the same ground state along
 half as many effective directions as a separable network of matched or larger capacity,
-and those directions are the collective modes of the Hamiltonian rather than an arbitrary
-basis. The separable network spends nearly half its tangent budget where no compact
+and those directions are the Hamiltonian's own collective modes, not an arbitrary basis. The separable network spends nearly half its tangent budget where no compact
 physical dictionary finds it, matches the energy to four figures anyway, and carries a
 higher local-energy variance for it at every confinement. In the nodes the same channel
 shows up inverted: what message passing supplies at the Wigner crystal is not a
@@ -38,11 +37,15 @@ postpones both.
 \paragraph{Optimiser.} When does natural-gradient preconditioning earn its cost?
 When the tangent metric is anisotropic \emph{and still estimable}
 (\S\ref{sec:kernel-cond}). That is a narrower claim than the usual one and it has three
-regimes rather than two. Under $|\Psi|^2$ sampling the metric is well enough conditioned
-that Adam already suffices. On the collocation objective it is badly conditioned and
-stochastic reconfiguration is what makes the optimisation work at all. And once the
-sampling that builds the metric collapses, inverting it amplifies the noise rather than
-the signal, and the method that was decisive becomes harmful. Ill-conditioning is not the
+regimes rather than two. The empirical metric is badly conditioned under \emph{both}
+sampling measures---$\kappa(S)\sim10^{7}$--$10^{10}$ on the very models where Adam and SR
+agree to four decimals---so conditioning alone does not separate them. What does is whether
+a batch can resolve the metric. Under $|\Psi|^2$ sampling the samples come from the measure
+that defines $S$, and Adam already moves along the directions carrying Fisher weight. On the
+collocation objective they do not, and stochastic reconfiguration is what makes the
+optimisation work at all. And once the
+sampling that builds the metric collapses, inverting it amplifies the noise instead of the signal, and the method that was decisive
+becomes harmful. Ill-conditioning is not the
 criterion. Estimability is.
 
 \paragraph{Paradigm.} Can an accurate wavefunction be trained without a Markov chain? Yes,
@@ -52,7 +55,7 @@ objective reaches DMC accuracy at $N\in\{6,12\}$ under strong confinement and st
 within a few tenths of a percent of our own converged energies well into the correlated
 regime. It fails where the importance sampling loses the target, and it fails through one
 chain of causes---proposal mismatch, weight-tail inflation, gradient noise, an
-unestimable metric---which a better proposal moves rather than removes.
+unestimable metric---which a better proposal moves but does not remove.
 
 \paragraph{Physics.} Can the trained state serve as an instrument? It can, and the
 evidence is that six diagnostics measuring different things agree when they need not have
@@ -77,7 +80,7 @@ of one another---the reference is also the pretraining target where it exists
 (\S\ref{sec:energy-discussion})---but a variational energy is bounded below by $E_0$
 whatever it was aimed at, so agreement from above cannot be manufactured by aiming. That is
 the whole of the external benchmark coverage, and, as \S\ref{subsec:dmc-theory} makes
-clear, a fixed-node DMC value is itself an approximation rather than ground truth. Every
+clear, a fixed-node DMC value is itself an approximation, not ground truth. Every
 relative error quoted outside that range depends on a reference we computed ourselves.
 
 \emph{Internally supported.} The deep-Wigner energies, the structural picture, and the
@@ -93,9 +96,9 @@ of probe measure, and a capacity ladder that runs against it.
 architecture comparison is seeded at $N{=}6$, rests on fewer models at $N{=}12$, and on a
 single production state at $N{=}20$. The trend runs in the direction the mechanism predicts
 and widens with particle number, but it is not settled, and settling it is a question of
-compute rather than of interpretation.
+compute, not of interpretation.
 
-One further entry belongs here, methodological rather than physical. The conclusions above
+One further entry belongs here, methodological instead of physical. The conclusions above
 rest only on quantities that survive a change of training route---measured on the state, or
 by deleting part of it---and not on the component-level ranks and magnitudes whose gauge
 dependence \S\ref{sec:synthesis} sets out.

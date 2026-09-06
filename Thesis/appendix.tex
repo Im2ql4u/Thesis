@@ -515,19 +515,6 @@ Both mechanisms worsen conditioning of strong residual objectives and increase
 statistical difficulty of SR through heavy-tailed local-energy fluctuations
 \cite{De_Ryck_2024,BeccaSorella2017-QMCBook,Siljamaki2003-QD-Cusps}.
 
-% ---------------------------------------------------------
-% Add this BibTeX entry (new) if you want the 2D 1 vs 1/3 cusp citation:
-% ---------------------------------------------------------
-% @phdthesis{Siljamaki2003-QD-Cusps,
-%   author = {Sami Siljam{\"a}ki},
-%   title  = {Wave Function Methods for Quantum Dots in Magnetic Field},
-%   school = {Helsinki University of Technology},
-%   year   = {2003},
-%   note   = {See Sec.~2.4 (Cusp conditions), Eq.~(2.27) and the 2D specialization giving
-%             $\partial_r J/J = C$ (antiparallel) and $\partial_r J/J = C/3$ (parallel).}
-% }
-
-
 % =========================================================
 % APPENDIX C: The Collocation--Backflow Catch-22
 % =========================================================
@@ -652,8 +639,9 @@ and is worst precisely when backflow still has something to learn.
 \section{The geometric mismatch argument}
 \label{app:catch22:mismatch}
 
-We now show that the variance of the local energy (and hence of the
-training gradients) generically diverges for imperfect backflow parameters.
+We now locate the divergence. It is \emph{not} in the variance of the local energy, which
+the calculation below shows to be finite for a simple node; it is one derivative later, in
+the parameter gradient.
 
 Consider the contribution to $\operatorname{Var}[E_L]$ from a
 neighborhood $U_\varepsilon$ of the learned nodal surface:
@@ -786,10 +774,20 @@ compensating for the fact that the node itself has zero weight under
 $|\Psi|^2$.
 
 \paragraph{Core asymmetry.}
-VMC obtains nodal information \emph{indirectly} through a well-conditioned
-integral (the covariance $g_i$ is finite because $E_L$ is sampled away
-from the node); collocation tries to obtain it \emph{directly} through
-a divergent pointwise quantity ($E_L$ evaluated near the node).
+The asymmetry needs stating carefully, because a power count that is too quick proves too
+much. Under $|\Psi|^2$ the SR force $g_i=\mathrm{Cov}[E_L,O_i]$ has a finite \emph{mean}:
+both $E_L$ and $O_i=\partial_{\theta_i}\log\Psi$ carry a $d_\theta^{-1}$ pole near a
+mismatched node, their product goes as $d_\theta^{-2}$, and the measure supplies
+$|\Psi|^2\sim d_\theta^{2}$, so the integral converges. Its \emph{variance} does not, by the
+same counting---so VMC is not immune to near-node pathology either, and in practice this is
+what the damping and trust region of \S\ref{sec:sr-stage} are for.
+
+The real distinction is one derivative higher. VMC and SR never differentiate $E_L$: the
+local energy enters only as a multiplicand in a covariance, so the $D^{-2}$ pole of
+Eq.~\eqref{eq:c22:grad_EL}---which comes from $\partial_\theta$ acting on $\nabla^2D/D$---never
+appears. Strong-form collocation differentiates $E_L$ by construction, and inherits it.
+That is why the same node is survivable in one scheme and not in the other, and it is the
+argument \S\ref{sec:colloc-why-reinforce} makes for the weak form as well.
 None of the sampling, loss, or preconditioning strategies we tested
 (\S\ref{app:catch22:experiments}) overcame this asymmetry within the strong-form
 collocation framework; we present it as a structural obstruction of the tested pipeline
@@ -833,8 +831,12 @@ DMC reference & 11.78484 & --- & 0.00 \\
 \end{table}
 
 The backflow reduces the error from $0.42\%$ to $0.32$--$0.33\%$, far short
-of the $< 0.01\%$ accuracy achievable with VMC\,+\,SR on the same ansatz
-(Table~\ref{tab:energies}).
+of the ${<}0.01\%$ reached by VMC\,+\,SR on the same ansatz \emph{family}
+(Table~\ref{tab:energies}). The two are not matched in size: the networks here total
+${\sim}24$k parameters against ${\sim}236$k for the production model, so the comparison
+bounds what this objective achieves at this capacity rather than isolating the objective
+alone. The floor is nonetheless a property of the objective, because it does not move under
+any of the interventions below, including ones that add capacity.
 
 \subsection{Sampling strategies}
 \label{app:catch22:sampling}
@@ -858,7 +860,7 @@ Hard mining + Huber & top-$K$ of residuals & 0.41 & neutral \\
 Hard mining + smoothness & + $\|\nabla^2\Delta x\|^2$ penalty & 0.38 & slight help \\
 SIR (single proposal) & $|\Psi|^2$-reweighted resampling & 0.47 & worse \\
 SIR (mixture) & Gaussian mixture proposal & 0.44 & worse \\
-Gumbel top-$K$ & stochastic top-$K$ selection & 5.00 & catastrophic \\
+Gumbel top-$K$~\cite{JangGuPoole2017-GumbelSoftmax} & stochastic top-$K$ selection & 5.00 & catastrophic \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -938,8 +940,8 @@ None of the regularisations improve upon the baseline.
 \begin{table}[htbp]
 \centering
 \caption{Gradient preconditioning experiments (300-epoch scratch training
-unless noted). K-FAC uses block-diagonal Kronecker-factored Fisher on
-the backflow network only.}
+unless noted). K-FAC~\cite{MartensGrosse2015-KFAC} uses block-diagonal Kronecker-factored
+Fisher on the backflow network only.}
 \label{tab:c22:kfac}
 \begin{tabular}{l c c}
 \toprule
@@ -971,8 +973,9 @@ fundamental divergence in $E_L$.
 \caption{Complete summary of all collocation-based backflow experiments
 for $N{=}6$, $\omega{=}0.5$.
 No intervention breaks the ${\sim}0.32\%$ accuracy floor.
-For comparison, the same PINN\,+\,CTNN ansatz achieves $< 0.01\%$ under
-VMC\,+\,SR (Table~\ref{tab:energies}).}
+The final row is the same ansatz \emph{family} under VMC\,+\,SR at production width
+(Table~\ref{tab:energies}), an order of magnitude larger in parameter count; it is included
+to show the size of the gap, not as a matched comparison.}
 \label{tab:c22:summary}
 \begin{tabular}{l c l}
 \toprule
@@ -1068,11 +1071,21 @@ co-adapts with the node position.
 \chapter[Post-catch-22 experimental history]{Post-catch-22 experimental history and philosophy}
 \label{app:postcatch22}
 
-This appendix documents the full experimental program executed after the
+\begin{quote}\small\itshape
+This appendix is a historical record. It documents the experimental programme as it stood
+after the catch-22 analysis and \emph{before} the physics-informed proposal of
+\S\ref{sec:kernel-q3-frontier}, and several of its working conclusions were later
+superseded---most importantly its reliance on CG-SR, which Chapter~\ref{ch:kernel}
+subsequently abandoned below $\omega\simeq0.01$ in favour of Adam. Where it disagrees with
+Chapter~\ref{ch:kernel}, Chapter~\ref{ch:kernel} governs. It is retained because the
+$N{=}20$ collocation energies of \S\ref{app:postcatch22:frontier} are recorded nowhere else,
+and because the shape of the search is itself part of the method.
+\end{quote}
+
+This appendix documents the experimental program executed after the
 backflow catch-22 analysis in Appendix~\ref{app:catch22}. The goal here is not
 to present a single best number, but to make explicit the strategy, the failed
-branches, the partial recoveries, and the current status for difficult regimes
-($\omega\in\{0.01,0.001\}$ and larger $N$).
+branches, and the partial recoveries.
 
 \section{The experimental programme}
 \label{app:postcatch22:programme}
@@ -1101,9 +1114,15 @@ controlled $2{\times}2{\times}3$ matrix (hard gate on/off, resampling-regularisa
 three seeds) confirmed both, with no measurable gain from gating and a consistent gain from
 resampling regularisation.
 
-\paragraph{Outcomes.} SR-style preconditioning in CG mode, warm-started along the confinement
-cascade $\omega:1.0\!\to\!0.5\!\to\!0.1\!\to\!0.01\!\to\!0.001$, was what carried performance
-from solved regimes into harder ones; cold-start SR at low $\omega$ did not converge. The full
+\paragraph{Outcomes.} At the time of this programme, SR-style preconditioning in CG mode,
+warm-started along the confinement cascade
+$\omega:1.0\!\to\!0.5\!\to\!0.1\!\to\!0.01\!\to\!0.001$, appeared to be what carried
+performance from solved regimes into harder ones; cold starts at low $\omega$ did not
+converge. The cascade survived that assessment and is still essential
+(Table~\ref{tab:colloc-variants}); the attribution to CG-SR did not. Later runs at matched
+budget showed CG-SR diverging below $\omega\simeq0.01$ where Adam succeeded, which is the
+three-regime result of \S\ref{sec:kernel-cond}: what fails at low $\omega$ is the
+\emph{estimate} of the metric, not the cascade. The full
 set of best energies is in \S\ref{sec:colloc-results}; representative cascade successes are
 $N{=}6$ at $\omega{=}1.0$ ($E=20.16167\pm0.00181$, $+0.012\%$), $\omega{=}0.5$
 ($E=11.78466\pm0.00199$, $-0.002\%$) and $\omega{=}0.1$ ($E=3.56525\pm0.00046$, $+0.32\%$), and
@@ -1116,7 +1135,7 @@ limit.
 \section{Current frontier: low-$\omega$ and high-$N$ stabilisation}
 \label{app:postcatch22:frontier}
 
-The current unresolved front remains the combination of extreme correlation
+At the close of this phase the unresolved front was the combination of extreme correlation
 regimes and larger particle count:
 \begin{itemize}
 \item $\omega\in\{0.01,0.001\}$: transfer helps, but reliability and
@@ -1129,8 +1148,10 @@ regimes and larger particle count:
 Dedicated stabilisation runs introduced stricter SR trust constraints,
 heavier damping, ESS-adaptive sampling, rollback controls, and explicit
 process-level relaunch hygiene for GPU memory contention. These changes improved
-operational stability but have not yet closed the full accuracy gap for the
-hardest targets.
+operational stability but did not close the accuracy gap at the hardest targets. What
+eventually did, for low $\omega$ at $N{=}6$, was not a stabilisation measure at all but a
+change of proposal: the Wigner-ring construction of \S\ref{sec:kernel-q3-frontier}, which
+postdates everything in this appendix and carries the cascade to $\omega=0.0035$.
 
 \paragraph{The $N{=}20$ collocation results.}
 For completeness we record here the $N{=}20$ collocation energies referred to in
@@ -1161,8 +1182,11 @@ The post-catch-22 phase supports six robust conclusions.
   sampling, objective, and preconditioning must be tuned jointly.
 \item Transfer/cascade is not optional for difficult regimes; it is the primary
   mechanism by which low-$\omega$ performance becomes attainable.
-\item SR-style preconditioning is central for stable progress beyond early
-  Adam-only basins.
+\item SR-style preconditioning was judged central for progress beyond early Adam-only
+  basins. This is the one conclusion of the six that did not survive: at matched budget
+  CG-SR converges faster than Adam at $\omega\ge0.1$ and diverges below it
+  (\S\ref{sec:colloc-negatives}), so the operative criterion is whether the metric is
+  estimable, not whether it is preconditioned.
 \item Diagnostic metrics (ESS, top-mass concentration, rollback counts,
   probe-final gaps) are essential; scalar final energy alone is insufficient
   for method development.

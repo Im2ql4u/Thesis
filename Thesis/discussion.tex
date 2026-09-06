@@ -144,7 +144,9 @@ unreliable; and inverting an unreliable metric, which is what natural-gradient
 preconditioning does, amplifies the noise instead of the signal. Langevin refinement joins
 that chain at the first link, by breaking the proposal the weights are computed against.
 CG-SR joins it at the last, failing at low $\omega$ because the metric can no longer be
-estimated and not because it is ill-conditioned. Even the $N{=}20$ reversal, where a
+estimated and not because it is ill-conditioned. The optimiser and the sampler are to that
+extent substitutes: under a bare fixed proposal SR is what makes collocation converge at
+all, and once the proposal adapts, a diagonal step suffices. Even the $N{=}20$ reversal, where a
 Jastrow-only ansatz beats the backflow it should in principle beat, arrives at the same
 chain through memory instead of confinement, the edge tensor forcing the collocation budget
 down until the gradient degrades. Everything on that chain is a sampling problem, and a

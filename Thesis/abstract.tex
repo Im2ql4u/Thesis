@@ -43,8 +43,10 @@ same confinement, which supports a common relational bottleneck rather than two 
 deficits. Stochastic reconfiguration earns its cost only where the tangent metric is
 both anisotropic and still estimable: under \(|\Psi|^2\) sampling, where the empirical
 metric is badly conditioned but well estimated, it changes nothing that Adam does not
-already do (tested at \(N\le6\)); under collocation it is what makes the optimisation work
-at all; and once the sampling that builds the metric collapses, inverting it does harm. Importance-sampled collocation matches SR--VMC while its sampling stays
+already do (tested at \(N\le6\)); under a fixed collocation proposal it is what makes the
+optimisation work at all, though once proposal adaptation and gradient stabilisation are
+added Adam becomes sufficient and is the more robust choice; and once the sampling that
+builds the metric collapses, inverting it does harm. Importance-sampled collocation matches SR--VMC while its sampling stays
 healthy and reaches a Wigner molecule at \(\omega=0.0035\) with no Markov chain in the
 optimisation. Two limits bound that route: a statistical one, which a proposal built from the measured
 shell geometry moves back by a factor of three in \(\omega\), and beyond it a failure of

@@ -1575,3 +1575,71 @@ between training routes — we have not run that comparison, so 8.1 now names it
 obvious next control instead of claiming it.
 
 Build: 0 warnings, 0 overfull boxes, 0 undefined references, 123 pages.
+
+---
+
+## 2026-09-06 (cont. 2) — Part IV restructure: information architecture, not prose
+
+An external structural read of the Results found the science sound and the *hierarchy* of it
+missing: too many simultaneous stories, three different quantities all called "rank", the
+strongest validation in an appendix while a by-construction one held the main figure, and
+several results revealed only after the reader had walked through the material supporting
+them. This pass repaired the architecture rather than the sentences.
+
+**New: a one-page map opening Part IV** (`results_intro.tex`). It states the feedback loop
+the two chapters follow, tags each research question to its section, tabulates the three
+training programmes and what each may be compared against, sets out the three-level evidence
+hierarchy once so the chapters can stop restating it, distinguishes the three notions of
+"dimension", and fixes the unit and ordering conventions. Nothing in it is new science; all
+of it was previously implicit or scattered.
+
+**Chapter 6 is now about the state only.** The representation analysis (old 6.3) moved to a
+new appendix chapter, `app:representation`, with one concise summary subsection retained in
+Chapter 7 where it supports the architecture argument. That section was always the weakest
+epistemically — one training run, component-level, gauge-like — and it was sitting between
+the energy benchmark and the Wigner physics, answering a Chapter 7 question early.
+
+**The collocation energy table moved to Chapter 7**, where the method that produces it is
+explained. In Chapter 6 it was a preview of a story the reader had no way to interpret, and
+Chapter 7 then repeated the numbers.
+
+**The staged crossover is now announced, not discovered.** The strongest physics result is
+not "Wigner molecules appear" but that radial localisation and angular crystallisation are
+*separate stages* — bond order sits at its random-angle null until omega = 1e-2 and departs
+only in the final decade. That is now the opening claim of 6.2, with each subsection
+answering one piece of it, and 6.2.6 reduced to synthesis.
+
+**The strongest structural test is now the main-text figure.** The held-out polygon fit
+against an angle-randomised null (Table 6.5) replaced the by-construction sector
+recombination, which moved to Appendix E. The reader now sees the experiment that could have
+failed.
+
+**Chapter 7 gained its own spine**: architecture determines the tangent space, the optimiser
+acts through its metric, sampling determines how well that metric can be estimated — stated
+in three lines at the chapter opening. 7.1.1 now names its four claims before making them;
+7.1.3 is laid out as observation / observation / intervention / result / inference; and the
+two walls are described before 7.3 rather than emerging serially across two sections.
+
+**Corrections carried in the same pass.** The SR claim was too strong: "under collocation SR
+is what makes the optimisation work at all" is true of the *bare fixed-proposal* comparison
+and false of the production pipeline, where Adam is the robust default. Now qualified in the
+abstract, introduction, discussion and conclusion. The Pareto-k thresholds were wrong (finite
+variance needs k<1/2, finite mean k<1; the table said k>1 meant infinite variance). The
+"causal chain" is a mechanistic chain — the robust recipe changes four things at once and
+the links were never individually ablated. The reliability table advertised mean, s.d. and
+worst case while displaying a coefficient of variation, which is uninformative when the mean
+approaches zero; it now shows what the text claims. The collocation bias paragraph now
+separates self-normalisation bias, deliberate tempering, and mismatch-driven variance. And
+the overlap at collapsed ESS is reported as *unresolved* rather than as zero.
+
+**Two controls I could not run, now stated as such.** Recomputing the backflow rank under a
+common COM projection would remove a paragraph of defensive explanation — but the trained
+checkpoints for that sweep were not retained, so it cannot be done from saved artefacts. And
+there is no angular diagnostic at omega = 0.0035: the bond-order machinery was run on the
+production grid, not the cascade rungs. The frontier state is therefore certified on energy
+continuity and radial geometry, and the text now says so rather than letting "verified Wigner
+molecule" carry more than it can.
+
+Build: 0 warnings, 0 overfull boxes, 0 undefined references, 130 pages (was 123). 48 of 48
+verification checks pass, including a full recomputation of Table 6.2 after its rows were
+reordered strong-to-weak to match the narrative direction.

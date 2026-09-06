@@ -6,12 +6,13 @@ a thousandfold.}{Aristotle}{\textit{On the Heavens}}
 \begingroup
 \let\clearpage\relax
 \let\cleardoublepage\relax
-\chapter[Energies, structure, and representation]{Energies, Wigner-molecule structure, and the learned representation}
+\chapter[Energies and Wigner-molecule structure]{Energies and Wigner-molecule structure}
 \label{ch:results}
 \endgroup
 
-A variational wavefunction is both an answer and an instrument, and this chapter uses it
-as each in turn.
+This chapter is about the \emph{state}: whether it is accurate enough to trust, and what
+physics it turns out to contain. Why the solver behaves as it does is the subject of
+Chapter~\ref{ch:kernel}.
 
 The quantum dot is an unforgiving test. The Coulomb interaction is singular wherever two
 electrons meet, and the kinetic energy carries second derivatives, which magnify any error
@@ -27,13 +28,12 @@ that exists: fixed-node diffusion Monte Carlo for $N\in\{6,12,20\}$
 \cite{Hogberget2013-DMC,Nordhagen2023-NeuralNetworksFermions} and the analytic two-electron
 solution for $N{=}2$~\cite{Taut1994-TwoElectrons}. Those references reach down to
 $\omega=0.1$ for every $N$, and to $\omega=0.01$ for $N{=}2$; below that, for $N\ge6$, no
-published value exists, and the boundary is marked wherever it occurs. Section~\ref{sec:wigner-molecule} then uses the trained wavefunction to
-follow the Wigner crossover---shell topologies, angular order, and melting---from two
-electrons to twenty. Section~\ref{sec:repr-analysis} examines the internal representation
-that carries it: a correlator on one to three effective directions whose content, but not
-dimensionality, reorganises across regimes, alongside a backflow whose share of the work
-shifts as the trap weakens. Several of those internal quantities are gauge-like, fixed by
-the training route rather than by the state, and are read accordingly.
+published value exists, and the boundary is marked wherever it occurs. Section~\ref{sec:wigner-molecule} then uses the trained wavefunction as an instrument and
+follows the Wigner crossover from two electrons to twenty. Its result is that the crossover
+is staged: the cloud expands and its shells stiffen radially well before the electrons
+acquire angular order inside them. How the network internally represents these states is a
+question about the solver rather than about the physics, and is deferred to
+Chapter~\ref{ch:kernel} and Appendix~\ref{app:representation}.
 
 \section{Training protocol and ground-state energies}
 \label{sec:energy-overview}
@@ -52,14 +52,13 @@ that buys the last digits; there it is what makes the optimisation viable at all
 
 We compare two backflow architectures throughout. Both condition each particle's
 displacement on the interparticle coordinates, but they do so differently: the
-\emph{conventional} \textsc{BackflowNet} applies a single round of pairwise messages
-aggregated per particle, whereas the copresheaf \emph{message-passing} network
-(\textsc{CTNN}), realised as the \textsc{CTNNBackflowNet}, maintains explicit node and
+\emph{conventional} backflow applies a single round of pairwise messages
+aggregated per particle, whereas the \emph{message-passing} backflow maintains explicit node and
 edge features and transports information between them through learned maps (a single
 copresheaf round) before the displacement is read out; the contrast between them is the subject of the backflow
 analysis in Chapter~\ref{ch:kernel}. The architecture size is identical for all $N$. The correlator used for the energies in this
-section has $\approx\!54\text{k}$ parameters, the conventional BackflowNet adds
-$\approx\!83\text{k}$ (total PINN+BF $\approx\!137\text{k}$), and the CTNNBackflowNet adds
+section has $\approx\!54\text{k}$ parameters, the conventional backflow adds
+$\approx\!83\text{k}$ (total PINN+BF $\approx\!137\text{k}$), and the message-passing backflow adds
 $\approx\!182\text{k}$ (total PINN+CTNN $\approx\!236\text{k}$). These are not the widths of
 the controlled architecture comparison, which uses its own matched ladder
 (Table~\ref{tab:hyperparams}); the two sets of counts are kept apart throughout and never
@@ -79,24 +78,32 @@ another.
 
 \subsection{Energies}
 
-These tables are the thesis's only contact with an external benchmark, and one thing has to
-be said before they are read. Where a DMC value exists, it is not only what we score
-against: it is also the target that residual pretraining anneals toward
-(\S\ref{sec:opt-overview}). The agreement below is therefore between a reference and an
+\textbf{Across every externally benchmarked system, the trained states reproduce the
+reference energy to between $10^{-5}$ and $5\times10^{-4}$ in relative terms, with no
+systematic deterioration as particles are added or the trap is opened}
+(Tables~\ref{tab:Residual} and \ref{tab:energies},
+Fig.~\ref{fig:rel_error_vs_omega}). That is the result of this section, and everything
+after it depends on it: it is what licenses treating the state as an instrument in
+\S\ref{sec:wigner-molecule} rather than as a claim still under defence.
+
+Two features of the tables carry more than the energies themselves. The first is
+\emph{where the agreement holds}. A method that matches the reference at $\omega=1$ and
+drifts at $\omega=0.1$ differs from one that holds across the whole benchmarked range, since
+the physics changes character between those points while the architecture does not. The
+second is \emph{where the tables stop}: below $\omega=0.1$ no reference of any kind exists
+for $N\ge6$, so the values reported there are variational predictions rather than validated
+ones, and that boundary is marked wherever it occurs rather than letting a uniformly
+formatted table imply a uniform level of evidence.
+
+One qualification attaches to the benchmark itself. Where a reference value exists it is
+not only what we score against: it is also the target that residual pretraining anneals
+toward (\S\ref{sec:opt-overview}). The agreement is therefore between a reference and an
 \emph{independently evaluated variational upper bound on the same ansatz}, not between two
-blind calculations. That is weaker than independence and stronger than circularity: a
-variational expectation under $|\Psi|^2$ is bounded below by $E_0$ whatever it was aimed at,
-so aiming at a reference cannot pull the reported energy below what the ansatz can actually
-reach, and aiming at one above that minimum would make the number worse rather than better.
-\S\ref{sec:energy-discussion} takes the argument up properly. Two further features of these
-tables carry more information than the energies themselves. The first is \emph{where the
-agreement holds}: a method that matches DMC at $\omega=1$ and drifts at $\omega=0.1$ differs from one
-that holds across the whole benchmarked range, since the physics changes character between
-those points while the architecture does not. The second is \emph{where the tables stop}.
-Below $\omega=0.1$ no reference of any kind exists for $N\ge6$, so the values reported there
-are variational predictions rather than validated ones. That boundary is marked wherever it
-occurs, rather than allowing a uniformly formatted table to imply a uniform level of
-evidence.
+blind calculations---weaker than independence, and stronger than circularity. A variational
+expectation under $|\Psi|^2$ is bounded below by $E_0$ whatever it was aimed at, so aiming
+at a reference cannot pull the reported energy below what the ansatz can actually reach, and
+aiming at one above that minimum would make the number worse rather than better.
+\S\ref{sec:energy-discussion} takes the argument up properly.
 
 Table~\ref{tab:Residual} begins with the easiest case, and its purpose is
 diagnostic rather than competitive: two electrons are few enough that the
@@ -148,8 +155,14 @@ For $N\in\{6,12,20\}$ the references are the fixed-node diffusion Monte Carlo en
   analytic two-electron results of Taut~\cite{Taut1994-TwoElectrons}. All are benchmarks of
   the same kind, so the fixed-node reading of \S\ref{sec:energy-discussion} applies at every
   size, $N{=}20$ included.
-  Parentheses denote $1\sigma$ on the last digit(s); the \%\,err columns are
-  relative deviations from the reference. A dash in the reference column marks
+  Parentheses denote $1\sigma$ on the last digit(s). The ``rel.\ dev.'' columns give
+  $100\,(E-E_{\rm ref})/E_{\rm ref}$; because the $N\ge6$ references are fixed-node upper
+  bounds, a negative entry is not necessarily an error, and the columns are labelled
+  deviation rather than error for that reason (\S\ref{sec:energy-discussion}).
+  \textbf{These are production energies and the two architectures are not capacity
+  matched} ($\approx137$k against $\approx236$k parameters); the controlled architecture
+  comparison is \S\ref{sec:kernel-q1}, and this table must not be read as an architecture
+  ablation. A dash in the reference column marks
   $(N,\omega)$ for which no published DMC value exists (all $\omega=0.001$, and
   $\omega=0.01$ for $N\ge6$); the relative-error columns are correspondingly blank
   there, as no external benchmark is available to score against.}
@@ -157,32 +170,32 @@ For $N\in\{6,12,20\}$ the references are the fixed-node diffusion Monte Carlo en
   \begin{threeparttable}
     \begin{tabular}{c|c|c|cc|cc}
       \toprule
-      $N$ & $\omega$ & Reference & PINN+BF & \%\,err & PINN+CTNN & \%\,err \\
+      $N$ & $\omega$ & Reference & PINN+BF & rel.\ dev. & PINN+CTNN & rel.\ dev. \\
       \midrule
-      2 & 0.001 & --- & $0.0137948(8)$ & --- & $\mathbf{0.013778(1)}$ & --- \\
-        & 0.01 & $0.073839(2)$ & $0.073838(1)$ & $-0.0014$  & $0.0738382(5)$ & $-0.0011$ \\
-        & 0.10 & $0.44079(1)$  & $0.44079(1)$  & $+0.0000$  & $0.440796(4)$ & $+0.0014$  \\
-        & 0.50 & $1.65977(1)$  & $1.65976(2)$  & $-0.0006$  & $1.65976(1)$ & $-0.0006$ \\
-        & 1.00 & $3.00000$     & $2.99999(1)$  & $-0.0003$  & $3.00000(2)$ & $+0.0000$  \\
-      \midrule
-      6 & 0.001 & ---           & $0.140913(1)$ & --- & $\mathbf{0.140832(1)}$ & --- \\
-        & 0.01 & ---            & $0.69125(2)$  & --- & $\mathbf{0.69036(1)}$ & --- \\
-        & 0.10 & $3.55385(5)^{\mathrm{H}}$   & $3.5549(1)$   & $+0.0295$ & $\mathbf{3.55388(5)}$ & $+0.0008$ \\
-        & 0.50 & $11.78484(6)^{\mathrm{H}}$  & $11.7895(4)$  & $+0.0395$  & $\mathbf{11.7847(2)}$ & $-0.0012$ \\
-        & 1.00 & $20.15932(8)^{\mathrm{H}}$  & $20.1610(6)$  & $+0.0083$  & $\mathbf{20.1585(3)}$ & $-0.0041$ \\
-      \midrule
-      12 & 0.001 & ---          & $0.515823(3)$ & --- & $\mathbf{0.515365(4)}$ & --- \\
-         & 0.01 & ---           & $2.48620(5)$  & --- & $\mathbf{2.47363(4)}$ & --- \\
-         & 0.10 & $12.26984(8)^{\mathrm{H}}$ & $12.2731(2)$  & $+0.0266$ & $\mathbf{12.2743(2)}$ & $+0.0363$ \\
-         & 0.50 & $39.1596(1)^{\mathrm{H}}$  & $39.1786(8)$  & $+0.0485$ & $\mathbf{39.1604(3)}$ & $+0.0020$ \\
-         & 1.00 & $65.7001(1)^{\mathrm{H}}$  & $65.717(1)$   & $+0.0257$ & $\mathbf{65.69556(5)}$ & $-0.0069$ \\
-      \midrule
-      20 & 0.001 & ---          & --- & --- & $\mathbf{1.293033(6)}$ & --- \\
-         & 0.01 & ---           & ---  & --- & $\mathbf{6.14645(5)}$ & --- \\
-         & 0.10 & $29.9779(1)^{\mathrm{H}}$ & ---  & --- & $29.9888(2)$ & $+0.0364$ \\
-         & 0.50 & $93.8752(1)^{\mathrm{H}}$  & ---  & --- & $\mathbf{93.8789(5)}$ & $+0.0039$ \\
-         & 1.00 & $155.8822(1)^{\mathrm{H}}$  & ---   & --- & $\mathbf{155.8738(7)}$ & $-0.0054$ \\
-      \bottomrule
+      2 & 1.00 & $3.00000$ & $2.99999(1)$ & $-0.0003$ & $3.00000(2)$ & $+0.0000$ \\
+         & 0.50 & $1.65977(1)$ & $1.65976(2)$ & $-0.0006$ & $1.65976(1)$ & $-0.0006$ \\
+         & 0.10 & $0.44079(1)$ & $0.44079(1)$ & $+0.0000$ & $0.440796(4)$ & $+0.0014$ \\
+         & 0.01 & $0.073839(2)$ & $0.073838(1)$ & $-0.0014$ & $0.0738382(5)$ & $-0.0011$ \\
+         & 0.001 & --- & $0.0137948(8)$ & --- & $\mathbf{0.013778(1)}$ & --- \\
+    \midrule
+      6 & 1.00 & $20.15932(8)^{\mathrm{H}}$ & $20.1610(6)$ & $+0.0083$ & $\mathbf{20.1585(3)}$ & $-0.0041$ \\
+         & 0.50 & $11.78484(6)^{\mathrm{H}}$ & $11.7895(4)$ & $+0.0395$ & $\mathbf{11.7847(2)}$ & $-0.0012$ \\
+         & 0.10 & $3.55385(5)^{\mathrm{H}}$ & $3.5549(1)$ & $+0.0295$ & $\mathbf{3.55388(5)}$ & $+0.0008$ \\
+         & 0.01 & --- & $0.69125(2)$ & --- & $\mathbf{0.69036(1)}$ & --- \\
+         & 0.001 & --- & $0.140913(1)$ & --- & $\mathbf{0.140832(1)}$ & --- \\
+    \midrule
+      12 & 1.00 & $65.7001(1)^{\mathrm{H}}$ & $65.717(1)$ & $+0.0257$ & $\mathbf{65.69556(5)}$ & $-0.0069$ \\
+         & 0.50 & $39.1596(1)^{\mathrm{H}}$ & $39.1786(8)$ & $+0.0485$ & $\mathbf{39.1604(3)}$ & $+0.0020$ \\
+         & 0.10 & $12.26984(8)^{\mathrm{H}}$ & $12.2731(2)$ & $+0.0266$ & $\mathbf{12.2743(2)}$ & $+0.0363$ \\
+         & 0.01 & --- & $2.48620(5)$ & --- & $\mathbf{2.47363(4)}$ & --- \\
+         & 0.001 & --- & $0.515823(3)$ & --- & $\mathbf{0.515365(4)}$ & --- \\
+    \midrule
+      20 & 1.00 & $155.8822(1)^{\mathrm{H}}$ & --- & --- & $\mathbf{155.8738(7)}$ & $-0.0054$ \\
+         & 0.50 & $93.8752(1)^{\mathrm{H}}$ & --- & --- & $\mathbf{93.8789(5)}$ & $+0.0039$ \\
+         & 0.10 & $29.9779(1)^{\mathrm{H}}$ & --- & --- & $29.9888(2)$ & $+0.0364$ \\
+         & 0.01 & --- & --- & --- & $\mathbf{6.14645(5)}$ & --- \\
+         & 0.001 & --- & --- & --- & $\mathbf{1.293033(6)}$ & --- \\
+    \bottomrule
     \end{tabular}
     \begin{tablenotes}\footnotesize
       \item[] Reference-energy provenance: values marked $^{\mathrm{H}}$ are fixed-node
@@ -202,77 +215,27 @@ For $N\in\{6,12,20\}$ the references are the fixed-node diffusion Monte Carlo en
 \begin{figure}[htbp]
   \centering
   \includegraphics[width=0.8\textwidth]{rel_error_vs_omega_allN}
-  \caption[Relative deviation from the DMC references]{Relative deviation of PINN+BF ground-state energies from DMC
-  references as a function of trap frequency $\omega$ for the cases where
-  DMC data are available. For $N{=}2$ the deviations are at or below the DMC
-  error bars ($\sim 10^{-3}\,\%$), while for $N{=}6$ and $N{=}12$ the errors
-  span $0.008$–$0.05\,\%$ across $\omega$, with no sign of deterioration in the
-  shallow- or tight-trap limits.}
+  \caption[Relative deviation from the external references]{Relative deviation of PINN+BF
+  ground-state energies from the external reference energies, as a function of trap
+  frequency $\omega$, for the cases where a reference exists. The references are of two
+  kinds: the $N{=}2$ values are Taut's analytic two-electron
+  solution~\cite{Taut1994-TwoElectrons}, and the $N{=}6$ and $N{=}12$ values are fixed-node
+  diffusion Monte Carlo~\cite{Hogberget2013-DMC}. For $N{=}2$ the deviations are at the
+  $10^{-3}\,\%$ level, comparable to the quoted precision of the analytic values; for
+  $N{=}6$ and $N{=}12$ they span $0.008$--$0.05\,\%$ across $\omega$, with no sign of
+  deterioration in the shallow- or tight-trap limits.}
   \label{fig:rel_error_vs_omega}
 \end{figure}
-
 
 \FloatBarrier
 \paragraph{The same benchmark, without a Markov chain.}
 Everything above was trained with a Markov chain: residual pretraining, then an SR tail
-that draws its samples from $|\Psi|^2$ by Metropolis. A second route through this thesis
-removes the chain entirely, replacing it with an analytic proposal and importance
-weights. Why that works, where it stops, and what the stopping teaches are the subject of
-Chapter~\ref{ch:kernel}; the energies it reaches belong here, beside the others, because
-the question they answer is the same one.
-
-\begin{table}[htbp]
-  \centering
-  \caption[Energies from collocation-assisted training]{Ground-state energies from
-  collocation-assisted training, reported under a fixed protocol rather than as the best of
-  a hand-tuned search. For $N{=}6$ these are the best single results of the $30$-run
-  reliability campaign of \S\ref{sec:colloc-reliability} (Table~\ref{tab:reliability}): a
-  fixed $1200$-epoch budget, fixed hyperparameters, two recipes and three seeds per
-  confinement. The $N{=}2$ rows are single collocation runs, zero-variance extrapolated.
-  The $N{=}12$ rows are marked $^{\dagger}$ because no reliability campaign was run at that
-  size: they are the best of the independent runs and are therefore \emph{not}
-  protocol-controlled in the sense the other rows are, and should be read as what the method
-  reached rather than as what it reaches reliably.
-  All values are VMC-evaluated (${\geq}20\text{k}$ samples) at the best checkpoint.
-  The reference column is the DMC energy where one exists and, for $(N,\omega)$ with no
-  published DMC value ($N{=}6$ at $\omega\le0.01$, and $N{=}2$ at $\omega=0.001$; see
-  Table~\ref{tab:energies}), our own converged variational (PINN+CTNN) energy; the
-  corresponding \%\,err is then a measure of internal consistency, not of absolute accuracy.
-  All rows use the backflow+Jastrow (BF) architecture; the memory-limited $N{=}20$ case is
-  discussed separately in Appendix~\ref{app:postcatch22:frontier}.
-  Parentheses denote $1\sigma$ statistical uncertainty on the last digit(s).}
-  \label{tab:collocation}
-  \begin{tabular}{c c c c c c}
-    \toprule
-    $N$ & $\omega$ & Reference & Energy & \%\,err & Arch \\
-    \midrule
-    2 & 1.0   & $3.00000$      & $3.00035$      & $+0.012$ & BF \\
-      & 0.5   & $1.65977(1)$   & $1.66014$      & $+0.022$ & BF \\
-      & 0.1   & $0.44079(1)$   & $0.44077$      & $-0.005$ & BF \\
-      & 0.01  & $0.073839(2)$  & $0.073840$     & $+0.001$ & BF \\
-      & 0.001 & $0.013778$     & $0.013799$     & $+0.152$ & BF \\
-    \midrule
-    6 & 1.0   & $20.15932(8)$  & $20.1620(56)$  & $+0.013$ & BF \\
-      & 0.5   & $11.78484(6)$  & $11.7850(48)$  & $+0.001$ & BF \\
-      & 0.1   & $3.55385(5)$   & $3.5632(7)$    & $+0.263$ & BF \\
-      & 0.01  & $0.69036$      & $0.69200(1)$   & $+0.238$ & BF \\
-      & 0.001 & $0.140832$     & $0.14118(1)$   & $+0.247$ & BF \\
-    \midrule
-    12$^{\dagger}$ & 1.0 & $65.7001(1)$   & $65.706(4)$    & $+0.009$ & BF \\
-       & 0.5   & $39.1596(1)$   & $39.169(4)$    & $+0.024$ & BF \\
-       & 0.1   & $12.26984(8)$  & $12.2824(6)$   & $+0.102$ & BF \\
-    \bottomrule
-  \end{tabular}
-\end{table}
-
-Read against Table~\ref{tab:energies}: at strong confinement the Markov-chain-free route is
-statistically consistent with DMC for $N\in\{6,12\}$---the deviations are a few tenths of a
-combined standard deviation, though several times the DMC error bar alone, since the
-collocation uncertainty dominates--- and it stays within a few tenths of a percent of our own converged
-variational energies well into the correlated regime. It loses ground where the
-importance sampling loses the target---at $\omega\le0.1$, and at $N{=}20$, where it does
-not reach the reference at all. The pattern is not a defect of the objective but of the
-proposal, which is a distinction Chapter~\ref{ch:kernel} makes precise and then acts on.
+that draws its samples from $|\Psi|^2$ by Metropolis. A second route removes the chain from
+the gradient entirely, replacing it with an analytic proposal and importance weights. It
+reaches comparable energies over part of this range. Its performance, its failure boundary
+and the mechanism behind both are the subject of \S\ref{sec:kernel-mcmcfree}, and the
+energies are tabulated there (Table~\ref{tab:collocation}) rather than here, because they
+are not interpretable until that mechanism is in hand.
 
 \paragraph{Where the tables stop.}
 One subtlety matters here, because the message-passing (CTNN) ansatz
@@ -302,12 +265,28 @@ trap-unit scaling, soft-core pair features with $ds/dr\!\to\!0$ at coalescence, 
 an explicit analytic cusp---each of which keeps the gradients and the Laplacian
 numerically tame from the shallowest trap to the tightest.
 
-
 \section{Wigner--molecule crossover}
 \label{sec:wigner-molecule}
 
 Up to this point the wavefunction has been the thing under examination. Here it becomes
 the instrument.
+
+\textbf{The result of this section is that the crossover is staged.} As the trap weakens the
+cloud first expands and its shells stiffen \emph{radially}---the width-to-radius ratio falls,
+discrete occupancies emerge, the energy partition approaches classical force balance---while
+the electrons remain angularly disordered within those shells. Angular order arrives later,
+and abruptly: on every ring at every particle number the bond-orientational parameter sits
+at its random-angle value down to $\omega=0.01$ and departs from it only in the last decade
+of confinement. Radial localisation and angular crystallisation are not one transition, and
+the diagnostics below are arranged to separate them.
+
+The subsections take that in order. \S\ref{sec:wigner-onebody} shows the cloud expanding and
+acquiring visible radial structure; \S\ref{sec:wigner-energy} shows interactions taking over
+and the trap--interaction partition approaching its classical form;
+\S\ref{sec:wigner-radial} shows the shells stiffening radially; and
+\S\ref{sec:wigner-angular} shows angular order finally appearing, tested against a null in
+which the angles are random. \S\ref{sec:wigner-synthesis} collects what the diagnostics
+agree on and what they do not establish.
 
 What we are looking for cannot be seen in the observable one would naturally plot. In a
 rotationally symmetric trap, the electrons of a Wigner molecule localise in
@@ -355,10 +334,17 @@ Figures~\ref{fig:onebody_grid} and~\ref{fig:onebody_n20} compare one-body
 densities at strong confinement ($\omega=1$) and weak confinement
 ($\omega=10^{-3}$) for $N=2,6,12,20$.
 At $\omega=1$ the density remains compact and the dominant change with $N$ is
-progressive shell filling under the harmonic trap.
-At $\omega=10^{-3}$ the density broadens dramatically and develops pronounced
-radial structure for all $N$, consistent with Coulomb-dominated localization
-and the onset of Wigner-molecule ordering.
+progressive shell filling under the harmonic trap. At $\omega=10^{-3}$ it broadens by two
+orders of magnitude and develops pronounced \emph{radial} structure at every $N$.
+
+What that structure can and cannot establish follows from the symmetry argument above. The
+lab-frame density is an average over all orientations of the molecule, so it retains radial
+information and destroys angular information by construction. These figures are therefore
+evidence of \emph{radial shell localisation} and are silent on whether the electrons are
+angularly ordered within those shells---a ring of six electrons at fixed $60^\circ$ spacing
+and six electrons sliding freely around the same ring produce the same picture. The angular
+question is taken up in \S\ref{sec:wigner-angular}, where it needs a co-rotating frame and a
+null model to answer.
 
 \begin{figure*}[htbp]
   \centering
@@ -400,9 +386,11 @@ and the onset of Wigner-molecule ordering.
     \caption{$N{=}12,\;\omega=0.001$}
   \end{subfigure}
 
-  \caption[One-body densities at strong and weak confinement, $N=2,6,12$]{One-body densities for $N=2,6,12$ at $\omega=1.0$ (top) and
-  $\omega=0.001$ (bottom). As confinement weakens, the densities broaden and
-  develop pronounced shell structures characteristic of Wigner molecules.}
+  \caption[One-body densities at strong and weak confinement, $N=2,6,12$]{One-body
+  densities for $N=2,6,12$ at $\omega=1.0$ (top) and $\omega=0.001$ (bottom). As confinement
+  weakens the densities broaden and develop pronounced \emph{radial} shell structure. Being
+  lab-frame averages over all orientations of the molecule, they cannot show angular order:
+  that requires the registered diagnostics of \S\ref{sec:wigner-angular}.}
   \label{fig:onebody_grid}
 \end{figure*}
 
@@ -420,9 +408,9 @@ and the onset of Wigner-molecule ordering.
     \includegraphics[width=\linewidth]{one_body_density_20_omega_0.00100.pdf}
     \caption{$N{=}20,\;\omega=0.001$}
   \end{subfigure}
-  \caption[One-body densities at strong and weak confinement, $N{=}20$]{One-body densities for $N{=}20$ at strong and weak confinement.
-  The weak-trap case shows strong radial broadening and clear multi-shell
-  organization, consistent with deep Wigner-molecule ordering.}
+  \caption[One-body densities at strong and weak confinement, $N{=}20$]{One-body densities
+  for $N{=}20$ at strong and weak confinement. The weak-trap case shows strong radial
+  broadening and clear multi-shell organisation. As above, this is radial evidence only.}
   \label{fig:onebody_n20}
 \end{figure}
 
@@ -453,37 +441,27 @@ and the onset of Wigner-molecule ordering.
   \label{fig:wigner_ratios}
 \end{figure*}
 
-Log--log fits $E(\omega)\propto\omega^{\alpha}$ on the grid
-$\omega\in\{10^{-3},10^{-2},10^{-1},0.5,1\}$ give
-$\alpha_T \simeq 1.00$,
-$\alpha_{V_{\rm int}} \simeq 0.66$, and
-$\alpha_{V_{\rm trap}} \simeq 0.81,\,0.73,\,0.72$
-for $N=2,6,12$ respectively.
-The kinetic energy thus scales essentially linearly with $\omega$, while both
-potential terms grow sublinearly with nearly $N$-independent exponents.
-Across $\omega\in[1,10^{-3}]$ the interaction-to-kinetic ratio
-$\Gamma=\langle V_{\rm int}\rangle/\langle T\rangle$ increases from
-$\Gamma\simeq0.9\!\to\!8.7$ ($N{=}2$), $2.4\!\to\!25.4$ ($N{=}6$),
-and $3.6\!\to\!39.9$ ($N{=}12$),
-while $T/V_{\rm int}$ falls correspondingly
-(Fig.~\ref{fig:wigner_ratios}a).
+The energy partition carries two messages, and only two.
 
-The partitioning between trap and interaction energies becomes quasi-classical
-at weak confinement. At $\omega=10^{-3}$ we find
-$2\langle V_{\rm trap}\rangle/\langle V_{\rm int}\rangle
-\simeq 1.25,\;1.12,\;1.02$
-for $N=2,6,12$, so that $N{=}12$ already satisfies the classical virial
-condition $V_{\rm int}\!\approx\!2V_{\rm trap}$ to within $2\%$
-(Fig.~\ref{fig:wigner_ratios}b).
-Using $V_{\rm trap}=\tfrac12\omega^2\sum_i\langle r_i^2\rangle$ we extract an
-rms radius $r_{\rm rms}=\sqrt{2V_{\rm trap}/(N\omega^2)}$, which expands from
-$\approx1.1$--$2.0\,a_B^\ast$ at $\omega=1$ to
-$\approx70$--$169\,a_B^\ast$ at $\omega=10^{-3}$.
-Fitting $r_{\rm rms}\propto\omega^{\alpha_r}$ yields
-$\alpha_r\simeq-0.60$ to $-0.64$, i.e.\ $\langle r^2\rangle\propto
-\omega^{-\beta}$ with $\beta\simeq1.19$--$1.28$: the cloud expands
-\emph{faster} than the non-interacting $\omega^{-1}$ scaling, consistent with
-interaction-driven swelling and shell formation.
+\emph{Interactions take over.} The interaction-to-kinetic ratio
+$\Gamma=\langle V_{\rm int}\rangle/\langle T\rangle$ rises across
+$\omega\in[1,10^{-3}]$ from $0.9$ to $8.7$ at $N{=}2$, from $2.4$ to $25.4$ at $N{=}6$ and
+from $3.6$ to $39.9$ at $N{=}12$ (Fig.~\ref{fig:wigner_ratios}a). The dot stops being a
+kinetic-energy-dominated droplet and becomes a Coulomb-dominated one.
+
+\emph{Classical force balance emerges.} At $\omega=10^{-3}$ the trap--interaction partition
+$2\langle V_{\rm trap}\rangle/\langle V_{\rm int}\rangle$ reaches $1.25$, $1.12$ and $1.02$
+at $N=2,6,12$, so the twelve-electron dot satisfies the classical condition
+$V_{\rm int}\approx2V_{\rm trap}$ to within $2\%$ (Fig.~\ref{fig:wigner_ratios}b). The
+approach is monotone and improves with $N$, as it should: the classical limit is reached
+faster when there are more particles to arrange.
+
+Both are consistent with real-space expansion. The rms radius extracted from
+$V_{\rm trap}=\tfrac12\omega^2\sum_i\langle r_i^2\rangle$ grows from $1.1$--$2.0\,a_B^\ast$
+at $\omega=1$ to $70$--$169\,a_B^\ast$ at $\omega=10^{-3}$, faster than the non-interacting
+$\omega^{-1/2}$ law, which is interaction-driven swelling. The fitted exponents for the
+individual energy components and for the radius, which support these statements without
+adding to them, are collected in Appendix~\ref{app:energy-exponents}.
 
 % ──────────────────────────────────────────────────────────────────────
 \subsection{Radial localization and pair correlations}
@@ -604,32 +582,68 @@ At $\omega=10^{-3}$ shelling becomes ubiquitous
 frames), with strong bond order on both rings:
 $|\Phi_3|=0.687\pm0.229$ (Lind$_{\rm in}=0.223$),
 $|\Phi_9|=0.526\pm0.194$ (Lind$_{\rm out}=0.224$).
-A shell-resolved $g(r)$ reconstruction (II/IO/OO mixture with the combinatorial
-weights $0.045{:}0.409{:}0.545$ of the ideal $(3,9)$ topology) reproduces the global $g(r)$
-essentially exactly (Fig.~\ref{fig:N12_w0001_decomposition}). That agreement is weaker
-evidence than it looks: the sector histograms and the total are accumulated from the same
-frames, so the recombination is close to exact by construction, and what it establishes is
-that the sector bookkeeping is self-consistent rather than that the shell picture is right.
+Whether the shell picture actually explains the pair structure needs a test that could
+fail, and the obvious one cannot. Recombining the inner--inner, inner--outer and
+outer--outer histograms with the combinatorial weights of the ideal $(3,9)$ topology
+reproduces the global $g(r)$ essentially exactly---but the sector histograms and the total
+are accumulated from the same frames, so that recombination is close to exact by
+construction. It establishes that the sector bookkeeping is self-consistent, nothing more,
+and it is recorded in Appendix~\ref{app:structural-tables:mixfit} for that reason.
 
-The test that can fail is generative and is reported in
-Appendix~\ref{app:structural-tables:mixfit}. Fitting shell radii and widths on half the
-frames, modelling each shell as a regular $n_s$-gon with a per-frame rotation and fitted
-angular jitter, and scoring on the held-out half reproduces the pair distribution to cosine
-similarity $0.987$--$0.999$ across the whole $(N,\omega)$ grid. An angle-randomised null
-with the same radial distributions reaches only $0.936$--$0.996$, and the gap between them
-widens monotonically as the trap weakens---at $N{=}12$ from $0.006$ at $\omega=1$ to $0.026$
-at $\omega=10^{-3}$. Shell radii alone explain most of the pair structure at strong
-confinement; polygonal order explains a growing remainder as the molecule forms.
+The test that can fail is generative and held out (Table~\ref{tab:shell-model-fit-main}).
+Shell radii and widths are fitted on half the frames; each shell is modelled as a regular
+$n_s$-gon carrying a per-frame global rotation and a fitted angular jitter; and the model is
+scored on the other half. It reproduces the pair distribution to cosine similarity
+$0.987$--$0.999$ across the whole grid, against $0.936$--$0.996$ for an angle-randomised
+null built from the same fitted radial distributions. The difference between them,
+$\Delta\cos$, is what \emph{angular} order buys over shell radii alone, and it grows
+monotonically as the trap weakens at every particle number---at $N{=}12$ from $0.006$ at
+$\omega=1$ to $0.026$ at $\omega=10^{-3}$, at $N{=}6$ from $0.012$ to $0.058$. Shell radii
+alone account for most of the pair structure at strong confinement; polygonal order accounts
+for a growing remainder as the molecule forms. This is the same staged transition the
+bond-order ratios record below, measured on a different quantity and on data the model never
+saw.
 
-\begin{figure}[htbp]
-  \centering
-  \includegraphics[width=0.85\textwidth]{mixfit_N12_w0.001_nin3.pdf}
-  \caption[Shell-resolved reconstruction of $g(r)$, $N{=}12$]{Shell-resolved reconstruction of $g(r)$ at $\omega=10^{-3}$ for
-  $N{=}12$.  The global pair distribution is reproduced by a convex mixture
-  of inner--inner (II), inner--outer (IO) and outer--outer (OO) histograms
-  with weights set by the observed $(n_{\rm in},n_{\rm out})$ statistics.}
-  \label{fig:N12_w0001_decomposition}
-\end{figure}
+\begin{table}[htbp]
+\centering
+\caption[Held-out shell-model fit against an angle-randomised null]{The structural test
+that can fail. Shell radii and widths are fitted on half the frames; each detected shell is
+then modelled as a regular $n_s$-gon carrying a per-frame global rotation and a fitted
+angular jitter; and the resulting pair-distance density is scored on the \emph{held-out}
+half. $\cos_{\rm poly}$ is the polygon model's agreement with the empirical density and
+$\cos_{\rm uni}$ that of an angle-randomised null with the same fitted radial
+distributions, so $\Delta\cos$ isolates what polygonal order contributes over shell radii
+alone. It grows monotonically as the trap weakens at every particle number. Full table
+including residuals in Appendix~\ref{app:structural-tables:mixfit}.}
+\label{tab:shell-model-fit-main}
+\small
+\setlength{\tabcolsep}{6pt}
+\begin{tabular}{ccl ccc}
+\toprule
+$N$ & $\omega$ & occ. & $\cos_{\rm poly}$ & $\cos_{\rm uni}$ & $\Delta\cos$ \\
+\midrule
+6 & $1.0$ & $1,5$ & $0.9988$ & $0.9866$ & $\mathbf{0.0122}$ \\
+6 & $0.5$ & $1,5$ & $0.9986$ & $0.9836$ & $\mathbf{0.0150}$ \\
+6 & $0.1$ & $1,5$ & $0.9974$ & $0.9741$ & $\mathbf{0.0234}$ \\
+6 & $0.01$ & $1,5$ & $0.9922$ & $0.9536$ & $\mathbf{0.0386}$ \\
+6 & $0.001$ & $1,5$ & $0.9942$ & $0.9358$ & $\mathbf{0.0585}$ \\
+\midrule
+12 & $1.0$ & $1,11$ & $0.9993$ & $0.9937$ & $\mathbf{0.0056}$ \\
+12 & $0.5$ & $1,11$ & $0.9990$ & $0.9927$ & $\mathbf{0.0063}$ \\
+12 & $0.1$ & $1,11$ & $0.9980$ & $0.9896$ & $\mathbf{0.0085}$ \\
+12 & $0.01$ & $1,11$ & $0.9929$ & $0.9805$ & $\mathbf{0.0124}$ \\
+12 & $0.001$ & $3,9$ & $0.9868$ & $0.9604$ & $\mathbf{0.0264}$ \\
+\midrule
+20 & $1.0$ & $1,19$ & $0.9992$ & $0.9964$ & $\mathbf{0.0028}$ \\
+20 & $0.5$ & $1,19$ & $0.9990$ & $0.9958$ & $\mathbf{0.0032}$ \\
+20 & $0.1$ & $1,19$ & $0.9982$ & $0.9942$ & $\mathbf{0.0040}$ \\
+20 & $0.01$ & $1,19$ & $0.9947$ & $0.9900$ & $\mathbf{0.0047}$ \\
+20 & $0.001$ & $1,7,12$ & $0.9915$ & $0.9820$ & $\mathbf{0.0095}$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+
 
 \begin{figure}[htp]
   \centering
@@ -651,12 +665,18 @@ Lindemann disorder on the two occupied outer shells is low:
 $L_{7,\mathrm{reg}}\approx0.35$ and
 $L_{12,\mathrm{reg}}\approx0.27$.
 
-Already at $\omega=10^{-2}$, the three-shell pattern collapses to $(1,19)$:
-the shell radii contract by an order of magnitude
-($r_0\approx10$, $r_1\approx45$), the registered angular order drops to
-$\tilde C_{\mathrm{global}}\approx0.20$, and the outer-shell Lindemann
-rises to $\approx0.57$.
-At $\omega=1$ the same $(1,19)$ topology persists with compact radii
+Already at $\omega=10^{-2}$ the radial gap detector returns a $(1,19)$ partition rather than
+a three-shell one: the shell radii contract by an order of magnitude ($r_0\approx10$,
+$r_1\approx45$), the registered angular order drops to
+$\tilde C_{\mathrm{global}}\approx0.20$, and the outer-shell Lindemann rises to
+$\approx0.57$. The wording matters here. At $\omega=10^{-3}$ the $(1,7,12)$ label describes a
+Wigner \emph{topology}, because it is accompanied by separated shells, registered angular
+order and low Lindemann disorder. At $\omega=10^{-2}$ and above, with angular order at its
+random-angle null and disorder high, $(1,19)$ is what the \emph{radial classifier returns}
+on a state that is not angularly ordered at all---a decomposition of the radial density, not
+a crystalline shell structure. We use the occupancy notation in both cases because the
+detector does, but only the weakest-trap case earns the word topology.
+At $\omega=1$ the classifier returns the same $(1,19)$ partition, with compact radii
 ($r_0\approx0.55$, $r_1\approx2.3$), negligible internal order
 ($\tilde C_{\mathrm{global}}\approx0.20$), and high disorder
 ($L_{\rm out}\approx0.69$).
@@ -711,6 +731,15 @@ decomposability rather than sampling correctness; the held-out polygon fit of
 Appendix~\ref{app:structural-tables:mixfit} is the version that could have failed, and
 sampling correctness itself rests on the independent restart and chain diagnostics.
 
+\paragraph{What \S\ref{sec:wigner-molecule} establishes.} The crossover is staged. Radial
+localisation---expansion, shell separation, falling width-to-radius ratio, classical force
+balance---develops progressively from $\omega=1$ down. Angular order does not: on every ring
+at every particle number the bond-order parameter sits at its random-angle null until
+$\omega=10^{-2}$ and departs from it only in the final decade. Held-out polygon
+reconstruction of $g(r)$ records the same staging on an independent quantity. What this does
+\emph{not} establish is the total spin of these states, which we did not scan, nor that the
+occupancy labels denote crystalline topologies outside the weakest-trap cases.
+
 These structural facts also enter the method. The shell radius approaching its classical
 $\omega^{-2/3}$ scaling---to within $1.7\%$ of the classical prefactor at $\omega=10^{-3}$,
 Appendix~\ref{app:structural-tables:radius}---and the angular order sharpening in the last
@@ -721,320 +750,5 @@ measured shell radius and angular order tracks it, and carries MCMC-free trainin
 into the correlated regime (\S\ref{sec:kernel-q3-frontier}). What the trained model
 reveals about the physics is what later lets us train it more cheaply.
 
-That is the state seen from outside. How much of it did the network need to hold
-internally, and in what form?
-
-\section{The learned representation}
-\label{sec:repr-analysis}
-
-The physics of the last section is elaborate---rings, occupancies, angular stiffness, a
-topology that shifts with the trap---and the network that produced it is not. Across
-$N\in\{2,6,12,20\}$ and $\omega\in\{10^{-3},10^{-2},0.1,0.5,1.0\}$, the correlator
-$W_\theta$ turns out to live on a manifold of one to three effective dimensions, and it
-stays there. What changes across the crossover is not how many directions it uses but
-which quantities they are built from---a $\phi\leftrightarrow\psi$ recomposition in the
-leading principal axis. Beside it, the backflow displacement field is the opposite kind
-of object: high-rank, close to its full $2N$ dimensions, and yet it leaves the
-correlator's manifold almost untouched. The two work in complementary subspaces, and the
-division of labour between them shifts sharply near $\omega\approx0.1$---the same place
-the physics changes character, where $\Gamma = V_{\mathrm{int}}/T$ crosses over
-(\S\ref{sec:wigner-energy}).
-
-The correlator (\S\ref{sec:repr-geom}), the displacement field
-(\S\ref{sec:repr-backflow}) and the coupling between them (\S\ref{sec:repr-coupling}) are
-probed in turn, with every diagnostic evaluated on samples drawn from $|\Psi|^2$.
-
-The Jastrow and the backflow are partial substitutes: how the labour is divided between them is a nearly
-flat direction of the loss, settled by the route the training took rather than by the
-state it arrived at. Quantities living on a single component---the backflow's rank and
-displacement magnitude, the per-branch loadings, the coupling itself---are therefore
-\emph{gauge-like}. This section dissects one high-quality solution faithfully, and the
-regularities it uncovers are the more telling for being ones the network was free
-\emph{not} to adopt. But which of them are properties of
-the \emph{architecture} rather than of this particular training run is a question this
-section cannot answer. Chapter~\ref{ch:kernel} answers it by controlled comparison, and
-establishes there which quantities survive a change of gauge and which do not.
-
-%% ──────────────────────────────────────────────────────────────────────
-\subsection{Correlator geometry: a compact manifold that reorganises}
-\label{sec:repr-geom}
-
-We characterise the correlator feature space $Z = \overline\phi\|\overline\psi\|\mathbf{g}$
-by its entropy-based effective rank $r_{\mathrm{eff}}(Z)$, the correlation
-$|\rho(\mathrm{head},\mathrm{PC1})|$ between the head output and its first principal component,
-and the power of PC1 decomposed across architectural branches.
-Table~\ref{tab:correlator-geom} reports these quantities for all CTNN configurations.
-
-\begin{table}[t]
-\centering
-\caption[Correlator feature geometry]{Correlator geometry (CTNN).
-$r_{\mathrm{eff}}$: entropy-based effective rank of $Z$.
-$|\rho|$: absolute correlation between head output and PC1 reconstruction.
-$\phi/\psi/\mathrm{g}$: fraction of PC1 variance from the orbital, pair, and auxiliary branches.
-The $\psi$-dominated entries ($\psi > 0.5$) are shown in bold.}
-\label{tab:correlator-geom}
-\small
-\setlength{\tabcolsep}{4pt}
-\begin{tabular}{rr cccccc}
-\toprule
-$N$ & $\omega$ & $r_{\mathrm{eff}}$ & $|\rho|$ & $\phi$ & $\psi$ & $\mathrm{g}$ \\
-\midrule
- 2 & 0.001 & 1.00 & 1.00 & 0.00 & \textbf{1.00} & 0.00 \\
- 2 & 0.01  & 1.04 & 0.66 & 0.00 & \textbf{1.00} & 0.00 \\
- 2 & 0.1   & 1.31 & 0.99 & 0.00 & \textbf{0.53} & 0.46 \\
- 2 & 0.5   & 1.25 & 1.00 & 0.00 & \textbf{0.58} & 0.42 \\
- 2 & 1.0   & 1.53 & 0.98 & 0.00 & 0.35 & \textbf{0.65} \\
-\midrule
- 6 & 0.001 & 1.52 & 0.97 & 0.01 & 0.12 & \textbf{0.87} \\
- 6 & 0.01  & 1.38 & 0.99 & 0.05 & 0.44 & \textbf{0.50} \\
- 6 & 0.1   & 2.73 & 0.94 & \textbf{0.66} & 0.21 & 0.14 \\
- 6 & 0.5   & 2.69 & 0.98 & 0.15 & \textbf{0.63} & 0.22 \\
- 6 & 1.0   & 2.69 & 0.99 & 0.03 & \textbf{0.62} & 0.35 \\
-\midrule
-12 & 0.001 & 1.66 & 0.96 & \textbf{0.54} & 0.13 & 0.33 \\
-12 & 0.01  & 1.54 & 0.97 & 0.43 & 0.09 & \textbf{0.48} \\
-12 & 0.1   & 3.08 & 0.99 & 0.12 & \textbf{0.63} & 0.26 \\
-12 & 0.5   & 2.32 & 0.99 & 0.12 & \textbf{0.69} & 0.19 \\
-12 & 1.0   & 1.76 & 0.99 & 0.08 & \textbf{0.73} & 0.19 \\
-\midrule
-20 & 0.001 & 2.59 & 0.99 & 0.18 & \textbf{0.74} & 0.08 \\
-20 & 0.01  & 1.09 & 0.79 & 0.04 & \textbf{0.94} & 0.01 \\
-20 & 0.1   & 2.20 & 0.97 & 0.36 & 0.44 & 0.20 \\
-20 & 0.5   & 2.30 & 1.00 & 0.17 & \textbf{0.70} & 0.13 \\
-20 & 1.0   & 2.32 & 0.99 & 0.18 & \textbf{0.71} & 0.11 \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-\paragraph{The manifold is low-dimensional everywhere.}
-The effective rank stays below $3.1$ across the entire grid,
-and the head output is almost perfectly reconstructed from PC1 alone
-($|\rho| > 0.94$ for all $N\geq 6$ and all $\omega$).
-This holds even at strong correlation where the real-space density develops pronounced shell
-structure---the correlator does not respond by expanding its latent dimensionality.
-The modest peak at $N{=}12$, $\omega{=}0.1$ ($r_{\mathrm{eff}} = 3.08$) coincides with the
-intermediate-correlation regime where neither the shell picture nor the crystalline picture provides
-a clean single-mode description.
-
-\paragraph{A $\phi\leftrightarrow\psi$ transition in the leading axis.}
-What varies across regimes is \emph{which branch dominates PC1}.
-At moderate-to-weak correlation ($\omega \geq 0.1$, $N\geq 6$),
-PC1 is predominantly $\psi$-loaded: the pair branch carries 60--73\% of the variance,
-meaning the correlator's primary degree of freedom tracks pair correlations.
-At strong correlation ($\omega \leq 0.01$, $N\geq 12$),
-the loading shifts toward $\phi$ (orbital) or $\mathbf{g}$ (auxiliary) branches,
-with $\psi$ dropping below 15\%.
-The transition is sharpest at $N{=}12$, where $\psi$ goes from 0.09 at $\omega{=}0.01$
-to 0.63 at $\omega{=}0.1$.
-
-These loadings track the physics.
-When interactions are weak relative to the trap ($\omega \gtrsim 0.1$),
-the non-interacting shell structure provides a good zeroth-order description,
-and the correlator's primary role is refining pair correlations on top of that.
-When interactions dominate ($\omega \lesssim 0.01$),
-the leading correlator coordinate shifts away from pair features toward the
-single-particle and auxiliary branches. The network reorganises the features through
-which it represents the state, and that reorganisation---not any growth in
-dimension---is how it adapts.
-Nothing in the architecture imposes this behaviour: regime changes appear as a rotation of
-a low-dimensional axis across branches rather than as growth in latent dimensionality.
-
-
-%% ──────────────────────────────────────────────────────────────────────
-\subsection{Backflow: a high-rank field with a low-rank footprint}
-\label{sec:repr-backflow}
-
-Table~\ref{tab:backflow-geom} characterises the CTNN displacement field.
-We report the normalised displacement magnitude $\|\Delta\mathbf{x}\|/\ell$,
-the effective rank of $\Delta\mathbf{x}$ (viewed as a $B\times 2N$ matrix of flattened displacements),
-and the CKA similarity between the correlator features with and without backflow.
-
-\begin{table}[t]
-\centering
-\caption[Backflow displacement geometry]{CTNN backflow geometry.
-$\|\Delta\mathbf{x}\|/\ell$: mean displacement magnitude normalised by harmonic length.
-Rank: effective rank of the displacement covariance.
-$2N{-}2$: maximum possible rank after centre-of-mass projection.
-CKA: linear centred kernel alignment between correlator features with and without backflow
-(1.0 = identical feature manifolds).}
-\label{tab:backflow-geom}
-\small
-\setlength{\tabcolsep}{5pt}
-\begin{tabular}{rr cccc}
-\toprule
-$N$ & $\omega$ & $\|\Delta\mathbf{x}\|/\ell$ & Rank & $2N{-}2$ & CKA \\
-\midrule
- 2 & 0.001 & 0.003  & 1.9  &  2 & 1.000 \\
- 2 & 1.0   & 0.029  & 2.0  &  2 & 1.000 \\
-\midrule
- 6 & 0.001 & 0.017  & 10.0 & 10 & 0.999 \\
- 6 & 0.01  & 0.035  & 9.9  & 10 & 0.998 \\
- 6 & 0.1   & 0.096  & 10.0 & 10 & 0.995 \\
- 6 & 0.5   & 0.093  & 10.0 & 10 & 0.991 \\
- 6 & 1.0   & 0.089  & 10.0 & 10 & 0.979 \\
-\midrule
-12 & 0.001 & 0.017  & 21.9 & 22 & 1.000 \\
-12 & 0.01  & 0.030  & 21.9 & 22 & 0.998 \\
-12 & 0.1   & 0.096  & 21.9 & 22 & 0.993 \\
-12 & 0.5   & 0.096  & 21.9 & 22 & 0.993 \\
-12 & 1.0   & 0.091  & 21.9 & 22 & 0.995 \\
-\midrule
-20 & 0.001 & 0.023  & 37.7 & 38 & 0.999 \\
-20 & 0.01  & 0.046  & 37.4 & 38 & 1.000 \\
-20 & 0.1   & 0.075  & 37.8 & 38 & 0.997 \\
-20 & 0.5   & 0.099  & 37.6 & 38 & 0.990 \\
-20 & 1.0   & 0.099  & 37.6 & 38 & 0.991 \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-\paragraph{Displacement magnitude scales with $\omega$ but saturates near $\|\Delta\mathbf{x}\|/\ell \sim 0.1$.}
-At strong correlation ($\omega \leq 0.01$), displacements are small relative to the harmonic length,
-$\|\Delta\mathbf{x}\|/\ell \sim 0.02$--$0.05$.
-As the trap tightens and the system enters the moderate-to-weak correlation regime,
-the magnitude grows and saturates at $\sim$\,8--10\% of $\ell$ for $\omega \gtrsim 0.1$.
-The CTNN never produces large displacements---its $\tanh$ output bound and copresheaf message-passing structure
-act as implicit regularisers, in contrast to the conventional BackflowNet which can exhibit
-displacements comparable to the system scale in poorly converged regimes
-(e.g.\ $\|\Delta\mathbf{x}\|/\ell \sim 0.95$ for $N{=}6$, $\omega{=}0.001$ with BackflowNet).
-
-\paragraph{Full-rank displacements, near-unity CKA.}
-The effective rank of the displacement field is consistently $\approx 2N - 2$,
-saturating the available spatial degrees of freedom modulo centre-of-mass conservation
-(confirmed by COM shifts of order $10^{-14}$--$10^{-17}$).
-The backflow transformation is not a low-rank collective mode
-such as a breathing or rigid rotation; the displacement field spans essentially all COM-free spatial directions, so each
-particle receives a correction
-conditioned on the full configuration.
-The field stays near that ceiling across the whole grid, including the deepest Wigner
-points, where one might have expected the correction to become collective. Whether that
-is a property of \emph{this} architecture or of trained backflows generally is not
-something the present measurement can decide; Chapter~\ref{ch:kernel} settles it by
-holding everything else fixed (\S\ref{sec:kernel-q1b}).
-
-Yet the CKA between correlator features with and without backflow exceeds 0.99 in nearly all cases
-(and exceeds 0.979 everywhere).
-The correlator manifold is almost unperturbed by the displacement field.
-The correlator's feature geometry is therefore almost unaffected by the presence of the
-displacement field, which is a statement about that geometry and not about the subspace the
-backflow occupies. Whether the two components are genuinely complementary, rather than
-merely uncorrelated on this measure, is tested by ablation in \S\ref{sec:kernel-q1b}.
-
-
-%% ──────────────────────────────────────────────────────────────────────
-\subsection{PINN--CTNN coupling: from independence to cooperation}
-\label{sec:repr-coupling}
-
-The previous subsection established that backflow leaves the correlator manifold intact.
-But are the PINN and CTNN \emph{functionally} coupled---does the CTNN's correction depend on
-what the PINN computes?
-We measure this through three diagnostics:
-(i) the mean cosine similarity $\langle\cos(\nabla_{\mathbf{x}} f,\,\Delta\mathbf{x})\rangle$
-between the PINN's gradient in configuration space and the CTNN displacement
-(gradient alignment implies the CTNN pushes along directions the PINN is sensitive to);
-(ii) the fraction of configurations where $\Delta\mathbf{x}$ is aligned with $\nabla f$;
-and (iii) $|\delta f|/\sigma_f$, where $\delta f = f(\tilde R+\Delta\mathbf x)-f(\tilde R)$
-is the change in the correlator output when it is evaluated on the backflow-shifted
-coordinates, in units of the correlator's own standard deviation $\sigma_f$. Two
-cautions attach to this last quantity. It is a \emph{counterfactual sensitivity}: in the
-production ansatz the correlator sees the unshifted $\tilde R$ (only the determinant sees
-$\tilde R+\Delta\mathbf x$; \S\ref{subsec:backflow-method}), so $\delta f$ measures how
-much the correlator \emph{would} respond to the displacement, not an actual term in the
-wavefunction. And it is a typical relative change, not a variance decomposition:
-$|\delta f|/\sigma_f=0.7$ means the counterfactual change is $0.7$ standard deviations,
-not that $70\%$ of the variance is attributable to backflow.
-Table~\ref{tab:pinn-ctnn-coupling} reports these alongside the fraction of particles pushed
-toward their nearest neighbour.
-
-\begin{table}[t]
-\centering
-\caption[Correlator--backflow coupling diagnostics]{PINN--CTNN coupling diagnostics (CTNN ansatz).
-$\langle\cos\rangle$: mean cosine between $\nabla f$ and $\Delta\mathbf{x}$.
-Aligned: fraction of configs with $\nabla f \cdot \Delta\mathbf{x} > 0$.
-$|\delta f|/\sigma_f$: BF-induced change in PINN output relative to its standard deviation.
-$\rightarrow$NN: fraction of particles displaced toward their nearest neighbour ($0.5 =$ isotropic).
-Only $N\geq 6$ shown; $N{=}2$ displacements are near-zero for most $\omega$.}
-\label{tab:pinn-ctnn-coupling}
-\small
-\setlength{\tabcolsep}{4.5pt}
-\begin{tabular}{rr cccc}
-\toprule
-$N$ & $\omega$ & $\langle\cos\rangle$ & Aligned & $|\delta f|/\sigma_f$ & $\rightarrow$NN \\
-\midrule
- 6 & 0.001 &  0.14 & 0.63 & 0.03 & 0.43 \\
- 6 & 0.01  &  0.18 & 0.77 & 0.05 & 0.28 \\
- 6 & 0.1   &  0.49 & 0.99 & 0.25 & 0.16 \\
- 6 & 0.5   &  0.62 & 1.00 & 0.33 & 0.19 \\
- 6 & 1.0   &  0.77 & 1.00 & 0.41 & 0.18 \\
-\midrule
-12 & 0.001 & $-$0.48 & 0.01 & 0.03 & 0.61 \\
-12 & 0.01  &  0.22 & 0.82 & 0.05 & 0.29 \\
-12 & 0.1   &  0.56 & 1.00 & 0.39 & 0.12 \\
-12 & 0.5   &  0.65 & 1.00 & 0.49 & 0.20 \\
-12 & 1.0   &  0.75 & 1.00 & 0.55 & 0.21 \\
-\midrule
-20 & 0.001 &  0.32 & 0.97 & 0.06 & 0.44 \\
-20 & 0.01  &  0.22 & 0.89 & 0.07 & 0.45 \\
-20 & 0.1   &  0.39 & 1.00 & 0.25 & 0.17 \\
-20 & 0.5   &  0.65 & 1.00 & 0.58 & 0.22 \\
-20 & 1.0   &  0.78 & 1.00 & 0.69 & 0.25 \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-\paragraph{A transition at $\omega\approx 0.1$.}
-The data reveal a sharp regime change.
-At $\omega \leq 0.01$ the coupling is weak and inconsistent in sign: $\langle\cos\rangle$
-runs from $-0.48$ to $0.32$ across the six cells, the alignment fraction is erratic, and
-backflow barely affects the PINN output ($|\delta f|/\sigma_f < 0.07$ everywhere). The
-$N{=}12$, $\omega{=}0.001$ cell is strongly \emph{anti}-aligned
-($\langle\cos\rangle=-0.48$, alignment fraction $0.01$), which we record without an
-account of it: at that confinement the displacement field is small enough
-(Table~\ref{tab:backflow-geom}) that its direction relative to the correlator gradient
-carries little energy either way, but we cannot say why the sign is systematic rather than
-scattered.
-In this regime the CTNN operates in a subspace largely orthogonal to the PINN's gradient---it
-modifies the wavefunction in directions that $W_\theta$ is insensitive to,
-consistent with its role being to adjust the Slater determinant's orbital positions rather than
-the correlator.
-
-At $\omega \geq 0.1$, the picture changes qualitatively.
-The gradient cosine jumps to 0.5--0.8, the alignment fraction reaches 1.0 for $N\geq 6$,
-and the counterfactual output change reaches $|\delta f|/\sigma_f = 0.25$--$0.69$ (i.e.\ up to $\sim\!0.7$ standard deviations of the correlator).
-Here the CTNN acts as a cooperative refinement: it pushes configurations along
-directions the PINN is maximally sensitive to, systematically correcting the correlator's
-residual errors.
-The transition is sharpest between $\omega=0.01$ and $\omega=0.1$,
-coinciding with the crossover in $\Gamma = V_{\mathrm{int}}/T$ from $\Gamma > 10$
-(interaction-dominated) to $\Gamma \sim 3$--$6$ (moderate correlation).
-
-\paragraph{Directional structure: correlation-hole deepening.}
-The nearest-neighbour direction fraction provides a complementary signature.
-At $\omega \geq 0.1$ for $N\geq 6$, only 12--25\% of particles are displaced toward their
-nearest neighbour.
-The CTNN preferentially pushes particles \emph{apart}, actively deepening the correlation hole.
-This directional bias is strongest at $N{=}12$, $\omega{=}0.1$ ($\rightarrow$NN\,$=0.12$),
-exactly where the correlator effective rank peaks and the $\phi\leftrightarrow\psi$ transition occurs.
-At strong correlation ($\omega\leq 0.01$, large $N$), the fraction rises toward 0.5
-(isotropic), because the large equilibrium inter-particle separations leave little room for
-further correlation-hole deepening.
-
-%% ──────────────────────────────────────────────────────────────────────
-
-\subsection{Limits of component-level interpretation}
-\label{sec:repr-synthesis}
-
-Taken together these measurements describe two components of very different character. The
-correlator occupies one to three directions, whose leading axis tracks the dominant global
-coordinate of the cloud and changes identity rather than growing in number as the physics
-changes. The displacement field is high-rank and configuration-dependent, and its presence
-leaves the correlator's feature geometry almost unchanged (CKA $>0.98$). The coupling
-between them is weak and inconsistent in sign at strong correlation, and strong and
-systematically aligned at moderate coupling, where the displacements follow the
-correlator's gradient; the change is sharp and coincides with the crossover in $\Gamma$.
-
-These measurements describe one trained solution and do not by themselves establish which
-properties are architecture-specific. A different training route could divide the same
-labour differently and arrive at the same energy, which for two partial substitutes is what
-one should expect. Deciding the question requires holding everything else fixed and varying
-only the architecture.
+That is the state seen from outside. What the network had to hold internally in order to
+produce it is a question about the solver, and Chapter~\ref{ch:kernel} takes it up.

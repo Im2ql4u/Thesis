@@ -255,7 +255,9 @@ The main contributions of this thesis are:
         is anisotropic \emph{and} still estimable. Under $|\Psi|^2$ sampling the empirical metric is
         badly conditioned yet SR buys nothing, so conditioning alone cannot be the
         criterion: what matters is whether the batch can resolve it. SR is therefore negligible for
-        $|\Psi|^2$-VMC (tested at $N\le6$) and decisive for collocation.
+        $|\Psi|^2$-VMC (tested at $N\le6$) and decisive for collocation under a fixed
+        proposal---though once the proposal adapts, Adam recovers and is more robust in the
+        deep-Wigner regime.
         And an MCMC-free, importance-sampled collocation objective matches VMC when the
         sampling is healthy and, with a physics-informed proposal built from the Wigner
         shell, reaches a genuine Wigner molecule at $\omega=0.0035$ with no Markov chain in the

@@ -1202,6 +1202,316 @@ The post-catch-22 phase supports six robust conclusions.
 \end{enumerate}
 
 
+
+
+\chapter{The learned representation of one trained solution}
+\label{app:representation}
+
+This appendix records what the internal representation of \emph{one} high-quality trained
+solution looks like. It is descriptive, it is measured on a single training run, and---as
+\S\ref{sec:synthesis} sets out---most of the quantities in it are component-level and
+therefore gauge-like: the correlator and the backflow are partial substitutes, so how the
+labour is divided between them records the route the training took as much as the state it
+reached. Nothing in the architectural argument of Chapter~\ref{ch:kernel} rests on anything
+here. It is reported because the regularities are striking and because they are ones the
+network was free \emph{not} to adopt, not because they establish a property of the
+architecture.
+
+Three findings survive that qualification well enough to be worth stating. Across
+$N\in\{2,6,12,20\}$ and $\omega\in\{1,0.5,0.1,10^{-2},10^{-3}\}$ the correlator feature
+space stays on one to three effective dimensions and never expands, even where the
+real-space density develops elaborate shell structure; what changes across the crossover is
+which branch the leading axis is built from, not how many axes there are. The displacement
+field is the opposite kind of object, occupying nearly all the spatial directions available
+to it. And the coupling between the two changes character near $\omega\approx0.1$, the same
+place the energy partition crosses over (\S\ref{sec:wigner-energy}).
+
+Every diagnostic below is evaluated on fresh samples drawn from $|\Psi_\theta|^2$, with the
+estimators and stability protocol of \S\ref{sec:repr-methods}.
+
+%% ──────────────────────────────────────────────────────────────────────
+\section{Correlator geometry: a compact manifold that reorganises}
+\label{sec:repr-geom}
+
+We characterise the correlator feature space $Z = \overline\phi\|\overline\psi\|\mathbf{g}$
+by its entropy-based effective rank $r_{\mathrm{eff}}(Z)$, the correlation
+$|\rho(\mathrm{head},\mathrm{PC1})|$ between the head output and its first principal component,
+and the power of PC1 decomposed across architectural branches.
+Table~\ref{tab:correlator-geom} reports these quantities across the grid.
+
+\begin{table}[t]
+\centering
+\caption[Correlator feature geometry]{Correlator geometry (CTNN).
+$r_{\mathrm{eff}}$: entropy-based effective rank of $Z$.
+$|\rho|$: absolute correlation between head output and PC1 reconstruction.
+$\phi/\psi/\mathrm{g}$: fraction of PC1 variance from the orbital, pair, and auxiliary branches.
+The $\psi$-dominated entries ($\psi > 0.5$) are shown in bold.}
+\label{tab:correlator-geom}
+\small
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{rr cccccc}
+\toprule
+$N$ & $\omega$ & $r_{\mathrm{eff}}$ & $|\rho|$ & $\phi$ & $\psi$ & $\mathrm{g}$ \\
+\midrule
+ 2 & 0.001 & 1.00 & 1.00 & 0.00 & \textbf{1.00} & 0.00 \\
+ 2 & 0.01  & 1.04 & 0.66 & 0.00 & \textbf{1.00} & 0.00 \\
+ 2 & 0.1   & 1.31 & 0.99 & 0.00 & \textbf{0.53} & 0.46 \\
+ 2 & 0.5   & 1.25 & 1.00 & 0.00 & \textbf{0.58} & 0.42 \\
+ 2 & 1.0   & 1.53 & 0.98 & 0.00 & 0.35 & \textbf{0.65} \\
+\midrule
+ 6 & 0.001 & 1.52 & 0.97 & 0.01 & 0.12 & \textbf{0.87} \\
+ 6 & 0.01  & 1.38 & 0.99 & 0.05 & 0.44 & \textbf{0.50} \\
+ 6 & 0.1   & 2.73 & 0.94 & \textbf{0.66} & 0.21 & 0.14 \\
+ 6 & 0.5   & 2.69 & 0.98 & 0.15 & \textbf{0.63} & 0.22 \\
+ 6 & 1.0   & 2.69 & 0.99 & 0.03 & \textbf{0.62} & 0.35 \\
+\midrule
+12 & 0.001 & 1.66 & 0.96 & \textbf{0.54} & 0.13 & 0.33 \\
+12 & 0.01  & 1.54 & 0.97 & 0.43 & 0.09 & \textbf{0.48} \\
+12 & 0.1   & 3.08 & 0.99 & 0.12 & \textbf{0.63} & 0.26 \\
+12 & 0.5   & 2.32 & 0.99 & 0.12 & \textbf{0.69} & 0.19 \\
+12 & 1.0   & 1.76 & 0.99 & 0.08 & \textbf{0.73} & 0.19 \\
+\midrule
+20 & 0.001 & 2.59 & 0.99 & 0.18 & \textbf{0.74} & 0.08 \\
+20 & 0.01  & 1.09 & 0.79 & 0.04 & \textbf{0.94} & 0.01 \\
+20 & 0.1   & 2.20 & 0.97 & 0.36 & 0.44 & 0.20 \\
+20 & 0.5   & 2.30 & 1.00 & 0.17 & \textbf{0.70} & 0.13 \\
+20 & 1.0   & 2.32 & 0.99 & 0.18 & \textbf{0.71} & 0.11 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\paragraph{The manifold is low-dimensional everywhere.}
+The effective rank stays below $3.1$ across the entire grid,
+and the head output is almost perfectly reconstructed from PC1 alone
+($|\rho| > 0.94$ for all $N\geq 6$ and all $\omega$).
+This holds even at strong correlation where the real-space density develops pronounced shell
+structure---the correlator does not respond by expanding its latent dimensionality.
+The modest peak at $N{=}12$, $\omega{=}0.1$ ($r_{\mathrm{eff}} = 3.08$) coincides with the
+intermediate-correlation regime where neither the shell picture nor the crystalline picture provides
+a clean single-mode description.
+
+\paragraph{A $\phi\leftrightarrow\psi$ transition in the leading axis.}
+What varies across regimes is \emph{which branch dominates PC1}.
+At moderate-to-weak correlation ($\omega \geq 0.1$, $N\geq 6$),
+PC1 is predominantly $\psi$-loaded: the pair branch carries 60--73\% of the variance,
+meaning the correlator's primary degree of freedom tracks pair correlations.
+At strong correlation ($\omega \leq 0.01$, $N\geq 12$),
+the loading shifts toward $\phi$ (orbital) or $\mathbf{g}$ (auxiliary) branches,
+with $\psi$ dropping below 15\%.
+The transition is sharpest at $N{=}12$, where $\psi$ goes from 0.09 at $\omega{=}0.01$
+to 0.63 at $\omega{=}0.1$.
+
+These loadings track the physics.
+When interactions are weak relative to the trap ($\omega \gtrsim 0.1$),
+the non-interacting shell structure provides a good zeroth-order description,
+and the correlator's primary role is refining pair correlations on top of that.
+When interactions dominate ($\omega \lesssim 0.01$),
+the leading correlator coordinate shifts away from pair features toward the
+single-particle and auxiliary branches. The network reorganises the features through
+which it represents the state, and that reorganisation---not any growth in
+dimension---is how it adapts.
+Nothing in the architecture imposes this behaviour: regime changes appear as a rotation of
+a low-dimensional axis across branches rather than as growth in latent dimensionality.
+
+%% ──────────────────────────────────────────────────────────────────────
+\section{Backflow: a high-rank field with a low-rank footprint}
+\label{sec:repr-backflow}
+
+Table~\ref{tab:backflow-geom} characterises the message-passing displacement field.
+We report the normalised displacement magnitude $\|\Delta\mathbf{x}\|/\ell$,
+the effective rank of $\Delta\mathbf{x}$ (viewed as a $B\times 2N$ matrix of flattened displacements),
+and the CKA similarity between the correlator features with and without backflow.
+
+\begin{table}[t]
+\centering
+\caption[Backflow displacement geometry]{CTNN backflow geometry.
+$\|\Delta\mathbf{x}\|/\ell$: mean displacement magnitude normalised by harmonic length.
+Rank: effective rank of the displacement covariance.
+$2N{-}2$: maximum possible rank after centre-of-mass projection.
+CKA: linear centred kernel alignment between correlator features with and without backflow
+(1.0 = identical feature manifolds).}
+\label{tab:backflow-geom}
+\small
+\setlength{\tabcolsep}{5pt}
+\begin{tabular}{rr cccc}
+\toprule
+$N$ & $\omega$ & $\|\Delta\mathbf{x}\|/\ell$ & Rank & $2N{-}2$ & CKA \\
+\midrule
+ 2 & 0.001 & 0.003  & 1.9  &  2 & 1.000 \\
+ 2 & 1.0   & 0.029  & 2.0  &  2 & 1.000 \\
+\midrule
+ 6 & 0.001 & 0.017  & 10.0 & 10 & 0.999 \\
+ 6 & 0.01  & 0.035  & 9.9  & 10 & 0.998 \\
+ 6 & 0.1   & 0.096  & 10.0 & 10 & 0.995 \\
+ 6 & 0.5   & 0.093  & 10.0 & 10 & 0.991 \\
+ 6 & 1.0   & 0.089  & 10.0 & 10 & 0.979 \\
+\midrule
+12 & 0.001 & 0.017  & 21.9 & 22 & 1.000 \\
+12 & 0.01  & 0.030  & 21.9 & 22 & 0.998 \\
+12 & 0.1   & 0.096  & 21.9 & 22 & 0.993 \\
+12 & 0.5   & 0.096  & 21.9 & 22 & 0.993 \\
+12 & 1.0   & 0.091  & 21.9 & 22 & 0.995 \\
+\midrule
+20 & 0.001 & 0.023  & 37.7 & 38 & 0.999 \\
+20 & 0.01  & 0.046  & 37.4 & 38 & 1.000 \\
+20 & 0.1   & 0.075  & 37.8 & 38 & 0.997 \\
+20 & 0.5   & 0.099  & 37.6 & 38 & 0.990 \\
+20 & 1.0   & 0.099  & 37.6 & 38 & 0.991 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\paragraph{Displacement magnitude scales with $\omega$ but saturates near $\|\Delta\mathbf{x}\|/\ell \sim 0.1$.}
+At strong correlation ($\omega \leq 0.01$), displacements are small relative to the harmonic length,
+$\|\Delta\mathbf{x}\|/\ell \sim 0.02$--$0.05$.
+As the trap tightens and the system enters the moderate-to-weak correlation regime,
+the magnitude grows and saturates at $\sim$\,8--10\% of $\ell$ for $\omega \gtrsim 0.1$.
+The message-passing backflow never produces large displacements---its $\tanh$ output bound and copresheaf message-passing structure
+act as implicit regularisers, in contrast to the conventional backflow, which can exhibit
+displacements comparable to the system scale in poorly converged regimes
+(e.g.\ $\|\Delta\mathbf{x}\|/\ell \sim 0.95$ for $N{=}6$, $\omega{=}0.001$ with the conventional network).
+
+\paragraph{Full-rank displacements, near-unity CKA.}
+The effective rank of the displacement field is consistently $\approx 2N - 2$,
+saturating the available spatial degrees of freedom modulo centre-of-mass conservation
+(confirmed by COM shifts of order $10^{-14}$--$10^{-17}$).
+The backflow transformation is not a low-rank collective mode
+such as a breathing or rigid rotation; the displacement field spans essentially all COM-free spatial directions, so each
+particle receives a correction
+conditioned on the full configuration.
+The field stays near that ceiling across the whole grid, including the deepest Wigner
+points, where one might have expected the correction to become collective. Whether that
+is a property of \emph{this} architecture or of trained backflows generally is not
+something the present measurement can decide; Chapter~\ref{ch:kernel} settles it by
+holding everything else fixed (\S\ref{sec:kernel-q1b}).
+
+Yet the CKA between correlator features with and without backflow exceeds 0.99 in nearly all cases
+(and exceeds 0.979 everywhere).
+The correlator manifold is almost unperturbed by the displacement field.
+The correlator's feature geometry is therefore almost unaffected by the presence of the
+displacement field, which is a statement about that geometry and not about the subspace the
+backflow occupies. Whether the two components are genuinely complementary, rather than
+merely uncorrelated on this measure, is tested by ablation in \S\ref{sec:kernel-q1b}.
+
+%% ──────────────────────────────────────────────────────────────────────
+\section{Correlator--backflow coupling: from independence to cooperation}
+\label{sec:repr-coupling}
+
+The previous subsection established that backflow leaves the correlator manifold intact.
+But are the correlator and the backflow \emph{functionally} coupled---does the displacement
+depend on what the correlator computes?
+We measure this through three diagnostics:
+(i) the mean cosine similarity $\langle\cos(\nabla_{\mathbf{x}} f,\,\Delta\mathbf{x})\rangle$
+between the correlator's gradient in configuration space and the displacement field
+(alignment implies the backflow pushes along directions the correlator is sensitive to);
+(ii) the fraction of configurations where $\Delta\mathbf{x}$ is aligned with $\nabla f$;
+and (iii) $|\delta f|/\sigma_f$, where $\delta f = f(\tilde R+\Delta\mathbf x)-f(\tilde R)$
+is the change in the correlator output when it is evaluated on the backflow-shifted
+coordinates, in units of the correlator's own standard deviation $\sigma_f$. Two
+cautions attach to this last quantity. It is a \emph{counterfactual sensitivity}: in the
+production ansatz the correlator sees the unshifted $\tilde R$ (only the determinant sees
+$\tilde R+\Delta\mathbf x$; \S\ref{subsec:backflow-method}), so $\delta f$ measures how
+much the correlator \emph{would} respond to the displacement, not an actual term in the
+wavefunction. And it is a typical relative change, not a variance decomposition:
+$|\delta f|/\sigma_f=0.7$ means the counterfactual change is $0.7$ standard deviations,
+not that $70\%$ of the variance is attributable to backflow.
+Table~\ref{tab:pinn-ctnn-coupling} reports these alongside the fraction of particles pushed
+toward their nearest neighbour.
+
+\begin{table}[t]
+\centering
+\caption[Correlator--backflow coupling diagnostics]{Correlator--backflow coupling diagnostics (message-passing ansatz).
+$\langle\cos\rangle$: mean cosine between $\nabla f$ and $\Delta\mathbf{x}$.
+Aligned: fraction of configs with $\nabla f \cdot \Delta\mathbf{x} > 0$.
+$|\delta f|/\sigma_f$: backflow-induced change in the correlator output, relative to its standard deviation.
+$\rightarrow$NN: fraction of particles displaced toward their nearest neighbour ($0.5 =$ isotropic).
+Only $N\geq 6$ shown; $N{=}2$ displacements are near-zero for most $\omega$.}
+\label{tab:pinn-ctnn-coupling}
+\small
+\setlength{\tabcolsep}{4.5pt}
+\begin{tabular}{rr cccc}
+\toprule
+$N$ & $\omega$ & $\langle\cos\rangle$ & Aligned & $|\delta f|/\sigma_f$ & $\rightarrow$NN \\
+\midrule
+ 6 & 0.001 &  0.14 & 0.63 & 0.03 & 0.43 \\
+ 6 & 0.01  &  0.18 & 0.77 & 0.05 & 0.28 \\
+ 6 & 0.1   &  0.49 & 0.99 & 0.25 & 0.16 \\
+ 6 & 0.5   &  0.62 & 1.00 & 0.33 & 0.19 \\
+ 6 & 1.0   &  0.77 & 1.00 & 0.41 & 0.18 \\
+\midrule
+12 & 0.001 & $-$0.48 & 0.01 & 0.03 & 0.61 \\
+12 & 0.01  &  0.22 & 0.82 & 0.05 & 0.29 \\
+12 & 0.1   &  0.56 & 1.00 & 0.39 & 0.12 \\
+12 & 0.5   &  0.65 & 1.00 & 0.49 & 0.20 \\
+12 & 1.0   &  0.75 & 1.00 & 0.55 & 0.21 \\
+\midrule
+20 & 0.001 &  0.32 & 0.97 & 0.06 & 0.44 \\
+20 & 0.01  &  0.22 & 0.89 & 0.07 & 0.45 \\
+20 & 0.1   &  0.39 & 1.00 & 0.25 & 0.17 \\
+20 & 0.5   &  0.65 & 1.00 & 0.58 & 0.22 \\
+20 & 1.0   &  0.78 & 1.00 & 0.69 & 0.25 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\paragraph{A transition at $\omega\approx 0.1$.}
+The data reveal a sharp regime change.
+At $\omega \leq 0.01$ the coupling is weak and inconsistent in sign: $\langle\cos\rangle$
+runs from $-0.48$ to $0.32$ across the six cells, the alignment fraction is erratic, and
+backflow barely affects the PINN output ($|\delta f|/\sigma_f < 0.07$ everywhere). The
+$N{=}12$, $\omega{=}0.001$ cell is strongly \emph{anti}-aligned
+($\langle\cos\rangle=-0.48$, alignment fraction $0.01$), which we record without an
+account of it: at that confinement the displacement field is small enough
+(Table~\ref{tab:backflow-geom}) that its direction relative to the correlator gradient
+carries little energy either way, but we cannot say why the sign is systematic rather than
+scattered.
+In this regime the backflow operates in a subspace largely orthogonal to the correlator's gradient---it
+modifies the wavefunction in directions that $W_\theta$ is insensitive to,
+consistent with its role being to adjust the Slater determinant's orbital positions rather than
+the correlator.
+
+At $\omega \geq 0.1$, the picture changes qualitatively.
+The gradient cosine jumps to 0.5--0.8, the alignment fraction reaches 1.0 for $N\geq 6$,
+and the counterfactual output change reaches $|\delta f|/\sigma_f = 0.25$--$0.69$ (i.e.\ up to $\sim\!0.7$ standard deviations of the correlator).
+Here the backflow acts as a cooperative refinement: it pushes configurations along
+directions the correlator is maximally sensitive to, systematically correcting the correlator's
+residual errors.
+The transition is sharpest between $\omega=0.01$ and $\omega=0.1$,
+coinciding with the crossover in $\Gamma = V_{\mathrm{int}}/T$ from $\Gamma > 10$
+(interaction-dominated) to $\Gamma \sim 3$--$6$ (moderate correlation).
+
+\paragraph{Directional structure: correlation-hole deepening.}
+The nearest-neighbour direction fraction provides a complementary signature.
+At $\omega \geq 0.1$ for $N\geq 6$, only 12--25\% of particles are displaced toward their
+nearest neighbour.
+The backflow preferentially pushes particles \emph{apart}, actively deepening the correlation hole.
+This directional bias is strongest at $N{=}12$, $\omega{=}0.1$ ($\rightarrow$NN\,$=0.12$),
+exactly where the correlator effective rank peaks and the $\phi\leftrightarrow\psi$ transition occurs.
+At strong correlation ($\omega\leq 0.01$, large $N$), the fraction rises toward 0.5
+(isotropic), because the large equilibrium inter-particle separations leave little room for
+further correlation-hole deepening.
+
+%% ──────────────────────────────────────────────────────────────────────
+
+\section{Limits of component-level interpretation}
+\label{sec:repr-synthesis}
+
+Taken together these measurements describe two components of very different character. The
+correlator occupies one to three directions, whose leading axis tracks the dominant global
+coordinate of the cloud and changes identity rather than growing in number as the physics
+changes. The displacement field is high-rank and configuration-dependent, and its presence
+leaves the correlator's feature geometry almost unchanged (CKA $>0.98$). The coupling
+between them is weak and inconsistent in sign at strong correlation, and strong and
+systematically aligned at moderate coupling, where the displacements follow the
+correlator's gradient; the change is sharp and coincides with the crossover in $\Gamma$.
+
+These measurements describe one trained solution and do not by themselves establish which
+properties are architecture-specific. A different training route could divide the same
+labour differently and arrive at the same energy, which for two partial substitutes is what
+one should expect. Deciding the question requires holding everything else fixed and varying
+only the architecture.
+
+
 \chapter{Structural diagnostics in full}
 \label{app:structural-tables}
 
@@ -1211,6 +1521,34 @@ collected here: the mean radius, width, FWHM and decile quantiles for $N{=}2$, a
 ring-angle spread and pair Lindemann ratio for $N{=}6$. Estimators and stability
 protocol are defined in \S\ref{sec:analysis-struct}. All lengths are in Bohr; angles in
 radians.
+
+\section{Fitted energy and radius exponents}
+\label{app:energy-exponents}
+
+Section~\ref{sec:wigner-energy} states two conclusions from the energy partition---that
+interactions come to dominate, and that the trap--interaction balance approaches its
+classical form---and defers the fitted exponents that support them to here.
+
+Log--log fits $E(\omega)\propto\omega^{\alpha}$ over the grid
+$\omega\in\{10^{-3},10^{-2},10^{-1},0.5,1\}$ give a kinetic exponent
+$\alpha_T\simeq1.00$ at every $N$, an interaction exponent
+$\alpha_{V_{\rm int}}\simeq0.66$, and trap exponents
+$\alpha_{V_{\rm trap}}\simeq0.81,\,0.73,\,0.72$ for $N=2,6,12$. The kinetic energy therefore
+scales essentially linearly with $\omega$ while both potential terms grow sublinearly with
+nearly $N$-independent exponents; the ratio $\Gamma\propto\omega^{\alpha_{V_{\rm
+int}}-\alpha_T}\approx\omega^{-0.34}$ predicts a factor $10^{3\times0.34}\approx10.5$ across
+three decades, against the measured $9.7$, $10.6$ and $11.1$.
+
+From $V_{\rm trap}=\tfrac12\omega^2\sum_i\langle r_i^2\rangle$ the rms radius is
+$r_{\rm rms}=\sqrt{2V_{\rm trap}/(N\omega^2)}$, and fitting
+$r_{\rm rms}\propto\omega^{\alpha_r}$ gives $\alpha_r\simeq-0.60$ to $-0.64$, equivalently
+$\langle r^2\rangle\propto\omega^{-\beta}$ with $\beta\simeq1.19$--$1.28$. The cloud
+therefore expands faster than the non-interacting $\omega^{-1}$ law for $\langle r^2\rangle$.
+
+These are averaged quantities and should not be confused with the shell-resolved radius of
+\S\ref{app:structural-tables:radius}, which is the one compared against the classical Wigner
+prefactor; the two differ because $r_{\rm rms}$ and $r_{\rm mode}$ mix the central electron
+of a $(1,n)$ topology with the ring, and the shell-resolved radius does not.
 
 \begin{table}[H]
 \centering
@@ -1350,6 +1688,16 @@ resulting pair-distance density is compared with the empirical density on the \e
 half. Against it we run an angle-randomised null with the same fitted radial distributions
 but uniform angles, which isolates what polygonal order contributes over and above shell
 radii alone. Table~\ref{tab:shell-model-fit} reports both.
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=0.8\textwidth]{mixfit_N12_w0.001_nin3.pdf}
+  \caption[Shell-resolved reconstruction of $g(r)$, $N{=}12$]{Shell-resolved reconstruction of $g(r)$ at $\omega=10^{-3}$ for
+  $N{=}12$.  The global pair distribution is reproduced by a convex mixture
+  of inner--inner (II), inner--outer (IO) and outer--outer (OO) histograms
+  with weights set by the observed $(n_{\rm in},n_{\rm out})$ statistics.}
+  \label{fig:N12_w0001_decomposition}
+\end{figure}
 
 The polygon model reproduces the held-out pair distribution to cosine similarity
 $0.987$--$0.999$ across the whole grid. The null reaches $0.936$--$0.996$, and the gap

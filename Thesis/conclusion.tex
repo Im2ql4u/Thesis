@@ -45,9 +45,11 @@ badly conditioned---$\kappa(S)\sim10^{7}$--$10^{10}$ on the very models where Ad
 agree to four decimals---so conditioning alone cannot be what makes SR unnecessary there.
 What distinguishes the regimes, on the evidence we have, is whether a batch can resolve the
 metric. Under $|\Psi|^2$ sampling the samples come from the measure
-that defines $S$, and Adam already moves along the directions carrying Fisher weight. On the
-collocation objective they do not, and stochastic reconfiguration is what makes the
-optimisation work at all. And once the
+that defines $S$, and Adam already moves along the directions carrying Fisher weight. On the collocation objective they do not, and under a fixed proposal
+stochastic reconfiguration is what makes the optimisation work at all. That is a statement
+about the bare objective: once adaptive proposal refitting, oversampling and rollback are in
+place they do the same conditioning work, and Adam---which degrades more gracefully when the
+sampling fails---becomes the production choice. And once the
 sampling that builds the metric collapses, inverting it amplifies the noise instead of the signal, and the method that was decisive
 becomes harmful. Ill-conditioning is not the
 criterion. Estimability is.

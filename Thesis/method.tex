@@ -665,6 +665,27 @@ $\omega$ initialise the next, following $\omega:1.0\!\to\!0.5\!\to\!0.1\!\to\!0.
 Whether the two paradigms reach the same \emph{state}, and where they diverge, is one of the
 questions of Chapter~\ref{ch:kernel}.
 
+\subsection{Ansatz families used in the collocation programme}
+\label{subsec:colloc-families}
+Three ansatz families are trained under this objective in Chapter~\ref{ch:kernel}, all on
+the same Slater--Jastrow core $\Psi(\mathbf R)=\det[\phi_i(\mathbf r_j+\Delta\mathbf r_j)]\,e^{J(\mathbf R)}$
+and differing only in what dresses it. They are deliberately smaller than the production
+networks of \S\ref{sec:hyperparameters}, because this programme is limited by gradient noise
+and memory rather than by capacity.
+
+\emph{Jastrow-only.} The correlator alone at ${\sim}25$k parameters, in its
+message-passing form (\texttt{CTNN\-Jastrow\-VCycle}), acting on node features
+(single-particle orbital values) and edge features (soft-core pair distances). Fastest to
+train and the most robust; used both standalone and as the initialiser for backflow runs.
+
+\emph{Backflow $+$ Jastrow.} Adds the copresheaf displacement network
+(\texttt{CTNNBackflowNet}), ${\sim}49$k parameters in total at $h_{\rm bf}{=}128$. Its edge
+tensor scales as $\mathcal O(N^2 h_{\rm bf})$, which is the memory bottleneck at large $N$:
+at $N{=}20$ the hidden width must be cut to $h_{\rm bf}\in\{48,64\}$.
+
+\emph{Neural Pfaffian.} Replaces the determinant with $\mathrm{Pf}[A_{ij}]$, a more general
+antisymmetric form admitting richer nodal topology~\cite{GaoGuennemann2024-NeuralPfaffian}.
+
 \section{Units, scaling, and batch construction}
 \label{sec:units-scaling}
 

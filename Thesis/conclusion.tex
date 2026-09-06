@@ -12,8 +12,8 @@ Aurelius}{\textit{Meditations}}
 The work formed a feedback cycle between solver and physics. A variational state was
 constructed and checked against every external benchmark available; the checked state was
 then used as an instrument, and resolved the shell geometry of the Wigner regime---rings at
-definite occupancies, angular order stiffening as the trap weakens, a shell radius growing
-as $\omega^{-2/3}$. Those measurements are what a sampler needs in order to place its mass
+definite occupancies, angular order appearing in the last decade of confinement, a shell
+radius approaching its classical $\omega^{-2/3}$ scaling. Those measurements are what a sampler needs in order to place its mass
 correctly. Incorporating the measured geometry into the proposal extended
 Markov-chain-free training from the failure of the origin-centred sampler at
 $\omega\approx0.01$ down to $\omega=0.0035$, into states the original method could not
@@ -55,30 +55,37 @@ chain of causes---proposal mismatch, weight-tail inflation, gradient noise, an
 unestimable metric---which a better proposal moves rather than removes.
 
 \paragraph{Physics.} Can the trained state serve as an instrument? It can, and the
-evidence is that six independent diagnostics agree when they need not have
+evidence is that six diagnostics measuring different things agree when they need not have
 (\S\ref{sec:wigner-molecule}). Shell topologies match the classical Coulomb-cluster
 predictions at every size we studied, with the competing sectors carrying the weight a
-rotating molecule should give them. The reconstructions of $g(r)$ from shell geometry
-alone reach cosine similarity $0.989$--$1.000$. At $N{=}20$ a three-shell molecule
-collapses toward a single shell within one decade in $\omega$. None of this was put into
-the ansatz, and none of it is visible in the density that one would naturally plot.
+rotating molecule should give them. A polygon shell model fitted on half the frames
+reproduces $g(r)$ on the other half to cosine similarity $0.987$--$0.999$, against
+$0.936$--$0.996$ for an angle-randomised null. The measured $N{=}6$ ring radius approaches
+the classical Wigner value to within $1.7\%$ at the weakest trap. And at $N{=}20$ a
+three-shell molecule collapses to a single ring about a central electron within one decade
+in $\omega$. None of this was put into the ansatz, and none of it is visible in the density
+that one would naturally plot.
 
 \section{Evidential status of the findings}
 
 The findings fall into three evidential categories, which are not interchangeable.
 
 \emph{Externally benchmarked.} The energies for $N\le12$ at $\omega\ge0.1$, and for
-$N{=}2$ down to $\omega=0.01$. Two independent methods agree
-there to a few hundredths of a percent. That is the whole of the external benchmark
-coverage---and, as \S\ref{subsec:dmc-theory} makes clear, a fixed-node DMC value is itself
-an approximation rather than ground truth. Every relative error quoted outside that range
-depends on a reference we computed ourselves.
+$N{=}2$ down to $\omega=0.01$. An independently evaluated variational upper bound agrees
+with the fixed-node reference there to a few hundredths of a percent. The two are not blind
+of one another---the reference is also the pretraining target where it exists
+(\S\ref{sec:energy-discussion})---but a variational energy is bounded below by $E_0$
+whatever it was aimed at, so agreement from above cannot be manufactured by aiming. That is
+the whole of the external benchmark coverage, and, as \S\ref{subsec:dmc-theory} makes
+clear, a fixed-node DMC value is itself an approximation rather than ground truth. Every
+relative error quoted outside that range depends on a reference we computed ourselves.
 
 \emph{Internally supported.} The deep-Wigner energies, the structural picture, and the
 architecture comparison. None is validated from outside, but each rests on agreements that
 could have failed and did not: independent diagnostics measuring different quantities
-converge on the same crossover; the fitted energy exponent lands near the classical $2/3$,
-which enters the ansatz nowhere; the shell topologies reproduce classical ground states
+converge on the same crossover; the fitted energy exponent lands near the classical $2/3$
+and the measured ring radius within $1.7\%$ of the classical prefactor, neither of which
+enters the ansatz anywhere; the shell topologies reproduce classical ground states
 that the network was not trained on; and the architecture result survives seeding, a change
 of probe measure, and a capacity ladder that runs against it.
 
@@ -88,31 +95,24 @@ single production state at $N{=}20$. The trend runs in the direction the mechani
 and widens with particle number, but it is not settled, and settling it is a question of
 compute rather than of interpretation.
 
-One further entry belongs here, methodological rather than physical. Quantities defined on
-a single component of the ansatz---the backflow's rank, its displacement magnitude, its
-share of the energy---are gauge-like, because the Jastrow and the backflow are substitutes
-and the division of labour between them is a nearly flat direction of the loss that the
-training route settles rather than the state. Every claim that reversed during this project
-was of that kind. The conclusions above rest only on what can be measured on the state
-itself or by deleting part of it.
+One further entry belongs here, methodological rather than physical. The conclusions above
+rest only on quantities that survive a change of training route---measured on the state, or
+by deleting part of it---and not on the component-level ranks and magnitudes whose gauge
+dependence \S\ref{sec:synthesis} sets out.
 
 \section{Limitations and further work}
 
-The Markov-chain-free route is bounded by two walls of different kinds. The first is
-statistical: the proposal loses the target, and a better proposal moves the wall, in our
-case from $\omega\approx0.01$ to $\omega=0.0035$ once the proposal was built out of the
-physics. The second does not yield to sampling at all. Below $\omega=0.0035$ a converged
-state fails to survive transfer to a weaker trap, because the Wigner peak exists only
-through a near-cancellation between an exponentially suppressed determinant and a Jastrow
-that amplifies it back, and a $23\%$ change in $\omega$ tips that balance. Walkers placed
-directly on the classical shell relax inward regardless, so no proposal can repair it.
-Reaching further would take an $\ell$-covariant parametrisation, or an objective anchored
-on the shell amplitude rather than on the energy alone.
+The Markov-chain-free route is bounded by two walls of different kinds
+(\S\ref{sec:collocation-discussion}). The first is statistical, and a better proposal moved
+it from $\omega\approx0.01$ to $\omega=0.0035$. The second is representational: below
+$\omega=0.0035$ the ansatz is not covariant enough in $\ell$ for a converged state to
+survive transfer to a weaker trap, and no proposal repairs that. Reaching further would take
+an $\ell$-covariant parametrisation, or an objective anchored on the shell amplitude rather
+than on the energy alone.
 
 Three other things would move the picture, in rough order of how much. A backflow that is
-not quadratic in particle number: the $\mathcal{O}(N^2 h)$ edge tensor
-is what stops the method at twenty electrons, and it stops it for reasons of memory
-rather than of physics. A proposal that adapts on its own---a normalising flow, or the
+not quadratic in particle number, since it is the $\mathcal{O}(N^2 h)$ edge tensor and not
+the physics that stops the method at twenty electrons. A proposal that adapts on its own---a normalising flow, or the
 shell-informed construction of \S\ref{sec:kernel-q3-frontier} generalised past ring
 geometries. And the same architecture study repeated at $N{=}12$ and $N{=}20$ with the
 seeding the $N{=}6$ comparison already has, which would turn the last entry of the ledger

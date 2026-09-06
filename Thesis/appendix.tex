@@ -1065,7 +1065,7 @@ co-adapts with the node position.
 % =========================================================
 % APPENDIX D: Post-Catch-22 Experimental History and Philosophy
 % =========================================================
-\chapter{Post-catch-22 experimental history and philosophy}
+\chapter[Post-catch-22 experimental history]{Post-catch-22 experimental history and philosophy}
 \label{app:postcatch22}
 
 This appendix documents the full experimental program executed after the
@@ -1228,3 +1228,187 @@ $\omega$ & $r_{\rm mode}$ & $\sigma_r$ & $\gamma$
 \bottomrule
 \end{tabular}
 \end{table}
+
+\section{Shell-resolved structure across the whole grid}
+\label{app:structural-tables:shells}
+
+Chapter~\ref{ch:results} quotes shell occupancies, radii, bond order and Lindemann
+numbers for individual $(N,\omega)$ cells in running prose. Table~\ref{tab:shell-summary}
+collects them for the whole grid from a single analysis pass, so that the trends can be
+read off rather than assembled from the text. Shell radii are given in trap units
+$\tilde r=\sqrt{\omega}\,r$; multiply by $\ell=\omega^{-1/2}$ for Bohr.
+
+\paragraph{Reading $|\Phi_n|$ against its null.}
+One column of that table needs a baseline to be interpretable, and its absence would
+make the bond-order numbers read far more favourably than they should. For $n$ particles
+placed at \emph{independent uniform} angles on a ring, $\Phi_n=n^{-1}\sum_k e^{in\phi_k}$
+is a two-dimensional random walk of $n$ unit steps, so
+\begin{equation}
+  \big\langle|\Phi_n|\big\rangle_{\rm random}=\frac{\sqrt\pi}{2\sqrt n}\approx\frac{0.886}{\sqrt n},
+  \qquad
+  \big\langle|\Phi_n|^2\big\rangle_{\rm random}=\frac1n .
+  \label{eq:phi-null}
+\end{equation}
+A finite $|\Phi_n|$ is therefore \emph{not} by itself evidence of angular order: a
+five-particle ring with no order at all returns $|\Phi_5|\approx0.40$. The ratio
+$|\Phi_n|/\langle|\Phi_n|\rangle_{\rm random}$ is the quantity that carries information, and
+Table~\ref{tab:shell-summary} reports it.
+
+Read that way the result is sharper than the raw values suggest. At $\omega\ge0.01$ the
+ratio is $1.00$--$1.03$ at every particle number and on every ring---the measured bond order
+is indistinguishable from randomly placed angles. Only at $\omega=10^{-3}$ does it depart:
+$1.65$ on the $N{=}6$ ring, $1.19$ and $1.56$ on the two rings of the $N{=}12$ $(3,9)$
+molecule, and $1.19$ and $1.47$ on the outer two rings of the $N{=}20$ $(1,7,12)$ molecule.
+Angular order in these dots is not a gradual strengthening across the confinement range; on
+this measure it switches on in the last decade. The Lindemann numbers of the same table fall
+monotonically throughout, so radial stiffening precedes angular ordering rather than
+accompanying it---which is the separation between radial and angular melting anticipated in
+\S\ref{sec:wigner-markers-theory}.
+
+\begin{table}[H]
+\centering
+\caption{Shell-resolved diagnostics at the modal topology, all frames, for every
+$(N,\omega)$. Occupancies are $(n_{\rm in},\dots,n_{\rm out})$; $\tilde r_s$ are mean shell
+radii in trap units; $\lambda_s$ are the per-shell angular Lindemann numbers; $|\Phi_{n_s}|$
+is the rotation-registered bond order on shell $s$; and the final column is $|\Phi_{n_s}|$
+divided by its random-angle expectation, Eq.~\eqref{eq:phi-null}. Values of $1.00$ in that
+column mean no measurable angular order. Single-particle inner shells are omitted from the
+angular columns, where $|\Phi_1|=1$ trivially.}
+\label{tab:shell-summary}
+\small
+\setlength{\tabcolsep}{5pt}
+\begin{tabular}{ccl cc cc}
+\toprule
+$N$ & $\omega$ & occ. & $\tilde r_s$ & $\lambda_s$ & $|\Phi_{n_s}|$ & ratio to null \\
+\midrule
+ 6 & $1.0$   & $(1,5)$     & $0.70,\,1.66$ & $0.43,\,0.32$ & $0.397$ & $1.00$ \\
+ 6 & $0.5$   & $(1,5)$     & $0.76,\,1.78$ & $0.42,\,0.31$ & $0.397$ & $1.00$ \\
+ 6 & $0.1$   & $(1,5)$     & $0.93,\,2.15$ & $0.41,\,0.28$ & $0.405$ & $1.02$ \\
+ 6 & $0.01$  & $(1,5)$     & $1.33,\,2.96$ & $0.42,\,0.22$ & $0.434$ & $1.10$ \\
+ 6 & $0.001$ & $(1,5)$     & $1.12,\,4.29$ & $0.63,\,0.15$ & $\mathbf{0.654}$ & $\mathbf{1.65}$ \\
+\midrule
+12 & $1.0$   & $(1,11)$    & $0.55,\,2.00$ & $0.47,\,0.34$ & $0.268$ & $1.00$ \\
+12 & $0.5$   & $(1,11)$    & $0.60,\,2.18$ & $0.47,\,0.33$ & $0.268$ & $1.00$ \\
+12 & $0.1$   & $(1,11)$    & $0.74,\,2.68$ & $0.45,\,0.31$ & $0.270$ & $1.01$ \\
+12 & $0.01$  & $(1,11)$    & $1.04,\,3.77$ & $0.41,\,0.28$ & $0.275$ & $1.03$ \\
+12 & $0.001$ & $(3,9)$     & $2.52,\,6.04$ & $0.61,\,0.24$ & $\mathbf{0.611,\,0.462}$ & $\mathbf{1.19,\,1.56}$ \\
+\midrule
+20 & $1.0$   & $(1,19)$    & $0.55,\,2.32$ & $0.44,\,0.36$ & $0.204$ & $1.00$ \\
+20 & $0.5$   & $(1,19)$    & $0.60,\,2.52$ & $0.44,\,0.35$ & $0.203$ & $1.00$ \\
+20 & $0.1$   & $(1,19)$    & $0.75,\,3.14$ & $0.42,\,0.34$ & $0.204$ & $1.00$ \\
+20 & $0.01$  & $(1,19)$    & $1.05,\,4.47$ & $0.49,\,0.32$ & $0.205$ & $1.01$ \\
+20 & $0.001$ & $(1,7,12)$  & $1.27,\,4.19,\,7.83$ & $0.47,\,0.24,\,0.11$ & $\mathbf{0.398,\,0.375}$ & $\mathbf{1.19,\,1.47}$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Shell-model fit to the pair distribution}
+\label{app:structural-tables:mixfit}
+
+The reconstruction quoted in \S\ref{sec:wigner-angular} tests whether the measured pair
+distribution is explained by the detected shell geometry. Two versions of that test exist
+and they are not equally informative.
+
+The weaker version decomposes the pairs of two-shell frames into inner--inner,
+inner--outer and outer--outer histograms and recombines them with the combinatorial weights
+of the ideal topology. Because the sector histograms and the total are accumulated from the
+same frames, this recombination is close to exact by construction---cosine similarities
+exceed $0.99999$ at every $(N,\omega)$---and it establishes only that the sector
+bookkeeping is self-consistent.
+
+The stronger version is a \emph{generative} one and is the test reported here. Shell radii
+and widths are fitted on one half of the frames; each shell is then modelled as a regular
+$n_s$-gon carrying a per-frame global rotation and a fitted angular jitter; and the
+resulting pair-distance density is compared with the empirical density on the \emph{held-out}
+half. Against it we run an angle-randomised null with the same fitted radial distributions
+but uniform angles, which isolates what polygonal order contributes over and above shell
+radii alone. Table~\ref{tab:shell-model-fit} reports both.
+
+The polygon model reproduces the held-out pair distribution to cosine similarity
+$0.987$--$0.999$ across the whole grid. The null reaches $0.936$--$0.996$, and the gap
+between them, $\Delta\cos$, grows monotonically as the trap weakens at every particle
+number---from $0.012$ to $0.058$ at $N{=}6$, from $0.006$ to $0.026$ at $N{=}12$, and from
+$0.003$ to $0.010$ at $N{=}20$. Shell radii alone account for most of the pair structure at
+strong confinement; angular order accounts for a growing remainder as the Wigner molecule
+forms. This is the same transition the bond-order ratios of
+Table~\ref{tab:shell-summary} record, measured on a different quantity and on held-out data.
+
+\begin{table}[H]
+\centering
+\caption{Shell-model fit to the pair-distance distribution. The empirical
+$p_{\rm test}(r_{ij})$ on held-out frames is compared with (i) a \emph{polygon} model, in
+which each detected shell is a regular $n_s$-gon with a per-frame global rotation and fitted
+angular jitter, and (ii) a \emph{uniform-angle} null with the same fitted radial
+distributions and no polygonal order. $\Delta\cos=\cos_{\rm poly}-\cos_{\rm uni}$ is what
+angular order buys; $L^2_{\rm poly}$ is the polygon model's residual.}
+\label{tab:shell-model-fit}
+\small
+\setlength{\tabcolsep}{6pt}
+\begin{tabular}{ccl cccc}
+\toprule
+$N$ & $\omega$ & occ. & $\cos_{\rm poly}$ & $\cos_{\rm uni}$ & $\Delta\cos$ & $L^2_{\rm poly}$ \\
+\midrule
+ 6 & $1.0$   & $(1,5)$    & $0.9988$ & $0.9866$ & $0.0122$ & $4.69\times10^{-3}$ \\
+ 6 & $0.5$   & $(1,5)$    & $0.9986$ & $0.9836$ & $0.0150$ & $5.09\times10^{-3}$ \\
+ 6 & $0.1$   & $(1,5)$    & $0.9974$ & $0.9741$ & $0.0234$ & $6.83\times10^{-3}$ \\
+ 6 & $0.01$  & $(1,5)$    & $0.9922$ & $0.9536$ & $0.0386$ & $1.14\times10^{-2}$ \\
+ 6 & $0.001$ & $(1,5)$    & $0.9942$ & $0.9358$ & $\mathbf{0.0585}$ & $1.04\times10^{-2}$ \\
+\midrule
+12 & $1.0$   & $(1,11)$   & $0.9993$ & $0.9937$ & $0.0056$ & $3.36\times10^{-3}$ \\
+12 & $0.5$   & $(1,11)$   & $0.9990$ & $0.9927$ & $0.0063$ & $4.01\times10^{-3}$ \\
+12 & $0.1$   & $(1,11)$   & $0.9980$ & $0.9896$ & $0.0085$ & $5.43\times10^{-3}$ \\
+12 & $0.01$  & $(1,11)$   & $0.9929$ & $0.9805$ & $0.0124$ & $9.92\times10^{-3}$ \\
+12 & $0.001$ & $(3,9)$    & $0.9868$ & $0.9604$ & $\mathbf{0.0264}$ & $1.34\times10^{-2}$ \\
+\midrule
+20 & $1.0$   & $(1,19)$   & $0.9992$ & $0.9964$ & $0.0028$ & $3.43\times10^{-3}$ \\
+20 & $0.5$   & $(1,19)$   & $0.9990$ & $0.9958$ & $0.0032$ & $3.78\times10^{-3}$ \\
+20 & $0.1$   & $(1,19)$   & $0.9982$ & $0.9942$ & $0.0040$ & $4.95\times10^{-3}$ \\
+20 & $0.01$  & $(1,19)$   & $0.9947$ & $0.9900$ & $0.0047$ & $8.21\times10^{-3}$ \\
+20 & $0.001$ & $(1,7,12)$ & $0.9915$ & $0.9820$ & $\mathbf{0.0095}$ & $1.02\times10^{-2}$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{The measured shell radius against the classical prediction}
+\label{app:structural-tables:radius}
+
+The classical minimum-energy configuration of six charges in a parabolic trap places five
+of them on a ring of radius $1.334\,\omega^{-2/3}$
+\cite{schweigert1994spectralpropertieschargedparticles,Kong_2002}. Nothing in the ansatz,
+the training objective or the sampler knows that number, so the fitted outer-shell radius of
+Table~\ref{tab:shell-summary} is an external check on the whole structural picture---and a
+sharper one than the exponent fits of \S\ref{sec:wigner-radial}, because it tests a
+prefactor as well as a power.
+
+\begin{table}[H]
+\centering
+\caption{Fitted outer-shell radius of the $N{=}6$ $(1,5)$ molecule against the classical
+Wigner ring $r_{\rm cl}=1.334\,\omega^{-2/3}$. Radii in Bohr.}
+\label{tab:classical-radius}
+\begin{tabular}{ccccc}
+\toprule
+$\omega$ & $r_{\rm shell}$ & $r_{\rm cl}$ & ratio \\
+\midrule
+$1.0$   & $1.66$   & $1.33$   & $1.247$ \\
+$0.5$   & $2.52$   & $2.12$   & $1.188$ \\
+$0.1$   & $6.80$   & $6.19$   & $1.098$ \\
+$0.01$  & $29.65$  & $28.74$  & $1.032$ \\
+$0.001$ & $135.67$ & $133.40$ & $1.017$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The ratio falls monotonically toward unity, reaching $1.017$ at $\omega=10^{-3}$: the
+quantum ring sits $1.7\%$ outside the classical one at the weakest trap, and the excess
+grows smoothly with confinement as zero-point motion pushes the shell outward. Fitting
+$r_{\rm shell}\propto\omega^{\alpha}$ gives $\alpha=-0.637$ over the full grid and $-0.650$
+over the weakest three confinements, against the classical $-2/3$.
+
+Two remarks on why this quantity, rather than the $r_{\rm mode}$ of
+Table~\ref{tab:radial-compact}, is the right one to compare. First, $r_{\rm mode}$ is the
+mode of the \emph{single-particle} radial density, which for a $(1,5)$ topology mixes the
+central electron with the ring and is therefore not the ring radius; fitting it gives
+$\alpha\approx-0.58$ at $N{=}6$ and $-0.54$ at $N{=}2$ over the full grid, and approaches
+$-2/3$ only on the weak-trap half. Second, the shell-resolved radius is the quantity the
+physics-informed proposal of \S\ref{sec:kernel-q3-frontier} actually needs, so the agreement
+recorded here is what licenses building a sampler out of it.

@@ -25,14 +25,29 @@ operates inside a boundary whose location was established by crossing it.
 \label{sec:energy-discussion}
 
 Agreement with fixed-node DMC supports the energy scale of the variational states over the
-benchmarked regime, but it does not establish exactness, because the reference itself
-retains a nodal bias. Where the message-passing ansatz sits \emph{below} a published DMC
-value, as for $N{=}12$ at $\omega{=}1$, the natural reading is that a better nodal surface
-has been found: the variational principle bounds the energy from below by the exact ground
-state, not by the nodal constraint of the reference calculation. Establishing that would
-require the DMC trial nodes and a matched uncertainty analysis, which we have not done.
-What can be said without it is that two independent methods agree to a few hundredths of a
-percent wherever both exist.
+benchmarked regime, but it does not establish exactness, and it is not an agreement between
+two blind calculations. Where a DMC value exists it is also the target of the residual
+pretraining stage (\S\ref{sec:opt-overview}), so the question of circularity has to be
+answered rather than ignored. It is answered by the structure of the objective. Residual
+pretraining minimises $\mathbb{E}[(E_L-E_{\rm DMC})^2]=\Var(E_L)+(\langle E_L\rangle-E_{\rm
+DMC})^2$, which drives $\langle E_L\rangle$ toward the target from wherever it starts; but
+the reported energies are variational expectations under $|\Psi|^2$, taken after a
+pure-energy SR tail, and such an expectation is bounded below by $E_0$ no matter what it was
+aimed at. Aiming at a reference above the ansatz's reachable minimum can only make the
+reported energy worse. What the agreement therefore establishes is that an independently
+evaluated upper bound lands on the reference, not that two methods found it separately---and
+the cases where the message-passing ansatz lands \emph{below} the reference are the direct
+evidence that the training is not simply reproducing its target. Exactness is a further
+matter, because the reference itself retains a nodal bias.
+
+Where the ansatz sits \emph{below} a published DMC value, as for $N{=}12$ at $\omega{=}1$,
+the natural reading is that a better nodal surface has been found: the variational principle
+bounds the energy from below by the exact ground state, not by the nodal constraint of the
+reference calculation. Establishing that would require the DMC trial nodes and a matched
+uncertainty analysis, which we have not done. At $N{=}20$ the situation is simpler, because
+the reference is itself a variational energy rather than a projected one
+(Table~\ref{tab:energies}): there, sitting below it means only that ours is the lower of two
+upper bounds.
 
 Below $\omega=0.1$ no published value exists for $N\ge6$, and nothing about that agreement
 transfers as accuracy. What does transfer is conditioning. The same architecture, protocol,
@@ -52,13 +67,10 @@ confinement range, and what changes at the crossover is the identity of those di
 rather than their number---a real-space transition involving shells, ring occupancies and
 angular stiffness, carried on a latent geometry of very low dimension.
 
-That low rank is not, by itself, an architecture-level property. Because the Jastrow and
-the backflow are partially substitutable, any measurement made on one of them alone---its
-rank, its displacement magnitude, its share of the energy---records a division of labour
-that the loss barely constrains and that a different training route could have settled
-differently while arriving at the same state. Such quantities are gauge-like. Reporting
-them is legitimate; treating them as properties of the architecture is not. Every claim
-that reversed during this project was of that kind.
+That low rank is not, by itself, an architecture-level property, for the reason
+\S\ref{sec:synthesis} sets out: it is measured on one of two substitutable components, and
+so records a division of labour the loss barely constrains. Reporting such quantities is
+legitimate; treating them as properties of the architecture is not.
 
 What survives a change of training route is what can be measured on the state itself or
 by deleting part of it: the energy, the local-energy variance, the price of removing a
@@ -162,7 +174,7 @@ in three particular ways.
 That makes the next move a better sampler rather than a better loss---normalising flows
 trained against $|\Psi|^2$, or the physics-informed proposals of
 \S\ref{sec:kernel-q3-frontier} generalised beyond ring geometries. Rebuilding the
-proposal from the Wigner shell lifted the effective sample size by $15$--$47\times$
+proposal from the Wigner shell lifted the effective sample size by $15$--$32\times$
 without any training at all. Past the frontier the target changes: what is needed there
 is an $\ell$-covariant parametrisation, or an objective anchored on the shell
 \emph{amplitude}, so that a converged state survives being carried to a weaker trap.
@@ -174,10 +186,10 @@ $N{=}12$. If that continues, the architectures that scale are the ones that main
 transported edge representation rather than pooling pairwise features and discarding
 them.
 
-\emph{The quadratic backflow is the first thing that has to change.} The
-$\mathcal{O}(N^2 h_{\mathrm{bf}})$ edge tensor is what stops the method at twenty
-electrons, and it stops it for reasons of memory rather than of physics. Sparse or
-low-rank message passing, or a local backflow that avoids all-to-all edge features,
+\emph{The quadratic backflow is the first thing that has to change.} What stops the method
+at twenty electrons is the $\mathcal{O}(N^2 h_{\mathrm{bf}})$ edge tensor, a memory limit
+rather than a physical one. Sparse or low-rank message passing, or a local backflow that
+avoids all-to-all edge features,
 would extend the reach without touching anything else in the pipeline---and, on the
 evidence of Chapter~\ref{ch:kernel}, without giving up the nodal correction that is the
 reason for having a backflow at all.

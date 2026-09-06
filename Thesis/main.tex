@@ -136,7 +136,7 @@
 
 \titleformat{\chapter}
   [display]  % display = title is on its own line
-  {\normalfont\huge\bfseries\color{myaccent}}  % Style
+  {\normalfont\huge\bfseries\color{myaccent}\raggedright}  % Style (ragged: no stretched chapter titles)
   {\chaptername\ \thechapter}  % "Chapter 1"
   {20pt}  % Space between number and title
   {}  % Code before the title (none)
@@ -148,10 +148,25 @@
   {\normalfont\Large\bfseries}  % Style of the title
   {\thesection}{1em}            % Number formatting
   {\vspace{0.0em}}              % Space before title
-  [\vspace{0.03em}{\color{myaccent}\rule{0.62\textwidth}{0.5pt}}]
+  [\vspace{0.35em}{\color{myaccent}\rule{0.62\textwidth}{0.5pt}}]
     % Small rule below the title
+\titlespacing*{\section}{0pt}{*3}{*1.4}
 
+% --- Running heads -------------------------------------------------------
+% The default `fancy' style puts \leftmark and \rightmark on the same line;
+% with the long chapter/section titles of Chapters 6 and 7 they overprint one
+% another. One mark on the left, the page number on the right.
 \pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\nouppercase{\small\itshape\leftmark}}
+\fancyhead[R]{\small\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+\setlength{\headheight}{15pt}
+\fancypagestyle{plain}{%
+  \fancyhf{}%
+  \fancyfoot[C]{\small\thepage}%
+  \renewcommand{\headrulewidth}{0pt}%
+}
 
 \title{Physics-Informed Neural Quantum States for Quantum Dots:\\
 Tangent-Space Geometry, Message Passing, and Wigner Molecules}
@@ -170,6 +185,8 @@ Tangent-Space Geometry, Message Passing, and Wigner Molecules}
 someone else's.}{Fyodor Dostoevsky}{\textit{Crime and Punishment}}
 \include{preface}
 \tableofcontents
+\listoffigures
+\listoftables
 
 \part{Introduction}
 \input{introduction}

@@ -72,7 +72,7 @@ gap directly: the same ansatz, demonstrably able to express the ground state, is
 placed in training schemes that do and do not allow it to get there. Representability
 is cheap; trainability is the difficulty.
 
-A weaker but sounder argument survives that objection. Established methods pay for
+A weaker but sounder case for a neural ansatz survives that objection. Established methods pay for
 accuracy in one of two currencies. FCI is exact within a finite basis, but its cost
 grows combinatorially with that basis, so a modest two-dimensional dot of twenty
 electrons is already far beyond reach. Cheaper methods such as coupled cluster buy
@@ -241,24 +241,31 @@ The main contributions of this thesis are:
         tangent kernel.}
         Read through the quantum geometric tensor, a message-passing correlator
         represents the ground state in roughly half as many effective tangent
-        directions as a separable one, and a message-passing backflow retains full
-        rank exactly where a conventional, single-round-message backflow collapses to a single
-        collective mode at the Wigner crystal and loses accuracy. The two effects point to a
+        directions as a separable one at strong confinement---and keeps its leading
+        directions inside a compact dictionary of the Hamiltonian's collective modes at
+        \emph{every} confinement, where the separable network does not---while a
+        message-passing backflow retains full rank exactly where a conventional,
+        single-round-message backflow collapses to a single collective mode at the Wigner
+        crystal and loses accuracy. The two effects point to a
         common relational mechanism—a channel the physics requires—and both are invisible
         in the total energy until weak confinement turns the geometric deficit into an
         energetic one.
   \item \textbf{Optimiser and paradigm, governed by the same geometry.}
         Natural-gradient (SR) preconditioning helps precisely when the tangent metric
-        is ill-conditioned: negligibly for $|\Psi|^2$-VMC, decisively for collocation.
+        is anisotropic \emph{and} still estimable. The empirical metric is badly
+        conditioned under both sampling measures, so conditioning alone does not separate
+        them: what does is whether the batch can resolve it. SR is therefore negligible for
+        $|\Psi|^2$-VMC (tested at $N\le6$) and decisive for collocation.
         And an MCMC-free, importance-sampled collocation objective matches VMC when the
         sampling is healthy and, with a physics-informed proposal built from the Wigner
         shell, reaches a genuine Wigner molecule at $\omega=0.0035$ with no Markov chain in the
         gradient training (a Metropolis probe is used only for checkpoint selection and final certification).
   \item \textbf{Topology-resolved Wigner diagnostics.}
         Across $\omega\in[1,10^{-3}]$ we quantify the crossover using two-shell
-        probabilities and inner-ring occupancy histograms, shell-mixture
-        reconstructions of $g(r)$ with cosine similarity $0.989$–$1.000$ to global
-        data, and sector-resolved bond order and Lindemann indices. At
+        probabilities and inner-ring occupancy histograms, a polygon shell model fitted on
+        held-out frames that reproduces $g(r)$ to cosine similarity $0.987$–$0.999$ against
+        $0.936$–$0.996$ for an angle-randomised null, and sector-resolved bond order and
+        Lindemann indices read against their random-angle baselines. At
         $\omega=10^{-3}$ the $N{=}6$ dot forms a persistent single-ring Wigner molecule
         with a clear $(1,5)\leftrightarrow(0,6)$ near-degeneracy, while the $N{=}12$ dot
         forms a two-shell molecule with a commensurate $(3,9)$ split as the dominant

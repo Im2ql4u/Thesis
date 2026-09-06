@@ -9,7 +9,7 @@
 %  thesis ansatz at DMC-quality energies; seed counts are stated.
 % =====================================================================
 \graphicspath{{../results/figures/results/}{../results/figures/results/kernel/}{../results/figures/}}
-\chapter{Architecture, optimisation, and sampling geometry}
+\chapter[Architecture, optimisation, sampling]{Architecture, optimisation, and sampling geometry}
 \label{ch:kernel}
 
 The previous chapter showed that the ansatz works: it reaches reference quality wherever a
@@ -78,9 +78,10 @@ blunt discriminator; both have saturated the variational floor.
 The difference is geometric. On a common probe set the CTNN reaches the ground
 state in $d_{\mathrm{eff}}\approx1.2$--$1.7$ (three seeds), while every DeepSet
 needs $d_{\mathrm{eff}}\approx2.9$--$3.6$---a factor of $\sim\!2$. The gap is robust
-to the probe measure ($\lesssim0.2$ whether scored on CTNN, DeepSet, or pooled
-points) and does not shrink as the DeepSet is given more capacity: the largest DeepSet in
-the ladder sits at $2.9$, no lower than the smallest. The compression is
+to the probe measure (it moves by $\le0.26$ whether scored on CTNN, DeepSet, or pooled
+points) and is not closed by capacity: scaling the DeepSet eightfold, from $20$k to $164$k
+parameters, moves its effective dimension only from $3.6$ to $2.9$, and the $89$k DeepSet
+that matches the CTNN in size sits at $3.6$. The compression is
 architectural, not a matter of size or sampling mass. It is also a well-posed comparison
 despite $d_{\mathrm{eff}}$ not being a reparameterization-invariant absolute dimension
 (\S\ref{sec:theory-tangent-kernel}): both families are compared under matched
@@ -106,9 +107,13 @@ architectures spend their tangent directions on the same ground state, and it is
 stable across seeds and across the probe measure---a property of the correlator, not
 an accounting artefact.
 
-Across seeds at fixed capacity the separation is $d_{\mathrm{eff}}=1.40\pm0.17$ (CTNN) vs
-$3.25\pm0.03$ (DeepSet) at $\omega=1$, $\sim\!11\sigma$; the wider $2.9$--$3.6$ quoted
-above is the spread across the \emph{capacity ladder}, not across seeds. The gap is a
+On the common pooled probe at $\omega=1$ the three CTNN runs give
+$d_{\mathrm{eff}}=1.20,\,1.50,\,1.66$ and the four DeepSets, spanning $20$k to $164$k
+parameters, give $3.63,\,3.37,\,3.65,\,2.94$. The two sets do not overlap, and the closest
+approach between them---the largest DeepSet against the largest CTNN---is still a factor of
+$1.8$. With three and four runs respectively we report the values rather than a
+sigma-separation, which at these sample sizes would borrow more authority than the design
+supports. The gap is a
 \emph{strong-confinement} effect: it closes toward the Wigner crystal, where both families
 reach $\sim\!3.7$ but occupy \emph{different} tangent subspaces. A single-seed dimension
 ``inversion'' at the crystal, reported in an earlier draft, did \emph{not} survive seeding
@@ -118,31 +123,50 @@ and is retracted here as a worked cautionary result (see \S\ref{sec:synthesis}).
 stops separating the families at the crystal, and rank will turn out to be gauge-like
 (\S\ref{sec:synthesis}). The local-energy variance does neither: it is defined on the
 state, vanishes only for an exact eigenstate, and is directly comparable between any two
-ansätze evaluated on their own $|\Psi|^2$. Measured at matched training protocol and
-production capacity, $\Var(E_L)$ is lower for the message-passing correlator at every
-confinement (Table~\ref{tab:varEL}), by factors of $2$ to $7$, while the two are
-indistinguishable in energy. At the crystal the two sets of runs do not overlap: three
-CTNN runs give $(1.95,\,1.63,\,1.96)\times10^{-5}$ against three DeepSet runs at
-$(3.40,\,3.23,\,3.41)\times10^{-5}$. Intermediate confinements
-($\omega=0.28,\,0.05,\,0.03$) reproduce the same ordering at ratios $1.2$--$1.8$. The one
-place the ordering is not resolved is the smallest capacity tier used for the depth
-analysis ($12$k CTNN vs $9$k DeepSet), where the two sit within $8\%$ of each other at
-$\omega=1$ and $0.5$---so this is a statement about trained production models, not about
-the architectures at any size.
+ansätze evaluated on their own $|\Psi|^2$. Measured at matched training protocol,
+$\Var(E_L)$ is lower for the message-passing correlator at every confinement
+(Table~\ref{tab:varEL}), by factors between $1.2$ and $3.4$, while the two are
+indistinguishable in energy.
+
+Two qualifications fix the size of that effect, and they pull in opposite directions. At
+the crystal a seeded replication is available, and we report it in preference to the single
+cascade run: three CTNN runs give $(1.95,\,1.63,\,1.96)\times10^{-5}$ against three
+DeepSet runs at $(3.40,\,3.23,\,3.41)\times10^{-5}$. The two sets do not overlap, which is
+the finding; but the ratio of their means is $1.8$, not the $7.4$ obtained by pairing the
+single lowest-variance CTNN cascade run against its DeepSet counterpart. The seeded ratio
+is the one we quote. Capacity works the other way. The first four rows compare $79.8$k CTNN
+against $47.7$k DeepSet, a $1.7\times$ advantage to the message-passing network that a
+reader is entitled to discount. Repeating $\omega=1$ against the capacity-matched $89.4$k
+DeepSet---averaging the Adam and SR arms of the optimiser study on both sides, so that
+nothing but architecture differs---gives $2.75\times10^{-2}$ against $9.38\times10^{-2}$, a
+ratio of $3.4$. The separation is therefore not an artefact of the CTNN being the larger
+network; at matched size it is wider than the production comparison shows. Intermediate
+confinements ($\omega=0.28,\,0.05,\,0.03$) reproduce the same ordering at ratios
+$1.2$--$1.8$. The one place the ordering is not resolved is the smallest capacity tier used
+for the depth analysis ($12$k CTNN vs $9$k DeepSet), where the two sit within $8\%$ of each
+other at $\omega=1$ and $0.5$---so this is a statement about trained models at production
+width, not about the architectures at any size.
 
 \begin{table}[htbp]\centering
-\caption{Local-energy variance at $N{=}6$, matched training protocol and production
-capacity ($79.8$k CTNN vs $47.7$k DeepSet), both at reference-quality energy
-($|{\rm err}|\le0.13\%$). Lower is better; $\Var(E_L)\to0$ only for an exact eigenstate.}
+\caption{Local-energy variance at $N{=}6$, matched training protocol, both architectures at
+reference-quality energy ($|{\rm err}|\le0.13\%$). Lower is better; $\Var(E_L)\to0$ only for
+an exact eigenstate. The first four rows are single runs of the production cascade at
+$79.8$k (CTNN) against $47.7$k (DeepSet) parameters; the $\omega=0.01$ row is instead the
+mean over three seeds per architecture, because a seeded replication exists there and a
+single cascade run is not representative of it (see text). The last row repeats $\omega=1$
+against the \emph{capacity-matched} $89.4$k DeepSet, where the ordering is if anything
+stronger.}
 \label{tab:varEL}
-\begin{tabular}{lccc}
+\begin{tabular}{lcccc}
 \hline
-$\omega$ & CTNN & DeepSet & ratio \\
+$\omega$ & CTNN & DeepSet & ratio & basis \\
 \hline
-$1.0$  & $1.09\times10^{-2}$ & $2.51\times10^{-2}$ & $2.3$ \\
-$0.5$  & $4.62\times10^{-3}$ & $1.01\times10^{-2}$ & $2.2$ \\
-$0.1$  & $5.63\times10^{-4}$ & $1.14\times10^{-3}$ & $2.0$ \\
-$0.01$ & $4.11\times10^{-6}$ & $3.04\times10^{-5}$ & $7.4$ \\
+$1.0$  & $1.09\times10^{-2}$ & $2.51\times10^{-2}$ & $2.3$ & single run, $79.8$k vs $47.7$k \\
+$0.5$  & $4.62\times10^{-3}$ & $1.01\times10^{-2}$ & $2.2$ & single run, $79.8$k vs $47.7$k \\
+$0.1$  & $5.63\times10^{-4}$ & $1.14\times10^{-3}$ & $2.0$ & single run, $79.8$k vs $47.7$k \\
+$0.01$ & $1.85\times10^{-5}$ & $3.35\times10^{-5}$ & $1.8$ & 3-seed mean, $79.8$k vs $47.7$k \\
+\hline
+$1.0$  & $2.75\times10^{-2}$ & $9.38\times10^{-2}$ & $3.4$ & matched, $79.8$k vs $89.4$k \\
 \hline
 \end{tabular}
 \end{table}
@@ -209,8 +233,8 @@ The same relational channel is decisive, in a sharper form, in the backflow. Her
 fix everything but the backflow architecture (conventional single-round messages vs.\ the copresheaf CTNN)
 and train both to a Woodbury-SR endpoint. At $\omega=1$ both reach reference
 quality, but they diverge as the trap weakens (Table~\ref{tab:bf_energies}): the
-CTNN backflow holds $\sim\!0.02\%$ error across all $N,\omega$, while the
-conventional backflow degrades to $+0.5\%$ at $N=6,\omega=0.01$ and $\sim\!6\times$
+CTNN backflow stays within $0.01$--$0.12\%$ across all $N,\omega$, while the
+conventional backflow degrades to $+0.58\%$ at $N=6,\omega=0.01$ and $\sim\!6\times$
 the CTNN error at $N=20,\omega=0.01$ ($+0.69\%$ vs.\ $+0.12\%$).
 
 \begin{table}[htbp]\centering
@@ -236,8 +260,9 @@ space. Both architectures sit near that limit at large $\omega$, and the partici
 ratio quoted here is a spectral statistic rather than a hard count, so it need not
 saturate at an integer. Toward Wigner the \emph{conventional} backflow collapses to a single
 collective mode (rank $\to1$) while the CTNN backflow stays near the ceiling
-(Table~\ref{tab:bf_rank}); the collapse sharpens with size ($10\!\to\!1$ at $N=6$,
-$22\!\to\!1$ at $N=12$, $35\!\to\!1$ at $N=20$). The tangent dimension tells the same story
+(Table~\ref{tab:bf_rank}). The endpoint is the same at every size---rank $1$, from ceilings
+of $10$, $22$ and $38$ at $N=6$, $12$ and $20$---so what grows with $N$ is the height of the
+fall, not the sharpness of it. The tangent dimension tells the same story
 from the other side: toward Wigner $d_{\mathrm{eff}}$ grows for CTNN ($\sim\!4\!\to\!10$)
 and collapses for the conventional backflow ($\sim\!6\!\to\!1$). The collapse to
 \emph{exactly} rank~1 is seed-robust at every size. Rank is not the discriminator above the
@@ -344,7 +369,6 @@ common relational bottleneck beneath both rather than proving them literally ide
 \section{Conditioning and the sampling measure}
 \label{sec:kernel-cond}
 \label{sec:kernel-q2}
-\label{sec:kernel-q3}
 
 Two design choices remain, and the tangent geometry settles both at once. The optimiser
 question---what does a natural-gradient step buy over a diagonal one---and the paradigm
@@ -1094,7 +1118,7 @@ computational cost.
 \section{A physics-informed proposal and its limit}
 \label{sec:kernel-q3-frontier}
 
-The ESS collapse of \S\ref{sec:kernel-q3} is a limitation of the \emph{proposal}, not
+The ESS collapse of \S\ref{sec:kernel-cond} is a limitation of the \emph{proposal}, not
 of collocation itself, and it can be pushed back a long way. A physics-informed proposal
 carries MCMC-free collocation deep into the Wigner regime; what limits it, and the wall
 that survives, follow from the same physics.
@@ -1117,7 +1141,7 @@ no mass; hence the collapse.
 \subsection{The Wigner-ring proposal}
 We replace the origin mixture with a \emph{Wigner-ring} proposal: a radial Gaussian at the
 shell radius times an angular distribution for the ring electrons, plus a central Gaussian.
-On trusted states this lifts the effective sample size by $15$--$47\times$ over the origin
+On trusted states this lifts the effective sample size by $15$--$32\times$ over the origin
 mixture (Table~\ref{tab:ring-ess}), turning a collapsed sampler into a usable one---without
 any training. Fitting the ring to $|\Psi|^2$ samples (the simplest
 adaptive form) doubles the ESS again; a $(1,5)+(0,6)$ mixture \emph{hurts} at $N=6$, since
@@ -1241,9 +1265,9 @@ two. \emph{State-level} quantities---the energy, the local-energy variance $\Var
 the symmetric overlap between two trained states---are properties of the wavefunction and
 are unaffected by how the parameters are arranged. $\Var(E_L)$ does most of the work,
 because it separates the two families where the energy cannot and where $d_{\mathrm{eff}}$
-no longer does: at matched protocol and production capacity it is lower for the
-message-passing ansatz at every confinement, by factors of two to seven
-(Table~\ref{tab:varEL}), with non-overlapping seeds at the crystal. \emph{Controlled
+no longer does: at matched protocol it is lower for the message-passing ansatz at every
+confinement, by factors between $1.2$ and $3.4$ (Table~\ref{tab:varEL}), with
+non-overlapping seeds at the crystal and the widest separation at matched capacity. \emph{Controlled
 interventions}---deleting a component and pricing the loss in energy---are not
 gauge-invariant in the same sense, since two parameterisations that divide correlation
 differently will report different ablation costs; they are reproducible statements about a

@@ -111,7 +111,7 @@ rather than as an artefact of having added parameters.
 
 \begin{table}[h!]
 \centering
-\caption{Ground-state energies (Hartree) for two electrons in a harmonic trap using
+\caption[Two-electron energies from residual-only training]{Ground-state energies (Hartree) for two electrons in a harmonic trap using
 \emph{residual-only} training---that is, \emph{without} the SR tail. To be read against
 Table~\ref{tab:energies}, which reports the same systems after SR refinement: the
 comparison isolates what pretraining alone achieves, and the residual bias at
@@ -140,7 +140,7 @@ Fig.~\ref{fig:rel_error_vs_omega}).
 
 \begin{table}[htbp]
   \centering
-  \caption{Residual-based pretraining + SR tail. Reference energies and our PINN+BF
+  \caption[Ground-state energies against the available references]{Residual-based pretraining + SR tail. Reference energies and our PINN+BF
   and PINN+CTNN ground-state energies (Hartree) for selected $(N,\omega)$.
 The reference column collects the best available benchmark for each size, and the two are
   \emph{not} of equal standing: fixed-node DMC from
@@ -200,7 +200,7 @@ The reference column collects the best available benchmark for each size, and th
 \begin{figure}[htbp]
   \centering
   \includegraphics[width=0.8\textwidth]{rel_error_vs_omega_allN}
-  \caption{Relative deviation of PINN+BF ground-state energies from DMC
+  \caption[Relative deviation from the DMC references]{Relative deviation of PINN+BF ground-state energies from DMC
   references as a function of trap frequency $\omega$ for the cases where
   DMC data are available. For $N{=}2$ the deviations are at or below the DMC
   error bars ($\sim 10^{-3}\,\%$), while for $N{=}6$ and $N{=}12$ the errors
@@ -220,7 +220,7 @@ the question they answer is the same one.
 
 \begin{table}[htbp]
   \centering
-  \caption{Best ground-state energies from collocation-assisted training.
+  \caption[Best energies from collocation-assisted training]{Best ground-state energies from collocation-assisted training.
   ``Multi-stage'' denotes the best result from earlier campaigns using
   hand-tuned continuation chains; ``Campaign (best)'' denotes the
   best single result from the 30-run reliability campaign for $N{=}6$
@@ -405,7 +405,7 @@ and the onset of Wigner-molecule ordering.
     \caption{$N{=}12,\;\omega=0.001$}
   \end{subfigure}
 
-  \caption{One-body densities for $N=2,6,12$ at $\omega=1.0$ (top) and
+  \caption[One-body densities at strong and weak confinement, $N=2,6,12$]{One-body densities for $N=2,6,12$ at $\omega=1.0$ (top) and
   $\omega=0.001$ (bottom). As confinement weakens, the densities broaden and
   develop pronounced shell structures characteristic of Wigner molecules.}
   \label{fig:onebody_grid}
@@ -425,7 +425,7 @@ and the onset of Wigner-molecule ordering.
     \includegraphics[width=\linewidth]{one_body_density_20_omega_0.00100.pdf}
     \caption{$N{=}20,\;\omega=0.001$}
   \end{subfigure}
-  \caption{One-body densities for $N{=}20$ at strong and weak confinement.
+  \caption[One-body densities at strong and weak confinement, $N{=}20$]{One-body densities for $N{=}20$ at strong and weak confinement.
   The weak-trap case shows strong radial broadening and clear multi-shell
   organization, consistent with deep Wigner-molecule ordering.}
   \label{fig:onebody_n20}
@@ -441,17 +441,17 @@ and the onset of Wigner-molecule ordering.
 
   \begin{subfigure}[t]{0.48\textwidth}
     \includegraphics[width=\linewidth]{ratio_T_over_Vint_desc_allN}
-    \caption{$T/V_{\rm int}$ vs.\ $\omega$ for $N{=}2,6,12$.
+    \caption[]{$T/V_{\rm int}$ vs.\ $\omega$ for $N{=}2,6,12$.
     The horizontal line marks $T/V_{\rm int}{=}0.1$.}
   \end{subfigure}
   \hfill
   \begin{subfigure}[t]{0.48\textwidth}
     \includegraphics[width=\linewidth]{ratio_2Vtrap_over_Vint_desc_allN}
-    \caption{$2V_{\rm trap}/V_{\rm int}$ vs.\ $\omega$ for $N{=}2,6,12$.
+    \caption[]{$2V_{\rm trap}/V_{\rm int}$ vs.\ $\omega$ for $N{=}2,6,12$.
     The horizontal line marks the classical virial ratio $2V_{\rm trap}=V_{\rm int}$.}
   \end{subfigure}
 
-  \caption{Energy-based Wigner diagnostics as functions of trap frequency.
+  \caption[Energy-based Wigner diagnostics against trap frequency]{Energy-based Wigner diagnostics as functions of trap frequency.
   As $\omega$ decreases the dots become interaction dominated
   ($T/V_{\rm int}\!\ll1$) and the trap--interaction partition approaches the
   classical virial form, most clearly for $N{=}12$.}
@@ -501,7 +501,7 @@ rather than merely dilating (Table~\ref{tab:radial-compact}).
 
 \begin{table}[H]
 \centering
-\caption{Radial localisation across the confinement range. $r_{\rm mode}$ is the mode of
+\caption[Radial localisation across the confinement range]{Radial localisation across the confinement range. $r_{\rm mode}$ is the mode of
 the single-particle radial density in Bohr; $\gamma=\sigma_r/r_{\rm mode}$ is the
 width-to-scale ratio, which falls as the shell stiffens. Full diagnostics---mean, width,
 FWHM, quantiles, ring-angle spread and pair Lindemann ratio---are in
@@ -629,7 +629,7 @@ confinement; polygonal order explains a growing remainder as the molecule forms.
 \begin{figure}[htbp]
   \centering
   \includegraphics[width=0.85\textwidth]{mixfit_N12_w0.001_nin3.pdf}
-  \caption{Shell-resolved reconstruction of $g(r)$ at $\omega=10^{-3}$ for
+  \caption[Shell-resolved reconstruction of $g(r)$, $N{=}12$]{Shell-resolved reconstruction of $g(r)$ at $\omega=10^{-3}$ for
   $N{=}12$.  The global pair distribution is reproduced by a convex mixture
   of inner--inner (II), inner--outer (IO) and outer--outer (OO) histograms
   with weights set by the observed $(n_{\rm in},n_{\rm out})$ statistics.}
@@ -769,7 +769,7 @@ Table~\ref{tab:correlator-geom} reports these quantities for all CTNN configurat
 
 \begin{table}[t]
 \centering
-\caption{Correlator geometry (CTNN).
+\caption[Correlator feature geometry]{Correlator geometry (CTNN).
 $r_{\mathrm{eff}}$: entropy-based effective rank of $Z$.
 $|\rho|$: absolute correlation between head output and PC1 reconstruction.
 $\phi/\psi/\mathrm{g}$: fraction of PC1 variance from the orbital, pair, and auxiliary branches.
@@ -853,7 +853,7 @@ and the CKA similarity between the correlator features with and without backflow
 
 \begin{table}[t]
 \centering
-\caption{CTNN backflow geometry.
+\caption[Backflow displacement geometry]{CTNN backflow geometry.
 $\|\Delta\mathbf{x}\|/\ell$: mean displacement magnitude normalised by harmonic length.
 Rank: effective rank of the displacement covariance.
 $2N{-}2$: maximum possible rank after centre-of-mass projection.
@@ -950,7 +950,7 @@ toward their nearest neighbour.
 
 \begin{table}[t]
 \centering
-\caption{PINN--CTNN coupling diagnostics (CTNN ansatz).
+\caption[Correlator--backflow coupling diagnostics]{PINN--CTNN coupling diagnostics (CTNN ansatz).
 $\langle\cos\rangle$: mean cosine between $\nabla f$ and $\Delta\mathbf{x}$.
 Aligned: fraction of configs with $\nabla f \cdot \Delta\mathbf{x} > 0$.
 $|\delta f|/\sigma_f$: BF-induced change in PINN output relative to its standard deviation.

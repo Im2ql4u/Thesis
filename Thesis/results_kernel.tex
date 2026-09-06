@@ -92,7 +92,7 @@ how each architecture spends its tangent directions, not a change of coordinates
 
 \begin{figure}[htbp]\centering
   \includegraphics[width=0.95\textwidth]{fair_dimension.png}
-  \caption{Message passing compresses the correlator ($N{=}6$, $\omega{=}1$).
+  \caption[Message passing compresses the correlator]{Message passing compresses the correlator ($N{=}6$, $\omega{=}1$).
   \emph{Left:} the effective rank of the quantum geometric tensor on a common pooled probe,
   converged in the number of probe samples. \emph{Right:} the same pooled measure per model.
   The CTNN (blue) reaches the ground state in $d_{\mathrm{eff}}\!\approx\!1.2$--$1.7$, while
@@ -150,7 +150,7 @@ other at $\omega=1$ and $0.5$---so this is a statement about trained models at p
 width, not about the architectures at any size.
 
 \begin{table}[htbp]\centering
-\caption{Local-energy variance at $N{=}6$, matched training protocol, both architectures at
+\caption[Local-energy variance by architecture]{Local-energy variance at $N{=}6$, matched training protocol, both architectures at
 reference-quality energy ($|{\rm err}|\le0.13\%$). Lower is better; $\Var(E_L)\to0$ only for
 an exact eigenstate. The first four rows are single runs of the production cascade at
 $79.8$k (CTNN) against $47.7$k (DeepSet) parameters; the $\omega=0.01$ row is instead the
@@ -188,7 +188,7 @@ actually couples.
 
 \begin{figure}[htbp]\centering
   \includegraphics[width=0.8\textwidth]{mode_naming_scan.png}
-  \caption{The leading tangent mode is a nameable physical mode. $R^2$ of the correlator's
+  \caption[The leading tangent mode is a nameable physical mode]{The leading tangent mode is a nameable physical mode. $R^2$ of the correlator's
   leading tangent-kernel eigenmode onto the physical-operator dictionary, seed-averaged over
   well-trained checkpoints. The CTNN stays physical at every $\omega$ and both sizes; the
   DeepSet matches it down to $\omega\!\approx\!0.1$ and then loses the leading mode entirely
@@ -217,7 +217,7 @@ $\approx\!0.77$ at $\omega=1$---the gap \emph{widens} with system size rather th
 
 \begin{figure}[htbp]\centering
   \includegraphics[width=0.72\textwidth]{nonphys_mass.png}
-  \caption{A limitation visible where the energy cannot see it. Dictionary-orthogonal tangent mass---the
+  \caption[Dictionary-orthogonal tangent mass against $\omega$]{A limitation visible where the energy cannot see it. Dictionary-orthogonal tangent mass---the
   eigenvalue-weighted tangent variance outside the span of a compact physical-operator
   dictionary---versus $\omega$. At
   $\omega=1$ the two correlators are indistinguishable in energy ($-0.001\%$) and in
@@ -320,7 +320,7 @@ effect.
 
 \begin{figure}[htbp]\centering
   \includegraphics[width=0.72\textwidth]{message_ablation.png}
-  \caption{What message passing buys, by ablation (trained networks, $N{=}6$; energy
+  \caption[What message passing buys, by ablation]{What message passing buys, by ablation (trained networks, $N{=}6$; energy
   relative to the full model, all arms evaluated on a common probe drawn from the full
   model's $|\Psi|^2$). Removing the backflow (orange) costs $\sim\!6\%$ at $\omega{=}1$ but
   under $0.02\%$ at $\omega{=}0.01$, while removing the Jastrow messages (red) or all
@@ -362,7 +362,7 @@ common relational bottleneck beneath both rather than proving them literally ide
 
 \begin{figure}[htbp]\centering
   \includegraphics[width=\textwidth]{q1_unification.png}
-  \caption{Correlator physicality and backflow rank collapse together ($N=6$; the backflow
+  \caption[Correlator physicality and backflow rank collapse together]{Correlator physicality and backflow rank collapse together ($N=6$; the backflow
   architecture is held fixed, only the correlator changes). For each correlator, the
   correlation-hole capture (left axis) and the backflow displacement rank (right axis) give way
   at the same $\omega$: $\omega\!\approx\!0.05$ for the DeepSet, $\omega\!\approx\!0.01$ for the
@@ -406,7 +406,7 @@ four decimals. Whatever makes SR unnecessary under $|\Psi|^2$ sampling, it is no
 metric is well conditioned.
 
 \begin{table}[htbp]\centering
-\caption{Condition number of the empirical quantum geometric tensor at $N{=}6$, $\omega=1$,
+\caption[Condition number of the empirical geometric tensor]{Condition number of the empirical quantum geometric tensor at $N{=}6$, $\omega=1$,
 measured on each trained state's own $|\Psi|^2$ samples at fixed batch $B=768$. Because
 $B<P$, $\lambda_{\min}$ is the smallest sample-supported eigenvalue and $\kappa$ is a
 property of the metric the optimiser actually sees (\S\ref{sec:analysis-kernel}); the values
@@ -490,7 +490,7 @@ than as a measured orthogonality.
 
 \begin{figure}[htbp]\centering
   \includegraphics[width=0.62\textwidth]{ess_collapse.png}
-  \caption{The naive collocation proposal collapses in the Wigner regime ($N{=}6$). The
+  \caption[ESS collapse of the naive collocation proposal]{The naive collocation proposal collapses in the Wigner regime ($N{=}6$). The
   effective sample size (as a percentage of the batch) falls by more than an order of
   magnitude from $\omega{=}1$ to $\omega{=}0.01$, where it reaches $\sim\!0.1\%$---about five
   usable points in a batch of $4096$. This is a property of the sampling measure, not of
@@ -741,7 +741,7 @@ below was, at the time, an intuitively reasonable idea. Each turned out to viola
 assumption the method had never been forced to state.
 
 \begin{table}[htbp]\centering
-\caption{Collocation variants tried, and what each one settled. Errors are relative to
+\caption[Collocation variants tried, and what each one settled]{Collocation variants tried, and what each one settled. Errors are relative to
 the reference of Table~\ref{tab:collocation}. The three marked $\dagger$ are taken up in
 prose below; the rest are recorded for completeness.}
 \label{tab:colloc-variants}
@@ -898,7 +898,7 @@ a mean, standard deviation, and worst-case error.
 
 \begin{table}[htbp]
   \centering
-  \caption{Reliability campaign: relative energy errors for
+  \caption[Reliability campaign: 30 runs across five confinements]{Reliability campaign: relative energy errors for
   $N{=}6$ across five trap frequencies, scored against the reference column of
   Table~\ref{tab:collocation}---DMC at $\omega\ge0.1$, and our own converged
   variational (PINN+CTNN) energy at $\omega\le0.01$, where no DMC value exists.
@@ -1016,7 +1016,7 @@ striking.
 
 \begin{table}[h]
   \centering
-  \caption{Average Pareto $\hat{k}$ of the importance weight
+  \caption[Pareto $\hat{k}$ by regime and recipe]{Average Pareto $\hat{k}$ of the importance weight
   distribution during training, by regime and recipe.
   Lower is better; $\hat{k}<0.7$ is considered reliable,
   $\hat{k}>1.0$ indicates infinite-variance weights.}
@@ -1088,7 +1088,7 @@ the true energy.
 
 \begin{table}[h]
   \centering
-  \caption{Gap between VMC-best checkpoint energy (Metropolis sampling
+  \caption[Gap between the VMC probe and the IS evaluation]{Gap between VMC-best checkpoint energy (Metropolis sampling
   from $|\Psi|^2$) and final IS evaluation, for selected runs.
   Positive gap means IS reports higher (worse) energy than the VMC
   probe saw.}
@@ -1196,7 +1196,7 @@ adaptive form) doubles the ESS again; a $(1,5)+(0,6)$ mixture \emph{hurts} at $N
 the state is $(1,5)$ and the extra channel dilutes the proposal mass.
 
 \begin{table}[htbp]\centering
-\caption{ESS (of 4096) against a trusted $N=6,\omega=0.01$ state. The origin mixture is
+\caption[ESS of the origin and Wigner-ring proposals]{ESS (of 4096) against a trusted $N=6,\omega=0.01$ state. The origin mixture is
 already collapsed; the ring proposal covers the shell.}
 \label{tab:ring-ess}
 \begin{tabular}{lc}
@@ -1237,7 +1237,7 @@ $\omega=0.01$, Table~\ref{tab:ring-ess}). The essential ingredient is the contin
 collapses to $\mathrm{ESS}\!\sim\!1$ as the wavefunction moves away from it.
 
 \begin{table}[htbp]\centering
-\caption{MCMC-free Wigner-ring cascade, $N=6$: heavy-VMC energy vs.\ the fitted Wigner
+\caption[MCMC-free Wigner-ring cascade, $N{=}6$]{MCMC-free Wigner-ring cascade, $N=6$: heavy-VMC energy vs.\ the fitted Wigner
 scaling curve $E(\omega)\approx 0.690\,(\omega/0.01)^{0.689}$, whose exponent is close to
 the classical $2/3$ but whose prefactor is anchored at $\omega=0.01$, where no external
 reference exists. The agreement is therefore internal consistency, not validation. Good to

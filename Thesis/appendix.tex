@@ -811,7 +811,7 @@ burn-in.
 
 \begin{table}[htbp]
 \centering
-\caption{Baseline collocation results for $N{=}6$, $\omega{=}0.5$.
+\caption[Baseline strong-form collocation results]{Baseline collocation results for $N{=}6$, $\omega{=}0.5$.
 ``PINN only'' trains without backflow; ``PINN\,+\,CTNN joint'' trains both
 networks from scratch for 300 epochs with $\mathrm{bf\_scale}=0.7$.
 The backflow provides only a marginal improvement of ${\sim}0.1$ percentage
@@ -846,7 +846,7 @@ collocation batch, hoping to give the backflow a stronger learning signal.
 
 \begin{table}[htbp]
 \centering
-\caption{Effect of sampling strategy on collocation accuracy.
+\caption[Effect of sampling strategy on collocation accuracy]{Effect of sampling strategy on collocation accuracy.
 All experiments use 50-epoch fine-tuning from the best
 collocation checkpoint ($0.35\%$), except ``hard-smooth (scratch)''
 which trains 300 epochs from random initialisation.}
@@ -878,7 +878,7 @@ rapid energy divergence.
 
 \begin{table}[htbp]
 \centering
-\caption{Effect of loss function modifications.
+\caption[Effect of loss-function modifications]{Effect of loss function modifications.
 The hybrid loss adds a mean-energy (variational) term;
 the det filter discards points with small $|\det\tilde S|$.}
 \label{tab:c22:loss}
@@ -911,7 +911,7 @@ We attacked the divergence sources in $E_L$ directly:
 
 \begin{table}[htbp]
 \centering
-\caption{Regularisation of the $E_L$ singularity (50-epoch
+\caption[Regularisation of the $E_L$ singularity]{Regularisation of the $E_L$ singularity (50-epoch
 fine-tune from $0.35\%$ checkpoint). Each modification smooths or clips
 one of the divergent contributions to $E_L$.}
 \label{tab:c22:reg}
@@ -939,7 +939,7 @@ None of the regularisations improve upon the baseline.
 
 \begin{table}[htbp]
 \centering
-\caption{Gradient preconditioning experiments (300-epoch scratch training
+\caption[Gradient preconditioning experiments]{Gradient preconditioning experiments (300-epoch scratch training
 unless noted). K-FAC~\cite{MartensGrosse2015-KFAC} uses block-diagonal Kronecker-factored
 Fisher on the backflow network only.}
 \label{tab:c22:kfac}
@@ -970,7 +970,7 @@ fundamental divergence in $E_L$.
 
 \begin{table}[htbp]
 \centering
-\caption{Complete summary of all collocation-based backflow experiments
+\caption[All strong-form collocation interventions]{Complete summary of all collocation-based backflow experiments
 for $N{=}6$, $\omega{=}0.5$.
 No intervention breaks the ${\sim}0.32\%$ accuracy floor.
 The final row is the same ansatz \emph{family} under VMC\,+\,SR at production width
@@ -1291,7 +1291,7 @@ accompanying it---which is the separation between radial and angular melting ant
 
 \begin{table}[H]
 \centering
-\caption{Shell-resolved diagnostics at the modal topology, all frames, for every
+\caption[Shell-resolved diagnostics across the whole grid]{Shell-resolved diagnostics at the modal topology, all frames, for every
 $(N,\omega)$. Occupancies are $(n_{\rm in},\dots,n_{\rm out})$; $\tilde r_s$ are mean shell
 radii in trap units; $\lambda_s$ are the per-shell angular Lindemann numbers; $|\Phi_{n_s}|$
 is the rotation-registered bond order on shell $s$; and the final column is $|\Phi_{n_s}|$
@@ -1359,7 +1359,7 @@ Table~\ref{tab:shell-summary} record, measured on a different quantity and on he
 
 \begin{table}[H]
 \centering
-\caption{Shell-model fit to the pair-distance distribution. The empirical
+\caption[Shell-model fit to the pair-distance distribution]{Shell-model fit to the pair-distance distribution. The empirical
 $p_{\rm test}(r_{ij})$ on held-out frames is compared with (i) a \emph{polygon} model, in
 which each detected shell is a regular $n_s$-gon with a per-frame global rotation and fitted
 angular jitter, and (ii) a \emph{uniform-angle} null with the same fitted radial
@@ -1406,7 +1406,7 @@ prefactor as well as a power.
 
 \begin{table}[H]
 \centering
-\caption{Fitted outer-shell radius of the $N{=}6$ $(1,5)$ molecule against the classical
+\caption[Measured shell radius against the classical prediction]{Fitted outer-shell radius of the $N{=}6$ $(1,5)$ molecule against the classical
 Wigner ring $r_{\rm cl}=1.334\,\omega^{-2/3}$. Radii in Bohr.}
 \label{tab:classical-radius}
 \begin{tabular}{ccccc}

@@ -1503,8 +1503,9 @@ not silently replace measured numbers whose provenance I could not establish.
 Both sets support the same conclusion against the null, but which analysis run is
 canonical needs settling before submission.
 
-Full audit report, with the per-finding evidence and the recomputations:
-https://claude.ai/code/artifact/56d1f820-2dca-48a5-affc-cfefc1265b1e
+The audit report was published as a browsable page and has since been deleted; the
+per-finding evidence and every recomputation it contained are preserved in the commit
+messages of 2026-09-06 (a83cd06, b31c7a9, ea44ed6, 656e298) and in the entries above.
 
 ---
 

@@ -128,14 +128,11 @@ develops.
 
 \section*{Naming}
 
-In these chapters the two learnable objects are named by function rather than by
-implementation class. The \emph{correlator} is the Jastrow factor $W_\theta$ and comes in a
-\emph{separable} form (independent per-particle and pairwise embeddings, then pooling) and a
-\emph{message-passing} form. The \emph{backflow} is the coordinate displacement field and
-comes in a \emph{conventional} form (a single round of pairwise messages) and a
-\emph{message-passing} form (persistent, transported edge state). The corresponding code
-classes---\texttt{CTNNJastrowVCycle}, \texttt{BackflowNet}, \texttt{CTNNBackflowNet}---are
-specified in Chapter~\ref{ch:trial_wavefunction} and used here only where the exact
-implementation matters.
+The two learnable objects are named by function here, not by implementation class. The
+\emph{correlator} is the Jastrow factor $W_\theta$, in a \emph{separable} form
+(per-particle and pairwise embeddings pooled independently) or a \emph{message-passing} one;
+the \emph{backflow} is the displacement field, in a \emph{conventional} form (one round of
+pairwise messages) or a \emph{message-passing} one (persistent, transported edge state). The
+corresponding code classes are specified in Chapter~\ref{ch:trial_wavefunction}.
 
 \clearpage

@@ -67,14 +67,10 @@ the parameter count is independent of $N$ because particle
 interactions enter through permutation-equivariant features rather than
 per-particle weights.
 
-Three parameter budgets are used for distinct purposes. These
-\emph{production} networks carry the SR--VMC energies above. The \emph{collocation}
-runs of Chapter~\ref{ch:kernel} use deliberately smaller models ($\sim\!25$k Jastrow-only,
-$\sim\!49$k with backflow), because that programme is limited by gradient noise and memory
-rather than by capacity. And the \emph{controlled comparison} of Chapter~\ref{ch:kernel}
-uses its own matched ladder (Table~\ref{tab:hyperparams}), so that architecture can be
-varied with size held fixed. Numbers from one budget are never compared with numbers from
-another.
+These are the \emph{production} networks; they are distinct from both the capacity-matched
+ladder of \S\ref{sec:kernel-q1a} and the smaller collocation models of
+\S\ref{sec:kernel-mcmcfree}, and numbers are never compared across the three (see the
+programme map on p.~\pageref{ch:results-map}).
 
 \subsection{Energies}
 
@@ -109,7 +105,7 @@ Table~\ref{tab:Residual} begins with the easiest case, and its purpose is
 diagnostic rather than competitive: two electrons are few enough that the
 architecture can be tested nearly in isolation. It reports two-electron energies
 from \emph{residual-only} training (PINN and PINN+BF). For $N{=}2$, backflow is
-\emph{not} required to reach DMC accuracy;
+\emph{not} required to reach reference accuracy;
 it slightly reduces the variance and smooths convergence, and nothing more. The
 Slater--Jastrow correlator already places the nodes well enough at this size. This
 matters because it establishes a baseline against which the backflow's later
@@ -122,12 +118,15 @@ rather than as an artefact of having added parameters.
 \emph{residual-only} training---that is, \emph{without} the SR tail. To be read against
 Table~\ref{tab:energies}, which reports the same systems after SR refinement: the
 comparison isolates what pretraining alone achieves, and the residual bias at
-$\omega=0.01$ visible here is the one the SR tail removes. DMC references from
-\cite{Pederiva2000-QD-DMC}. Parentheses denote $1\sigma$ on the last digits.}
+$\omega=0.01$ visible here is the one the SR tail removes. The reference column is the same
+as in Table~\ref{tab:energies}: Taut's analytic two-electron
+solution~\cite{Taut1994-TwoElectrons} at $\omega=1$ and $0.5$, and fixed-node diffusion
+Monte Carlo~\cite{Hogberget2013-DMC} at $\omega=0.1$ and $0.01$, where no analytic solution
+is available. Parentheses denote $1\sigma$ on the last digits.}
 \label{tab:Residual}
 \begin{tabular}{c c c c}
 \hline
-$\omega$ & PINN+BF & PINN & DMC (Ref.) \\
+$\omega$ & PINN+BF & PINN & Reference \\
 \hline
 1.00  & 2.99998(3)   & 2.999940(5)  & 3.00000(1) \\
 0.50  & 1.65975(2)   & 1.65979(3)   & 1.65977(1) \\
@@ -250,8 +249,8 @@ falls below it we read this as a plausibly improved nodal structure rather than 
 --- though establishing that rigorously would require the DMC trial nodes and a matched
 uncertainty analysis, which we have not undertaken.
 
-Wherever an external check exists, the pattern is the same. For $N{=}2$ the ansatz reaches DMC
-accuracy at every $\omega$ for which a DMC number exists, and for $N\!\in\!\{6,12\}$
+Wherever an external check exists, the pattern is the same. For $N{=}2$ the ansatz reaches reference
+accuracy at every $\omega$ for which a reference exists, and for $N\!\in\!\{6,12\}$
 the relative deviation stays within $0.008$–$0.05\%$ across the benchmarked
 range ($\omega\ge0.1$; Fig.~\ref{fig:rel_error_vs_omega}). Below $\omega=0.1$ there
 is no DMC reference for $N\ge6$, and we make no claim of absolute accuracy there;
@@ -272,13 +271,17 @@ Up to this point the wavefunction has been the thing under examination. Here it 
 the instrument.
 
 \textbf{The result of this section is that the crossover is staged.} As the trap weakens the
-cloud first expands and its shells stiffen \emph{radially}---the width-to-radius ratio falls,
-discrete occupancies emerge, the energy partition approaches classical force balance---while
-the electrons remain angularly disordered within those shells. Angular order arrives later,
-and abruptly: on every ring at every particle number the bond-orientational parameter sits
-at its random-angle value down to $\omega=0.01$ and departs from it only in the last decade
-of confinement. Radial localisation and angular crystallisation are not one transition, and
-the diagnostics below are arranged to separate them.
+cloud first expands and its shells stiffen \emph{radially}---the width-to-radius ratio
+falls, discrete occupancies emerge, the energy partition approaches classical force
+balance---while the electrons remain very nearly disordered in angle within those shells.
+Angular structure then develops in two steps of its own: a small, gradually growing
+correlation that is measurable well before the Wigner regime, and a large
+bond-orientational ordering confined to the final decade of confinement. Against the
+random-angle baseline the shell bond order runs at $1.00$--$1.02$ of its null value from
+$\omega=1$ down to $\omega=0.1$, reaches $1.10$ at $\omega=0.01$ for $N{=}6$ (and remains
+within $1.03$ at $N{=}12$ and $N{=}20$), and only at $\omega=10^{-3}$ jumps to $1.19$--$1.65$
+on every ring at every particle number. Radial localisation and angular crystallisation are
+not one transition, and the diagnostics below are arranged to separate them.
 
 The subsections take that in order. \S\ref{sec:wigner-onebody} shows the cloud expanding and
 acquiring visible radial structure; \S\ref{sec:wigner-energy} shows interactions taking over
@@ -387,10 +390,14 @@ null model to answer.
   \end{subfigure}
 
   \caption[One-body densities at strong and weak confinement, $N=2,6,12$]{One-body
-  densities for $N=2,6,12$ at $\omega=1.0$ (top) and $\omega=0.001$ (bottom). As confinement
-  weakens the densities broaden and develop pronounced \emph{radial} shell structure. Being
-  lab-frame averages over all orientations of the molecule, they cannot show angular order:
-  that requires the registered diagnostics of \S\ref{sec:wigner-angular}.}
+  densities for $N=2,6,12$ at $\omega=1.0$ (top) and $\omega=0.001$ (bottom). The vertical
+  axis is the one-body density $n(x,y)$ over the two Cartesian components of a single
+  particle's position; the axis label carried in the figure files reads $n(r_1,r_2)$ for the
+  same quantity, which collides with the convention used elsewhere in this thesis, where
+  $\mathbf r_i$ is the position of particle $i$. As confinement weakens the densities broaden
+  and develop pronounced \emph{radial} shell structure. Being lab-frame averages over all
+  orientations of the molecule, they cannot show angular order: that requires the registered
+  diagnostics of \S\ref{sec:wigner-angular}.}
   \label{fig:onebody_grid}
 \end{figure*}
 
@@ -409,8 +416,9 @@ null model to answer.
     \caption{$N{=}20,\;\omega=0.001$}
   \end{subfigure}
   \caption[One-body densities at strong and weak confinement, $N{=}20$]{One-body densities
-  for $N{=}20$ at strong and weak confinement. The weak-trap case shows strong radial
-  broadening and clear multi-shell organisation. As above, this is radial evidence only.}
+  for $N{=}20$ at strong and weak confinement; the vertical axis is $n(x,y)$ as in
+  Fig.~\ref{fig:onebody_grid}. The weak-trap case shows strong radial broadening and clear
+  multi-shell organisation. As above, this is radial evidence only.}
   \label{fig:onebody_n20}
 \end{figure}
 
@@ -552,20 +560,24 @@ order~\cite{Egger_1999,manninen2007metalclustersquantumdots}.
 At $\omega=0.01$ the system fluctuates between a $(1,5)$ sector (fraction
 $\approx 0.69$) and a $(0,6)$ single-ring sector (fraction $\approx 0.31$),
 with bond order $|\Phi_5|=0.453\pm0.214$ and $|\Phi_6|=0.466\pm0.206$
-respectively; here and below the quoted $\pm$ is the frame-to-frame standard deviation of
-$|\Phi_m|$, not a standard error on its mean, which with $3\times10^4$ frames is smaller by
-two orders of magnitude. These values must be read against a null: $n$ independent uniform
-angles give $\langle|\Phi_n|\rangle=0.886/\sqrt n$, which is $0.40$ for $n{=}5$ and $0.36$
-for $n{=}6$ (Appendix~\ref{app:structural-tables:shells}). At $\omega=0.01$ the measured
-bond order is therefore barely above what randomly placed angles would give.
+respectively. Two conventions apply here and below. The quoted $\pm$ is the frame-to-frame
+standard deviation of $|\Phi_m|$, not a standard error on its mean, which with $3\times10^4$
+frames is smaller by two orders of magnitude. And these are \emph{sector-conditioned}
+values---computed on the frames assigned to that sector---which is why they differ slightly
+from the modal-topology values tabulated in
+Appendix~\ref{app:structural-tables:shells}. Both must be read against the random-angle
+null $\langle|\Phi_n|\rangle=0.886/\sqrt n$, which is $0.396$ for $n{=}5$ and $0.362$ for
+$n{=}6$: the ratios here are $1.14$ and $1.29$, so the measured bond order at $\omega=0.01$
+exceeds the random-angle value by a modest margin rather than sitting on it.
 At $\omega=10^{-3}$ the ring stiffens further:
 $(1,5)$ fraction $\approx 0.80$, $(0,6)\approx 0.20$, with
 $|\Phi_5|=0.597\pm0.224$ (Lind$\,\approx\!0.225$) and
-$|\Phi_6|=0.663\pm0.183$ (Lind$\,\approx\!0.205$)---now clearly above the random-angle
-null, by factors of $1.5$ and $1.8$. This is the confinement at which angular order first
-becomes measurable at any particle number
-(Appendix~\ref{app:structural-tables:shells}); at $\omega\ge0.01$ the ratio to the null
-is $1.00$--$1.10$ throughout.
+$|\Phi_6|=0.663\pm0.183$ (Lind$\,\approx\!0.205$)---now far above the random-angle null,
+by factors of $1.51$ and $1.83$. This is the confinement at which $n$-fold angular order
+becomes \emph{large} rather than merely resolvable
+(Appendix~\ref{app:structural-tables:shells}). The distinction matters because with
+$10^4$--$10^6$ frames a $2\%$ excess over the null is already resolved at tens of standard
+errors; detectability is therefore not what separates the regimes, magnitude is.
 Classically $(1,5)$ is the ground-state topology and $(0,6)$ a proximate
 competitor; the observed quantum mixture mirrors this
 hierarchy~\cite{schweigert1994spectralpropertieschargedparticles,Kong_2002}.
@@ -597,12 +609,20 @@ scored on the other half. It reproduces the pair distribution to cosine similari
 $0.987$--$0.999$ across the whole grid, against $0.936$--$0.996$ for an angle-randomised
 null built from the same fitted radial distributions. The difference between them,
 $\Delta\cos$, is what \emph{angular} order buys over shell radii alone, and it grows
-monotonically as the trap weakens at every particle number---at $N{=}12$ from $0.006$ at
-$\omega=1$ to $0.026$ at $\omega=10^{-3}$, at $N{=}6$ from $0.012$ to $0.058$. Shell radii
-alone account for most of the pair structure at strong confinement; polygonal order accounts
-for a growing remainder as the molecule forms. This is the same staged transition the
-bond-order ratios record below, measured on a different quantity and on data the model never
-saw.
+monotonically as the trap weakens at every particle number---at $N{=}12$ from $0.006$ at $\omega=1$ to $0.026$ at $\omega=10^{-3}$, at $N{=}6$ from
+$0.012$ to $0.058$, at $N{=}20$ from $0.003$ to $0.010$. Shell radii alone account for most
+of the pair structure at strong confinement; angular structure accounts for a growing
+remainder as the molecule forms.
+
+The shape of that growth is worth noting, because it is not the same shape the bond-order
+ratios show. $\Delta\cos$ rises by a factor of $1.1$--$2.1$ per decade at every particle
+number, monotonically and without a threshold, whereas the bond order stays flat at its null
+and then jumps. The two are not in conflict: $\Delta\cos$ responds to \emph{any} angular
+correlation that improves the pair-distance density, while $|\Phi_n|$ responds specifically
+to $n$-fold order on a registered ring. Weak angular correlations therefore build gradually
+from strong confinement onward, and crystalline $n$-fold order emerges from them only in the
+final decade. That is a three-stage reading, and it is better supported than a single
+threshold would be.
 
 \begin{table}[htbp]
 \centering
@@ -707,9 +727,10 @@ resolves into the discrete finite-$N$ patterns that classical Coulomb clusters
 predict---$(1,5)$ at $N{=}6$, $(3,9)$ at $N{=}12$, $(1,7,12)$ at
 $N{=}20$~\cite{schweigert1994spectralpropertieschargedparticles,Kong_2002}. The shells
 separate and stiffen. The Lindemann disorder falls monotonically throughout, while
-rotation-registered angular order departs from its random-angle null only in the last decade
-of confinement (Appendix~\ref{app:structural-tables:shells})---radial stiffening precedes
-angular ordering rather than accompanying it. Lab-frame order stays near zero throughout, as
+rotation-registered bond order stays within $2\%$ of its random-angle null down to
+$\omega=0.1$ and reaches $1.19$--$1.65$ times it only at $\omega=10^{-3}$
+(Appendix~\ref{app:structural-tables:shells})---radial stiffening precedes $n$-fold angular
+ordering rather than accompanying it. Lab-frame order stays near zero throughout, as
 expected for a freely rotating molecule.
 The energy partitioning approaches the classical virial form, with $\Gamma$ reaching
 ${\sim}40$ for $N{=}12$ at the weakest trap. None of these was built into the ansatz. The commensurate $(3,9)$ sector at $N{=}12$ carries real weight in
@@ -731,14 +752,18 @@ decomposability rather than sampling correctness; the held-out polygon fit of
 Appendix~\ref{app:structural-tables:mixfit} is the version that could have failed, and
 sampling correctness itself rests on the independent restart and chain diagnostics.
 
-\paragraph{What \S\ref{sec:wigner-molecule} establishes.} The crossover is staged. Radial
+\paragraph{What \S\ref{sec:wigner-molecule} establishes.} The crossover is staged, and the
+two angular diagnostics stage it slightly differently, which is itself informative. Radial
 localisation---expansion, shell separation, falling width-to-radius ratio, classical force
-balance---develops progressively from $\omega=1$ down. Angular order does not: on every ring
-at every particle number the bond-order parameter sits at its random-angle null until
-$\omega=10^{-2}$ and departs from it only in the final decade. Held-out polygon
-reconstruction of $g(r)$ records the same staging on an independent quantity. What this does
-\emph{not} establish is the total spin of these states, which we did not scan, nor that the
-occupancy labels denote crystalline topologies outside the weakest-trap cases.
+balance---develops progressively from $\omega=1$ down. Bond-orientational order is flat at
+its null through $\omega=0.1$, departs slightly at $\omega=0.01$ and only at $N{=}6$, and
+becomes large at $10^{-3}$ everywhere. The held-out polygon model, which is sensitive to any
+angular correlation rather than to $n$-fold order specifically, instead grows monotonically
+throughout, roughly doubling per decade. Read together these say that weak angular
+correlations build gradually across the whole range while \emph{crystalline} $n$-fold order
+appears only in the last decade---a three-stage picture rather than a two-stage one. What
+this does \emph{not} establish is the total spin of these states, which we did not scan, nor
+that the occupancy labels denote crystalline topologies outside the weakest-trap cases.
 
 These structural facts also enter the method. The shell radius approaching its classical
 $\omega^{-2/3}$ scaling---to within $1.7\%$ of the classical prefactor at $\omega=10^{-3}$,

@@ -13,9 +13,9 @@
 \label{ch:kernel}
 
 The previous chapter showed that the ansatz works: it reaches reference quality wherever a
-reference exists, the states it produces are genuine Wigner molecules, and it holds that
-structure on a handful of internal directions. Why it works is a separate and harder
-question.
+reference exists, and the states it produces carry the staged Wigner-molecule structure the
+diagnostics were built to detect. Why the solver can represent those states, and what
+governs whether they can be trained at all, are separate and harder questions.
 
 Three observations from that chapter remain unexplained. Two networks of the same size,
 trained the same way and landing on the same energy, need not be the same object. A
@@ -64,10 +64,9 @@ rather than about accuracy.
 The tooling is anchored on the analytic two-electron ground state, where the ansatz
 returns $E=3.000127$~Ha ($+0.004\%$) at squared overlap $1.000000$.
 
-Quantities defined on a single component of the ansatz, such as the backflow's rank or its
-displacement magnitude, are gauge-like: their values depend on how correlation is divided
-between the Jastrow and the backflow, which the loss barely constrains.
-\S\ref{sec:synthesis} sets out which observables do not depend on that division.
+Component-level quantities such as the backflow's rank are read at the evidential level set
+out on p.~\pageref{ch:results-map}; \S\ref{sec:synthesis} gives the evidence for that
+ordering.
 
 % =====================================================================
 \section{Message passing and the variational geometry}
@@ -612,9 +611,11 @@ one $\omega$, and we do not know how it moves with either.
 Between $|\Psi|^2$-sampled VMC and importance-sampled collocation the wavefunction family
 is identical; only the measure that defines the loss changes. That change has three
 consequences, and underneath them one cause.
-\paragraph{$|\Psi|^2$ is self-preconditioning; the covering proposal is not.}
-Sampling from $|\Psi|^2$ makes the estimator of $S$ and of the gradient share the
-same measure, which conditions the update. A fixed covering proposal instead drives
+\paragraph{Target sampling aligns the estimator with the metric; a covering proposal does
+not.} Sampling from $|\Psi|^2$ makes the estimators of $S$ and of the gradient share the
+measure that defines them, so the directions carrying Fisher weight are also the directions
+the batch populates. That is an alignment between estimator and objective, not
+preconditioning in the sense of applying $S^{-1}$. A fixed covering proposal instead drives
 a monotone \emph{ESS collapse} as $N$ and $1/\omega$ grow: at $N=6,\omega=0.01$ the
 effective sample size falls to $0.11\%$ of the batch: about $5$ of the $4096$ \emph{retained}
 points. Two normalisations are in use in this chapter and they differ by the oversampling
@@ -1071,7 +1072,7 @@ seeds.
 A natural question is whether these results are \emph{typical} or whether
 they reflect rare fortunate outcomes from a high-variance process.
 This subsection reports a systematic 30-run reliability campaign designed
-to answer that question, and reveals a simple causal chain that explains
+to answer that question, and exposes a mechanistic chain that accounts for
 both the successes and failures of the MCMC-free collocation approach.
 
 \subsubsection{Experimental design}
@@ -1171,13 +1172,13 @@ the quality of collocation-trained wavefunctions:
 \begin{equation}
 \boxed{\;\begin{aligned}
   \text{proposal mismatch}
-  &\;\xrightarrow{\text{causes}}\;
+  &\;\longrightarrow\;
   \hat{k}\text{ inflation}
-  \;\xrightarrow{\text{causes}}\;
+  \;\longrightarrow\;
   \text{gradient noise}\\
-  &\;\xrightarrow{\text{causes}}\;
+  &\;\longrightarrow\;
   \text{optimisation stochasticity}
-  \;\xrightarrow{\text{causes}}\;
+  \;\longrightarrow\;
   \text{run-to-run variance}
 \end{aligned}\;}
 \label{eq:chain}
@@ -1217,8 +1218,9 @@ points)---the second of the two normalisations noted in
 weight tail is 0.4--0.5, indicating a well-behaved thin-tailed
 distribution.
 At $\omega{=}0.001$, the ESS collapses to 1--6 out of the same
-$65\text{k}$ draws, and $\hat{k}$ rises above 1.0, entering the
-regime of infinite-variance importance weights.
+$65\text{k}$ draws, and $\hat{k}$ rises above $1.0$, indicating a
+catastrophically heavy fitted tail and a sample far from the regime in which the reweighted
+estimator is reliable.
 
 \paragraph{Step 2: $\hat{k}$ inflation and gradient quality.}
 The tail index $\hat{k}$ of the importance weights turns that mismatch into a number
@@ -1447,7 +1449,7 @@ Wigner ring $(1,5)$, fitted to $|\Psi|^2$ & $47.5$ \\
 \end{tabular}
 \end{table}
 
-\subsection{Angular crystallisation is the deep-Wigner wall}
+\subsection{Angular crystallisation defeats the uniform-angle ring proposal}
 Why does the ring work at $\omega=0.01$ but fail at $\omega=0.001$? The molecule
 \emph{crystallises angularly} as the trap weakens. The nearest-neighbour angular-gap
 standard deviation of the five ring electrons is $40.8^\circ/33.3^\circ/25.5^\circ/6.7^\circ$
@@ -1489,8 +1491,8 @@ collapses to $\mathrm{ESS}\!\sim\!1$ as the wavefunction moves away from it.
 \caption[MCMC-free Wigner-ring cascade, $N{=}6$]{MCMC-free Wigner-ring cascade, $N=6$: heavy-VMC energy vs.\ the fitted Wigner
 scaling curve $E(\omega)\approx 0.690\,(\omega/0.01)^{0.689}$, whose exponent is close to
 the classical $2/3$ but whose prefactor is anchored at $\omega=0.01$, where no external
-reference exists. The agreement is therefore internal consistency, not validation. Good to
-$\omega=0.0035$.}
+reference exists. The agreement is therefore internal scaling consistency, not validation,
+and it is retained through $\omega=0.0035$.}
 \label{tab:cascade}
 \begin{tabular}{lccc}
 \hline
@@ -1512,9 +1514,12 @@ locates the obstacle not in the proposal but in the warm-start, and four transfe
 (taking the converged $\omega=0.0035$ rung down to $\omega=0.0027$, a $23\%$ step) pin down
 its mechanism precisely.
 
-First, the frontier state is genuine: at its own $\omega=0.0035$ the rung is a bona-fide
-Wigner molecule, with radial density peaked at $3.34\ell$ (classical ring $3.42\ell$) and a
-\emph{single} basin---initialising the sampler on the shell converges to the same $3.34\ell$.
+First, the frontier state is a genuinely Wigner-localised one on the evidence available: at
+its own $\omega=0.0035$ its radial density peaks at $3.34\ell$ against a classical ring at
+$3.42\ell$, and it occupies a \emph{single} basin---initialising the sampler on the shell
+converges to the same $3.34\ell$. We stop short of calling it a Wigner molecule in the sense
+Chapter~\ref{ch:results} defines, because that definition requires registered angular order
+and no angular diagnostic was run on this state.
 Transferred to $\omega=0.0027$, however, the wavefunction collapses to $\sim\!1\ell$, and two
 tests show \emph{where} the collapse lives. It is not the sampler: initialising the Metropolis
 walkers directly on the classical shell ($3.57\ell$) still relaxes inward to $1.1\ell$, so the
@@ -1538,7 +1543,8 @@ did not do. Reaching
 $\omega<0.0035$ would require per-$\omega$ re-optimisation against a shell-\emph{amplitude}-anchored
 objective, or a genuinely $\ell$-covariant parametrisation---a distinct problem left to future
 work. The contribution here is concrete: a physics-informed proposal that carries MCMC-free
-collocation from the origin-proposal wall down to a verified Wigner molecule at $\omega=0.0035$,
+collocation from the origin-proposal wall down to a radially localised Wigner-regime state at
+$\omega=0.0035$,
 and a precise account of the angular-crystallisation and Slater--Jastrow-balance effects that
 bound it.
 

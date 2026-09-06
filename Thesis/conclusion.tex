@@ -12,8 +12,8 @@ Aurelius}{\textit{Meditations}}
 The work formed a feedback cycle between solver and physics. A variational state was
 constructed and checked against every external benchmark available; the checked state was
 then used as an instrument, and resolved the shell geometry of the Wigner regime---rings at
-definite occupancies, angular order appearing in the last decade of confinement, a shell
-radius approaching its classical $\omega^{-2/3}$ scaling. Those measurements are what a sampler needs in order to place its mass
+definite occupancies, $n$-fold angular order becoming large only in the last decade of
+confinement, a shell radius approaching its classical $\omega^{-2/3}$ scaling. Those measurements are what a sampler needs in order to place its mass
 correctly. Incorporating the measured geometry into the proposal extended
 Markov-chain-free training from the failure of the origin-centred sampler at
 $\omega\approx0.01$ down to $\omega=0.0035$, into states the original method could not
@@ -65,15 +65,17 @@ unestimable metric---which a better proposal moves but does not remove.
 
 \paragraph{Physics.} Can the trained state serve as an instrument? It can, and the
 evidence is that six diagnostics measuring different things agree when they need not have
-(\S\ref{sec:wigner-molecule}). Shell topologies match the classical Coulomb-cluster
-predictions at every size we studied, with the competing sectors carrying the weight a
-rotating molecule should give them. A polygon shell model fitted on half the frames
+(\S\ref{sec:wigner-molecule}). At $\omega=10^{-3}$ the identified topology at each particle number matches the
+corresponding classical Coulomb-cluster pattern, with the competing sectors carrying the
+weight a rotating molecule should give them; at stronger confinement the occupancy labels
+describe a radial partition rather than a crystalline topology. A polygon shell model fitted on half the frames
 reproduces $g(r)$ on the other half to cosine similarity $0.987$--$0.999$, against
 $0.936$--$0.996$ for an angle-randomised null. The measured $N{=}6$ ring radius approaches
 the classical Wigner value to within $1.7\%$ at the weakest trap. And at $N{=}20$ a
 three-shell molecule collapses to a single ring about a central electron within one decade
-in $\omega$. None of this was put into the ansatz, and none of it is visible in the density
-that one would naturally plot.
+in $\omega$. None of this was put into the ansatz, and none of the angular or
+topology-resolved ordering is visible in the lab-frame density one would naturally
+plot---though the radial shelling is.
 
 \section{Evidential status of the findings}
 

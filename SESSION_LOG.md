@@ -1643,3 +1643,69 @@ molecule" carry more than it can.
 Build: 0 warnings, 0 overfull boxes, 0 undefined references, 130 pages (was 123). 48 of 48
 verification checks pass, including a full recomputation of Table 6.2 after its rows were
 reordered strong-to-weak to match the narrative direction.
+
+---
+
+## 2026-09-06 (cont. 3) — Surgical pass: reconciling claims with the numbers under them
+
+The structural work of the previous pass held up on re-read; the remaining problems were
+internal inconsistencies, claims slightly stronger than their evidence, residual repetition,
+and one bad page break. This pass was narrow and mostly subtractive.
+
+**The angular-order story was wrong in an interesting way, and fixing it made it better.**
+The claim was that bond order "sits at its random-angle null until omega = 1e-2 and departs
+only in the final decade". Three problems. The appendix prose said the ratio is 1.00-1.03 at
+every particle number while its own table printed 1.10 for N=6 at omega=0.01. The main text
+quoted sector-conditioned values (ratios 1.14 and 1.29) without saying they were a different
+population from the appendix's modal-topology values. And "sits at the null" is not a claim
+the data support: with 1.19e6 frames a 2% excess resolves at 46 standard errors.
+
+Working it out properly gave a better result. Under the null |Phi_n| is Rayleigh with mean
+0.886/sqrt(n) and sd 0.463/sqrt(n), so the SE on the mean is 0.463/sqrt(nK). Detectability is
+therefore *not* what separates the regimes at these sample sizes -- magnitude is. The ratios
+are 1.00-1.02 through omega=0.1, lift to 1.10 at omega=0.01 and only at N=6, and reach
+1.19-1.65 at 1e-3 everywhere.
+
+And the held-out polygon test does *not* record the same staging. Its Delta-cos grows
+monotonically by 1.1-2.1x per decade at every N, with no threshold at all. The two
+diagnostics measure different things -- Delta-cos responds to any angular correlation
+improving the pair-distance density, |Phi_n| to n-fold order on a registered ring -- so the
+supported picture is three stages, not two: radial shells first, weak angular correlations
+building gradually throughout, crystalline n-fold order only in the last decade. That is
+richer than the threshold story and better supported. Chapter 6, the synthesis and the
+appendix now all say it.
+
+**Also fixed.** The omega=0.0035 state was called "bona-fide" and "verified" Wigner two
+subsections after the caveat admitting no angular diagnostic was run on it -- now a
+"radially localised Wigner-regime state" in the results, abstract and introduction alike.
+Table 6.1 said "DMC (Ref.)" over a column that is Taut analytic at omega=1 and 0.5. The
+Chapter 7 opening still claimed Chapter 6 had established low internal dimensionality, which
+moved to an appendix last pass. "|Psi|^2 is self-preconditioning" overshoots -- sampling from
+the target aligns the estimator with the metric, it does not apply S^-1 -- so the slogan is
+gone. The mechanistic chain's arrows still read "causes" while the caveat said the links were
+never individually isolated. And the conclusion's "none of this is visible in the density"
+was too broad: the radial shelling is visible; the angular and topology-resolved ordering is
+not.
+
+**Subtraction.** The three parameter budgets were re-explained in 6.1 after the Part IV map
+already tabulated them -- reduced to one sentence and a page reference. The gauge caveat at
+the Chapter 7 opening became a pointer. Two universal generalisations in the Discussion
+("any importance-sampled scheme will...", "relational structure will matter more with N")
+softened to what one model family and one proposal programme support.
+
+**Presentation.** Three lines of the Naming paragraph were stranded on an otherwise blank
+page before Chapter 6; tightening that paragraph pulled them back. Section 7.4.3 was called
+"Angular crystallisation is the deep-Wigner wall", but the Dirichlet gap model pushes through
+it -- it is the wall of the *uniform-angle* proposal, and the surviving wall is the
+Slater-Jastrow transfer failure, so the heading now says so.
+
+**One I could not fix properly.** The one-body density figures carry an axis label
+n(r_1,r_2) on axes marked X and Y. Read against this thesis's own convention, where
+r_i is the position of particle i, that reads as a two-particle density. The generating code
+no longer exists in the repo -- no script produces these files -- and editing the glyph
+positions inside eight vector PDFs is not worth the risk of corrupting them. The captions now
+name the quantity as n(x,y) and say the in-figure label differs. If the notebook that made
+them still exists, regenerating with the right label is a five-minute fix and would be
+better than the caption workaround.
+
+Build: 0 warnings, 0 overfull boxes, 0 undefined references, 131 pages. 34 of 34 checks pass.

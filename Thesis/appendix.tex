@@ -1619,16 +1619,30 @@ five-particle ring with no order at all returns $|\Phi_5|\approx0.40$. The ratio
 $|\Phi_n|/\langle|\Phi_n|\rangle_{\rm random}$ is the quantity that carries information, and
 Table~\ref{tab:shell-summary} reports it.
 
-Read that way the result is sharper than the raw values suggest. At $\omega\ge0.01$ the
-ratio is $1.00$--$1.03$ at every particle number and on every ring---the measured bond order
-is indistinguishable from randomly placed angles. Only at $\omega=10^{-3}$ does it depart:
-$1.65$ on the $N{=}6$ ring, $1.19$ and $1.56$ on the two rings of the $N{=}12$ $(3,9)$
-molecule, and $1.19$ and $1.47$ on the outer two rings of the $N{=}20$ $(1,7,12)$ molecule.
-Angular order in these dots is not a gradual strengthening across the confinement range; on
-this measure it switches on in the last decade. The Lindemann numbers of the same table fall
-monotonically throughout, so radial stiffening precedes angular ordering rather than
-accompanying it---which is the separation between radial and angular melting anticipated in
-\S\ref{sec:wigner-markers-theory}.
+Read that way the result is sharper than the raw values suggest, and it needs stating with
+the right threshold. From $\omega=1$ down to $\omega=0.1$ the ratio is $1.00$--$1.02$ at
+every particle number and on every ring. At $\omega=0.01$ it lifts slightly, to $1.10$ at
+$N{=}6$, while $N{=}12$ and $N{=}20$ remain at $1.03$ and $1.01$. Only at $\omega=10^{-3}$
+does it become large: $1.65$ on the $N{=}6$ ring, $1.19$ and $1.56$ on the two rings of the
+$N{=}12$ $(3,9)$ molecule, and $1.19$ and $1.47$ on the outer two rings of the $N{=}20$
+$(1,7,12)$ molecule.
+
+Whether the small excesses are \emph{resolved} is a separate question from whether they are
+\emph{large}, and with these sample sizes the two come apart. Under the null $|\Phi_n|$ is
+Rayleigh distributed with mean $0.886/\sqrt n$ and standard deviation $0.463/\sqrt n$, so
+the standard error on the mean over $K$ frames is $0.463/\sqrt{nK}$. At $N{=}6$,
+$\omega=0.1$, with $K=1.19\times10^6$ frames, that is $1.9\times10^{-4}$, and the $2\%$
+excess is $46$ standard errors---resolved beyond any doubt, and still only $2\%$. Statistical
+detectability is therefore not what separates the regimes here; magnitude is. On that
+criterion the ordering is flat through $\omega=0.1$, weakly present at $\omega=0.01$ and
+only at $N{=}6$, and unambiguous at $10^{-3}$.
+
+The Lindemann numbers of the same table fall monotonically throughout, so radial stiffening
+precedes $n$-fold angular ordering rather than accompanying it---the separation between
+radial and angular melting anticipated in \S\ref{sec:wigner-markers-theory}. Note that the
+values here are for the \emph{modal} topology over all frames; the sector-conditioned values
+quoted in \S\ref{sec:wigner-angular} are computed on the frames assigned to a given sector
+and run slightly higher.
 
 \begin{table}[H]
 \centering
@@ -1636,8 +1650,9 @@ accompanying it---which is the separation between radial and angular melting ant
 $(N,\omega)$. Occupancies are $(n_{\rm in},\dots,n_{\rm out})$; $\tilde r_s$ are mean shell
 radii in trap units; $\lambda_s$ are the per-shell angular Lindemann numbers; $|\Phi_{n_s}|$
 is the rotation-registered bond order on shell $s$; and the final column is $|\Phi_{n_s}|$
-divided by its random-angle expectation, Eq.~\eqref{eq:phi-null}. Values of $1.00$ in that
-column mean no measurable angular order. Single-particle inner shells are omitted from the
+divided by its random-angle expectation, Eq.~\eqref{eq:phi-null}. A value of $1.00$ in that column means the ring is
+angularly indistinguishable from randomly placed electrons; see the text for why
+resolvability and magnitude come apart at these sample sizes. Single-particle inner shells are omitted from the
 angular columns, where $|\Phi_1|=1$ trivially.}
 \label{tab:shell-summary}
 \small

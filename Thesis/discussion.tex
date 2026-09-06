@@ -10,7 +10,8 @@ Nietzsche}{\textit{Human, All Too Human}}
 
 Architecture, optimisation and sampling act on the same object. Architecture fixes the
 shape of the variational tangent space; the optimiser inverts the metric on that space, and
-earns its cost only while that metric is both badly conditioned and still estimable; and
+the evidence points to estimability rather than conditioning alone as what decides whether
+that inversion is worth its cost; and
 the sampling measure determines what the metric is estimated from, $|\Psi|^2$ conditioning
 itself and remaining on target where a fixed covering proposal loses first the conditioning
 and then the state.
@@ -169,9 +170,9 @@ shell-amplitude-anchored objective, presumes it can. The limitation we measured 
 transfer and parameterisation, not of expressivity.
 
 Distinguishing the two matters practically, because it says where effort should go. The
-general lessons survive the distinction in any case. Any importance-sampled scheme applied
-to a weakly confined many-body system will meet the first chain in that order, and any
-second-order method applied to one must certify that the metric it inverts is statistically
+general lessons survive the distinction in any case. An importance-sampled scheme whose proposal increasingly misses a strongly correlated
+target should be expected to meet the first chain in that order, and any second-order method
+applied to such a system ought to certify that the metric it inverts is statistically
 resolved at the sample sizes in use. Neither statement is specific to quantum dots.
 
 \paragraph{Where the two routes actually stand.}
@@ -202,7 +203,7 @@ without any training at all. Past the frontier the target changes: what is neede
 is an $\ell$-covariant parametrisation, or an objective anchored on the shell
 \emph{amplitude}, so that a converged state survives being carried to a weaker trap.
 
-\emph{Relational structure will matter more, not less, with $N$.} The tangent-space gap
+\emph{Relational structure appears to matter more, not less, with $N$.} The tangent-space gap
 between message-passing and separable correlators widens with particle number in the
 range we can measure---$\lesssim0.02$ against $\approx0.77$ dictionary-orthogonal mass at
 $N{=}12$. If that continues, the architectures that scale are the ones that maintain a

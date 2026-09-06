@@ -1505,3 +1505,72 @@ canonical needs settling before submission.
 
 Full audit report, with the per-finding evidence and the recomputations:
 https://claude.ai/code/artifact/56d1f820-2dca-48a5-affc-cfefc1265b1e
+
+---
+
+## 2026-09-06 (cont.) — Second review round: two real technical errors, one of them mine
+
+Two external reviews. Treated as opinions and checked rather than applied. Most items were
+real; two were not; one led to a correction of a change I made earlier the same day.
+
+**The benchmark provenance — the reviewer was right about the substance and wrong about
+the chain, and I had made it worse.** The claim was that the reference table is DMC from
+Høgberget, republished in Nordhagen et al. (2023), not Pederiva/Haas. A previous session
+(2026-08-23) had checked this and recorded that Høgberget's N=20 value is 157.904, unlike
+our 155.8822, and therefore declined to cite Høgberget.
+
+I fetched the Frontiers table. All nine of our N>=6 references match one of its columns
+exactly, uncertainties included: 20.15932(8), 11.78484(6), 3.55385(5), 65.7001(1),
+39.1596(1), 12.26984(8), 155.8822(1), 93.8752(1), 29.9779(1). The extraction labels that
+column ambiguously, so two physics tests settle which it is:
+
+- N=2, omega=1: our column gives 3.00000(1), the exact analytic value; the rival column
+  gives 3.1484(3), which is 4.9% above exact and cannot be DMC.
+- N=20, omega=1: our column gives 155.8822(1), *below* the paper's own Slater-Jastrow
+  variational energy 155.8900(4); the rival gives 157.904(6), two Hartree *above* a
+  variational upper bound, which no DMC value can be.
+
+So 155.8822 is the DMC-quality reference and 157.904 is not — the 2026-08-23 note read a
+misaligned column and drew the wrong conclusion, and I inherited it. Worse, in the morning
+pass I had "corrected" the caption to call the N=20 reference "variational neural-network
+energies ... variational upper bounds rather than projected energies", which demoted a DMC
+benchmark. That is now reversed. All nine N>=6 references are attributed to Høgberget's DMC
+as tabulated by Nordhagen et al., the N=2 values to Taut's analytic solution, Pederiva is
+cited for the method with its erratum, and Haas is retained as the compilation we actually
+took the numbers from. **The author should confirm against Høgberget's thesis directly.**
+
+**The impossible participation ratios were real, and the explanation is in the code.**
+Table 7.3 has conv = 10.4 at N=6 and 22.2 at N=12 against a stated ceiling of 2N-2 = 10, 22.
+PR <= rank <= dim, so this cannot stand. `src/PINN.py`: `CTNNBackflowNet.forward` subtracts
+`dx.mean(dim=1)` at line 669; `BackflowNet.forward` (line 247) returns `dx * bf_scale` with
+no such subtraction — for the conventional net the COM projection happens in the caller when
+R' is formed. The diagnostic is computed on the field as each network returns it
+(`scripts/analyze_overnight.py:73`), so the two columns sit under different ceilings: 2N-2
+for the copresheaf net, 2N for the conventional one. 10.4 < 12 and 22.2 < 24 are legal. The
+values are right; the stated ceiling was wrong, and the columns are not comparable in level
+— only in the collapse to rank 1, which is what the finding was always about.
+
+**Also fixed:** the Pareto k-hat interpretation (a ratio of proper densities has finite mean
+by construction, so k>1 is a finite-sample diagnostic, not a statement that the expectation
+fails to exist; and k-hat is fitted to the weights, not to the full gradient integrand);
+the ablation taxonomy, which 7.5 had right and 5.3, the introduction and the discussion had
+wrong; a reconciling paragraph for "SR is decisive" vs "Adam is the production default";
+the conditioning claim scoped back to |Psi|^2, where it was measured; one definition of
+"MCMC-free" (no chain in any *gradient*; the checkpoint probe runs outside the update loop);
+"inside DMC uncertainty" -> statistically consistent on the combined uncertainty, since the
+deviation is ~33x the DMC error bar but ~0.5 sigma combined; "the same ground state" ->
+matched-energy; the dictionary claim scoped to relative completeness; the omega<0.0035 wall
+reclassified from representational to a failure of transfer; Appendix C's floor scoped to
+the tested pipeline and its cancellation attributed to the full product; reference [18]
+completed (Pan & Meng, Encyclopedia of Condensed Matter Physics, 2nd ed.); 4.7 now shows
+both workflows; Fig 7.4 carries the gauge caveat at the figure; Table 7.1's caption states
+which rows are seeded and which are not.
+
+**Two reviewer points I did not simply accept.** The claim that Høgberget is the source was
+right in substance but the reviewer's route (via Nordhagen's "DMC" column) points at
+157.904, not our numbers; the attribution now goes to the column the physics identifies. And
+the reviewer asked for a paragraph in 8.1 asserting that the geometry diagnostics agree
+between training routes — we have not run that comparison, so 8.1 now names it as the
+obvious next control instead of claiming it.
+
+Build: 0 warnings, 0 overfull boxes, 0 undefined references, 123 pages.

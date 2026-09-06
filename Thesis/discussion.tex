@@ -40,14 +40,25 @@ the cases where the message-passing ansatz lands \emph{below} the reference are 
 evidence that the training is not simply reproducing its target. Exactness is a further
 matter, because the reference itself retains a nodal bias.
 
+One limit of that argument should be stated, because it is narrower than it looks. The
+variational bound protects the \emph{energy}: it cannot be pulled below what the ansatz can
+reach, whatever it was aimed at. It says nothing about which of several near-degenerate
+minima the optimisation lands in, and the tangent-geometry diagnostics---$d_{\rm eff}$, the
+dictionary-orthogonal mass, the backflow rank---are measurements of exactly that. Both
+architectures receive the identical protocol, so a shared bias largely cancels from the
+\emph{comparison} between them, which is what the architectural claims rest on; but we have
+not verified that it cancels symmetrically. The obvious check is available and we have not
+run it: the collocation route below $\omega=0.1$ trains with no external target at all, so
+recomputing the geometry diagnostics on those states and comparing them with the SR--VMC
+ones would settle whether the target influences the geometry. We flag it as the natural next
+control rather than claim the question closed.
+
 Where the ansatz sits \emph{below} a published DMC value, as for $N{=}12$ at $\omega{=}1$,
 the natural reading is that a better nodal surface has been found: the variational principle
 bounds the energy from below by the exact ground state, not by the nodal constraint of the
 reference calculation. Establishing that would require the DMC trial nodes and a matched
-uncertainty analysis, which we have not done. At $N{=}20$ the situation is simpler, because
-the reference is itself a variational energy rather than a projected one
-(Table~\ref{tab:energies}): there, sitting below it means only that ours is the lower of two
-upper bounds.
+uncertainty analysis, which we have not done. The same reading applies at $N{=}20$, where the reference is fixed-node DMC of the same
+kind (Table~\ref{tab:energies}).
 
 Below $\omega=0.1$ no published value exists for $N\ge6$, and nothing about that agreement
 transfers as accuracy. What does transfer is conditioning. The same architecture, protocol,
@@ -72,9 +83,11 @@ That low rank is not, by itself, an architecture-level property, for the reason
 so records a division of labour the loss barely constrains. Reporting such quantities is
 legitimate; treating them as properties of the architecture is not.
 
-What survives a change of training route is what can be measured on the state itself or
-by deleting part of it: the energy, the local-energy variance, the price of removing a
-component, and the overlap between two trained states. On those the controlled comparison
+What survives a change of training route is what can be measured on the state itself: the
+energy, the local-energy variance, and the overlap between two trained states. Deleting a
+component and pricing the loss sits one rung below---reproducible for a fixed model and
+protocol, but conditional on how that model divided the correlation, and so not a state
+invariant (\S\ref{sec:synthesis}). On those the controlled comparison
 of Chapter~\ref{ch:kernel} does support an architectural claim, and a sharper one than the
 dimension count that first suggested it. Counting directions tells us how many the
 correlator uses; the tangent-kernel analysis tells us which, and that turns out to be the
@@ -106,10 +119,13 @@ reported here, and its central claim needs its boundaries stated before it is ma
 
 \paragraph{What ``MCMC-free'' does and does not mean.}
 Three distinctions are easily conflated.
-(i)~The pipeline is \emph{Markov-chain-free}: no configuration is ever drawn from a
-Markov chain during training---samples come from an analytic proposal $q(\mathbf R)$ and
-are importance-reweighted. It is not free of Monte Carlo in the broader sense;
-importance sampling and multinomial resampling are Monte-Carlo operations themselves.
+(i)~The pipeline is \emph{Markov-chain-free in the gradient}: no configuration entering a
+parameter update is ever drawn from a Markov chain---those samples come from an analytic
+proposal $q(\mathbf R)$ and are importance-reweighted. A small Metropolis probe does run
+during training, but only outside the gradient loop, to select checkpoints, and again at the
+end to certify the energy; no sample it produces reaches an update. Nor is the pipeline free
+of Monte Carlo in the broader sense, since importance sampling and multinomial resampling
+are Monte-Carlo operations themselves.
 (ii)~It is not, in general, \emph{reference-free}. Where a DMC energy exists
 ($\omega\ge0.1$), the residual pretraining anneals its target toward $E_{\rm DMC}$ and
 the instability rollback monitors the relative error against it, so the DMC value enters
@@ -143,8 +159,12 @@ not be. What fails is the warm start. At these confinements the Wigner peak exis
 because the Jastrow amplifies an exponentially suppressed determinant back up by a
 comparable factor, and a $23\%$ change in $\omega$ perturbs both sides of that
 cancellation, tipping the balance so that the density falls back to the non-interacting
-shell. The ansatz is not covariant enough in $\ell$, which is a representational
-limitation, and no improvement to the proposal will remove it.
+shell. What fails is covariance in $\ell$ under a change of confinement: the converged state
+does not survive being carried to a weaker trap, and no improvement to the proposal repairs
+that. We have not shown that the ansatz cannot \emph{represent} the $\omega=0.0027$ ground
+state---indeed the remedy we suggest, per-$\omega$ re-optimisation against a
+shell-amplitude-anchored objective, presumes it can. The limitation we measured is one of
+transfer and parameterisation, not of expressivity.
 
 Distinguishing the two matters practically, because it says where effort should go. The
 general lessons survive the distinction in any case. Any importance-sampled scheme applied
@@ -155,7 +175,8 @@ resolved at the sample sizes in use. Neither statement is specific to quantum do
 \paragraph{Where the two routes actually stand.}
 Compared directly against the SR route, collocation is competitive for
 $N\lesssim12$ and $\omega\gtrsim0.1$, and loses ground below that. At $N{=}6$,
-$\omega{=}1$ the two are indistinguishable, both inside DMC uncertainty. At $N{=}12$,
+$\omega{=}1$ the two are indistinguishable, and both are statistically consistent with the
+DMC reference on the combined uncertainty. At $N{=}12$,
 $\omega{=}0.1$ collocation is a few times worse. At $N{=}20$ it is not competitive at
 all. The SR pipeline has its own scaling problems---mixing times grow with $N$ and with
 correlation strength---but they arrive later, because an MCMC sampler adapts to

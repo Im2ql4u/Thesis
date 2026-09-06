@@ -23,11 +23,11 @@ the structure of the state. We work at $N\in\{2,6,12,20\}$ electrons and
 $\omega\in\{1.0,\,0.5,\,0.1,\,0.01,\,0.001\}$.
 
 Section~\ref{sec:energy-overview} benchmarks the energies against every published reference
-that exists: diffusion Monte Carlo for $N\le12$, and the tabulated $N{=}20$ energies of
-Haas~\cite{HaasHFQD}, which are not DMC and are treated as the weaker benchmark.
-Those references reach down to $\omega=0.1$ for every $N$, and to $\omega=0.01$ for
-$N{=}2$; below that, for $N\ge6$, no published value exists, and the boundary is marked
-wherever it occurs. Section~\ref{sec:wigner-molecule} then uses the trained wavefunction to
+that exists: fixed-node diffusion Monte Carlo for $N\in\{6,12,20\}$
+\cite{Hogberget2013-DMC,Nordhagen2023-NeuralNetworksFermions} and the analytic two-electron
+solution for $N{=}2$~\cite{Taut1994-TwoElectrons}. Those references reach down to
+$\omega=0.1$ for every $N$, and to $\omega=0.01$ for $N{=}2$; below that, for $N\ge6$, no
+published value exists, and the boundary is marked wherever it occurs. Section~\ref{sec:wigner-molecule} then uses the trained wavefunction to
 follow the Wigner crossover---shell topologies, angular order, and melting---from two
 electrons to twenty. Section~\ref{sec:repr-analysis} examines the internal representation
 that carries it: a correlator on one to three effective directions whose content, but not
@@ -93,8 +93,8 @@ tables carry more information than the energies themselves. The first is \emph{w
 agreement holds}: a method that matches DMC at $\omega=1$ and drifts at $\omega=0.1$ differs from one
 that holds across the whole benchmarked range, since the physics changes character between
 those points while the architecture does not. The second is \emph{where the tables stop}.
-Below $\omega=0.1$ no DMC reference exists for $N\ge6$, so the values reported there are
-variational predictions rather than validated ones. That boundary is marked wherever it
+Below $\omega=0.1$ no reference of any kind exists for $N\ge6$, so the values reported there
+are variational predictions rather than validated ones. That boundary is marked wherever it
 occurs, rather than allowing a uniformly formatted table to imply a uniform level of
 evidence.
 
@@ -142,14 +142,12 @@ Fig.~\ref{fig:rel_error_vs_omega}).
   \centering
   \caption[Ground-state energies against the available references]{Residual-based pretraining + SR tail. Reference energies and our PINN+BF
   and PINN+CTNN ground-state energies (Hartree) for selected $(N,\omega)$.
-The reference column collects the best available benchmark for each size, and the two are
-  \emph{not} of equal standing: fixed-node DMC from
-  \cite{Pederiva2000-QD-DMC} (whose study spans $N\le13$) for $N\le12$, and, for $N=20$,
-  which lies beyond the range of any published DMC study, the variational neural-network
-  energies tabulated in the master's thesis of Daniel Haas~\cite{HaasHFQD}. The latter are
-  themselves variational upper bounds rather than projected energies, so at $N{=}20$ a
-  negative \%\,err means simply that our state is the lower of two variational estimates;
-  the fixed-node argument of \S\ref{sec:energy-discussion} is needed only for $N\le12$.
+For $N\in\{6,12,20\}$ the references are the fixed-node diffusion Monte Carlo energies of
+  H{\o}gberget~\cite{Hogberget2013-DMC}, as tabulated in
+  Ref.~\cite{Nordhagen2023-NeuralNetworksFermions}; the $N{=}2$ entries coincide with the
+  analytic two-electron results of Taut~\cite{Taut1994-TwoElectrons}. All are benchmarks of
+  the same kind, so the fixed-node reading of \S\ref{sec:energy-discussion} applies at every
+  size, $N{=}20$ included.
   Parentheses denote $1\sigma$ on the last digit(s); the \%\,err columns are
   relative deviations from the reference. A dash in the reference column marks
   $(N,\omega)$ for which no published DMC value exists (all $\omega=0.001$, and
@@ -169,15 +167,15 @@ The reference column collects the best available benchmark for each size, and th
       \midrule
       6 & 0.001 & ---           & $0.140913(1)$ & --- & $\mathbf{0.140832(1)}$ & --- \\
         & 0.01 & ---            & $0.69125(2)$  & --- & $\mathbf{0.69036(1)}$ & --- \\
-        & 0.10 & $3.55385(5)$   & $3.5549(1)$   & $+0.0295$ & $\mathbf{3.55388(5)}$ & $+0.0008$ \\
-        & 0.50 & $11.78484(6)$  & $11.7895(4)$  & $+0.0395$  & $\mathbf{11.7847(2)}$ & $-0.0012$ \\
-        & 1.00 & $20.15932(8)$  & $20.1610(6)$  & $+0.0083$  & $\mathbf{20.1585(3)}$ & $-0.0041$ \\
+        & 0.10 & $3.55385(5)^{\mathrm{H}}$   & $3.5549(1)$   & $+0.0295$ & $\mathbf{3.55388(5)}$ & $+0.0008$ \\
+        & 0.50 & $11.78484(6)^{\mathrm{H}}$  & $11.7895(4)$  & $+0.0395$  & $\mathbf{11.7847(2)}$ & $-0.0012$ \\
+        & 1.00 & $20.15932(8)^{\mathrm{H}}$  & $20.1610(6)$  & $+0.0083$  & $\mathbf{20.1585(3)}$ & $-0.0041$ \\
       \midrule
       12 & 0.001 & ---          & $0.515823(3)$ & --- & $\mathbf{0.515365(4)}$ & --- \\
          & 0.01 & ---           & $2.48620(5)$  & --- & $\mathbf{2.47363(4)}$ & --- \\
-         & 0.10 & $12.26984(8)$ & $12.2731(2)$  & $+0.0266$ & $\mathbf{12.2743(2)}$ & $+0.0363$ \\
-         & 0.50 & $39.1596(1)$  & $39.1786(8)$  & $+0.0485$ & $\mathbf{39.1604(3)}$ & $+0.0020$ \\
-         & 1.00 & $65.7001(1)$  & $65.717(1)$   & $+0.0257$ & $\mathbf{65.69556(5)}$ & $-0.0069$ \\
+         & 0.10 & $12.26984(8)^{\mathrm{H}}$ & $12.2731(2)$  & $+0.0266$ & $\mathbf{12.2743(2)}$ & $+0.0363$ \\
+         & 0.50 & $39.1596(1)^{\mathrm{H}}$  & $39.1786(8)$  & $+0.0485$ & $\mathbf{39.1604(3)}$ & $+0.0020$ \\
+         & 1.00 & $65.7001(1)^{\mathrm{H}}$  & $65.717(1)$   & $+0.0257$ & $\mathbf{65.69556(5)}$ & $-0.0069$ \\
       \midrule
       20 & 0.001 & ---          & --- & --- & $\mathbf{1.293033(6)}$ & --- \\
          & 0.01 & ---           & ---  & --- & $\mathbf{6.14645(5)}$ & --- \\
@@ -187,12 +185,16 @@ The reference column collects the best available benchmark for each size, and th
       \bottomrule
     \end{tabular}
     \begin{tablenotes}\footnotesize
-      \item[] Reference-energy provenance: values marked $^{\mathrm{H}}$ are variational
-      neural-network energies from the master's thesis of Daniel Haas~\cite{HaasHFQD}
-      ($N=20$), used because no published DMC value exists at this size and treated
-      throughout as the weaker benchmark; all other reference energies are fixed-node
-      diffusion Monte Carlo from Pederiva~\emph{et al.}~\cite{Pederiva2000-QD-DMC}
-      ($N\le12$, whose study spans $N\le13$). Dashes mark $(N,\omega)$ with no published value.
+      \item[] Reference-energy provenance: values marked $^{\mathrm{H}}$ are fixed-node
+      diffusion Monte Carlo energies computed by H{\o}gberget~\cite{Hogberget2013-DMC} and
+      tabulated in Ref.~\cite{Nordhagen2023-NeuralNetworksFermions}; the $N{=}2$ values are
+      the analytic two-electron results of Taut~\cite{Taut1994-TwoElectrons}. The
+      foundational DMC study of these dots is Pederiva \emph{et al.}
+      \cite{Pederiva2000-QD-DMC} (spanning $N\le13$; see also its
+      erratum~\cite{Pederiva2003-QD-DMC-Erratum}), cited here for the method rather than for
+      these particular numbers. We took the values from the compilation in the master's
+      thesis of Haas~\cite{HaasHFQD}, which reproduces the same benchmarks; the attribution
+      above is to their origin. Dashes mark $(N,\omega)$ with no published value.
     \end{tablenotes}
   \end{threeparttable}
 \end{table}
@@ -210,6 +212,7 @@ The reference column collects the best available benchmark for each size, and th
 \end{figure}
 
 
+\FloatBarrier
 \paragraph{The same benchmark, without a Markov chain.}
 Everything above was trained with a Markov chain: residual pretraining, then an SR tail
 that draws its samples from $|\Psi|^2$ by Metropolis. A second route through this thesis
@@ -272,8 +275,9 @@ the question they answer is the same one.
 \end{table}
 
 Read against Table~\ref{tab:energies}: at strong confinement the Markov-chain-free route is
-inside DMC uncertainty for
-$N\in\{6,12\}$, and it stays within a few tenths of a percent of our own converged
+statistically consistent with DMC for $N\in\{6,12\}$---the deviations are a few tenths of a
+combined standard deviation, though several times the DMC error bar alone, since the
+collocation uncertainty dominates--- and it stays within a few tenths of a percent of our own converged
 variational energies well into the correlated regime. It loses ground where the
 importance sampling loses the target---at $\omega\le0.1$, and at $N{=}20$, where it does
 not reach the reference at all. The pattern is not a defect of the objective but of the
@@ -701,10 +705,13 @@ ${\sim}40$ for $N{=}12$ at the weakest trap. None of these was built into the an
 $(1,11)$ and $(2,10)$ besides, which is the quantum rotational mixing the rotating-Wigner-molecule
 picture
 predicts~\cite{manninen2007metalclustersquantumdots,Filinov_2001}. At $N{=}20$ the
-three-shell structure and its collapse toward a single shell within one decade in
-$\omega$ is the sharpest transition in the series, and the sector-resolved $|\Phi_m|$
-measured conditionally on shell occupancy have not, to our knowledge, been reported
-before for $N\ge12$ parabolic dots.
+three-shell structure and its collapse to a single ring about a central electron within one
+decade in $\omega$ is the sharpest transition in the series. The $(1,7,12)$ configuration
+itself is not new---it is the known classical shelling and has been reported in quantum
+calculations of comparable dots---and no novelty is claimed for it. What we have not found
+reported elsewhere for $N\ge12$ parabolic dots is the combination of \emph{sector-conditioned}
+bond-order and Lindemann statistics, read against their random-angle null, with a held-out
+polygon reconstruction of $g(r)$ scored against an angle-randomised baseline.
 
 All of it is bounded by two qualifications. The states are the lowest we find within a
 fixed spin-projection sector, and we have not scanned total spin, so these are not proven

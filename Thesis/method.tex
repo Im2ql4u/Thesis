@@ -624,12 +624,20 @@ effective sample size $\mathrm{ESS}=(\sum_i w_i)^2/\sum_i w_i^2$ and, as a heavi
 diagnostic, the Pareto shape parameter $\hat k$ of the
 weights~\cite{Vehtari2024}. The second is not a second opinion on the first. Importance
 weights are heavy-tailed, and $\hat k$ estimates the tail index of the generalised Pareto
-distribution fitted to the largest of them. The relevant thresholds are statements about
-moments. For $\hat k<1/2$ the weights have finite variance and the reweighted estimator
-obeys a central limit theorem. Between $1/2$ and $1$ the variance is infinite though the
-mean still exists, and convergence is slow enough that $\hat k\approx0.7$ is the practical
-limit of trustworthiness. Above $1$ the mean itself is undefined, and no sample size
-repairs it. An ESS can look survivable while $\hat k$ says the
+distribution fitted to the largest of them. The thresholds are statements about the
+moments of the \emph{fitted} tail. For $\hat k<1/2$ the weights behave as though the
+variance were finite and the reweighted estimator obeys a central limit theorem. Between
+$1/2$ and $1$ the variance behaves as infinite though the mean does not, and convergence is
+slow enough that $\hat k\approx0.7$ is the practical limit of trustworthiness. Above $1$ the
+fitted tail has no finite mean.
+
+That last statement needs care, because in this setting the underlying ratio does have a
+finite mean by construction: $w=|\Psi_\theta|^2/q$ with $q$ a proper density gives
+$\mathbb{E}_q[w]=\int|\Psi_\theta|^2<\infty$ whenever $\Psi_\theta$ is square-integrable, so
+asymptotically $\hat k<1$. A measured $\hat k>1$ is therefore a \emph{finite-sample}
+diagnostic: it says the sample is deep in a pre-asymptotic regime where the realised
+estimator behaves as if no finite mean existed, not that the expectation fails to exist
+\cite{Vehtari2024}. We use it in that sense throughout. An ESS can look survivable while $\hat k$ says the
 estimator has no variance to speak of, which is why we track both. Both degrade when $q$
 ceases to overlap $|\Psi_\theta|^2$, and that degradation is the failure mode which bounds
 the paradigm at large $N$ and weak $\omega$ (Chapter~\ref{ch:kernel},
@@ -662,8 +670,34 @@ questions of Chapter~\ref{ch:kernel}.
 
 All features are computed in trap units $\tilde{\mathbf x}=\sqrt{\omega}\,\mathbf x$ so that length scales and gates (e.g.\ the short–range gate in the NQS and backflow) behave consistently across $\omega$. The sampler internally widens/narrows Gaussians and shell radii using $a_{\rm ho}=1/\sqrt{\omega}$ in a fixed, explicit way, so that the five components cover comparable \emph{dimensionless} regimes for $\omega\in[0.01,1]$. Batches are i.i.d.\ by design; we rely on the stratified mixture (with caps, EG–adaptation, and hard–injection) rather than long MCMC chains to traverse configurations, which markedly reduces correlation and simplifies accounting.
 
-\section{Workflow summary}
+\section{The two workflows}
 \label{sec:opt-summary}
+
+Two training routes have now been described and they are used for different purposes
+throughout the thesis, so it is worth setting them side by side before the diagnostics
+chapter. Both start from the same ansatz and end at an energy evaluated under
+$|\Psi_\theta|^2$; they differ in the measure that defines the loss in between.
+\begin{center}\small
+\begin{tabular}{@{}ll@{}}
+\textbf{SR--VMC (\S\ref{sec:residual-stage}--\S\ref{sec:sr-stage})} &
+\textbf{Collocation (\S\ref{sec:method-collocation})}\\[2pt]
+stratified mixture $\to$ residual pretraining &
+pretrained checkpoint\\
+$\downarrow$ & $\downarrow$\\
+$|\Psi_\theta|^2$ sampling (Metropolis) &
+analytic proposal $q$, importance reweighting\\
+$\downarrow$ & $\downarrow$\\
+SR step $(S+\lambda I)\Delta\theta=-g$ &
+weak-form REINFORCE gradient (Adam)\\
+$\downarrow$ & $\downarrow$\\
+energy under $|\Psi_\theta|^2$ &
+Metropolis probe for checkpoint choice,\\
+ & then energy under $|\Psi_\theta|^2$\\
+\end{tabular}
+\end{center}
+The right-hand route places no Markov chain in any gradient; the probe that selects its
+checkpoints sits outside the update loop entirely. The steps of the left-hand route, which
+carries the ground-state energies of \S\ref{sec:energy-overview}, are:
 
 \begin{enumerate}
   \item \textbf{Sample collocation set} $X$ from the stratified capped–simplex mixture (centre, tails, mixed, shells, dimers), then apply rotation and permutation; optionally inject hard examples.
@@ -1147,7 +1181,11 @@ protects. The modulus overlap is an \emph{upper} bound on the signed one, so a r
 $\mathcal{S}^2\to0$ is conservative---the states are at least that different---while a
 reported $\mathcal{S}^2\approx1$ is \emph{not} by itself evidence that they agree in sign.
 For the $\mathcal{S}^2\approx1$ readings the weight is carried by the structural argument
-above (shared Slater reference, strictly positive correlator), not by the bound. These quantities---together with the energetic price of ablating a
-component---are invariant to how correlation is divided between the Jastrow and the
-backflow, and it is on them, rather than on the gauge-dependent component ranks of the
-previous section, that the architectural conclusions of Chapter~\ref{ch:kernel} rest.
+above (shared Slater reference, strictly positive correlator), not by the bound. These quantities are properties of the state and so are unaffected by how correlation is
+divided between the Jastrow and the backflow. The energetic price of ablating a component is
+\emph{not} in that class: two parameterisations that divide correlation differently will
+report different ablation costs, so it is a reproducible statement about a fixed model and
+training protocol rather than a state invariant (\S\ref{sec:synthesis}). The architectural
+conclusions of Chapter~\ref{ch:kernel} rest on the state-level quantities first and on
+ablation as a controlled intervention second, and on the gauge-dependent component ranks of
+the previous section not at all.

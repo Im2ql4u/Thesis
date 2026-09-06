@@ -23,9 +23,12 @@ reach.
 
 \paragraph{Architecture.} What does message passing buy that a separable network cannot?
 A relational channel---and, measured through the tangent kernel, a specific one
-(\S\ref{sec:kernel-q1}). A message-passing correlator reaches the same ground state along
-half as many effective directions as a separable network of matched or larger capacity,
-and those directions are the Hamiltonian's own collective modes, not an arbitrary basis. The separable network spends nearly half its tangent budget where no compact
+(\S\ref{sec:kernel-q1}). At strong confinement a message-passing correlator reaches a reference-quality solution
+along half as many effective directions as a separable network of matched or larger
+capacity---the two agree in energy to four figures, which is not by itself evidence that
+they are the same state---and its leading directions are far more completely accounted for
+by a compact dictionary of the Hamiltonian's collective modes than the separable network's
+are. The separable network spends nearly half its tangent budget where no compact
 physical dictionary finds it, matches the energy to four figures anyway, and carries a
 higher local-energy variance for it at every confinement. In the nodes the same channel
 shows up inverted: what message passing supplies at the Wigner crystal is not a
@@ -37,10 +40,11 @@ postpones both.
 \paragraph{Optimiser.} When does natural-gradient preconditioning earn its cost?
 When the tangent metric is anisotropic \emph{and still estimable}
 (\S\ref{sec:kernel-cond}). That is a narrower claim than the usual one and it has three
-regimes rather than two. The empirical metric is badly conditioned under \emph{both}
-sampling measures---$\kappa(S)\sim10^{7}$--$10^{10}$ on the very models where Adam and SR
-agree to four decimals---so conditioning alone does not separate them. What does is whether
-a batch can resolve the metric. Under $|\Psi|^2$ sampling the samples come from the measure
+regimes rather than two. Under $|\Psi|^2$ sampling the empirical metric is
+badly conditioned---$\kappa(S)\sim10^{7}$--$10^{10}$ on the very models where Adam and SR
+agree to four decimals---so conditioning alone cannot be what makes SR unnecessary there.
+What distinguishes the regimes, on the evidence we have, is whether a batch can resolve the
+metric. Under $|\Psi|^2$ sampling the samples come from the measure
 that defines $S$, and Adam already moves along the directions carrying Fisher weight. On the
 collocation objective they do not, and stochastic reconfiguration is what makes the
 optimisation work at all. And once the
@@ -84,13 +88,18 @@ clear, a fixed-node DMC value is itself an approximation, not ground truth. Ever
 relative error quoted outside that range depends on a reference we computed ourselves.
 
 \emph{Internally supported.} The deep-Wigner energies, the structural picture, and the
-architecture comparison. None is validated from outside, but each rests on agreements that
-could have failed and did not: independent diagnostics measuring different quantities
-converge on the same crossover; the fitted energy exponent lands near the classical $2/3$
-and the measured ring radius within $1.7\%$ of the classical prefactor, neither of which
-enters the ansatz anywhere; the shell topologies reproduce classical ground states
-that the network was not trained on; and the architecture result survives seeding, a change
-of probe measure, and a capacity ladder that runs against it.
+architecture comparison. None is validated from outside, but each rests on agreements that could have failed and did
+not. They are not equally demanding, and are worth ranking. The strongest are the ones with
+a discriminating null or a discrete prediction: the shell topologies reproduce the classical
+ground-state configurations at every size, and the held-out polygon model beats an
+angle-randomised null by a margin that grows monotonically as the trap weakens. Next comes
+the architecture result, which survives seeding, a change of probe measure, and a capacity
+ladder that runs against it. The scaling checks---the fitted energy exponent near the
+classical $2/3$, the ring radius within $1.7\%$ of the classical prefactor---are genuine, and
+neither number enters the ansatz anywhere, but they are also the checks an ansatz is most
+likely to pass, since the physics is becoming classical in precisely the limit where they
+are evaluated. What the crossover region itself still lacks is a comparably at-risk
+prediction.
 
 \emph{Indicated but not established.} How the tangent-space picture scales with size. The
 architecture comparison is seeded at $N{=}6$, rests on fewer models at $N{=}12$, and on a
@@ -98,18 +107,19 @@ single production state at $N{=}20$. The trend runs in the direction the mechani
 and widens with particle number, but it is not settled, and settling it is a question of
 compute, not of interpretation.
 
-One further entry belongs here, methodological instead of physical. The conclusions above
-rest only on quantities that survive a change of training route---measured on the state, or
-by deleting part of it---and not on the component-level ranks and magnitudes whose gauge
-dependence \S\ref{sec:synthesis} sets out.
+One further entry belongs here, methodological instead of physical. The conclusions above rest on
+quantities measured on the state itself, supported by ablations that are reproducible for a
+fixed protocol without being state invariants, and not on the component-level ranks and
+magnitudes whose gauge dependence \S\ref{sec:synthesis} sets out.
 
 \section{Limitations and further work}
 
 The Markov-chain-free route is bounded by two walls of different kinds
 (\S\ref{sec:collocation-discussion}). The first is statistical, and a better proposal moved
-it from $\omega\approx0.01$ to $\omega=0.0035$. The second is representational: below
-$\omega=0.0035$ the ansatz is not covariant enough in $\ell$ for a converged state to
-survive transfer to a weaker trap, and no proposal repairs that. Reaching further would take
+it from $\omega\approx0.01$ to $\omega=0.0035$. The second is a failure of transfer: below $\omega=0.0035$ the ansatz is not covariant
+enough in $\ell$ for a converged state to survive being carried to a weaker trap, and no
+proposal repairs that. Whether the ansatz could represent such a state under per-$\omega$
+re-optimisation is a separate question we did not test. Reaching further would take
 an $\ell$-covariant parametrisation, or an objective anchored on the shell amplitude rather
 than on the energy alone.
 

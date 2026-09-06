@@ -252,9 +252,9 @@ The main contributions of this thesis are:
         energetic one.
   \item \textbf{Optimiser and paradigm, governed by the same geometry.}
         Natural-gradient (SR) preconditioning helps precisely when the tangent metric
-        is anisotropic \emph{and} still estimable. The empirical metric is badly
-        conditioned under both sampling measures, so conditioning alone does not separate
-        them: what does is whether the batch can resolve it. SR is therefore negligible for
+        is anisotropic \emph{and} still estimable. Under $|\Psi|^2$ sampling the empirical metric is
+        badly conditioned yet SR buys nothing, so conditioning alone cannot be the
+        criterion: what matters is whether the batch can resolve it. SR is therefore negligible for
         $|\Psi|^2$-VMC (tested at $N\le6$) and decisive for collocation.
         And an MCMC-free, importance-sampled collocation objective matches VMC when the
         sampling is healthy and, with a physics-informed proposal built from the Wigner
@@ -278,9 +278,11 @@ The main contributions of this thesis are:
         recomposition across regimes, while backflow spans many local modes. We take
         care to separate the parts of this picture that are \emph{gauge-like}—fixed by
         how correlation is divided between the Jastrow and the backflow, two
-        substitutable channels—from the invariants (energy, the local-energy variance, the
-        energetic price of ablating a component, and the overlap between two trained
-        states) on which the architectural conclusions actually rest.
+        substitutable channels—from the state-level invariants (energy, the local-energy
+        variance, and the overlap between two trained states) and the controlled
+        interventions (the energetic price of ablating a component, reproducible for a fixed
+        model and protocol but not itself gauge-invariant) on which the architectural
+        conclusions actually rest.
 \end{enumerate}
 
 \paragraph{Thesis structure.}

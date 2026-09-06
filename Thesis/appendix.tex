@@ -525,13 +525,14 @@ This appendix formalizes a structural difficulty encountered when training
 backflow transformations under the \emph{strong-form} collocation objective---the
 one that minimises the variance of the pointwise local energy $E_L$---and presents
 extensive numerical evidence for the $N{=}6$, $\omega{=}0.5$ quantum dot.
-The core observation is a \emph{catch-22}: backflow's learning signal is
-concentrated near the nodal surface, but
-the local energy diverges there for any imperfect wavefunction, and any
-sampling strategy that includes these points produces
-gradients with unbounded variance.
-The result is an irreducible accuracy floor---roughly $0.3\%$, set by the Jastrow
-alone---that is absent under VMC\,+\,SR training of the same ansatz.
+The core observation is a \emph{catch-22}: backflow's learning signal is concentrated near
+the nodal surface, but the local energy diverges there for any imperfect wavefunction, and
+every sampling strategy we tried that includes those points produced gradients whose
+variance we could not control. The result, across every intervention below, is an accuracy
+floor at roughly $0.3\%$---set by the Jastrow alone---that is absent under VMC\,+\,SR
+training of the same ansatz family. We call the floor irreducible \emph{within this
+pipeline}: it is an empirical bound established by exhaustion over the interventions we
+tested, not a proof that no strong-form scheme can do better.
 
 The scope of this result needs two qualifications. First, it is a property of the
 \emph{strong form} specifically: the weak-form (score-function / REINFORCE) collocation objective used
@@ -595,9 +596,11 @@ backflow shifts $\nabla^2\Delta\mathbf x_i$ amplified by the
 inverse determinant.
 
 \paragraph{For the exact wavefunction, $E_L$ is constant.}
-If $\Psi$ is an eigenstate, $E_L=E$ everywhere, and the apparent
-$D^{-1}$ singularity is cancelled by the numerator vanishing at the same
-rate as the denominator.
+If $\Psi$ is an eigenstate, $E_L=E$ everywhere. The cancellation is a property of the
+\emph{full} local energy $\hat H\Psi/\Psi$ with $\Psi=D\,e^{J}$, in which the Jastrow cross
+term $2\nabla J\cdot\nabla D/D$ of Eq.~\eqref{eq:c22:EL_decomp} participates alongside
+$\nabla^2D/D$; we isolate the determinant terms below because they are the ones the backflow
+parameters move, not because the others are absent.
 Concretely, for a smooth wavefunction with a simple node at surface
 $\mathcal N$, both $D$ and $\nabla^2 D$ vanish linearly in the
 signed distance~$d$ from~$\mathcal N$:

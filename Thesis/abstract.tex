@@ -19,22 +19,21 @@ and the neural tangent kernel. Training is by residual pretraining followed by s
 reconfiguration (SR), and, separately, by importance-sampled collocation that uses no
 Markov chain.
 
-Energies match diffusion Monte Carlo within uncertainty for \(N=2\); for
-\(N\in\{6,12\}\) the message-passing ansatz stays within \(0.0008\!-\!0.04\%\) and the
-separable one within \(0.008\!-\!0.05\%\) wherever a DMC reference exists
-(\(\omega\ge0.1\)). At \(N=20\), beyond the published DMC grid, the energies lie within
-\(0.04\%\) of the tabulated variational energies of an earlier master's thesis. Where a
-reference exists it also serves as the pretraining target, so what these numbers report is
-an independently evaluated variational upper bound agreeing with the reference, not two
-blind calculations meeting. Below \(\omega=0.1\) no external benchmark exists for
-\(N\ge6\), and that boundary is marked wherever it occurs.
+Energies match the analytic two-electron result for \(N=2\), and for
+\(N\in\{6,12,20\}\) they match published fixed-node diffusion Monte Carlo wherever it
+exists (\(\omega\ge0.1\)): the message-passing ansatz to \(0.0008\!-\!0.04\%\) across all
+three sizes, the separable one to \(0.008\!-\!0.05\%\) at the two sizes it was run at. Where a reference exists it also serves as the
+pretraining target, so what these numbers report is an independently evaluated variational
+upper bound agreeing with the reference, not two blind calculations meeting. Below
+\(\omega=0.1\) no external benchmark exists for \(N\ge6\), and that boundary is marked
+wherever it occurs.
 
 Message passing introduces a relational channel, and its effect is visible in the tangent
 geometry before it is visible in the energy. At strong confinement the message-passing
 correlator reaches reference-quality solutions along roughly half as many effective tangent
-directions as a single-pass network of matched or larger capacity needs; at every
-confinement it keeps its leading tangent directions inside a compact dictionary of the
-Hamiltonian's collective modes where the separable network does not; and its local-energy
+directions as a single-pass network of matched or larger capacity needs; at every confinement its tangent space is
+more completely accounted for by a compact dictionary of the Hamiltonian's collective modes
+than the separable network's is, with the gap widening toward the Wigner crystal; and its local-energy
 variance is lower throughout, by factors between \(1.2\) and \(3.4\)---while the two
 networks agree in energy to four figures. In the nodes the same
 channel shows as a collapse averted: toward the Wigner crystal a conventional backflow

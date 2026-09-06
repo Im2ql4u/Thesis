@@ -1762,3 +1762,18 @@ No experiments run; writing session.
   1.032 / 1.017 from omega=1 to 1e-3; exponent -0.637 full grid, -0.650 low-omega.
 - Chapter 7 figure resolutions measured: 357–501 effective dpi. The PNG-vs-PDF
   concern raised in the audit was unfounded and is withdrawn.
+
+## 2026-09-06 (cont.) — Provenance corrected; rank ceilings explained
+
+- Benchmark provenance: all nine N>=6 references match Nordhagen et al. (2023) Table 2
+  exactly, uncertainties included. Two physics tests identify the column as DMC:
+  (a) N=2 omega=1 gives 3.00000(1) = exact, vs 3.1484(3) for the rival column;
+  (b) N=20 omega=1 gives 155.8822(1), below the paper's own variational 155.8900(4),
+  while the rival 157.904(6) sits 2 Ha *above* a variational upper bound.
+  => Høgberget DMC, not "variational NQS energies". Earlier demotion reversed.
+- Table 7.3 ceilings: `CTNNBackflowNet` COM-projects inside forward (PINN.py:669),
+  `BackflowNet` does not (PINN.py:247, returns dx*bf_scale). The rank diagnostic runs on
+  the returned field, so ceilings are 2N-2 and 2N respectively. conv 10.4 < 12 and
+  22.2 < 24 are legal; the columns are comparable in collapse, not in level.
+- k-hat: E_q[|Psi|^2/q] = int|Psi|^2 < inf, so the mean is finite by construction and
+  k>1 is a finite-sample diagnostic. k-hat is fitted to w, not to w(E_L-b)grad log|Psi|.

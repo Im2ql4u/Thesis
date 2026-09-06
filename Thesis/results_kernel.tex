@@ -64,9 +64,14 @@ between the Jastrow and the backflow, which the loss barely constrains.
 \section{Message passing and the variational geometry}
 \label{sec:kernel-q1}
 
-What does a message-passing network learn that a separable one cannot? The comparison is
-made twice, once for each learnable object, holding everything else fixed and varying only
-the architecture: first for the Jastrow correlator, then for the coordinate backflow.
+What does a message-passing network learn that a separable one cannot? Both learnable
+objects of the ansatz can be built in either form, so the question is asked twice, changing
+one object at a time. In the first comparison only the \emph{correlator} is swapped---a
+separable DeepSets network against the message-passing CTNN---while the backflow, the Slater
+reference, the analytic cusp, the training protocol and the capacity tier all stay as they
+are. In the second only the \emph{backflow} is swapped---single-round pairwise messages
+against the copresheaf CTNN---with the correlator now among the things held fixed. Neither
+comparison varies the two together.
 
 \subsection{The correlator: tangent-space compression}
 \label{sec:kernel-q1a}
@@ -720,10 +725,9 @@ ${\sim}30$--$120\,a_0^\ast$ (a few oscillator lengths) and no DMC reference is a
 the energies stay within $0.1$--$0.25\%$ of our converged variational gold
 standard; this is agreement between two independent training paradigms on
 the same ansatz, not a certificate of absolute accuracy. The best campaign result at
-$\omega{=}1.0$ is $E{=}20.1620\pm0.0056$ ($+0.013\%$), and the best multi-stage run
-$E{=}20.1613\pm0.0023$ ($+0.010\%$). Both lie within $0.5\sigma$ of the reference on the
-combined uncertainty, which is dominated by ours: the deviation is some tens of times the
-DMC error bar of $8\times10^{-5}$.
+$\omega{=}1.0$ is $E{=}20.1620\pm0.0056$ ($+0.013\%$), which lies within $0.5\sigma$ of the
+reference on the combined uncertainty---dominated by ours, since the deviation is some tens
+of times the DMC error bar of $8\times10^{-5}$.
 
 These results are achieved without any Markov chain in the training gradients.
 MCMC enters only outside the gradient loop: a small Metropolis probe periodically selects the
@@ -736,23 +740,22 @@ independent amplitude evaluation rather than a step of a correlated chain that m
 first equilibrate. The collocation batch is also embarrassingly parallel where the chain
 is not, though we did not benchmark the two pipelines against a common wall-clock budget.
 
-The best $N{=}6$ result at $\omega{=}1.0$ was obtained through a
-three-stage continuation chain (see~\S\ref{subsec:colloc-wigner}):
-an initial BF+Jastrow joint REINFORCE run (900~epochs,
-$\text{lr}{=}5{\times}10^{-4}$), followed by a low-LR continuation
-(750~epochs, $\text{lr}{=}3{\times}10^{-4}$), and a final
-hard-focus stage (500~epochs, $\text{lr}{=}2{\times}10^{-4}$).
-Each stage inherited the full checkpoint from the previous one.
-The monotonic improvement across stages---$+0.08\%$,
-$+0.05\%$, $+0.010\%$---demonstrates that patient multi-stage
-polishing is effective within the collocation framework.
+Staged continuation is what makes those budgets pay, and an exploratory run at
+$\omega{=}1.0$ shows the effect cleanly: an initial BF+Jastrow joint REINFORCE stage
+(900~epochs, $\text{lr}{=}5{\times}10^{-4}$), a low-LR continuation (750~epochs,
+$\text{lr}{=}3{\times}10^{-4}$) and a hard-focus stage (500~epochs,
+$\text{lr}{=}2{\times}10^{-4}$), each inheriting the previous checkpoint, improve
+monotonically through $+0.08\%$, $+0.05\%$ and $+0.010\%$. That run was hand-tuned and is
+not among the protocol-controlled numbers of Table~\ref{tab:collocation}; we report it
+because it is the observation that put cascade warm-starting into the campaign's robust
+recipe (Table~\ref{tab:colloc-variants}).
 
 \paragraph{$N{=}12$: sub-$0.03\%$ at strong confinement.}
 For twelve electrons, the BF+Jastrow collocation results track DMC
 closely at $\omega\ge 0.5$, with best-run errors of $+0.009\%$ and
-$+0.024\%$ at $\omega{=}1.0$ and $0.5$ respectively
-(Table~\ref{tab:collocation}; the hand-tuned multi-stage chains reach
-$+0.018\%$ and $+0.029\%$).
+$+0.024\%$ at $\omega{=}1.0$ and $0.5$ respectively (Table~\ref{tab:collocation}). No
+reliability campaign was run at this size, so these are the best of the independent runs and
+not protocol-controlled in the way the $N{=}6$ rows are.
 At $\omega{=}0.1$ the error increases to $+0.102\%$, reflecting the
 growing difficulty of importance sampling in 24~dimensions at weak
 confinement.

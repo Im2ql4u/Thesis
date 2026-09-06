@@ -223,53 +223,44 @@ the question they answer is the same one.
 
 \begin{table}[htbp]
   \centering
-  \caption[Best energies from collocation-assisted training]{Best ground-state energies from collocation-assisted training.
-  ``Multi-stage'' denotes the best result from earlier campaigns using
-  hand-tuned continuation chains; ``Campaign (best)'' denotes the
-  best single result from the 30-run reliability campaign for $N{=}6$
-  (Table~\ref{tab:reliability}), and the best result across all
-  independent training runs for $N{=}12$ (no dedicated reliability
-  campaign was conducted for $N{=}12$).
-  The $N{=}2$ rows report a single collocation run each (the zero-variance-extrapolated
-  energy under Multi-stage; the campaign column does not apply), reaching DMC accuracy for
-  $\omega\ge0.01$ and degrading only in the deep-Wigner limit ($+0.15\%$ at $\omega=0.001$).
-  All values are VMC-evaluated (${\geq}20\text{k}$ samples) at the best
-  checkpoint.
-  The reference column is the DMC energy where one exists and, for
-  $(N,\omega)$ with no published DMC value ($N{=}6$ at $\omega\le0.01$;
-  see Table~\ref{tab:energies}), our own converged variational (PINN+CTNN)
-  energy; the corresponding \%\,err is then a measure of internal
-  consistency, not of absolute accuracy. The tabulated $N{=}6$ low-$\omega$
-  errors are the \emph{reliability-campaign} bests and are deliberately
-  conservative: the best single runs we observed reached $+0.06$--$0.13\%$ at
-  $\omega\le0.1$ (Chapter~\ref{ch:kernel}, \S\ref{sec:colloc-reliability}).
-  All tabulated rows use the backflow+Jastrow (BF) architecture; the
-  memory-limited $N{=}20$ case is discussed separately in
-  Appendix~\ref{app:postcatch22:frontier}.
-  The \%\,err column scores the ``Campaign (best)'' energy where that column exists
-  ($N{=}6,12$) and the ``Multi-stage'' energy for $N{=}2$, where it does not.
-  Parentheses denote $1\sigma$ statistical uncertainty on the last
-  digit(s).}
+  \caption[Energies from collocation-assisted training]{Ground-state energies from
+  collocation-assisted training, reported under a fixed protocol rather than as the best of
+  a hand-tuned search. For $N{=}6$ these are the best single results of the $30$-run
+  reliability campaign of \S\ref{sec:colloc-reliability} (Table~\ref{tab:reliability}): a
+  fixed $1200$-epoch budget, fixed hyperparameters, two recipes and three seeds per
+  confinement. The $N{=}2$ rows are single collocation runs, zero-variance extrapolated.
+  The $N{=}12$ rows are marked $^{\dagger}$ because no reliability campaign was run at that
+  size: they are the best of the independent runs and are therefore \emph{not}
+  protocol-controlled in the sense the other rows are, and should be read as what the method
+  reached rather than as what it reaches reliably.
+  All values are VMC-evaluated (${\geq}20\text{k}$ samples) at the best checkpoint.
+  The reference column is the DMC energy where one exists and, for $(N,\omega)$ with no
+  published DMC value ($N{=}6$ at $\omega\le0.01$, and $N{=}2$ at $\omega=0.001$; see
+  Table~\ref{tab:energies}), our own converged variational (PINN+CTNN) energy; the
+  corresponding \%\,err is then a measure of internal consistency, not of absolute accuracy.
+  All rows use the backflow+Jastrow (BF) architecture; the memory-limited $N{=}20$ case is
+  discussed separately in Appendix~\ref{app:postcatch22:frontier}.
+  Parentheses denote $1\sigma$ statistical uncertainty on the last digit(s).}
   \label{tab:collocation}
-  \begin{tabular}{c c c c c c c}
+  \begin{tabular}{c c c c c c}
     \toprule
-    $N$ & $\omega$ & Reference & Multi-stage & Campaign (best) & \%\,err & Arch \\
+    $N$ & $\omega$ & Reference & Energy & \%\,err & Arch \\
     \midrule
-    2 & 1.0   & $3.00000$      & $3.00035$      & ---            & $+0.012$ & BF \\
-      & 0.5   & $1.65977(1)$   & $1.66014$      & ---            & $+0.023$ & BF \\
-      & 0.1   & $0.44079(1)$   & $0.44077$      & ---            & $-0.004$ & BF \\
-      & 0.01  & $0.073839(2)$  & $0.073840$     & ---            & $+0.002$ & BF \\
-      & 0.001 & $0.013778$     & $0.013799$     & ---            & $+0.154$ & BF \\
+    2 & 1.0   & $3.00000$      & $3.00035$      & $+0.012$ & BF \\
+      & 0.5   & $1.65977(1)$   & $1.66014$      & $+0.022$ & BF \\
+      & 0.1   & $0.44079(1)$   & $0.44077$      & $-0.005$ & BF \\
+      & 0.01  & $0.073839(2)$  & $0.073840$     & $+0.001$ & BF \\
+      & 0.001 & $0.013778$     & $0.013799$     & $+0.152$ & BF \\
     \midrule
-    6 & 1.0   & $20.15932(8)$  & $20.1613(23)$  & $20.1620(56)$  & $+0.013$ & BF \\
-      & 0.5   & $11.78484(6)$  & $11.7847(20)$  & $11.7850(48)$  & $+0.002$ & BF \\
-      & 0.1   & $3.55385(5)$   & $3.5571(4)$    & $3.5632(7)$    & $+0.263$ & BF \\
-      & 0.01  & $0.69036$      & $0.69141(8)$   & $0.69200(1)$   & $+0.237$ & BF \\
-      & 0.001 & $0.140832$     & $0.14118(1)$   & $0.14118(1)$   & $+0.250$ & BF \\
+    6 & 1.0   & $20.15932(8)$  & $20.1620(56)$  & $+0.013$ & BF \\
+      & 0.5   & $11.78484(6)$  & $11.7850(48)$  & $+0.001$ & BF \\
+      & 0.1   & $3.55385(5)$   & $3.5632(7)$    & $+0.263$ & BF \\
+      & 0.01  & $0.69036$      & $0.69200(1)$   & $+0.238$ & BF \\
+      & 0.001 & $0.140832$     & $0.14118(1)$   & $+0.247$ & BF \\
     \midrule
-    12 & 1.0   & $65.7001(1)$  & $65.712(4)$    & $65.706(4)$    & $+0.009$ & BF \\
-       & 0.5   & $39.1596(1)$  & $39.171(4)$    & $39.169(4)$    & $+0.024$ & BF \\
-       & 0.1   & $12.2698(1)$  & $12.285(1)$    & $12.2824(6)$   & $+0.102$ & BF \\
+    12$^{\dagger}$ & 1.0 & $65.7001(1)$   & $65.706(4)$    & $+0.009$ & BF \\
+       & 0.5   & $39.1596(1)$   & $39.169(4)$    & $+0.024$ & BF \\
+       & 0.1   & $12.26984(8)$  & $12.2824(6)$   & $+0.102$ & BF \\
     \bottomrule
   \end{tabular}
 \end{table}

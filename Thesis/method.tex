@@ -825,18 +825,25 @@ g(r_\alpha)\;=\;\frac{A_{\mathrm{eff}}}{N(N-1)}\;
 with $A_{\mathrm{eff}}=\pi R_{0.95}^2$ and $R_{0.95}$ the 95\% quantile of single‐particle radii in trap units.
 This $g(r)$-based structural analysis follows established practice in mesoscopic 2D electron systems
 and quantum dots~\cite{Filinov_2001,Egger_1999,manninen2007metalclustersquantumdots}.
-We also form the normalised \emph{radial probability}
+The pair-distance probability is therefore denoted
 \(
-P(r)\propto r^{d-1}g(r)
-\)
-and report the mode $r_{\mathrm{mode}}$, mean $\bar r$, standard deviation $\sigma_r$, and FWHM (all in Bohr).
-A compact width–to–scale marker is
+P_{\rm pair}(r_{ij})\propto r_{ij}^{d-1}g(r_{ij})
+\).
+It is used for pair-structure diagnostics, distinct from the one-body radial
+probability
+\(
+P_1(r)\propto r\rho_1(r)
+\),
+from which we report the headline mode $r_{\mathrm{mode}}$, mean $\bar r$,
+standard deviation $\sigma_r$, and FWHM (all in Bohr). A compact one-body
+width-to-scale marker is
 \begin{equation}
 \gamma \;=\; \sigma_r / r_{\mathrm{mode}},
 \label{eq:gamma}
 \end{equation}
-which decreases as correlations strengthen (narrower distribution around a larger typical radius),
-consistent with the liquid$\to$Wigner crossover picture~\cite{Egger_1999,Filinov_2001}.
+which tracks the width of $P_1$ relative to its modal radius. It is interpreted
+alongside shell separation and pair/angular diagnostics, rather than as a
+universal monotone Wigner marker~\cite{Egger_1999,Filinov_2001}.
 
 \subsection{Automatic shell detection and topologies}
 \label{subsec:shells}

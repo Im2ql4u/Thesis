@@ -1678,7 +1678,8 @@ and run slightly higher.
 \centering
 \caption[Shell-resolved diagnostics across the whole grid]{Shell-resolved diagnostics at the modal topology, all frames, for every
 $(N,\omega)$. Occupancies are $(n_{\rm in},\dots,n_{\rm out})$; $\tilde r_s$ are mean shell
-radii in trap units; $\lambda_s$ are the per-shell angular Lindemann numbers; $|\Phi_{n_s}|$
+radii in trap units; $w_s=\sigma(r_s)/\langle r_s\rangle$ are per-shell radial relative
+widths; $|\Phi_{n_s}|$
 is the rotation-registered bond order on shell $s$; and the final column is $|\Phi_{n_s}|$
 divided by its random-angle expectation, Eq.~\eqref{eq:phi-null}. A value of $1.00$ in that column means the ring is
 equal to the Rayleigh null approximation within quoted precision; see the text for
@@ -1689,7 +1690,7 @@ angular columns, where $|\Phi_1|=1$ trivially.}
 \setlength{\tabcolsep}{5pt}
 \begin{tabular}{ccl cc cc}
 \toprule
-$N$ & $\omega$ & occ. & $\tilde r_s$ & $\lambda_s$ & $|\Phi_{n_s}|$ & ratio to null \\
+$N$ & $\omega$ & occ. & $\tilde r_s$ & $w_s$ & $|\Phi_{n_s}|$ & ratio to null \\
 \midrule
  6 & $1.0$   & $(1,5)$     & $0.70,\,1.66$ & $0.43,\,0.32$ & $0.397$ & $1.00$ \\
  6 & $0.5$   & $(1,5)$     & $0.76,\,1.78$ & $0.42,\,0.31$ & $0.397$ & $1.00$ \\

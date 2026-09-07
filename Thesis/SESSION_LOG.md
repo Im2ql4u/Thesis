@@ -53,3 +53,20 @@
   weakened N=2/SR benchmark wording to the available evidence.
 - Evidence gaps retained rather than invented: row-level non-exact N=2 source
   provenance and a finite-$n$ numerical angular-order null.
+
+---
+
+## 2026-09-07 — Final consistency repair pass
+
+- Separated the pair-distance probability $P_{\rm pair}$ from the one-body radial
+  probability $P_1$; headline $r_{\rm mode}$ and $\gamma$ statistics now explicitly
+  belong to $P_1$. Scoped the $N=2$ radial exponent to its weakest-three-point fit.
+- Relabelled Appendix F's per-shell `L` values as radial relative widths rather
+  than angular Lindemann numbers, because the generated table includes singleton
+  shells for which angular spacing is undefined.
+- Recast raw conventional-backflow rank one as a COM-ambiguous raw-field spectral
+  collapse; corrected its ceilings to 12/24/40. Reframed the IS campaign as
+  evaluator reliability, and corrected the direct weak-form explanation.
+- Remaining data-dependent follow-ups: common VMC rescoring of campaign checkpoints,
+  row-level non-exact N=2 provenance, finite-$n$ angular null, and density-figure
+  axis regeneration.

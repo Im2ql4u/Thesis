@@ -335,10 +335,10 @@ computing the participation ratio, which would put them under a common $2N-2$ ce
 make the levels directly comparable. That was not possible here: the diagnostic was computed
 during training and the trained checkpoints for this sweep were not retained, so it cannot
 be recomputed from the saved artefacts. We therefore make no comparison of level between the
-two columns anywhere, and the reader should not either. Toward Wigner the \emph{conventional} backflow collapses to a single
-collective mode (rank $\to1$) while the CTNN backflow stays near the ceiling
+two columns anywhere, and the reader should not either. Toward Wigner the \emph{conventional} raw field undergoes a
+spectral collapse to rank~$1$, while the CTNN backflow stays near the ceiling
 (Table~\ref{tab:bf_rank}). The endpoint is the same at every size---rank $1$, from ceilings
-of $10$, $22$ and $38$ at $N=6$, $12$ and $20$---so what grows with $N$ is the height of the
+of $12$, $24$ and $40$ at $N=6$, $12$ and $20$---so what grows with $N$ is the height of the
 fall, not the sharpness of it. At $N=6$ and $N=12$ both seeds return exactly $1.00$; the
 $N=20$ entry comes from a separate re-run of that cell and is single-sourced (see the
 table note). The tangent dimension tells the same story
@@ -686,7 +686,7 @@ ratio estimator built from the same degenerate weights, so at this ESS it report
   \label{fig:q3-ess}
 \end{figure}
 
-\paragraph{Same state, until the sampling loses the target.} We test whether the two
+\paragraph{State agreement degrades with proposal overlap.} We test whether the two
 paradigms reach the same \emph{state} (not merely the same energy) via the symmetric
 overlap
 $\mathcal{S}^2=\langle\Psi_B/\Psi_A\rangle_{|\Psi_A|^2}
@@ -905,9 +905,12 @@ minimisation fails.
 The superiority of pure REINFORCE ($\beta{=}0$) over the hybrid
 objective ($\beta{>}0$) has a related explanation.
 The direct weak-form term $\tilde{E} = \tfrac{1}{2}\|\nabla\log\Psi\|^2 + V$
-is cheaper to evaluate (no Laplacian needed) but minimises a different
-functional: it drives the wavefunction toward low kinetic energy rather
-than low total energy.
+is cheaper to evaluate (no Laplacian needed). Averaged under the current
+$|\Psi|^2$ measure, it equals the variational energy by integration by parts.
+The implemented direct path, however, differentiates $\tilde E(R)$ at retained
+samples without the score contribution from the changing sampling measure; $V(R)$
+then has no explicit parameter derivative and the update behaves as a kinetic-only
+pathwise gradient.
 At nonzero~$\beta$, the resulting gradient conflict between the two
 objectives manifests as oscillatory behaviour in the energy, with the
 REINFORCE term pulling toward the variational minimum and the direct
@@ -1159,7 +1162,8 @@ together with their mean, standard deviation and worst case.
   consistency rather than absolute accuracy. Each cell is the final IS-evaluated deviation
   for one $(\omega,\text{recipe},\text{seed})$ combination. Bold marks the best run at each
   $\omega$. The last two columns give the mean $\pm$ standard deviation and the worst of the
-  three seeds; the worst case is the number that matters for reliability, and the standard
+  three seeds; these quantify the reliability of the final IS evaluator, not trained-state
+  quality independently of that evaluator. The standard
   deviation is reported in place of a coefficient of variation because the latter is
   uninformative when the mean deviation approaches zero.}
   \label{tab:reliability}
@@ -1195,7 +1199,7 @@ Second, the best single result at every $\omega$ is a robust run,
 achieving $+0.013\%$ at $\omega{=}1.0$, $+0.002\%$ at $\omega{=}0.5$,
 $+0.263\%$ at $\omega{=}0.1$, $+0.237\%$ at $\omega{=}0.01$, and
 $+0.250\%$ at $\omega{=}0.001$.
-Third, the robust recipe's worst case improves at every confinement, and most
+Third, the robust recipe's IS-evaluated worst case improves at every confinement, and most
 dramatically where sampling is hardest: at $\omega=10^{-3}$ the worst robust seed
 ($+0.331\%$) is better than the \emph{best} baseline seed ($+3.876\%$) by an order of
 magnitude. At high $\omega$ the two recipes are within each other's seed spread, so the

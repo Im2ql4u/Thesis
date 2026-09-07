@@ -200,11 +200,11 @@ number (electron $Z=-1$, nucleus $Z=+Z_A$), and $D$ the spatial dimension. Then
 \quad\text{(s-wave / opposite-spin channel)}.
 \]
 For \emph{identical fermions} the s-wave is excluded; the leading channel is $p$-wave
-(relative angular momentum $k=1$), and the wavefunction carries a linear node at
-coalescence. The general
-like-spin cusp is then
+(relative angular momentum $k=1$), and the full wavefunction carries a linear node at
+coalescence. The finite cusp condition applies to the regular factor remaining after
+that zero is removed:
 \[
-\left.\frac{\partial}{\partial r_{ij}}\ln \overline{\Psi}\right|_{r_{ij}\to 0}
+\left.\frac{\partial}{\partial r_{ij}}\ln \overline{\left(\Psi/r_{ij}\right)}\right|_{r_{ij}\to 0}
 \;=\; \frac{2\,\mu_{ij}\,Z_i Z_j}{2k + D - 1}
 \;=\; \frac{2\,\mu_{ij}\,Z_i Z_j}{D+1}
 \quad\text{(like-spin, $k=1$)}.
@@ -214,7 +214,7 @@ like-spin cusp is then
 With $m_e=1$ and $\mu_{ee}=1/2$:
 \[
 \boxed{\ a_{ee}^{\uparrow\downarrow}=\left.\frac{\partial}{\partial r_{ij}}\ln \overline{\Psi}\right|_{0}=1\ ,\qquad
-a_{ee}^{\uparrow\uparrow}=\tfrac13\ .\ }
+a_{ee}^{\uparrow\uparrow}=\left.\frac{\partial}{\partial r_{ij}}\ln \overline{\left(\Psi/r_{ij}\right)}\right|_{0}=\tfrac13\ .\ }
 \]
 The like-spin value follows from the $p$-wave (linear-node) analysis carried out in full
 in Appendix~\ref{app:coulomb:cusp}, the canonical derivation used throughout this thesis;
@@ -269,7 +269,7 @@ whole picture, since nothing in the ansatz knows about that number.
 
 \paragraph{How to read them together.} As $\omega$ falls, the width ratios and angular
 Lindemann numbers shrink, shell gaps sharpen, the shell-resolved $|\Phi_m|$ become nonzero
-after phase alignment, and the radial exponent approaches its classical value. No one of
+above their random-angle baseline, and the radial exponent approaches its classical value. No one of
 these is decisive---a narrow $P(r)$ can be an artefact of poor sampling, and a large
 $|\Phi_m|$ can be a fluctuation on a short chain---but they fail in different ways, which is
 why Chapter~\ref{ch:results} reports them together and Chapter~\ref{ch:analysis} states the

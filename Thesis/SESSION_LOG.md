@@ -34,3 +34,22 @@
   restatement. Also: collocation occupies 24 pages across four locations while Q2
   occupies under one page, and the thesis carries four competing organising triads
   when the abstract's three already fit. No structural edits made yet.
+
+---
+
+## 2026-09-07 — Post-audit claim and bibliography repairs
+
+- Regenerated the missing BibTeX output and ran two resolving LaTeX passes. The
+  rebuilt PDF has no unresolved citations or references; the prior `[?]` markers
+  were a missing-build-artifact problem, not absent citation keys.
+- Corrected the Chapter 1 like-spin cusp to apply $1/3$ to the regular factor
+  after the antisymmetric linear zero, and removed stale phase-alignment wording.
+- Replaced Appendix C's false generic $\nabla^2D=\mathcal O(d)$ claim with the
+  correct cancellation statement for the full $D e^J$ wavefunction. Softened
+  unsupported Appendix D novelty/causality claims while retaining the observed
+  memory-constrained capacity and gradient-quality relation.
+- Repaired Appendix E's N=20 contradiction, scoped the backflow capacity claim,
+  harmonised reference-free ancestry, corrected feature-covariance notation, and
+  weakened N=2/SR benchmark wording to the available evidence.
+- Evidence gaps retained rather than invented: row-level non-exact N=2 source
+  provenance and a finite-$n$ numerical angular-order null.

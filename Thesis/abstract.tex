@@ -15,8 +15,9 @@ one, and the trained states are read through the geometry of their log-derivativ
 followed by stochastic reconfiguration (SR), and, separately, by importance-sampled
 collocation.
 
-Energies match the analytic two-electron result at \(N=2\), and for \(N\in\{6,12,20\}\)
-they match published fixed-node diffusion Monte Carlo wherever it exists: the
+For \(N=2\), the available two-electron references are reproduced, including the exact
+analytic point at \(\omega=1\); for \(N\in\{6,12,20\}\) the energies match published
+fixed-node diffusion Monte Carlo wherever it exists: the
 message-passing-backflow ansatz to \(0.0008\!-\!0.04\%\) at all three sizes, the
 conventional-backflow one, run at two of them, to \(0.008\!-\!0.05\%\). Where a reference exists it is also the pretraining
 target: these are independently evaluated upper bounds agreeing with the reference, not
@@ -35,8 +36,8 @@ collective displacement mode and loses half a percent of the energy, where the
 message-passing field keeps its rank. Both give way at the same confinement, which points
 to a common relational bottleneck rather than two independent deficits.
 
-Stochastic reconfiguration earns its cost only where the tangent metric is anisotropic and
-still estimable. Under \(|\Psi|^2\) sampling the metric is badly conditioned but well
+The evidence points to stochastic reconfiguration earning its cost where useful tangent-metric
+anisotropy remains statistically estimable. Under \(|\Psi|^2\) sampling the metric is badly conditioned but well
 estimated, and SR changes nothing Adam does not already do (tested at \(N\le6\)); under a
 fixed collocation proposal it is what makes the optimisation work at all, though with
 proposal adaptation and gradient stabilisation in place Adam is sufficient and more robust;

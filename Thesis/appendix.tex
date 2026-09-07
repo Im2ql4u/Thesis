@@ -20,11 +20,11 @@ $\mathbf R=(\mathbf r_1,\ldots,\mathbf r_N)\in\Omega\subset\mathbb R^{D}$ with $
 \end{equation}
 where $\hat V$ collects external and interaction potentials.
 
-In \emph{strong residual minimization} one introduces
+In \emph{strong residual minimisation} one introduces
 \begin{equation}
 L := \hat H - E \quad\Rightarrow\quad L\Psi = 0,
 \end{equation}
-and minimizes a squared residual loss of the schematic form
+and minimises a squared residual loss of the schematic form
 \begin{equation}
 \mathcal L_{\mathrm{res}}(\theta)
 = \frac12\|L\Psi_\theta\|_{L^2(\Omega;w)}^2
@@ -120,7 +120,7 @@ typically summarized by the (effective) condition number
 \begin{equation}
 \kappa(A)=\frac{\lambda_{\max}(A)}{\lambda_{\min}(A)}
 \end{equation}
-(over the nonzero/regularized spectrum).
+(over the nonzero/regularised spectrum).
 Large $\kappa(A)$ implies stiffness: a step size small enough to be stable for
 $\lambda_{\max}$ yields slow progress along directions associated with
 $\lambda_{\min}$. This is precisely the conditioning bottleneck emphasized in
@@ -192,7 +192,7 @@ Then $k_{\max}\sim 1/\ell$ and \eqref{eq:lap:kappa} implies
 \kappa \ \text{grows rapidly as}\ \ell\downarrow 0.
 \end{equation}
 In many-body Schr\"odinger problems, small $\ell$ arises from nodal structure,
-strong localization, and short-range correlation features; in all such regimes,
+strong localisation, and short-range correlation features; in all such regimes,
 the Laplacian makes the strong residual extremely curvature-sensitive.
 
 \section{Barron/spectral perspective: the Laplacian}
@@ -393,7 +393,7 @@ In 2D:
 The cusp conditions above show \emph{how} Coulomb creates stiffness: it forces
 kinetic and potential contributions to be individually large and singular,
 while their \emph{sum} is finite only under a short-distance constraint.
-Strong residual minimization is therefore a \emph{cancellation problem}.
+Strong residual minimisation is therefore a \emph{cancellation problem}.
 
 \paragraph{Sensitivity amplification in the local energy.}
 If the learned antiparallel-spin cusp slope is $a_\theta = 1+\delta a$, then
@@ -517,7 +517,7 @@ which has two consequences:
 \item \textbf{Heavy-tailed Monte Carlo forces.}
 The estimator of $g_i=\mathrm{Cov}[E_L,O_i]$ becomes noisy when $E_L$ has rare but
 extreme spikes (short-range events). This increases variance and can destabilize
-the linear solve unless one uses damping/regularization, as standard in SR practice
+the linear solve unless one uses damping/regularisation, as standard in SR practice
 \cite{BeccaSorella2017-QMCBook}.
 \item \textbf{Coupling to curvature sensitivity.}
 Even if SR corrects anisotropy in parameter space (natural gradient)
@@ -558,8 +558,7 @@ The scope of this result needs two qualifications. First, it is a property of th
 for the results in the main text never differentiates through the Laplacian and does
 not inherit this pathology, which is why it trains the same ansatz to far below the
 $0.3\%$ floor. The value here is therefore a diagnosis of one objective's limits, not
-a measure of what MCMC-free training can achieve. Second, this analysis is what motivated the shift to the weak form, and is reported as a
-negative result rather than as a headline number.
+a measure of what Markov-chain-free training can achieve. Second, this analysis is what motivated the shift to the weak form, and is reported as a negative result and not as a headline number.
 
 \section{Setup and notation}
 \label{app:catch22:setup}
@@ -578,7 +577,7 @@ x_i(\mathbf R;\theta_{\mathrm{BF}})$, $J$ is a neural Jastrow correlator, and $\
 parameters.
 A CTNN message-passing network produces the backflow shifts $\Delta\mathbf x_i$.
 
-We train by minimizing the \emph{screened collocation} objective
+We train by minimising the \emph{screened collocation} objective
 \begin{equation}
 \mathcal L(\theta)
 =\operatorname{Var}_{\mathcal S}\!\bigl[E_L(\mathbf R;\theta)\bigr],
@@ -855,8 +854,7 @@ The backflow reduces the error from $0.42\%$ to $0.32$--$0.33\%$, far short
 of the ${<}0.01\%$ reached by VMC\,+\,SR on the same ansatz \emph{family}
 (Table~\ref{tab:energies}). The two are not matched in size: the networks here total
 ${\sim}24$k parameters against ${\sim}236$k for the production model, so the comparison
-bounds what this objective achieves at this capacity rather than isolating the objective
-alone. The floor is nonetheless a property of the objective, because it does not move under
+bounds what this objective achieves at this capacity, not isolating the objective alone. The floor is nonetheless a property of the objective, because it does not move under
 any of the interventions below, including ones that add capacity.
 
 \subsection{Sampling strategies}
@@ -1559,8 +1557,7 @@ $\omega$ & $r_{\rm mode}$ & $\sigma_r$ & $\gamma$
 
 Chapter~\ref{ch:results} quotes shell occupancies, radii, bond order and Lindemann
 numbers for individual $(N,\omega)$ cells in running prose. Table~\ref{tab:shell-summary}
-collects them for the whole grid from a single analysis pass, so that the trends can be
-read off rather than assembled from the text. Shell radii are given in trap units
+collects them for the whole grid from a single analysis pass, so that the trends can be read off instead of assembled from the text. Shell radii are given in trap units
 $\tilde r=\sqrt{\omega}\,r$; multiply by $\ell=\omega^{-1/2}$ for Bohr.
 
 \paragraph{Reading $|\Phi_n|$ against its null.}
@@ -1602,8 +1599,7 @@ The conclusion that survives both caveats is the one that matters: statistical d
 is not what separates the regimes here, magnitude is. On that criterion the ordering is flat
 through $\omega=0.1$, weakly present at $\omega=0.01$ and only at $N{=}6$, and unambiguous at
 $10^{-3}$. A cleaner version of this comparison would generate the null numerically at each
-actual occupancy $n$, through the same block-bootstrap pipeline, rather than relying on the
-asymptotic form; that is a small addition we did not make.
+actual occupancy $n$, through the same block-bootstrap pipeline, instead of relying on the asymptotic form; that is a small addition we did not make.
 
 The Lindemann numbers of the same table fall monotonically throughout, so radial stiffening
 precedes $n$-fold angular ordering rather than accompanying it---the separation between

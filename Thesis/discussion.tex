@@ -1,6 +1,3 @@
-\chapterepigraph{Convictions are more dangerous enemies of truth than lies.}{Friedrich
-Nietzsche}{\textit{Human, All Too Human}}
-
 \begingroup
 \let\clearpage\relax
 \let\cleardoublepage\relax
@@ -31,9 +28,7 @@ such a dictionary easier to cover cannot explain the gap, since the two effectiv
 converge toward $3.7$ at weak confinement while the dictionary gap persists.
 
 The second link is where the optimiser meets that space. The result there is narrower than
-the usual one about natural gradients. Under $|\Psi|^2$ sampling the empirical metric is
-badly conditioned---$\kappa\sim10^{7}$--$10^{10}$ on precisely the models where Adam and SR
-agree to four decimals---so conditioning cannot be the criterion. What separates the regimes
+the usual one about natural gradients. Under $|\Psi|^2$ sampling the empirical metric is badly conditioned, $\kappa\sim10^{7}$--$10^{10}$ on precisely the models where Adam and SR agree to four decimals, so conditioning cannot be the criterion. What separates the regimes
 is whether a batch resolves the metric at all. Under $|\Psi|^2$ the samples come from the
 measure that defines $S$; under a fixed collocation proposal they do not, and preconditioning
 becomes what makes the optimisation converge; and once the proposal loses the target,
@@ -63,7 +58,7 @@ after a pure-energy SR tail, and such an expectation lies above $E_0$ whatever i
 at, so agreement from above cannot be manufactured by aiming; aiming at a target above the
 ansatz's reachable minimum would only make the number worse. The reference itself is
 variational with respect to its own imposed nodes, which is why several of our energies sit
-below it without contradiction, and why the tables report deviation rather than error.
+below it without contradiction, and why the tables report deviation, not error.
 Below $\omega=0.1$ for $N\ge6$ no external value exists and those states are predictions.
 
 \section{Physics returned to the solver}
@@ -90,8 +85,8 @@ estimator makes the optimisation seed-dependent and the metric unreliable, and i
 unreliable metric amplifies noise. Langevin refinement joins that chain at the first link by
 breaking the proposal the weights are computed against; CG-SR joins at the last. Even the
 $N{=}20$ reversal, where a Jastrow-only ansatz beats the backflow that should outperform it,
-reaches the same chain through memory rather than confinement. All of it is a sampling
-problem, and a better proposal moves it.
+reaches the same chain through memory, not confinement. Up to this frontier the failures share a sampling
+origin, and a better proposal moves the frontier.
 
 Below $0.0035$ the obstacle changes character. Metropolis walkers started on the classical
 shell relax inward regardless; the backflow displacement transfers correctly and is simply
@@ -105,10 +100,10 @@ expressivity. We have not shown the ansatz cannot represent the $\omega=0.0027$ 
 remedy we suggest, per-$\omega$ re-optimisation against a shell-amplitude-anchored objective,
 presumes it can.
 
-Both halves outlive the quantum dot. An importance-sampled scheme whose proposal
-increasingly misses a strongly correlated target should meet the first chain in that order,
-and any second-order method applied to such a system ought to certify that the metric it
-inverts is statistically resolved at the sample sizes in use.
+The same mechanisms should extend beyond the quantum dot. An importance-sampled scheme whose
+proposal increasingly misses a strongly correlated target should meet the first chain in that
+order, and any second-order method applied to such a system ought to certify that the metric
+it inverts is statistically resolved at the sample sizes in use.
 
 \paragraph{The staged crossover.}
 The physics that drove the loop stands in a particular relation to what was known. That
@@ -116,8 +111,7 @@ parabolic dots form Wigner molecules with shell structure is
 established~\cite{Egger_1999,Filinov_2001,Kong_2002,manninen2007metalclustersquantumdots};
 that the crossover is \emph{staged}---radial expansion and shell stiffening completing well
 before angular order appears within the shells---is what the topology-resolved diagnostics
-here make visible, because they condition on the shell partition before measuring angular
-correlation rather than averaging over it. The $N{=}6$ ring approaches its classical radius
+here make visible, because they condition on the shell partition before measuring angular correlation instead of averaging over it. The $N{=}6$ ring approaches its classical radius
 $1.334\,\omega^{-2/3}$ monotonically to within $1.7\%$ while its bond order is still at the
 random-angle null, which is the separation stated quantitatively. Whether the same staging
 survives a total-spin scan we cannot say.
@@ -134,7 +128,7 @@ rungs where no reference exists, is the state reference-free in ancestry: its wa
 descend from benchmark-guided states at stronger confinement. Against the SR route,
 collocation is competitive for $N\lesssim12$ and $\omega\gtrsim0.1$, a few times worse at
 $N{=}12$, $\omega{=}0.1$, and not competitive at $N{=}20$. The two look complementary rather
-than rival: collocation for fast, parallel, chain-free exploration and pretraining; SR for
+than rival: collocation for fast, parallel, Markov-chain-free exploration and pretraining; SR for
 final accuracy where correlation is strong.
 
 \section{Scope, and what to do next}

@@ -29,6 +29,11 @@
 \usetikzlibrary{arrows.meta,positioning,fit}
 \usepackage{placeins}  % \FloatBarrier: keep floats out of the middle of a paragraph
 \usepackage[flushleft]{threeparttable}  % provides the threeparttable and tablenotes environments
+% hyperref last: PDF outline, clickable TOC, cross-references and citations.
+% Link colours are muted so the printed page still reads as plain text.
+\usepackage[hidelinks,bookmarks=true,bookmarksnumbered=true,bookmarksopen=true,
+            bookmarksopenlevel=1,pdfusetitle]{hyperref}
+\usepackage{bookmark}
 
 \usetikzlibrary{positioning, arrows.meta, shapes.geometric}
 
@@ -182,8 +187,6 @@ Tangent-Space Geometry, Message Passing, and Wigner Molecules}
 
 
 \include{abstract}
-\thesisepigraph{To go wrong in one's own way is better than to go right in
-someone else's.}{Fyodor Dostoevsky}{\textit{Crime and Punishment}}
 \include{preface}
 \tableofcontents
 \listoffigures
@@ -203,10 +206,8 @@ someone else's.}{Fyodor Dostoevsky}{\textit{Crime and Punishment}}
 \input{results}
 \input{results_kernel}
 
-\part{Discussion}
+\part{Discussion and Conclusions}
 \input{discussion}
-
-\part{Conclusion}
 \input{conclusion}
 
 \part{Appendices}

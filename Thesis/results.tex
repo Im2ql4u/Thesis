@@ -32,8 +32,7 @@ $\omega=0.1$ for every $N$, and to $\omega=0.01$ for $N{=}2$; below that, for $N
 published value exists, and the boundary is marked wherever it occurs. Section~\ref{sec:wigner-molecule} then uses the trained wavefunction as an instrument and
 follows the Wigner crossover from two electrons to twenty. Its result is that the crossover
 is staged: the cloud expands and its shells stiffen radially well before the electrons
-acquire angular order inside them. How the network internally represents these states is a
-question about the solver rather than about the physics, and is deferred to
+acquire angular order inside them. How the network internally represents these states is a question about the solver, not about the physics, and is deferred to
 Chapter~\ref{ch:kernel} and Appendix~\ref{app:representation}.
 
 \section{Benchmark energies}
@@ -52,8 +51,7 @@ backflow: a \emph{conventional} single round of pairwise messages aggregated per
 (${\approx}51$k, total ${\approx}105$k), or a \emph{message-passing} field that maintains node
 and edge features and transports information between them (${\approx}182$k, total
 ${\approx}236$k). They are named \emph{conv.\ BF} and \emph{MP BF} for that difference. The
-counts are independent of $N$, since interactions enter through permutation-equivariant
-features rather than per-particle weights, and they are not the widths of the architecture
+counts are independent of $N$, since interactions enter through permutation-equivariant features, not per-particle weights, and they are not the widths of the architecture
 study of \S\ref{sec:kernel-q1} (Table~\ref{tab:hyperparams}).
 
 \subsection{Energies}
@@ -79,8 +77,7 @@ than circularity. A variational expectation under $|\Psi|^2$ lies above $E_0$ wh
 aimed at, so aiming cannot pull the reported energy below what the ansatz can reach.
 \S\ref{sec:energy-discussion} takes this up properly.
 
-Table~\ref{tab:Residual} begins with the easiest case, and its purpose is
-diagnostic rather than competitive: two electrons are few enough that the
+Table~\ref{tab:Residual} begins with the easiest case, and its purpose is diagnostic, not competitive: two electrons are few enough that the
 architecture can be tested nearly in isolation. It reports two-electron energies
 from \emph{residual-only} training, with and without the backflow. For $N{=}2$, backflow is
 \emph{not} required to reach reference accuracy;
@@ -122,28 +119,19 @@ Fig.~\ref{fig:rel_error_vs_omega}).
 
 \begin{table}[htbp]
   \centering
-  \caption[Ground-state energies against the available references]{Residual-based pretraining + SR tail. Reference energies and our conv.-BF
-  and MP-BF ground-state energies (Hartree) for selected $(N,\omega)$.
-For $N\in\{6,12,20\}$ the references are the fixed-node diffusion Monte Carlo energies of
-  H{\o}gberget~\cite{Hogberget2013-DMC}, as tabulated in
-  Ref.~\cite{Nordhagen2023-NeuralNetworksFermions}; the $N{=}2$ entries are drawn from the same
-  compilation, whose reference column is assembled from H{\o}gberget's DMC and from Taut's
-  analytic two-electron solutions~\cite{Taut1994-TwoElectrons}, which exist only at a
-  discrete set of frequencies. We do not attribute individual $N{=}2$ rows to one source or
-  the other, except at $\omega=1$, where the tabulated $3.00000$ is the known exact result.
-  The fixed-node reading of \S\ref{sec:energy-discussion} therefore applies wherever the
-  reference is DMC, which is every $N\ge6$ entry.
-  Parentheses denote $1\sigma$ on the last digit(s). The ``rel.\ dev.'' columns give
-  $100\,(E-E_{\rm ref})/E_{\rm ref}$; because the $N\ge6$ references are fixed-node upper
-  bounds, a negative entry is not necessarily an error, and the columns are labelled
-  deviation rather than error for that reason (\S\ref{sec:energy-discussion}).
-  \textbf{These are production energies and the two architectures are not capacity
-  matched} ($\approx105$k against $\approx236$k parameters); the controlled architecture
-  comparison is \S\ref{sec:kernel-q1}, and this table must not be read as an architecture
-  ablation. A dash in the reference column marks
-  $(N,\omega)$ for which no published DMC value exists (all $\omega=0.001$, and
-  $\omega=0.01$ for $N\ge6$); the relative-error columns are correspondingly blank
-  there, as no external benchmark is available to score against.}
+  \caption[Ground-state energies against the available references]{Ground-state energies
+  (Hartree) from residual pretraining plus an SR tail, for the conventional-backflow and
+  message-passing-backflow ans\"atze. Reference values are the fixed-node diffusion Monte
+  Carlo energies compiled in Ref.~\cite{HaasHFQD}; provenance and the $N{=}2$ attribution are
+  given in the notes below. Parentheses denote $1\sigma$ on the last digit(s). ``Rel.\ dev.''
+  is $100\,(E-E_{\rm ref})/E_{\rm ref}$, labelled deviation and not error because the
+  $N\ge6$ references are themselves fixed-node upper bounds, so a negative entry is not
+  necessarily wrong (\S\ref{sec:energy-discussion}). \textbf{These are production energies and
+  the two ans\"atze are not capacity matched} ($\approx105$k against $\approx236$k); the
+  controlled architecture comparison is \S\ref{sec:kernel-q1}, and this table is not an
+  architecture ablation. A dash marks $(N,\omega)$ with no published value---all
+  $\omega=0.001$, and $\omega=0.01$ for $N\ge6$---where the deviation columns are
+  correspondingly blank.}
   \label{tab:energies}
   \begin{threeparttable}
     \begin{tabular}{c|c|c|cc|cc}
@@ -186,8 +174,7 @@ For $N\in\{6,12,20\}$ the references are the fixed-node diffusion Monte Carlo en
       $\omega=1$ is the exact analytic value. The
       foundational DMC study of these dots is Pederiva \emph{et al.}
       \cite{Pederiva2000-QD-DMC} (spanning $N\le13$; see also its
-      erratum~\cite{Pederiva2003-QD-DMC-Erratum}), cited here for the method rather than for
-      these particular numbers. We took the values from the compilation in the master's
+      erratum~\cite{Pederiva2003-QD-DMC-Erratum}), cited here for the method, not for these particular numbers. We took the values from the compilation in the master's
       thesis of Haas~\cite{HaasHFQD}, which reproduces the same benchmarks; the attribution
       above is to their origin. Dashes mark $(N,\omega)$ with no published value.
     \end{tablenotes}
@@ -218,7 +205,7 @@ that draws its samples from $|\Psi|^2$ by Metropolis. A second route removes the
 the gradient entirely, replacing it with an analytic proposal and importance weights. It
 reaches comparable energies over part of this range. Its performance, its failure boundary
 and the mechanism behind both are the subject of \S\ref{sec:kernel-mcmcfree}, and the
-energies are tabulated there (Table~\ref{tab:collocation}) rather than here, because they
+energies are tabulated there (Table~\ref{tab:collocation}) and not here, because they
 are not interpretable until that mechanism is in hand.
 
 \paragraph{Where the tables stop.}
@@ -276,9 +263,7 @@ which the angles are random. \S\ref{sec:wigner-synthesis} collects what the diag
 agree on and what they do not establish.
 
 What we are looking for cannot be seen in the observable one would naturally plot. In a
-rotationally symmetric trap, the electrons of a Wigner molecule localise in
-\emph{relative} coordinates---concentric rings, polygon-like angular
-correlations---while the whole pattern is free to rotate. Average over that rotation, as
+rotationally symmetric trap, the electrons of a Wigner molecule localise in \emph{relative} coordinates (concentric rings, polygon-like angular correlations) while the whole pattern is free to rotate. Average over that rotation, as
 any lab-frame density does, and the rings smear into something close to uniform. The
 order is there; the density hides it. Every diagnostic below exists to look past that
 averaging.
@@ -297,9 +282,9 @@ For each $(N,\omega)$ we draw $\mathbf X\!\sim|\Psi|^2$ and report
 (i)~the pair distribution $g(r)$,
 (ii)~the single-particle radial density $P(r)\!\propto\!r\,\rho(r)$,
 and summary statistics: $r_{\rm mode}$, $\langle r\rangle$, $\sigma_r$, FWHM,
-quantiles $q_{10},q_{50},q_{90}$, and a localization ratio
+quantiles $q_{10},q_{50},q_{90}$, and a localisation ratio
 $\gamma=\sigma_r/r_{\rm mode}$ (smaller $\gamma$ $\Rightarrow$ stiffer
-localization).
+localisation).
 For multi-electron systems we additionally monitor shell-resolved
 bond-orientational order $|\Phi_m|$ and a dimensionless Lindemann-type
 ratio for positional fluctuations on each
@@ -456,7 +441,7 @@ individual energy components and for the radius, which support these statements 
 adding to them, are collected in Appendix~\ref{app:energy-exponents}.
 
 % ──────────────────────────────────────────────────────────────────────
-\subsection{Radial localization and pair correlations}
+\subsection{Radial localisation and pair correlations}
 \label{sec:wigner-radial}
 
 Over the weakest three confinements, the typical one-body radius follows
@@ -547,8 +532,7 @@ $\approx 0.69$) and a $(0,6)$ single-ring sector (fraction $\approx 0.31$),
 with bond order $|\Phi_5|=0.453\pm0.214$ and $|\Phi_6|=0.466\pm0.206$
 respectively. Two conventions apply here and below. The quoted $\pm$ is the frame-to-frame
 standard deviation of $|\Phi_m|$, not a standard error on its mean, which with $3\times10^4$
-frames is smaller by two orders of magnitude. And these are \emph{sector-conditioned}
-values---computed on the frames assigned to that sector---which is why they differ slightly
+frames is smaller by two orders of magnitude. And these are \emph{sector-conditioned} values, computed on the frames assigned to that sector, which is why they differ slightly
 from the modal-topology values tabulated in
 Appendix~\ref{app:structural-tables:shells}. Both must be read against the random-angle
 null $\langle|\Phi_n|\rangle=0.886/\sqrt n$, which is $0.396$ for $n{=}5$ and $0.362$ for
@@ -712,8 +696,7 @@ $N{=}20$~\cite{schweigert1994spectralpropertieschargedparticles,Kong_2002}. The 
 separate and stiffen. The Lindemann disorder falls monotonically throughout, while
 rotation-registered bond order stays within $2\%$ of its random-angle null down to
 $\omega=0.1$ and reaches $1.19$--$1.65$ times it only at $\omega=10^{-3}$
-(Appendix~\ref{app:structural-tables:shells})---radial stiffening precedes $n$-fold angular
-ordering rather than accompanying it. Lab-frame order stays near zero throughout, as
+(Appendix~\ref{app:structural-tables:shells}). Radial stiffening precedes $n$-fold angular ordering instead of accompanying it. Lab-frame order stays near zero throughout, as
 expected for a freely rotating molecule.
 The energy partitioning approaches the classical virial form, with $\Gamma$ reaching
 ${\sim}40$ for $N{=}12$ at the weakest trap. None of these was built into the ansatz. The commensurate $(3,9)$ sector at $N{=}12$ carries real weight in
@@ -721,9 +704,7 @@ $(1,11)$ and $(2,10)$ besides, which is the quantum rotational mixing the rotati
 picture
 predicts~\cite{manninen2007metalclustersquantumdots,Filinov_2001}. At $N{=}20$ the
 three-shell structure and its collapse to a single ring about a central electron within one
-decade in $\omega$ is the sharpest transition in the series. The $(1,7,12)$ configuration
-itself is not new---it is the known classical shelling and has been reported in quantum
-calculations of comparable dots---and no novelty is claimed for it. What we have not found
+decade in $\omega$ is the sharpest transition in the series. The $(1,7,12)$ configuration itself is not new. It is the known classical shelling, reported in quantum calculations of comparable dots, and no novelty is claimed for it. What we have not found
 reported elsewhere for $N\ge12$ parabolic dots is the combination of \emph{sector-conditioned}
 bond-order and Lindemann statistics, read against their random-angle null, with a held-out
 polygon reconstruction of $g(r)$ scored against an angle-randomised baseline.
@@ -736,8 +717,7 @@ Appendix~\ref{app:structural-tables:mixfit} is the version that could have faile
 sampling correctness itself rests on the independent restart and chain diagnostics.
 
 The two angular diagnostics stage the crossover slightly differently, and the difference is
-informative. Radial localisation---expansion, shell separation, falling width-to-radius
-ratio, classical force balance---develops progressively from $\omega=1$ down.
+informative. Radial localisation (expansion, shell separation, falling width-to-radius ratio, classical force balance) develops progressively from $\omega=1$ down.
 Bond-orientational order is flat at its null through $\omega=0.1$, departs slightly at
 $\omega=0.01$ and only at $N{=}6$, and becomes large at $10^{-3}$ everywhere. The held-out
 polygon model, sensitive to any angular correlation rather than to $n$-fold order

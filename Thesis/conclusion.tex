@@ -11,60 +11,50 @@ Aurelius}{\textit{Meditations}}
 
 The work formed a feedback cycle between solver and physics. A variational state was
 constructed and checked against every external benchmark available; the checked state was
-then used as an instrument, and resolved the shell geometry of the Wigner regime---rings at
+then used as an instrument, and resolved the shell geometry of the Wigner regime: rings at
 definite occupancies, $n$-fold angular order becoming large only in the last decade of
-confinement, a shell radius approaching its classical $\omega^{-2/3}$ scaling. Those measurements are what a sampler needs in order to place its mass
-correctly. Incorporating the measured geometry into the proposal extended
-Markov-chain-free training from the failure of the origin-centred sampler at
-$\omega\approx0.01$ down to $\omega=0.0035$, into states the original method could not
-reach.
+confinement, a shell radius approaching its classical $\omega^{-2/3}$ scaling. Those are the
+measurements a sampler needs in order to place its mass correctly. Feeding the measured
+geometry back into the proposal extended Markov-chain-free training from the failure of the
+origin-centred sampler at $\omega\approx0.01$ down to $\omega=0.0035$, into states the
+original method could not reach.
 
 \emph{Architecture.} Message passing supplies a relational channel whose effect appears in
-the tangent geometry before it appears in the energy (\S\ref{sec:kernel-q1}). At strong
-confinement a message-passing correlator reaches a reference-quality solution along half as
-many effective tangent directions as a separable network of matched or larger capacity, and
-its leading directions are far more completely accounted for by a compact dictionary of
-collective operators; the separable network spends close to half its tangent budget outside
-that dictionary, matches the energy to four figures anyway, and carries a local-energy
-variance higher by factors of $1.2$ to $3.4$. In the nodes the same channel shows as a
-collapse averted: toward the Wigner regime a conventional backflow's displacement field
-collapses spectrally to rank one and loses half a percent of the energy, where the
-copresheaf field keeps its rank. Correlator and backflow give way at the same confinement,
-and a controlled correlator swap moves that boundary---which points to one relational
-bottleneck rather than two deficits.
+the tangent geometry before it appears in the energy (\S\ref{sec:kernel-q1}). A
+message-passing correlator reaches a reference-quality solution along half as many effective
+tangent directions as a separable network of matched or larger capacity, keeps more of its
+tangent weight inside a compact operator dictionary, and carries a local-energy variance
+lower by factors of $1.2$ to $3.4$. In the nodes the same channel averts a collapse: toward
+the Wigner regime a conventional backflow's displacement field falls spectrally to rank one
+and loses half a percent of the energy. A controlled correlator swap moves that boundary,
+which points to one relational bottleneck rather than two deficits.
 
 \emph{Optimiser.} Natural-gradient preconditioning earns its cost where the tangent metric is
 anisotropic and still estimable (\S\ref{sec:kernel-cond}). That is narrower than the usual
-claim and it has three regimes rather than two. Under $|\Psi|^2$ sampling the empirical
-metric is badly conditioned, $\kappa\sim10^{7}$--$10^{10}$, on the very models where Adam and
-SR agree to four decimals, so conditioning alone is not the criterion. Under a fixed
-collocation proposal SR is what makes the optimisation work at all, until proposal adaptation
-and gradient stabilisation make Adam sufficient and more robust. And once the sampling that
-builds the metric collapses, inverting it amplifies noise rather than signal. Estimability,
-not conditioning, is what the data identify as decisive.
+claim. Under $|\Psi|^2$ sampling the empirical metric is badly conditioned,
+$\kappa\sim10^{7}$--$10^{10}$, on the very models where Adam and stochastic reconfiguration
+agree to four decimals, so conditioning alone is not the criterion. Under a fixed collocation
+proposal SR is what makes the optimisation work at all; once the sampling that builds the
+metric collapses, inverting it amplifies noise. In these experiments estimability, rather than conditioning,
+is what separates the regimes.
 
 \emph{Paradigm.} An accurate wavefunction can be trained with no Markov chain in the
 gradient, inside a regime whose edges we found by crossing them
 (\S\ref{sec:kernel-mcmcfree}). The weak-form objective reaches DMC accuracy at
-$N\in\{6,12\}$ under strong confinement and stays within a few tenths of a percent of our own
+$N\in\{6,12\}$ under strong confinement and holds within a few tenths of a percent of our own
 converged energies well into the correlated regime. It fails through one chain of
 causes---proposal mismatch, weight-tail inflation, gradient noise, an unestimable
-metric---which a better proposal moves but does not remove, and then through a second and
-different failure of transfer between confinements.
+metric---which a better proposal moves but does not remove, and then through a second failure
+of transfer between confinements.
 
-\emph{Physics.} The trained state serves as an instrument (\S\ref{sec:wigner-molecule}). The
-crossover it resolves is staged: the cloud expands and its shells stiffen radially well
-before the electrons acquire angular order within them. At $\omega=10^{-3}$ the $N{=}6$ dot
-shows persistent mixing between the $(1,5)$ and $(0,6)$ sectors, the $N{=}12$ dot a two-shell
-molecule with a modal $(3,9)$ split, and the $N{=}20$ dot a three-shell molecule that
-collapses to a single ring about a central electron within one decade in $\omega$. The
-$N{=}6$ shell radius approaches the classical value $1.334\,\omega^{-2/3}$ monotonically, to
-within $1.7\%$.
-
-The measurements then returned to the solver. Incorporating the observed shell geometry into
-the collocation proposal lifted the effective sample size by $15$--$32\times$ without any
-training and carried Markov-chain-free training from $\omega\approx0.01$ to
-$\omega=0.0035$---into states the original sampler could not reach.
+\emph{Physics.} The trained state serves as an instrument
+(\S\ref{sec:wigner-molecule}). The crossover it resolves is staged: the cloud expands and its
+shells stiffen radially well before the electrons acquire angular order within them. At
+$\omega=10^{-3}$ the $N{=}6$ dot shows persistent mixing between the $(1,5)$ and $(0,6)$
+sectors, the $N{=}12$ dot forms a two-shell molecule with a modal $(3,9)$ split, and the
+$N{=}20$ dot a three-shell molecule that collapses to a single ring within one decade in
+$\omega$. The measured shell radius approaches the classical value
+$1.334\,\omega^{-2/3}$ to within $1.7\%$.
 
 \section{Limitations and further work}
 
@@ -73,11 +63,7 @@ scanned. The architecture comparison is seeded at $N{=}6$ and thinner above it, 
 backflow variants are not capacity-matched, so the cross-architecture energy gap does not
 isolate architecture. Below $\omega=0.0035$ the limit is a transfer instability in the
 Slater--Jastrow cancellation that no change of proposal repairs; whether the ansatz could
-represent such a state under per-$\omega$ re-optimisation is a question we did not test.
-The interventions most likely to move the picture are a backflow that is not quadratic in
-particle number, a proposal that adapts on its own, an exactly $\mathrm{SO}(2)$-equivariant
-displacement, and the capacity-matched backflow control that would settle the last question
-above. \S\ref{sec:implications} sets these out.
+represent such a state under per-$\omega$ re-optimisation we did not test. The interventions most likely to move the picture (a backflow that is not quadratic in particle number, a proposal that adapts on its own, an exactly $\mathrm{SO}(2)$-equivariant displacement, and the capacity-matched backflow control) are set out in \S\ref{sec:implications}.
 
 \section{Concluding perspective}
 

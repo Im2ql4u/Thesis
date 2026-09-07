@@ -1,6 +1,3 @@
-\chapterepigraph{The world was to me a secret which I desired to divine.}{Mary
-Shelley}{\textit{Frankenstein; or, The Modern Prometheus}}
-
 \begingroup
 \let\clearpage\relax
 \let\cleardoublepage\relax
@@ -15,8 +12,7 @@ this wavefunction is known exactly; the entire difficulty is solving it.
 
 The competition that makes it hard is physical. Kinetic energy tends to delocalise the
 particles; interactions and external potentials drive localisation and correlation; and the
-balance between them plays out in a configuration space far too large to enumerate. Yet the
-quantities we need---energies, correlation functions, phase boundaries---are precisely the ones
+balance between them plays out in a configuration space far too large to enumerate. Yet the quantities we need (energies, correlation functions, phase boundaries) are precisely the ones
 that depend on getting that balance right. This is the
 \emph{many-body problem}, the point at which quantum mechanics turns from a compact set of
 principles into one of the hardest computational challenges in physics.
@@ -60,8 +56,7 @@ theorems guarantee that a sufficiently large network can \emph{represent} any su
 regular function to arbitrary accuracy. They say nothing about whether gradient-based optimisation will
 \emph{find} that representation, nor at what sample cost. This thesis measures that
 gap directly: the same ansatz, demonstrably able to express the ground state, is
-placed in training schemes that do and do not allow it to get there. Representability
-is cheap; trainability is the difficulty.
+placed in training schemes that do and do not allow it to get there. Representability is the easier question; trainability is the harder one.
 
 A weaker but sounder case for a neural ansatz survives that objection. Established methods pay for
 accuracy in one of two currencies. FCI is exact within a finite basis, but its cost
@@ -81,8 +76,7 @@ practice is an empirical question, and this thesis treats it as one.
 That question also suggests a different way to use a solver. Nearly every
 established method for the many-body Schrödinger equation is constructed outward
 from physical principles: an approximation is chosen, justified physically, and
-then implemented. A trained network inverts the order. Physical structure is still imposed on it---antisymmetry,
-the cusp, trap scaling, permutation symmetry---but the \emph{specific correlations} it develops
+then implemented. A trained network inverts the order. Physical structure is still imposed on it (antisymmetry, the cusp, trap scaling, permutation symmetry) but the \emph{specific correlations} it develops
 within those constraints are not prescribed, and are interrogated only afterwards. Unlike an
 implicit stochastic representation, it is a concrete parameterised object whose internal
 structure can be examined directly. This
@@ -90,24 +84,18 @@ motivates a question that the size of the problem does not by itself settle. A
 twenty-electron dot is a function of forty coordinates, and any basis expansion of it
 grows combinatorially---but it does not follow that the solution itself is
 forty-dimensional in any useful sense. How many active tangent directions does a given parameterisation
-actually use to represent the solved state---a question about the solution and its
-representation rather than about the equation. It is worth saying at once that this is not an
+actually use to represent the solved state---a question about the solution and its representation, not about the equation. It is worth saying at once that this is not an
 intrinsic dimension of the wavefunction: the count depends on how the state is parameterised,
 as \S\ref{sec:theory-tangent-kernel} makes precise.
 
 We make that question quantitative through the geometry of the wavefunction's
-log-derivatives. Perturbing the parameters of a trained ansatz over an ensemble of
-configurations and collecting the resulting sensitivities into a covariance matrix
-yields, in the simplest reading, a principal-component analysis of the state: the
-eigenvalues report how much variation each independent direction carries, and their
-distribution counts how many directions are doing genuine work. The physically
-appropriate version of this covariance is the quantum geometric tensor (equivalently,
-the Fisher metric), and the corresponding count is the participation ratio of its
-spectrum---an effective dimension rather than a hard rank, insensitive to the raw parameter
-count but not to the choice of parameterisation. Chapter~\ref{ch:kernel} develops this instrument and applies it to
-architecture, optimiser, and training paradigm alike; the questions it answers are how
-this effective dimension behaves as particles are added and as the trap is opened, and
-whether different architectures arrive at the same solution by different routes.
+log-derivatives. Collecting the parameter sensitivities of a trained ansatz over an ensemble
+of configurations into a covariance matrix gives, in the simplest reading, a
+principal-component analysis of the state: the eigenvalue distribution counts how many
+directions are doing genuine work. The physically appropriate version of that covariance is
+the quantum geometric tensor, and the corresponding count is the participation ratio of its
+spectrum. Chapter~\ref{ch:kernel} develops the instrument and applies it to architecture,
+optimiser and training paradigm alike.
 
 In principle, then, neural networks provide highly expressive ansätze for quantum
 problems. In practice, several issues arise. Objectives based on local
@@ -137,22 +125,21 @@ explicit neural \emph{backflow} transformations~\cite{LuoClark2019-NeuralBackflo
 direct ancestor of the coordinate backflow used here. Message passing, the relational
 mechanism at the centre of this thesis, has recently been built into neural quantum
 states for extended fermion
-systems~\cite{Pescia2024-MessagePassingNQS,KimEtAl2023-UltracoldFermiNQS}. Against that
-backdrop the present work is deliberately narrow and complementary. Rather than pushing a
-new architecture to ever larger systems, it asks \emph{why} the relational channel helps,
-and uses the tangent-kernel geometry to make the answer precise; it focuses on the
-two-dimensional quantum-dot Wigner regime, where correlation is strongest and where
-topology-resolved structural diagnostics remain sparse; and it treats conditioning, the
-optimiser, and Markov-chain-free training as objects of study in their own right rather
-than fixed choices. To our knowledge these questions have not previously been addressed
-together for parabolic quantum dots.
+systems~\cite{Pescia2024-MessagePassingNQS,KimEtAl2023-UltracoldFermiNQS}. Against that backdrop the present work is deliberately narrow. It does not push a new
+architecture to ever larger systems. It asks \emph{why} the relational channel helps, and
+uses the tangent-kernel geometry to make the answer precise. Its setting is the
+two-dimensional quantum-dot Wigner regime, where correlation is strongest and
+topology-resolved structural diagnostics remain sparse. And it treats conditioning, the
+optimiser and Markov-chain-free training as objects of study, not fixed choices. To
+our knowledge these questions have not been addressed together for parabolic quantum
+dots.
 
 \paragraph{Quantum dots as a controlled testbed.}
 Two-dimensional parabolic quantum dots provide a clean and tunable setting in
 which to explore such ideas. They offer a simple route from Fermi-liquid–like
 behaviour to Wigner-molecule physics. As the trap frequency $\omega$ decreases,
 the single-particle level spacing collapses while Coulomb repulsion becomes
-dominant. Electrons then tend to localize into ring or shell patterns. In the
+dominant. Electrons then tend to localise into ring or shell patterns. In the
 lab frame, rotational symmetry and quantum fluctuations smear these into smooth
 densities; in a co-rotating frame, one recovers crystalline-like structures
 whose topology depends on particle number. For $N{=}6$ and $N{=}12$, classical
@@ -180,13 +167,13 @@ objective and refined variationally.
 The design is meant to be \emph{safe by construction} for Laplacian-based objectives:
 coordinates are scaled to trap units ($\tilde R=\sqrt{\omega}R$), learned pair
 features are soft-core (avoiding spurious $1/r$ behaviour in derivatives), and the
-electron–electron cusp is enforced analytically rather than learned. On top of a
+electron–electron cusp is enforced analytically, not learned. On top of a
 Slater determinant of harmonic-oscillator orbitals, two learnable objects carry the
 correlation: a Jastrow correlator, which reshapes the amplitude, and a coordinate
 backflow, which reshapes the nodes. Each can be built either without message
 passing---encoding and pooling per-particle and pairwise features in a single pass, as
 in a DeepSet---or as a \emph{message-passing} network in which the particles exchange and
-update information through explicit, transported edge state before a quantity is read out.
+update information through explicit transported edge states before a quantity is read out.
 
 Once such an ansatz reaches reference accuracy—which, as we will see, a surprisingly
 compact one does—the remaining questions concern \emph{why} its parts behave as they do, and what it can
@@ -220,31 +207,25 @@ them.
 \paragraph{Main contributions.}
 \begin{enumerate}
   \item A compact Slater--Jastrow--backflow ansatz, conditioned in trap units with an
-        analytic cusp and soft-core pair features, that reaches DMC-level energies for
-        $N{=}2$ and $10^{-2}$--$10^{-1}\%$ relative errors for $N\in\{6,12,20\}$ at
-        $\omega\ge0.1$, and extrapolates smoothly to $\omega=10^{-3}$.
+        analytic cusp and soft-core pair features, that reproduces every available external
+        benchmark for $N\in\{2,6,12,20\}$ and extrapolates smoothly into the Wigner regime.
   \item A tangent-space account of what message passing contributes. A message-passing
         correlator represents the ground state in about half as many effective tangent
         directions as a separable one at strong confinement, and keeps its leading directions
-        inside a compact operator dictionary at \emph{every} confinement where the separable
-        network does not; a message-passing backflow retains rank exactly where a conventional
-        one collapses to a single displacement mode and loses accuracy. Both effects are
-        invisible in the total energy until weak confinement turns the geometric deficit into
-        an energetic one.
+        inside a compact operator dictionary where the separable network does not; a
+        message-passing backflow retains rank exactly where a conventional one collapses to a
+        single displacement mode and loses accuracy. Both effects are invisible in the total
+        energy until weak confinement turns the geometric deficit into an energetic one.
   \item The criterion under which natural-gradient preconditioning is worth its cost: the
         tangent metric must be anisotropic \emph{and} still estimable. Conditioning alone is
-        not sufficient---under $|\Psi|^2$ sampling the empirical metric is badly conditioned
-        and SR buys nothing---and the same geometry bounds an importance-sampled collocation
+        not sufficient, and the same geometry bounds an importance-sampled collocation
         objective that trains with no Markov chain in the gradient, reaching a Wigner-regime
         state at $\omega=0.0035$ once its proposal is built from measured shell geometry.
-  \item Topology-resolved diagnostics of the Wigner crossover: two-shell probabilities and
-        inner-ring occupancy histograms, a polygon shell model fitted on held-out frames
-        reproducing $g(r)$ to cosine similarity $0.987$--$0.999$ against $0.936$--$0.996$ for
-        an angle-randomised null, and sector-resolved bond order and Lindemann indices read
-        against their random-angle baselines. At $\omega=10^{-3}$ the $N{=}6$ dot shows
-        persistent mixing between the $(1,5)$ and $(0,6)$ sectors and the $N{=}12$ dot forms
-        a two-shell molecule with a commensurate $(3,9)$ split, complementing classical and
-        quantum studies of parabolic
+  \item Topology-resolved diagnostics of the Wigner crossover---two-shell probabilities,
+        inner-ring occupancy histograms, a polygon shell model fitted on held-out frames, and
+        sector-resolved bond order and Lindemann indices read against random-angle
+        baselines---which show that radial stiffening completes well before angular order
+        appears, complementing classical and quantum studies of parabolic
         dots~\cite{Egger_1999,Kong_2002,schweigert1994spectralpropertieschargedparticles,Filinov_2001}.
 \end{enumerate}
 

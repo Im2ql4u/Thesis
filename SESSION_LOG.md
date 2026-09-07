@@ -1889,3 +1889,67 @@ that was in it before, no dangling references, no overfull box above 15pt.
 **Left for Morten.** Chapter 1's formalism was cut hard on the merits but a Norwegian MSc
 carries an examiner-facing expectation of demonstrated command; whether to restore any of it
 is a supervisor question, not an editorial one.
+
+---
+
+## 2026-09-07 (final) — Editorial pass: making the writing less visibly written
+
+A reading of the whole PDF as prose rather than as physics. The diagnosis: the thesis is now
+over-written rather than under-written, and after a hundred pages the machinery of the voice
+becomes visible -- antithesis, em dashes, mini-punchlines, recurring metaphors. Fifteen items,
+all treated.
+
+**Front matter and navigation.** Added `hyperref` and `bookmark`, so the PDF now carries a
+93-entry outline, `/PageMode /UseOutlines`, and clickable cross-references, citations and
+contents. For a 123-page technical PDF that is not cosmetic. Removed the standalone Dostoevsky
+epigraph page and cut the chapter epigraphs from seven to four (Kierkegaard, Heraclitus,
+Aristotle, Marcus Aurelius), which is enough for them to stay rare and therefore effective.
+Part V "Discussion" -> Chapter 8 "Discussion" and Part VI "Conclusion" -> Chapter 9
+"Conclusions" were ceremonial page turns duplicating their own chapter names; they are now one
+Part, "Discussion and Conclusions", which removes the duplication without putting those two
+chapters under Part IV Results.
+
+**The three big cuts.** Abstract 811 -> 529 words (-35% from the original), keeping the
+opening -- "This thesis asks what the energy cannot see" -- and one finding per strand instead
+of every mechanism and every number. Conclusion 1634 -> 830 (-49%): the four research-question
+recaps are now one or two sentences each, and the feedback loop is stated once at the top
+instead of twice. Introduction 2870 -> 2339 (-19%), mostly the second tangent-geometry preview,
+which Chapter 2, the research questions, Part IV and Chapter 7 all reintroduce anyway.
+
+**The two habits.** "rather than" 109 -> 67, converting only the routine clause-joins and
+keeping the ones where the contrast is the finding ("one relational bottleneck rather than two
+deficits" stays). Em dashes 350 -> 284, mostly by turning parenthetical pairs into commas or
+parentheses. Neither was purged: the constructions are correct in most of their uses and
+flattening all of them would produce the uniform terseness the review explicitly warned
+against.
+
+**Named sentences fixed.** "In the nodes the same channel shows as a collapse averted" and
+"Two limits bound all of it" in the abstract; "It does not rescue Table 7.2 at all" ->
+"This argument does not remove the capacity confound in Table 7.2"; "All of it is a sampling
+problem" -> "Up to this frontier the failures share a sampling origin", since the next
+paragraph establishes that below 0.0035 it is not a sampling problem; "Both halves outlive the
+quantum dot" softened; "That licenses using them as instruments" and "Estimability, not
+conditioning, is what the data identify as decisive" scoped; "Representability is cheap;
+trainability is the difficulty" -> "the easier question / the harder one", since the thesis
+itself later qualifies finite-width representability. Split the overloaded positioning
+sentence in "Where this work sits" that made four distinctions before its full stop.
+
+**Consistency.** Twelve American spellings corrected; MCMC-free and chain-free standardised to
+Markov-chain-free in running prose, with MCMC-free kept for headings and captions; the
+Chapter 1 TOC/title mismatch fixed; headings set to sentence case; "through explicit,
+transported edge state" repaired.
+
+**Methods.** Every inline "(code: ...)" parenthetical removed from running prose -- eleven of
+them -- and gathered into one "Implementation correspondence" paragraph at the end of Chapter 3.
+The prose now says what a hyperparameter means; the note says what it is called in the code.
+
+**Captions.** The four longest captions were doing Discussion work. Trimmed to what the reader
+sees, the conventions needed, and the immediate takeaway; the arguments moved to the body or
+the table notes.
+
+**Verification.** Manifest diff unchanged from the previous pass: the same eleven numeric
+tokens absent, all accounted for (four table column widths, the omega=0.0035 value deliberately
+removed from Methods as Results-spoiling, and six per-seed d_eff values the figure and the
+stated ranges carry). No dangling references, no citations dropped, no overfull box above 15pt.
+
+Whole rework across both passes: main text 48,392 -> 41,506 words (-14%), 137 -> 121 pages.

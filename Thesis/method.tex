@@ -1,17 +1,13 @@
-\chapterepigraph{No great thing is created suddenly, any more than a bunch of
-grapes or a fig.}{Epictetus}{\textit{Discourses}}
-
 \begingroup
 \let\clearpage\relax
 \let\cleardoublepage\relax
-\chapter{Trial Wavefunction}
+\chapter{The trial wavefunction}
 \label{ch:trial_wavefunction}
 \endgroup
 
 The trial state is constructed to satisfy fermionic antisymmetry and the electron--electron
 cusp analytically, and to keep the learned terms smooth under the Laplacian. Antisymmetry
-requires a determinant. The Coulomb divergence admits an analytic cancellation, so it is
-imposed rather than learned. Second derivatives enter the loss, so the features fed to the
+requires a determinant. The Coulomb divergence admits an analytic cancellation, so it is imposed, not learned. Second derivatives enter the loss, so the features fed to the
 network are bounded and smooth and the coordinates are scaled to keep those derivatives
 $\mathcal{O}(1)$ across three decades of confinement. The form of the learned part is not
 fixed by these constraints; both candidate architectures are constructed here and compared
@@ -94,8 +90,7 @@ The correlator reweights amplitudes \emph{within} nodal pockets; without backflo
 As with the backflow, the correlator comes in two forms that are compared directly in
 \S\ref{sec:kernel-q1}: a \emph{separable} network that encodes particle- and
 pair-features independently and pools them, and a copresheaf \emph{message-passing}
-(CTNN) network. We describe the separable network first---it is the baseline and also
-supplies the safe features and analytic cusp shared by both---and then the CTNN.
+(CTNN) network. We describe the separable network first, since it is the baseline and supplies the safe features and analytic cusp shared by both, and then the message-passing one.
 
 \subsection{Separable correlator (DeepSets baseline)}
 \label{subsec:separable-correlator}
@@ -184,7 +179,7 @@ are concatenated with $\overline{\mathbf h}^{\phi}$ and $\overline{\mathbf h}^{\
 
 \subsection{Message-passing correlator (CTNN)}
 \label{subsec:ctnn-correlator}
-The message-passing correlator (code: \texttt{CTNNJastrowVCycle}) keeps the same node/edge
+The message-passing correlator keeps the same node/edge
 embeddings, safe pair features, and analytic cusp, but replaces the independent pooling of
 the separable network with the copresheaf transport of \S\ref{sec:ctnn-theory}: at each
 round the endpoint nodes are transported into an edge update and the updated edges are
@@ -239,7 +234,7 @@ the others. The conventional network is the baseline of the architecture compari
 Chapter~\ref{ch:kernel}; the copresheaf \textsc{CTNN} is the production ansatz.
 
 \subsection{Conventional backflow (single-round messages)}
-The baseline (code: \texttt{BackflowNet}) uses a single round of pairwise messages. For
+The baseline uses a single round of pairwise messages. For
 each ordered pair $(i,j)$ with $i\neq j$,
 \begin{equation}
   \mathbf m_{ij}
@@ -264,7 +259,7 @@ discarded after aggregation.
 
 \subsection{CTNN backflow (copresheaf)}
 \label{subsec:ctnn-backflow}
-The message-passing architecture (code: \texttt{CTNNBackflowNet}) instead maintains
+The message-passing architecture instead maintains
 explicit \emph{node and edge} features and transports information between them through
 learned linear maps---the copresheaf-style step of \S\ref{sec:ctnn-theory}. Node features
 are embedded from the position and a spin scalar, edge features from the relative geometry,
@@ -315,7 +310,7 @@ mollify $\tilde r_{ij}$ as in \eqref{eq:bf-message} and optionally gate the mess
 or use degree-normalised radial attention $\hat w_{ij}=w_{ij}/\sum_{k\neq i}w_{ik}$ with
 $w_{ij}=\exp[-(\tilde r_{ij}/r_c)^p]$. Either keeps the learned response smooth at contact and
 limits the backflow's contribution to the local-energy variance. The mollification scale
-$\varepsilon_{\rm bf}=10^{-6}$ is fixed rather than tuned, and is a numerical guard rather
+$\varepsilon_{\rm bf}=10^{-6}$ is fixed, not tuned, and is a numerical guard rather
 than a modelling choice: $\sqrt{\tilde r^2+\varepsilon_{\rm bf}^2}$ differs from $\tilde r$ by
 less than $\varepsilon_{\rm bf}$ everywhere, so it changes no value the network can resolve
 and exists only to keep $\nabla\tilde r$ finite at exact coincidence. The physical short-range
@@ -328,7 +323,7 @@ projected to zero mean,
   \Delta_\beta \;\leftarrow\; \Delta_\beta \;-\; \frac{1}{N}\sum_{i=1}^N \Delta_{\beta,i},
   \label{eq:bf-com}
 \end{equation}
-taken over particles within each configuration rather than across the batch. Messages are
+taken over particles within each configuration, not across the batch. Messages are
 built from relative vectors $\mathbf r_{ij}$, but the map is not translation-invariant or
 rotation-equivariant by construction, since the displacement head reads a $d$-vector from
 absolute coordinates. The two variants apply the projection at different points: the
@@ -345,13 +340,6 @@ directly; its modern quantum-Monte-Carlo form is due to Holzmann and
 Ceperley~\cite{HolzmannCeperley2003-Backflow}. Compute and memory scale as
 $O(BN^2(d+H))$ for batch size $B$ and hidden width $H$, which is what limits $N$ in practice.
 
-\paragraph{Implementation.} The conventional network is \texttt{BackflowNet}, with
-$\phi_\beta$ and $\psi_\beta$ its message and node MLPs; the copresheaf network is
-\texttt{CTNNBackflowNet}, whose embeddings, transport maps and update MLPs realise
-\eqref{eq:ctnn-edge}--\eqref{eq:ctnn-node}. Aggregation is selectable
-(\texttt{sum|mean|max}), spin handling produces the mask $w_{ij}^{\rm spin}$, and the bounded
-output of \eqref{eq:bf-bound-scale} is \texttt{out\_bound="tanh"} with
-$s_\beta=\mathrm{softplus}(\texttt{bf\_scale\_raw})$.
 
 \section{Architecture sizes and hyperparameters}
 \label{sec:hyperparameters}
@@ -371,8 +359,7 @@ node MLP $128\times3$) it holds $182$k parameters against $51$k, a factor of $3.
 matched backflow pair was trained. What separates architecture from capacity there is
 therefore not a matched control but the conventional network's own behaviour across
 $\omega$, which \S\ref{sec:kernel-q1b} sets out where the measurement is reported. All settings below are those of the accompanying code
-(\texttt{scripts/run\_depth\_analysis.py} for the comparison tiers;
-\texttt{scripts/source\_state\_check.py} for the production widths).
+the accompanying code.
 
 \begin{table}[htbp]\centering
 \caption[Architecture and training hyperparameters]{The three sets of models trained in this
@@ -414,6 +401,19 @@ $n_{\rm coll}\sim3\times10^{3}$ with oversampling $m=8$--$16$; the collocation f
 described further in \S\ref{subsec:colloc-families}.
 \end{table}
 
+
+\paragraph{Implementation correspondence.} For replication: the separable correlator is
+\texttt{PINN} and the message-passing one \texttt{CTNNJastrowVCycle}; the conventional
+backflow is \texttt{BackflowNet}, whose $\phi_\beta$ and $\psi_\beta$ are its message and
+node MLPs, and the copresheaf backflow is \texttt{CTNNBackflowNet}, whose embeddings,
+transport maps and update MLPs realise \eqref{eq:ctnn-edge}--\eqref{eq:ctnn-node}.
+Aggregation is selectable (\texttt{sum|mean|max}); the bounded output of
+\eqref{eq:bf-bound-scale} is \texttt{out\_bound="tanh"} with
+$s_\beta=\mathrm{softplus}(\texttt{bf\_scale\_raw})$. The comparison tiers are produced by
+\texttt{scripts/run\_depth\_analysis.py} and the production widths by
+\texttt{scripts/source\_state\_check.py}. Schedule and solver options carry the names
+\texttt{alpha\_start}, \texttt{alpha\_end}, \texttt{alpha\_decay\_frac},
+\texttt{max\_param\_step}, \texttt{damping}, \texttt{micro\_batch} and \texttt{grad\_clip}.
 
 \chapter{Optimisation}
 \label{ch:optimisation}
@@ -457,7 +457,7 @@ Our optimisation follows two stages that mirror the implementation:
     E_{\rm eff}(\alpha) \;=\; \alpha\,E_{\rm DMC} + (1-\alpha)\,\mu,
     \qquad \alpha \in [0,1],
   \end{equation}
-  with a smooth cosine schedule $\alpha=\alpha(t)$ that ramps from $\alpha_{\rm start}$ to $\alpha_{\rm end}$ over a prescribed fraction of epochs (code: \texttt{alpha\_start}, \texttt{alpha\_end}, \texttt{alpha\_decay\_frac}). Setting the \texttt{objective} to \texttt{"residual"} uses $E_{\rm eff}=\mu$; \texttt{"energy"} uses $E_{\rm eff}=E_{\rm DMC}$; and \texttt{"energy\_var"} uses the annealed blend above.
+  with a smooth cosine schedule $\alpha=\alpha(t)$ that ramps from $\alpha_{\rm start}$ to $\alpha_{\rm end}$ over a prescribed fraction of epochs. Setting the \texttt{objective} to \texttt{"residual"} uses $E_{\rm eff}=\mu$; \texttt{"energy"} uses $E_{\rm eff}=E_{\rm DMC}$; and \texttt{"energy\_var"} uses the annealed blend above.
   \item \textbf{Stochastic Reconfiguration (stage II).} After residual pretraining, we refine with SR (natural–gradient VMC). Writing $\bar O(\tilde R)=\partial_\theta \log\Psi_\theta(\tilde R)-\mathbb{E}_\pi[\partial_\theta\log\Psi_\theta]$ for the centred score,
   \begin{equation}
     S \;=\; \mathbb{E}_\pi\!\big[\bar O^\top \bar O\big],\qquad
@@ -467,7 +467,7 @@ Our optimisation follows two stages that mirror the implementation:
   \begin{equation}
     (S+\lambda I)\,\Delta\theta \;=\; -\,g,
   \end{equation}
-  using (preconditioned) conjugate gradients with restarts, a trust–region scale on the final step, and batchwise centering/whitening of $O$ (code: \texttt{damping}, \texttt{max\_param\_step}, CG options).
+  using (preconditioned) conjugate gradients with restarts, a trust–region scale on the final step, and batchwise centering/whitening of $O$.
 \end{enumerate}
 This pipeline exploits the zero–variance principle for stable shaping of $W_\theta$ (and backflow) before applying the geometry–aware SR update.
 
@@ -475,14 +475,14 @@ This pipeline exploits the zero–variance principle for stable shaping of $W_\t
 \label{sec:sampling}
 
 \paragraph{Guiding principle (permutation invariance).}
-In a many–body fermionic system, \emph{which} particle indices are close is irrelevant; what matters is \emph{how many} close pairs and at which length scales. Consequently, we can design samplers that (i) emphasize \emph{configurational motifs} (clusters, shells, dimers, long tails) rather than specific labels, and (ii) deliberately permute particles and randomly rotate configurations to explore the space efficiently without biasing towards any ordering.
+In a many–body fermionic system, \emph{which} particle indices are close is irrelevant; what matters is \emph{how many} close pairs and at which length scales. Consequently, we can design samplers that (i) emphasize \emph{configurational motifs} (clusters, shells, dimers, long tails) and not specific labels, and (ii) deliberately permute particles and randomly rotate configurations to explore the space efficiently without biasing towards any ordering.
 
 \subsection{Stratified capped–simplex mixture}
 We draw collocation batches $X\in\mathbb{R}^{B\times N\times d}$ from a five–component mixture,
 \[
 \text{\small(centre, tails, mixed, shells, dimers)},
 \]
-with nonnegative weights $w\in\Delta^4$ projected to a \emph{capped simplex} $\{\,w:\, \sum_k w_k=1,\ 0\le w_k\le 0.3\,\}$ to enforce coverage (code: \texttt{\_project\_simplex\_with\_caps}).
+with nonnegative weights $w\in\Delta^4$ projected to a \emph{capped simplex} $\{\,w:\, \sum_k w_k=1,\ 0\le w_k\le 0.3\,\}$ to enforce coverage.
 Each component proposes $x$ as follows (all in physical units; the code internally scales by $a_{\rm ho}=1/\sqrt{\omega}$):
 \begin{itemize}
   \item \textbf{Centre:} narrow isotropic Gaussian around the trap centre (samples near the density core).
@@ -494,16 +494,16 @@ Each component proposes $x$ as follows (all in physical units; the code internal
 We then apply a random in–plane rotation (for $d=2$), and a random permutation of particle indices; both preserve the target expectations by symmetry.
 
 \paragraph{Adaptive mixture and shell occupancy.}
-Per epoch we compute simple difficulty scores and update $w$ and $q$ by exponentiated–gradient (EG) steps with momentum, temperature, and an exploration term; $w$ is then projected back to the capped simplex (code: \texttt{eg\_eta}, \texttt{eg\_temp}, \texttt{eg\_momentum}, \texttt{explore\_gamma}, \texttt{prob\_floor}). Mixture difficulty uses the residual $(E_L-E_{\rm eff})^2$ per component; shell difficulty uses a proxy
+Per epoch we compute simple difficulty scores and update $w$ and $q$ by exponentiated–gradient (EG) steps with momentum, temperature, and an exploration term; $w$ is then projected back to the capped simplex. Mixture difficulty uses the residual $(E_L-E_{\rm eff})^2$ per component; shell difficulty uses a proxy
 \[
 \underbrace{V_i}_{\text{harm.+Coulomb per particle}}
 \;+\; \underbrace{\gamma_{g^2}\,\|\nabla_{\mathbf x_i}\log\Psi\|^2}_{\text{stiff gradients}}
 \;+\; \underbrace{\gamma_{\rm cusp}\,r_{\min}^{-1}}_{\text{coalescence pressure}},
 \]
-aggregated by nearest shell index (code: \texttt{g2\_weight}, \texttt{cusp\_gamma}, safe clip \texttt{rmin\_clip}). This shifts probability mass toward underfit regions \emph{without} collapsing coverage thanks to the caps.
+aggregated by nearest shell index. This shifts probability mass toward underfit regions \emph{without} collapsing coverage thanks to the caps.
 
 \paragraph{Hard–example injection.}
-We maintain a small buffer of previously challenging configurations (based on residuals) and stochastically inject them, with mild multiplicative and additive jitter, into the next batch (code: \texttt{sampler\_hard\_*}). This provides a curriculum–like pressure while avoiding overfitting to outliers.
+We maintain a small buffer of previously challenging configurations (based on residuals) and stochastically inject them, with mild multiplicative and additive jitter, into the next batch. This provides a curriculum–like pressure while avoiding overfitting to outliers.
 
 \paragraph{Robustness tweaks.}
 We trim extreme local–energy outliers by quantiles (default $3\%$) \emph{before} forming losses/updates; we also micro–batch the evaluation to keep memory bounded, and apply gradient clipping to $f_\theta$ (and backflow) parameters.
@@ -521,10 +521,10 @@ E_{\rm eff}(\alpha)=\alpha\,E_{\rm DMC}+(1-\alpha)\,\mu.
 \end{equation}
 \begin{itemize}
   \item \textbf{Self–target warmup ($\alpha=0$).} Minimising $\mathbb{E}[(E_L-\mu)^2]$ is variance minimisation \emph{under the sampling measure in use}; $\mu$ is treated as a detached constant, so no gradient flows through the batch mean. It teaches the network to produce smooth, low–variance amplitudes inside nodal pockets and reduces sensitivity to early sampler noise.
-  \item \textbf{Anneal to reference ($\alpha\uparrow$).} As capacity grows, we blend in the external target, gently steering the mean energy while retaining the variance pressure. The cosine ramp (code: \texttt{alpha\_start}, \texttt{alpha\_end}, \texttt{alpha\_decay\_frac}) avoids abrupt objective switches.
-  \item \textbf{Reference-target residual ($\alpha=1$).} Stage I may end with $E_{\rm eff}=E_{\rm DMC}$. Despite the code name \texttt{"energy"}, this is not variational energy minimisation: it is a squared residual against a fixed scalar, and it can in principle drive $\langle E_L\rangle$ \emph{up} toward a target the ansatz could beat. The variational optimisation is stage II.
+  \item \textbf{Anneal to reference ($\alpha\uparrow$).} As capacity grows, we blend in the external target, gently steering the mean energy while retaining the variance pressure. The cosine ramp avoids abrupt objective switches.
+  \item \textbf{Reference-target residual ($\alpha=1$).} Stage I may end with $E_{\rm eff}=E_{\rm DMC}$. Despite its name in the code, this is not variational energy minimisation: it is a squared residual against a fixed scalar, and it can in principle drive $\langle E_L\rangle$ \emph{up} toward a target the ansatz could beat. The variational optimisation is stage II.
 \end{itemize}
-In practice we compute $\nabla_\theta \mathcal{L}_{\rm res}$ by autodiff, use micro–batches of size \texttt{micro\_batch}, apply optional gradient clipping (code: \texttt{grad\_clip}), and log per–component usage and shell radii in physical units.
+In practice we compute $\nabla_\theta \mathcal{L}_{\rm res}$ by autodiff, use micro--batches, apply optional gradient clipping, and log per–component usage and shell radii in physical units.
 
 \paragraph{Local–energy derivatives in practice.}
 We support three Laplacian backends:
@@ -552,8 +552,8 @@ quantum geometric tensor $S$ of~\S\ref{sec:theory-tangent-kernel}.
 Implementation details:
 \begin{itemize}
   \item \textbf{Centering/whitening.} We centre $O$ per batch and whiten by the diagonal of $S$ before CG to improve conditioning.
-  \item \textbf{Trust region.} The final step is scaled to satisfy a maximum parameter norm (code: \texttt{max\_param\_step}).
-  \item \textbf{Damping.} A small $\lambda$ (code: \texttt{damping}) stabilizes low–variance directions.
+  \item \textbf{Trust region.} The final step is scaled to satisfy a maximum parameter norm.
+  \item \textbf{Damping.} A small $\lambda$ stabilises low--variance directions.
 \end{itemize}
 Because our backflow only alters the Slater coordinates (and $W_\theta$ stays on safe features of $\tilde R$), the SR statistics remain well–behaved even when nodes shift.
 
@@ -661,7 +661,7 @@ classical ring radius $r_0$, and $|\Psi_\theta|^2$ has essentially no support ne
 origin, so the ESS collapses. We therefore replace $q$ by a proposal built from the Wigner
 shell itself---a radial Gaussian centred at $r_0$ (set by balancing confinement against
 Coulomb repulsion) times an angular distribution over the ring, so that proposed
-configurations resemble electrons spread around the ring rather than clustered at the centre.
+configurations resemble electrons spread around the ring instead of clustered at the centre.
 Where the ring itself develops angular structure the uniform angular factor is replaced by a
 Dirichlet model of the angular gaps. Difficult confinements are reached by \emph{cascade
 warm-starting}: parameters converged at one $\omega$ initialise the next, following
@@ -673,8 +673,7 @@ and where it stops, is \S\ref{sec:kernel-q3-frontier}.
 Three ansatz families are trained under this objective in Chapter~\ref{ch:kernel}, all on
 the same Slater--Jastrow core $\Psi(\mathbf R)=\det[\phi_i(\mathbf r_j+\Delta\mathbf r_j)]\,e^{J(\mathbf R)}$
 and differing only in what dresses it. They are deliberately smaller than the production
-networks of \S\ref{sec:hyperparameters}, because this programme is limited by gradient noise
-and memory rather than by capacity.
+networks of \S\ref{sec:hyperparameters}, because this programme is limited by gradient noise and memory, not by capacity.
 
 \emph{Jastrow-only.} The correlator alone at ${\sim}25$k parameters, in its
 message-passing form (\texttt{CTNN\-Jastrow\-VCycle}), acting on node features
@@ -740,14 +739,11 @@ taken as the uncertainty~\cite{FlyvbjergPetersen1989-Blocking,Jonsson2018-Blocki
 the final ground-state energy this is the dominant reported error; a parenthetical digit,
 e.g.\ $155.8738(7)$, denotes one standard error on the last quoted figure.
 
-For quantities that are \emph{nonlinear} functions of sample statistics---participation
-ratios, effective ranks, PCA cosines, and the coupling diagnostics of
-Chapter~\ref{ch:results}---a blocked standard error is not available in closed form, and we
+For quantities that are \emph{nonlinear} functions of sample statistics (participation ratios, effective ranks, PCA cosines, and the coupling diagnostics of Chapter~\ref{ch:results}) a blocked standard error is not available in closed form, and we
 use a \emph{block bootstrap} instead: blocks (of the plateau size above) are resampled with
 replacement, the statistic is recomputed on each resample, and its spread across resamples
 is the reported error~(\S\ref{subsec:repr-uncertainty}). Where a number is quoted as a
-seed average, we additionally report the spread across independent random seeds, which
-captures optimisation---not just sampling---variability; the two are distinguished in the
+seed average, we additionally report the spread across independent random seeds, which captures optimisation variability and not only sampling variability; the two are distinguished in the
 captions. Reference energies drawn from the literature carry the uncertainties quoted by
 their sources.
 
@@ -842,7 +838,7 @@ $g_{\mathrm{II}},g_{\mathrm{IO}},g_{\mathrm{OO}}$. With empirical weights
 $w_{\mathrm{II}},w_{\mathrm{IO}},w_{\mathrm{OO}}$ (combinatorial counts) we reconstruct
 \(\tilde g(r)=w_{\mathrm{II}}g_{\mathrm{II}}+w_{\mathrm{IO}}g_{\mathrm{IO}}+w_{\mathrm{OO}}g_{\mathrm{OO}}\)
 and report $\cos\angle(g,\tilde g)$.
-Values $\approx 1$ indicate that the observed $g(r)$ shape is explained by shell geometry rather than sampling artifacts,
+Values $\approx 1$ indicate that the observed $g(r)$ shape is explained by shell geometry, not sampling artefacts,
 in line with shell-based descriptions in~\cite{schweigert1994spectralpropertieschargedparticles,Kong_2002,manninen2007metalclustersquantumdots}.
 
 \subsection{Orientational order and “ring stiffness”}
@@ -975,8 +971,7 @@ f_{\rm base}(z)=\rho_\theta(z),
 \qquad
 f=f_{\rm base}+f_{\rm cusp},
 \end{equation}
-and the ablations below re-evaluate $\rho_\theta$ on modified inputs rather than manipulating
-a weight vector.
+and the ablations below re-evaluate $\rho_\theta$ on modified inputs instead of manipulating a weight vector.
 Backflow returns a displacement field $\Delta x\in\mathbb{R}^{N\times d}$ that enters only the
 Slater determinant; the correlator and cusp are evaluated on the unshifted $\tilde R$
 (\S\ref{subsec:backflow-method}). The coupling diagnostics below additionally probe the
@@ -1179,8 +1174,7 @@ $K=OO^{\!\top}$, whose nonzero spectrum equals that of $S$ up to the overall fac
 $\{\lambda_a\}$ we report the effective dimension
 $d_{\mathrm{eff}}=(\sum_a\lambda_a)^2/\sum_a\lambda_a^2$ and the condition number
 $\kappa(S)=\lambda_{\max}/\lambda_{\min}$. Cross-architecture comparisons of
-$d_{\mathrm{eff}}$ are made on a \emph{common probe set}---all models scored on the same
-configurations, not on each model's own $|\Psi|^2$---so that the comparison reflects the
+$d_{\mathrm{eff}}$ are made on a \emph{common probe set} (all models scored on the same configurations, not on each model's own $|\Psi|^2$) so that the comparison reflects the
 ansatz and not its sampling measure, and we report only participation ratios that have
 converged in the batch size.
 
@@ -1232,10 +1226,9 @@ Chapter~\ref{ch:kernel} uses it.
 \paragraph{Reporting the condition number.}
 $\kappa(S)=\lambda_{\max}/\lambda_{\min}$ is quoted with two caveats that its definition
 forces. Our batches have $B<P$, so $S$ is rank-deficient by construction and $\lambda_{\min}$
-is the smallest \emph{sample-supported} eigenvalue rather than an intrinsic one; the value of
+is the smallest \emph{sample-supported} eigenvalue, not an intrinsic one; the value of
 $\kappa$ therefore depends on $B$ and is a property of the empirical metric the optimiser
-actually sees, not of the variational manifold. That is the relevant object for the question
-we ask of it---whether preconditioning by $S^{-1}$ helps---but it means $\kappa$ may not be
+actually sees, not of the variational manifold. That is the relevant object for the question we ask of it, whether preconditioning by $S^{-1}$ helps, but it means $\kappa$ may not be
 compared across batch sizes, and we hold $B$ fixed wherever we compare it.
 
 To ask whether two trained models are the \emph{same} state rather than merely equal in

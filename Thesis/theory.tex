@@ -6,7 +6,7 @@ is an attunement of opposite tensions, like that of the bow and the lyre.}{Herac
 \begingroup
 \let\clearpage\relax
 \let\cleardoublepage\relax
-\chapter[The many-body problem]{The many-body problem and its numerical difficulty}
+\chapter{The many-body problem}
 \label{sec:theory}
 \endgroup
 
@@ -26,8 +26,7 @@ of the function it is given.
 
 A quantum state is a normalised vector in a complex Hilbert space, and in the coordinate
 representation $\psi(x)=\braket{x|\psi}$ is the wavefunction. Which basis one expands in is
-not a formality: choosing it to match the physics---harmonic-oscillator orbitals for confined
-charges, plane waves for periodic systems---is what makes a representation compact, and it is
+not a formality: choosing it to match the physics (harmonic-oscillator orbitals for confined charges, plane waves for periodic systems) is what makes a representation compact, and it is
 why the orbitals of Chapter~\ref{ch:trial_wavefunction} are those of the trap itself.
 
 For $N$ particles the space is the $N$-fold tensor product $\mathcal H_1^{\otimes N}$, and a
@@ -74,17 +73,17 @@ within that basis; what cannot be avoided is the $\binom{M}{N}$ growth of the sp
 which for the twenty-electron dot puts the determinant count far beyond reach. That
 combinatorial wall is what motivates variational methods. The occupation-number formalism of
 second quantisation, in which antisymmetry is carried by anticommuting creation and
-annihilation operators rather than by the wavefunction, is the usual language for all three;
+annihilation operators, not by the wavefunction, is the usual language for all three;
 our own ansatz is first-quantised throughout, so it appears here as vocabulary rather than
 machinery.
 
-Our determinant is built from harmonic-oscillator orbitals rather than self-consistent
+Our determinant is built from harmonic-oscillator orbitals, not self-consistent
 Hartree--Fock ones, and our external benchmark is diffusion Monte
 Carlo~\cite{Pederiva2000-QD-DMC}, which for these systems is both more accurate than an
 affordable configuration-interaction calculation and available at the particle numbers we
 care about.
 
-\section{Quantum Dots}
+\section{Quantum dots}
 \label{sec:quantumdots}
 
 \subsection{Model and units}
@@ -95,8 +94,7 @@ H \;=\; \sum_{i=1}^N\!\bigg(-\tfrac12\nabla_{\mathbf r_i}^2 + \tfrac12 \omega^2 
 \]
 Spin does not appear in $H$, so the eigenstates can be classified by $S$ and $S_z$ and the
 spatial problem solved at fixed spin assignment. For more than two identical fermions a
-spin-adapted eigenstate of $S^2$ is in general a sum of spatial--spin products rather than a
-single one; what we use computationally is the weaker and sufficient statement that with the
+spin-adapted eigenstate of $S^2$ is in general a sum of spatial--spin products, not a single one; what we use computationally is the weaker and sufficient statement that with the
 numbers of up- and down-spin electrons held fixed, the antisymmetriser factorises and the
 spatial problem may be treated on its own.
 
@@ -153,7 +151,7 @@ correlation beyond it.
 % or a minimal multi-determinant for open shells) and capture residual correlation with a Jastrow/PINN
 % correlation factor.
 
-\subsection{Kato’s Cusp Conditions (2D Coulomb systems)}
+\subsection{Kato cusp conditions in two dimensions}
 \label{subsec:cusp}
 
 For Coulomb interactions the potential diverges as $1/r$ at coalescence. Finiteness of the
@@ -221,8 +219,7 @@ Analysis chapter (\S\ref{sec:analysis-struct}), and the measurements themselves 
 Chapter~\ref{ch:results}.
 
 \paragraph{Radial localisation.} The pair distribution $g(r)$ and the radial probability
-$P(r)$ say how far apart the electrons sit and how tightly that distance is fixed. The
-informative quantity is not the typical radius---which simply grows as the trap weakens---but
+$P(r)$ say how far apart the electrons sit and how tightly that distance is fixed. The informative quantity is not the typical radius, which simply grows as the trap weakens, but
 the \emph{ratio} of the radial width to it. A distribution that becomes relatively narrower
 around a growing radius is a shell stiffening; one that merely dilates is a droplet
 expanding. This is the finite-system analogue of a Lindemann criterion.
@@ -333,7 +330,7 @@ probability. Splitting it into positive and negative populations is formally pos
 their difference is swamped by their sum at a rate exponential in $N\tau$---the
 \emph{fermion sign problem}~\cite{PanMeng2024-SignProblemQMC}.
 
-The standard escape is to impose the sign structure rather than sample it. The
+The standard escape is to impose the sign structure instead of sampling it. The
 \emph{fixed-node} approximation confines the walkers to the nodal pockets of a trial state
 $\Psi_T$, killing any walker that crosses a node. Within each pocket the wavefunction has a
 definite sign, the projection is well posed, and the method returns the exact ground-state
@@ -408,7 +405,7 @@ every update, so the gradient, the samples used to estimate it, and the metric u
 precondition it are all functions of the current parameters. In supervised learning the
 data distribution sits still and none of this arises. Meanwhile
 $E_L=\hat H\Psi_\theta/\Psi_\theta$ contains a Laplacian and a potential that diverges,
-so the objective reads the network's second derivatives rather than its values, and reads
+so the objective reads the network's second derivatives, not its values, and reads
 them near a singularity. Smoothness stops being a stylistic preference and becomes a
 requirement of the loss.
 
@@ -480,8 +477,7 @@ make the method viable \cite{Pfau2020-FermiNet}.
 effective dimension}
 \label{sec:theory-tangent-kernel}
 For a variational quantum state the Fisher metric takes a particularly concrete form,
-and that form is the analytical lens used throughout the results of this thesis. Write
-the per-sample log-derivatives---the \emph{score}---of an ansatz $\Psi_\theta$ as
+and that form is the analytical lens used throughout the results of this thesis. Write the per-sample log-derivatives, the \emph{score}, of an ansatz $\Psi_\theta$ as
 \begin{equation}
   O_{ki} = \frac{\partial \log|\Psi_\theta(\mathbf{x}_k)|}{\partial \theta_i},
   \qquad k=1,\dots,B,\;\; i=1,\dots,P,
@@ -526,8 +522,7 @@ is the participation ratio of the spectrum: it counts how many independent tange
 directions carry appreciable Fisher weight locally around the solution, regardless of the raw
 parameter count $P$. A small $d_{\mathrm{eff}}$ means the local tangent sensitivity is
 concentrated in a few collective directions; a large one means it is spread across many.
-Because these are properties of the tangent geometry rather than of the raw parameter
-count, they permit architectures, optimisers and training paradigms to be compared on a
+Because these are properties of the tangent geometry, not of the raw parameter count, they permit architectures, optimisers and training paradigms to be compared on a
 common footing---provided the comparison is made under matched conventions. In the
 comparisons of \S\ref{sec:kernel-q1a} the measured $d_{\mathrm{eff}}$ proved stable across
 seeds and across the choice of probe measure; that is an empirical finding at those settings,
@@ -599,8 +594,7 @@ the Laplacian variance of a deep composition, and we did not run an activation a
 \end{figure}
 
 \paragraph{Initialisation.}
-The standard schemes---Xavier/Glorot, scaling weight variance as $1/(n_{\rm in}+n_{\rm
-out})$, and Kaiming/He, scaling as $2/n_{\rm in}$ for rectified units---are designed to keep
+The standard schemes (Xavier/Glorot, scaling weight variance as $1/(n_{\rm in}+n_{\rm out})$, and Kaiming/He, scaling as $2/n_{\rm in}$ for rectified units) are designed to keep
 forward activations and backward gradients from shrinking or exploding through
 depth~\cite{GlorotBengio2010-Xavier,HeEtAl2015-KaimingInit}. That is necessary but not
 sufficient when the loss contains second derivatives, because a scheme that stabilises
@@ -626,8 +620,7 @@ particles impose a permutation symmetry, and correlation is intrinsically
 multilayer perceptron acting on the concatenated coordinates
 $(\mathbf x_1,\dots,\mathbf x_N)$ respects neither property; it would have to learn the
 symmetry from data, and its parameter count would grow with $N$. This section introduces
-the two architecture classes that build the required structure in---permutation-invariant
-pooling and message passing---and situates the specific message-passing network used in
+the two architecture classes that build the required structure in, permutation-invariant pooling and message passing, and situates the specific message-passing network used in
 this thesis as one instance of the latter.
 
 \subsection{Permutation symmetry and equivariance}
@@ -657,8 +650,7 @@ function admits the form
 \]
 with a per-particle embedding $\phi$, a symmetric pool $\sum_i$, and a readout $\rho$. A
 two-body extension encodes pairs, $\phi(\mathbf x_i,\mathbf x_j)$, and pools over them,
-capturing pairwise correlation. What characterises this class is that each particle---or
-pair---is embedded \emph{independently} and only then pooled: no information is exchanged
+capturing pairwise correlation. What characterises this class is that each particle, or pair, is embedded \emph{independently} and only then pooled: no information is exchanged
 between particles before the pool. We refer to such networks as \emph{separable}, and
 they serve as the non-message-passing baseline for the correlator.
 
@@ -679,8 +671,7 @@ scalar (correlator) or an equivariant field (backflow). Both DeepSets and messag
 use pairwise information, but only message passing lets that information
 \emph{propagate}: after several rounds a particle's representation reflects not just its
 neighbours but their neighbours' responses. This iterated propagation is what we call the
-\emph{relational channel}, and asking what it buys---in the correlator and in the
-backflow---is one of the central questions of this thesis. Message passing has been used
+\emph{relational channel}, and asking what it buys, in the correlator and in the backflow, is one of the central questions of this thesis. Message passing has been used
 in exactly this spirit for neural quantum states of extended fermion
 systems~\cite{Pescia2024-MessagePassingNQS,KimEtAl2023-UltracoldFermiNQS}.
 
@@ -734,7 +725,7 @@ in miniature, the comparison Chapter~\ref{ch:kernel} makes.
 One further result does more than assert possibility. In high dimension a generic
 continuous target requires a network size growing exponentially in $d$, so approximation
 alone cannot explain why these methods work at all in $Nd$ dimensions.
-The escapes are all statements about \emph{structure} rather than capacity: targets of
+The escapes are all statements about \emph{structure}, not capacity: targets of
 finite Barron norm admit dimension-independent
 rates~\cite{Barron1993-UniversalApprox}; compositional targets admit efficient
 representation by deep networks when the composition matches the architecture; and imposing a symmetry removes the redundant
@@ -769,7 +760,7 @@ in the results of this thesis~\cite{De_Ryck_2024}.
 $L^2$ or $L^\infty$, but a strong residual depends on \emph{derivatives}. Making it small
 requires approximation in $W^{\ell,p}$ with $\ell$ the order of the equation, which forces
 smooth activations for $\ell\ge2$ and architecture choices that control higher derivatives.
-This is why the activation here is chosen for its second derivative rather than its values.
+This is why the activation here is chosen for its second derivative, not its values.
 
 \emph{Residual-to-error stability.} A small residual implies a small solution error only
 where the forward problem is stable. This is why a small residual is never taken here as
@@ -816,7 +807,7 @@ never asked to do anything violent (\S\ref{sec:ffnn}).
 at coalescence, and the trial function vanishes on a surface whose location is itself being
 learned. Both are places where $E_L=\hat H\Psi/\Psi$ can blow up, and the cusp conditions
 of \S\ref{subsec:cusp} say that the first divergence can be cancelled analytically if the
-short-range form is built in rather than learned.
+short-range form is built in, not learned.
 
 \emph{The measure is part of the method.} The objective is an expectation under
 $|\Psi_\theta|^2$, so the sampling distribution enters the gradient, the metric, and the

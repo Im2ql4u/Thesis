@@ -25,8 +25,7 @@ of the function it is given.
 \label{sec:qm-setup}
 
 Quantum mechanics is formulated in a complex Hilbert space: a complete inner-product space,
-so that limits and basis expansions are well
-defined~\cite{Rudin1976-Analysis}. A state is a normalised vector $\ket\psi$, observables
+so that limits and basis expansions are well defined. A state is a normalised vector $\ket\psi$, observables
 are Hermitian operators, and expanding in an orthonormal basis $\{\ket i\}$ turns operators
 into matrices $O_{ij}=\bra i\hat{\mathcal O}\ket j$ and states into coefficient vectors
 $c_i=\braket{i|\psi}$. In the coordinate representation $\psi(x)=\braket{x|\psi}$ is the
@@ -129,8 +128,12 @@ We consider $N$ spin-$\tfrac12$ fermions in $d{=}2$ with harmonic confinement an
 H \;=\; \sum_{i=1}^N\!\bigg(-\tfrac12\nabla_{\mathbf r_i}^2 + \tfrac12 \omega^2 r_i^2\bigg)
 \;+\;\sum_{i<j}\frac{1}{|\mathbf r_i-\mathbf r_j|}, \qquad (\hbar=m_e=e=1).
 \]
-Spin does not appear in $H$ (spin–independent), so the many-body eigenstates can be chosen as
-products of a spatial wavefunction and a spin function with well-defined $S$ and $S_z$.
+Spin does not appear in $H$, so the eigenstates can be classified by $S$ and $S_z$ and the
+spatial problem solved at fixed spin assignment. For more than two identical fermions a
+spin-adapted eigenstate of $S^2$ is in general a sum of spatial--spin products rather than a
+single one; what we use computationally is the weaker and sufficient statement that with the
+numbers of up- and down-spin electrons held fixed, the antisymmetriser factorises and the
+spatial problem may be treated on its own.
 
 \subsection{One–particle structure and shell filling}
 We use two-dimensional harmonic-oscillator spin–orbitals. In the implementation these are
@@ -161,8 +164,11 @@ one for each spin:
 \det[\phi_a(\mathbf r_i)]_{i\in\uparrow,a=1..N/2}\;
 \det[\phi_a(\mathbf r_j)]_{j\in\downarrow,a=1..N/2}\;\times\; \Xi_{S=0,S_z=0},
 \]
-where $\Xi$ is the singlet spin function. This has the \emph{form} of a restricted
-closed-shell determinant, but its orbitals are the
+where $\Xi$ is the singlet spin function. In the computational representation this last
+factor is not carried: fixing which electrons are spin-up and which spin-down makes the full
+spin-orbital determinant block diagonal, and the product of the two spatial determinants
+\emph{is} the ansatz. This has the \emph{form} of a restricted closed-shell determinant, but
+its orbitals are the
 harmonic-oscillator eigenstates of the trap, not orbitals optimised self-consistently in
 the mean field of the other electrons. It is therefore the closed-shell
 \emph{non-interacting} reference, not an RHF one, and no self-consistent-field calculation
@@ -201,21 +207,31 @@ number (electron $Z=-1$, nucleus $Z=+Z_A$), and $D$ the spatial dimension. Then
 \]
 For \emph{identical fermions} the s-wave is excluded; the leading channel is $p$-wave
 (relative angular momentum $k=1$), and the wavefunction carries a linear node at
-coalescence. The general
-like-spin cusp is then
+coalescence. The cusp condition then applies to the \emph{regular part} left after that node
+is factored out, and this distinction is easy to lose. Writing
+$\overline\Psi(r)=r\,\overline{u}(r)$ with $\overline u$ regular and nonzero at contact, the
+logarithmic derivative of the full wavefunction diverges,
+$\partial_r\ln\overline\Psi = 1/r + \partial_r\ln\overline u$, so it is $\overline u$ and not
+$\overline\Psi$ that obeys a finite cusp condition:
 \[
-\left.\frac{\partial}{\partial r_{ij}}\ln \overline{\Psi}\right|_{r_{ij}\to 0}
+\left.\frac{\partial}{\partial r_{ij}}\ln \overline{u}\right|_{r_{ij}\to 0}
 \;=\; \frac{2\,\mu_{ij}\,Z_i Z_j}{2k + D - 1}
 \;=\; \frac{2\,\mu_{ij}\,Z_i Z_j}{D+1}
 \quad\text{(like-spin, $k=1$)}.
 \]
+In a Slater--Jastrow form the antisymmetric factor supplies the linear zero and the Jastrow
+supplies $\overline u$, so this is exactly a condition on the Jastrow slope---which is how it
+is imposed in Chapter~\ref{ch:trial_wavefunction}.
 
 \paragraph{Specializing to 2D electrons (atomic units).}
 With $m_e=1$ and $\mu_{ee}=1/2$:
 \[
 \boxed{\ a_{ee}^{\uparrow\downarrow}=\left.\frac{\partial}{\partial r_{ij}}\ln \overline{\Psi}\right|_{0}=1\ ,\qquad
-a_{ee}^{\uparrow\uparrow}=\tfrac13\ .\ }
+a_{ee}^{\uparrow\uparrow}=\left.\frac{\partial}{\partial r_{ij}}\ln \overline{u}\right|_{0}=\tfrac13\ .\ }
 \]
+The two derivatives are taken on different objects: the full spherically averaged
+wavefunction in the antiparallel case, where it is finite at contact, and its regular part in
+the parallel case, where the antisymmetric node has been removed.
 The like-spin value follows from the $p$-wave (linear-node) analysis carried out in full
 in Appendix~\ref{app:coulomb:cusp}, the canonical derivation used throughout this thesis;
 it gives the familiar $\tfrac14$ in three dimensions and $\tfrac13$ here in two. The 2D
@@ -268,8 +284,8 @@ measured exponent and watching it approach $-2/3$ from above is an external chec
 whole picture, since nothing in the ansatz knows about that number.
 
 \paragraph{How to read them together.} As $\omega$ falls, the width ratios and angular
-Lindemann numbers shrink, shell gaps sharpen, the shell-resolved $|\Phi_m|$ become nonzero
-after phase alignment, and the radial exponent approaches its classical value. No one of
+Lindemann numbers shrink, shell gaps sharpen, the shell-resolved $|\Phi_m|$ rise above their
+finite-ring random-angle baseline, and the radial exponent approaches its classical value. No one of
 these is decisive---a narrow $P(r)$ can be an artefact of poor sampling, and a large
 $|\Phi_m|$ can be a fluctuation on a short chain---but they fail in different ways, which is
 why Chapter~\ref{ch:results} reports them together and Chapter~\ref{ch:analysis} states the
@@ -356,9 +372,13 @@ The standard escape is to impose the sign structure rather than sample it. The
 \emph{fixed-node} approximation confines the walkers to the nodal pockets of a trial state
 $\Psi_T$, killing any walker that crosses a node. Within each pocket the wavefunction has a
 definite sign, the projection is well posed, and the method returns the exact ground-state
-energy \emph{of the problem with those nodes imposed as a boundary condition}. That energy
-is a rigorous upper bound on $E_0$, and it is exact only if the nodes are. Otherwise it
-carries a systematic \emph{nodal bias} that no amount of sampling removes.
+energy \emph{of the problem with those nodes imposed as a boundary condition}. That energy is a rigorous upper bound on $E_0$, and it is exact only if the nodes are.
+Otherwise it carries a systematic \emph{nodal bias} that no amount of sampling removes. The
+bound is a statement about the fixed-node eigenvalue in the limit of zero time step and
+infinite walker population; a published DMC number is an estimate of it and carries time-step,
+population-control and finite-statistics errors of its own, which is part of why comparing a
+variational energy against one at the fifth decimal place requires the matched uncertainty
+analysis we did not undertake (\S\ref{sec:energy-discussion}).
 
 Three consequences follow. A published DMC energy is not ground truth; it is the best
 energy attainable inside the nodal surface of the trial state used to produce it. A variational state
@@ -403,8 +423,11 @@ proxy for the population risk $\mathcal R(\theta)=\mathbb E_P[\ell(f_\theta(X),Y
 gap between the two is the subject of the field: overfitting, the bias--variance tradeoff,
 regularisation, held-out validation~\cite{HastieTibshiraniFriedman2009-ESL,Berner_Grohs_Kutyniok_Petersen_2022}.
 
-The variational problem considered here differs from that setting in two respects. There
-is no dataset: no train/test split, no held-out set, and nothing to overfit to. The
+The variational problem considered here differs from that setting in two respects. There is no fixed labelled dataset, and so no conventional train/test generalisation
+problem. What replaces it is not the absence of a finite-sample difficulty but a different
+one: the objective is a population expectation that must be estimated afresh at every step,
+and an optimiser can certainly overreact to a particular finite batch---which is exactly what
+the effective-sample-size and weight-tail diagnostics of Chapter~\ref{ch:kernel} measure. The
 objective is an expectation,
 \begin{equation}
   E[\Psi_\theta] \;=\; \mathbb E_{\mathbf R\sim|\Psi_\theta|^2}\big[E_L(\mathbf R)\big],
@@ -537,7 +560,11 @@ covariance rather than a second moment and is how it is formed in the implementa
 \begin{equation}
   S = \tfrac{1}{B}\,O^{\!\top}O \in \mathbb{R}^{P\times P},
 \end{equation}
-is the Fisher--Rao metric of the state written in terms of the amplitude score. It is
+is the Fisher--Rao metric of the state written in terms of the amplitude score. Every state
+studied here is real and positive up to the determinant sign, at zero magnetic field, so the
+amplitude score is the whole story; for a general complex wavefunction the quantum geometric
+tensor also carries phase sensitivity, and the identification with the classical Fisher
+matrix is then only of its real part. It is
 proportional to the Fisher matrix $F(\theta)$ of the previous subsection specialised to
 $p_\theta=|\Psi_\theta|^2$: because $\nabla_\theta\log|\Psi_\theta|^2 = 2\,\nabla_\theta\log|\Psi_\theta|$,
 one has $F = 4S$, the factor of four being a convention absorbed into the learning
@@ -565,8 +592,11 @@ directions carry appreciable Fisher weight at the solution, regardless of the ra
 parameter count $P$. A small $d_{\mathrm{eff}}$ means the state is reached along a few
 collective directions; a large one means the same solution is spread across many.
 Because these are properties of the tangent geometry rather than of the raw parameter
-count, and are stable across seeds and sampling measures for a given ansatz, they permit architectures,
-optimisers and training paradigms to be compared on a common footing.
+count, they permit architectures, optimisers and training paradigms to be compared on a
+common footing---provided the comparison is made under matched conventions. In the
+comparisons of \S\ref{sec:kernel-q1a} the measured $d_{\mathrm{eff}}$ proved stable across
+seeds and across the choice of probe measure; that is an empirical finding at those settings,
+not a general property.
 
 The participation ratio $d_{\mathrm{eff}}$ is parameterisation-dependent. It is computed
 from the QGT eigenvalues in the ordinary Euclidean parameter coordinates, and those
@@ -606,16 +636,19 @@ contains a Laplacian and training therefore backpropagates through second deriva
 the network.
 
 \paragraph{The activation.}
-$\mathrm{ReLU}(x)=\max(0,x)$ has a distributional second derivative and is excluded
-immediately. Less obviously, being $C^\infty$ does not suffice either. The relevant
+$\mathrm{ReLU}(x)=\max(0,x)$ has a second derivative that vanishes almost everywhere and is
+distributional at its kinks, so it cannot represent the pointwise curvature a Laplacian-based
+local energy asks for; it is excluded at once. Less obviously, being $C^\infty$ does not suffice either. The relevant
 property is the reach of the higher derivatives: an activation whose second and third
 derivatives decay quickly away from the origin contributes little curvature over most of
 its input range, so the Laplacian of a deep composition stays bounded and its variance
 finite. Tanh and the logistic sigmoid are perfectly smooth, yet their higher derivatives are
-sharply peaked and change sign, and curvature accumulates unevenly through depth. We use
-the $\mathrm{SiLU}(x)=x\,\sigma(x)$ family instead, where SiLU, GELU and Mish behave
-comparably and their higher derivatives are broader and better behaved under composition
-(Fig.~\ref{fig:activation_derivatives}).
+sharply peaked and change sign, and curvature accumulates unevenly through depth. We use the $\mathrm{SiLU}(x)=x\,\sigma(x)$ family instead. Figure~\ref{fig:activation_derivatives}
+shows GELU and Mish, which are the members of that family whose derivative shapes we
+compared and which SiLU closely resembles; their second and third derivatives are broader and
+decay more slowly than those of tanh or the logistic sigmoid. This is a design heuristic
+rather than a theorem: the figure establishes the shapes of the derivatives, not a bound on
+the Laplacian variance of a deep composition, and we did not run an activation ablation.
 
 \begin{figure}[htbp]
   \centering
@@ -725,9 +758,13 @@ through learned maps, rather than recomputing and discarding one-shot messages. 
 correlator iterates this exchange over a down/up ``V-cycle''; the backflow applies a
 single such copresheaf round. Its concrete update equations, hidden dimensions, and
 parameter counts are specified in the Methods chapter
-(\S\ref{subsec:ctnn-backflow}, Eqs.~\eqref{eq:ctnn-edge}--\eqref{eq:ctnn-node}). The framing matters in two respects. First, the CTNN is \emph{one} concrete realisation of the
-message-passing class defined above; the conclusions we draw about the value of message
-passing concern the class, with the CTNN as the instance actually studied. Wherever we
+(\S\ref{subsec:ctnn-backflow}, Eqs.~\eqref{eq:ctnn-edge}--\eqref{eq:ctnn-node}). The framing matters in two respects. First, the CTNN is \emph{one} concrete realisation of
+the message-passing class defined above, and the comparison run in this thesis is between two
+specific inductive biases---the CTNN against a DeepSets-type separable baseline---not between
+the classes they belong to. Conclusions are stated for message passing \emph{as instantiated
+by the CTNN, relative to the separable baseline studied here}; whether they generalise to
+other message-passing neural quantum states is a plausible extrapolation and not something
+these experiments test. Wherever we
 contrast a ``message-passing'' network with a ``separable'' one, the separable member is
 a DeepSets-type network and the message-passing member is the CTNN. Second, we write
 ``copresheaf-\emph{style}'' deliberately: the name reflects the node/edge transport
@@ -752,9 +789,11 @@ activation is dense in $C(K)$ on compacta: for any continuous $f$ and any $\vare
 there exist a width and a parameter vector achieving
 $\sup_{x\in K}|f(x)-f_\theta(x)|<\varepsilon$~\cite{Cybenko1989,HORNIK1991251,LeshnoEtAl1993-NonpolyActivationUniversality}.
 Sharper versions bound the width needed for a given accuracy, and show that depth can be
-exponentially more efficient than width for compositional targets. For our purposes they establish exactly one thing, and it is best put negatively:
-\emph{the ground state is not out of reach of the hypothesis class.} A network of the sizes
-used here can, in principle, express it.
+exponentially more efficient than width for compositional targets. For our purposes they establish exactly one thing, and it is best put negatively: there is
+no \emph{fundamental} representability obstruction, because a sufficiently expressive network
+of this form exists. They say nothing about the particular $20$k--$236$k networks used here.
+Whether those are expressive enough is an empirical question, and it is answered later by
+what they achieve variationally, not by any theorem.
 
 What they do not establish is anything about whether gradient-based training will find that
 representation, at what sample cost, or how the answer depends on how the function is
@@ -770,8 +809,9 @@ alone cannot explain why these methods work at all in $Nd$ dimensions.
 The escapes are all statements about \emph{structure} rather than capacity: targets of
 finite Barron norm admit dimension-independent
 rates~\cite{Barron1993-UniversalApprox}; compositional targets admit efficient
-representation by deep networks when the composition matches the architecture; and imposed symmetry reduces the effective
-domain by the order of the symmetry group. The last of these is the one we exploit
+representation by deep networks when the composition matches the architecture; and imposing a symmetry removes the redundant
+copies the network would otherwise have to learn, reducing the burden on the representation
+rather than the dimension of the domain. The last of these is the one we exploit
 directly, and the middle one is why the message-passing architectures of
 \S\ref{sec:architectures} deserve attention: their usefulness comes from a compositional
 form matching the relational structure of the physics, not from added capacity.

@@ -9,7 +9,7 @@
 %  thesis ansatz at DMC-quality energies; seed counts are stated.
 % =====================================================================
 \graphicspath{{../results/figures/results/}{../results/figures/results/kernel/}{../results/figures/}}
-\chapter[Architecture, optimisation, sampling]{Architecture, optimisation, and sampling geometry}
+\chapter{Architecture, optimisation and sampling}
 \label{ch:kernel}
 
 The previous chapter showed that the ansatz works: it reaches reference quality wherever a
@@ -39,12 +39,7 @@ The \emph{optimiser} acts on it through its metric.\\
 The \emph{sampling measure} determines how well that metric can be estimated.
 \end{quote}
 
-\noindent The three questions of this chapter are the same three objects, and the chapter
-takes them in that order: architecture in \S\ref{sec:kernel-q1}, the optimiser in
-\S\ref{sec:kernel-cond}, the sampling measure and the training paradigm it makes possible
-in \S\ref{sec:kernel-mcmcfree}--\S\ref{sec:kernel-q3-frontier}.
-
-The instrument throughout is the \emph{effective dimension} of the tangent space---the
+\noindent The chapter takes them in that order. The instrument throughout is the \emph{effective dimension} of the tangent space---the
 participation ratio of the QGT spectrum $\{\lambda_a\}$,
 \begin{equation}
   d_{\mathrm{eff}}(S) \;=\; \frac{\left(\sum_a \lambda_a\right)^2}{\sum_a \lambda_a^2},
@@ -56,17 +51,11 @@ eigenstate; the effective sample size; and the condition number $\kappa(S)$, whi
 reported in \S\ref{sec:kernel-cond} and turns out to be large everywhere and therefore
 diagnostic of nothing by itself.
 
-Architectures are compared on a \emph{common probe set}: the same configurations for every
-model, never each model's own $|\Psi|^2$. Backflow comparisons are seeded and held at
-reference quality. Below $\omega=0.1$ every relative error is measured against our own
-converged variational energies, and is therefore a statement about internal consistency
-rather than about accuracy.
-The tooling is anchored on the analytic two-electron ground state, where the ansatz
-returns $E=3.000127$~Ha ($+0.004\%$) at squared overlap $1.000000$.
-
-Component-level quantities such as the backflow's rank are read at the evidential level set
-out on p.~\pageref{ch:results-map}; \S\ref{sec:synthesis} gives the evidence for that
-ordering.
+Architectures are compared on a common probe set---the same configurations for every model,
+never each model's own $|\Psi|^2$---and below $\omega=0.1$ every relative error is measured
+against our own converged variational energies, so it reports internal consistency rather
+than accuracy. The tooling is anchored on the analytic two-electron ground state, where the
+ansatz returns $E=3.000127$~Ha ($+0.004\%$) at squared overlap $1.000000$.
 
 % =====================================================================
 \section{Message passing and the variational geometry}
@@ -84,44 +73,21 @@ comparison varies the two together.
 \subsection{The correlator: tangent-space compression}
 \label{sec:kernel-q1a}
 
-This subsection establishes four separate things, and it is easier to hold them apart if
-they are named first.
+At $N=6$, $\omega=1$ the two correlators are indistinguishable in energy. Trained to DMC
+quality across a $20$k--$164$k parameter ladder, every model lands within $\pm0.1\%$ of the
+reference, and the best raw energy belongs to a $164$k separable network---twice the
+message-passing parameter count. Both have saturated the variational floor.
 
-\begin{enumerate}
-\item \textbf{The energy cannot distinguish the two architectures.} Both reach the
-  reference, across a capacity ladder, to four figures.
-\item \textbf{The tangent geometry can.} At strong confinement the message-passing
-  correlator reaches the same energy along about half as many effective tangent directions.
-\item \textbf{The local-energy variance separates them at every confinement}, including
-  those where the tangent dimension no longer does.
-\item \textbf{So does the physical content of the tangent space.} Far more of the
-  message-passing network's tangent variance falls inside a compact dictionary of the
-  Hamiltonian's collective modes.
-\end{enumerate}
-
-\noindent The first two are strong-confinement statements; the last two hold throughout.
-Taken together they are why the architectural claim is made on $\Var(E_L)$ and the
-dictionary, and not on the direction count that first suggested it.
-
-\paragraph{Energy cannot separate them.}
-At $N=6$, $\omega=1$ the two Jastrow families are \emph{energetically
-indistinguishable}: trained to DMC quality across a $20$k--$164$k parameter ladder,
-every model lands within $\pm0.1\%$ of the reference, and the best raw energy
-belongs to a $164$k DeepSet---twice the CTNN parameter count. Total energy is a
-blunt discriminator; both have saturated the variational floor.
-
-\paragraph{The tangent geometry can.} On a common probe set the message-passing correlator
-reaches the ground state in $d_{\mathrm{eff}}\approx1.2$--$1.7$ (three seeds), while every DeepSet
-needs $d_{\mathrm{eff}}\approx2.9$--$3.6$---a factor of $\sim\!2$. The gap is robust
-to the probe measure (it moves by $\le0.26$ whether scored on CTNN, DeepSet, or pooled
-points) and is not closed by capacity: scaling the DeepSet eightfold, from $20$k to $164$k
-parameters, moves its effective dimension only from $3.6$ to $2.9$, and the $89$k DeepSet
-that matches the CTNN in size sits at $3.6$. The compression is
-architectural, not a matter of size or sampling mass. It is also a well-posed comparison
-despite $d_{\mathrm{eff}}$ not being a reparameterization-invariant absolute dimension
-(\S\ref{sec:theory-tangent-kernel}): both families are compared under matched
-normalisation conventions and a common probe measure, so the factor-of-two gap reflects
-how each architecture spends its tangent directions, not a change of coordinates.
+Their tangent geometry is not indistinguishable. On a common probe set the message-passing
+correlator reaches the ground state in $d_{\mathrm{eff}}\approx1.2$--$1.7$ over three seeds,
+where every separable network needs $2.9$--$3.6$; the two sets do not overlap, and their
+closest approach is still a factor of $1.8$. Capacity does not close the gap. Scaling the
+separable network eightfold, from $20$k to $164$k parameters, moves its effective dimension
+only from $3.6$ to $2.9$, and the $89$k network that matches the message-passing one in size
+sits at $3.6$. Nor does the probe measure: the gap moves by at most $0.26$ whether scored on
+either family's samples or on pooled points. With three and four runs respectively we report
+the values rather than a sigma-separation, which at these sample sizes would borrow more
+authority than the design supports.
 
 \begin{figure}[htbp]\centering
   \includegraphics[width=0.95\textwidth]{fair_dimension.png}
@@ -135,24 +101,12 @@ how each architecture spends its tangent directions, not a change of coordinates
   \label{fig:q1a-fairdim}
 \end{figure}
 
-The gauge caveat of \S\ref{sec:synthesis} does not apply to this comparison. It is made
-between Jastrow families with \emph{no backflow present}, so there is no correlation to
-divide between two substitutable channels. What remains is a comparison of how two
-architectures spend their tangent directions on the same ground state, and it is
-stable across seeds and across the probe measure---a property of the correlator, not
-an accounting artefact.
-
-On the common pooled probe at $\omega=1$ the three CTNN runs give
-$d_{\mathrm{eff}}=1.20,\,1.50,\,1.66$ and the four DeepSets, spanning $20$k to $164$k
-parameters, give $3.63,\,3.37,\,3.65,\,2.94$. The two sets do not overlap, and the closest
-approach between them---the largest DeepSet against the largest CTNN---is still a factor of
-$1.8$. With three and four runs respectively we report the values rather than a
-sigma-separation, which at these sample sizes would borrow more authority than the design
-supports. The gap is a
-\emph{strong-confinement} effect: it closes toward the Wigner crystal, where both families
-reach $\sim\!3.7$ but occupy \emph{different} tangent subspaces. A single-seed dimension
-``inversion'' at the crystal, reported in an earlier draft, did \emph{not} survive seeding
-and is retracted here as a worked cautionary result (see \S\ref{sec:synthesis}).
+Two things bound the reading. The comparison is made with no backflow present, so there is
+no correlation to divide between substitutable channels and the gauge caveat of
+\S\ref{sec:synthesis} does not arise. And the gap is a \emph{strong-confinement} effect: it
+closes toward the Wigner crystal, where both families reach ${\sim}3.7$ but occupy different
+tangent subspaces. A single-seed dimension inversion at the crystal, reported in an earlier
+draft, did not survive seeding and is retracted.
 
 \paragraph{Local-energy variance.} $d_{\mathrm{eff}}$
 stops separating the families at the crystal, and rank will turn out to be gauge-like
@@ -163,24 +117,16 @@ $\Var(E_L)$ is lower for the message-passing correlator at every confinement
 (Table~\ref{tab:varEL}), by factors between $1.2$ and $3.4$, while the two are
 indistinguishable in energy.
 
-Two qualifications fix the size of that effect, and they pull in opposite directions. At
-the crystal a seeded replication is available, and we report it in preference to the single
-cascade run: three CTNN runs give $(1.95,\,1.63,\,1.96)\times10^{-5}$ against three
-DeepSet runs at $(3.40,\,3.23,\,3.41)\times10^{-5}$. The two sets do not overlap, which is
-the finding; but the ratio of their means is $1.8$, not the $7.4$ obtained by pairing the
-single lowest-variance CTNN cascade run against its DeepSet counterpart. The seeded ratio
-is the one we quote. Capacity works the other way. The first four rows compare $79.8$k CTNN
-against $47.7$k DeepSet, a $1.7\times$ advantage to the message-passing network that a
-reader is entitled to discount. Repeating $\omega=1$ against the capacity-matched $89.4$k
-DeepSet---averaging the Adam and SR arms of the optimiser study on both sides, so that
-nothing but architecture differs---gives $2.75\times10^{-2}$ against $9.38\times10^{-2}$, a
-ratio of $3.4$. The separation is therefore not an artefact of the CTNN being the larger
-network; at matched size it is wider than the production comparison shows. Intermediate
-confinements ($\omega=0.28,\,0.05,\,0.03$) reproduce the same ordering at ratios
-$1.2$--$1.8$. The one place the ordering is not resolved is the smallest capacity tier used
-for the depth analysis ($12$k CTNN vs $9$k DeepSet), where the two sit within $8\%$ of each
-other at $\omega=1$ and $0.5$---so this is a statement about trained models at production
-width, not about the architectures at any size.
+Two things fix the size of that effect. At the crystal, where a seeded replication exists,
+the three-seed sets do not overlap and their means differ by $1.8$---not the $7.4$ obtained
+by pairing single best runs, which is why the seeded ratio is the one quoted. And capacity
+works the other way: the production rows give the message-passing network a $1.7\times$ size
+advantage, but repeating $\omega=1$ against the capacity-matched $89.4$k separable network
+widens the ratio to $3.4$ rather than closing it. Intermediate confinements
+($\omega=0.28,\,0.05,\,0.03$) reproduce the ordering at ratios $1.2$--$1.8$. It is not
+resolved at the smallest depth-analysis tier ($12$k against $9$k), where the two sit within
+$8\%$, so this is a statement about trained models at production width rather than about the
+architectures at any size.
 
 \begin{table}[htbp]\centering
 \caption[Local-energy variance by architecture]{Local-energy variance at $N{=}6$, matched training protocol, both architectures at
@@ -233,17 +179,13 @@ actually couples.
   \label{fig:mode-naming}
 \end{figure}
 
-\paragraph{A physical leading mode does not imply a physical tangent space.} The two figures
-that follow can look contradictory and are not, so the distinction is worth making before
-the second one. Figure~\ref{fig:mode-naming} scores only the \emph{dominant} eigenmode
-against the dictionary; Figure~\ref{fig:nonphys} asks where the eigenvalue-weighted mass of
-the leading modes \emph{as a whole} lies. A network can place its single largest mode
-squarely inside the dictionary and still spend most of its remaining tangent budget outside
-it, and that is exactly what the separable network does.
-
-The leading-mode score is accordingly generous to it: at $\omega=1$ the DeepSet is nominally
-the more physical of the two ($R^2\!\approx\!0.996$ vs.\ $0.991$), with energies identical to
-four figures. A correlation-specific probe exposes the deficit that score hides. Write the
+\paragraph{The dominant mode is not the tangent space.} Figure~\ref{fig:mode-naming} scores
+the \emph{dominant} eigenmode against the dictionary; Fig.~\ref{fig:nonphys} asks where the
+eigenvalue-weighted mass of the leading modes \emph{as a whole} lies. A network can place its
+largest mode squarely inside the dictionary and spend most of the rest outside it, which is
+what the separable network does---so the leading-mode score is generous to it. At $\omega=1$
+it is nominally the more physical of the two ($R^2\approx0.996$ against $0.991$), with
+energies identical to four figures. Write the
 eigenvalue-weighted fraction of the top tangent modes lying \emph{outside} the
 physical-operator span as the \emph{dictionary-orthogonal tangent mass}. The DeepSet carries a large
 excess at \emph{every} confinement---$0.44$ against the CTNN's $0.06$ at $\omega=1$, a gap of
@@ -251,10 +193,13 @@ $\sim\!0.3$--$0.5$ that persists from the strongly-confined limit down to the cr
 (Fig.~\ref{fig:nonphys}). The reading is that a separable network reaches the same energy---correlation being a small
 fraction of the total at strong confinement, so the energy looks converged---while leaving
 nearly half its tangent budget along directions a compact physical dictionary does not resolve.
-A direction outside the dictionary need not be unphysical; the robust statement is that the
-CTNN's tangent space is far more completely accounted for by a small set of physical operators
-than the DeepSet's. The gap is present at every confinement rather than appearing at weak
-coupling; weak confinement merely removes the disguise, because there correlation
+A direction outside the dictionary need not be unphysical, so what the measurement supports
+is that one tangent space is far more completely accounted for by a small set of physical
+operators than the other. One objection is worth answering: a smaller $d_{\mathrm{eff}}$
+makes a four-operator dictionary easier to cover, so the two results could be the same
+result. They are not. Toward the Wigner regime the two effective dimensions converge to
+${\sim}3.7$ while the dictionary gap persists undiminished. The gap is present at every
+confinement; weak confinement merely removes the disguise, because there correlation
 \emph{is} the energy. At $N=12$ the contrast is starker still: the CTNN's dictionary-orthogonal mass stays
 $\lesssim\!0.02$ across $\omega$, while a matched DeepSet (trained to $+0.2\%$) sits at
 $\approx\!0.77$ at $\omega=1$---the gap \emph{widens} with system size rather than closing.
@@ -310,32 +255,35 @@ $\omega$ & CTNN & conv & CTNN & conv & CTNN & conv \\
 \end{tabular}
 \end{table}
 
+\paragraph{How component-level numbers are read.}
+\label{sec:synthesis}
+The measurement that follows is of a different kind from the energy, and the difference
+governs how much it can carry. Energy, $\Var(E_L)$ and the overlap between two trained states
+are \emph{state-level}: properties of the wavefunction, unaffected by how the parameters are
+arranged. Quantities defined on a single component---the backflow's rank, its displacement
+magnitude, a per-component $d_{\mathrm{eff}}$---are not, because the correlator and the
+backflow are substitutes and the division of correlation between them is a nearly flat,
+path-dependent direction of the loss. They record the route the training took as much as the
+state it reached.
+
+That is not a hypothetical worry. An artefactual rank collapse appeared earlier in this
+project under joint from-scratch training, and it needs separating from the one reported
+below, since they are the same observable. The artefact affected \emph{both} architectures,
+moved with the seed, and carried no energy penalty. The collapse reported here appears under
+the staged protocol used throughout the chapter, affects only the conventional backflow, is
+seed-robust, and comes with half a percent of energy. It is the energy that makes it a
+finding rather than a diagnostic curiosity.
+
 The energy gap has a sharp structural signature. Let the \emph{backflow rank} be the
 participation ratio of the displacement field $\Delta\mathbf{x}$ (how many independent
 directions the backflow moves electrons along). The field lives in $2N$ dimensions---$12$,
 $24$ and $40$ at $N=6,12,20$---and the zero-mean projection of Eq.~\eqref{eq:bf-com} removes
 two of them.
 
-One detail of the implementation makes the two columns of Table~\ref{tab:bf_rank} sit under
-\emph{different} ceilings, and it has to be stated because otherwise the table appears to
-contain impossible numbers. The diagnostic is evaluated on the displacement field as each
-network returns it. The copresheaf network applies the zero-mean projection inside its
-forward pass, so its output is already COM-free and its participation ratio is bounded by
-$2N-2$ ($10$, $22$, $38$). The conventional network does not: the projection is applied by
-the caller when $\tilde R'$ is formed, so the field this diagnostic sees still carries the
-COM component and is bounded by $2N$ ($12$, $24$, $40$). That is why the conventional column
-reaches $10.4$ at $N=6$ and $22.2$ at $N=12$---legal against its own ceiling of $12$ and
-$24$, and not against $2N-2$. The consequence for what follows is that the two columns may
-not be compared \emph{in level}: roughly one unit of the conventional network's rank is the
-centre-of-mass direction that the copresheaf network has already removed. It does not affect
-the finding, which is a collapse to rank $1$---two orders below either ceiling.
-
-The obvious control is to apply the same zero-mean projection to both fields before
-computing the participation ratio, which would put them under a common $2N-2$ ceiling and
-make the levels directly comparable. That was not possible here: the diagnostic was computed
-during training and the trained checkpoints for this sweep were not retained, so it cannot
-be recomputed from the saved artefacts. We therefore make no comparison of level between the
-two columns anywhere, and the reader should not either. Toward Wigner the \emph{conventional} raw field undergoes a
+The two columns of Table~\ref{tab:bf_rank} sit under different ceilings, because the
+diagnostic is evaluated on each network's returned field and the two apply the zero-mean
+projection at different points (\S\ref{sec:bf-init}): $2N-2$ for the copresheaf network,
+$2N$ for the conventional one. Compare the collapse, not the level. Toward Wigner the \emph{conventional} raw field undergoes a
 spectral collapse to rank~$1$, while the CTNN backflow stays near the ceiling
 (Table~\ref{tab:bf_rank}). The endpoint is the same at every size---rank $1$, from ceilings
 of $12$, $24$ and $40$ at $N=6$, $12$ and $20$---so what grows with $N$ is the height of the
@@ -350,25 +298,21 @@ crystal: at $\omega\ge0.1$ the conventional field is nominally the higher-rank o
 noted above, and the two architectures are then also within $0.2\%$ of each other in energy.
 It is the collapse, not the level, that carries the finding.
 
-\paragraph{Why a simple global capacity shortage is unlikely to explain the collapse.} The conventional network is a third the
-size of the copresheaf one, so the obvious alternative reading is that it simply runs out of
-parameters at weak confinement. The conventional network's own $\omega$-dependence makes a
-simple global shortage unlikely. Capacity does not vary with $\omega$: the same $51$k network, trained on the same
-protocol, holds a displacement rank of $10.4$--$10.8$ at $N=6$, $21.7$--$22.3$ at $N=12$ and
-$33.7$--$38.7$ at $N=20$ for every $\omega\ge0.1$---within a unit or two of its own ceiling
-of $12$, $24$ and $40$---and then falls to exactly $1.00$ below $\omega=0.1$. This abrupt
-change disfavors the reading that the network is simply too small throughout the grid. It
-does not exclude a regime-dependent capacity limitation: without a widened
-conventional-backflow control, the change in target complexity at weak confinement remains
-a confound.
+\paragraph{Capacity is the obvious alternative reading.} The conventional network is a third
+the size of the copresheaf one, so it may simply be running out of parameters at weak
+confinement. Its own $\omega$-dependence argues against that. Capacity does not vary with
+$\omega$, yet the same $51$k network on the same protocol holds a displacement rank of
+$10.4$--$10.8$ at $N{=}6$, $21.7$--$22.3$ at $N{=}12$ and $33.7$--$38.7$ at $N{=}20$ for
+every $\omega\ge0.1$---within a unit or two of its own ceiling---and then falls to exactly
+$1.00$ below it. A network too small throughout the grid would not behave that way. What this
+does not exclude is a regime-dependent limitation, since the target also becomes harder at
+weak confinement; without a widened conventional backflow that confound stands.
 
-The same argument does \emph{not} rescue Table~\ref{tab:bf_energies}. The energy gap there
-is a between-network comparison at unequal size, and nothing in our data separates the
-architecture from the extra $131$k parameters. We report it as what the two production
-ans\"atze achieve---which is a real and useful statement, since these are the models that
-produced the energies of Chapter~\ref{ch:results}---and not as an architecture ablation. The
-missing experiment is a widened conventional backflow at matched capacity; it was not
-run.
+It does not rescue Table~\ref{tab:bf_energies} at all. That gap is a between-network
+comparison at unequal size, and nothing in our data separates architecture from the extra
+$131$k parameters. It is reported as what the two production ans\"atze achieve---these being
+the models that produced the energies of Chapter~\ref{ch:results}---and not as an
+architecture ablation.
 
 \begin{table}[htbp]\centering
 \caption[Backflow displacement rank (participation ratio)]{Backflow displacement rank
@@ -463,34 +407,24 @@ displacement mode (backflow: rank~1), which the copresheaf transport avoids. Bot
 in the tangent-kernel geometry, not in the total energy, until weak confinement makes
 the geometric deficit an energetic one.
 
-\paragraph{The two channels fail together, and an intervention shows it.} Two components
-failing at similar confinements is a resemblance. What makes it evidence is that moving one
-of them moves the other. The experiment has four steps.
+Two components failing at similar confinements is a resemblance; what makes it evidence is
+that moving one of them moves the other. To test this we held the backflow architecture
+fixed---the conventional network in both arms---swapped only the correlator, retrained each
+arm to convergence, and tracked both quantities down the $\omega$-sweep.
 
-\begin{description}
-\item[Observation 1.] The correlator's grip on the physical correlation modes gives way at
-  some confinement, and where depends on its architecture (\S\ref{sec:kernel-q1a}).
-\item[Observation 2.] The conventional backflow's displacement rank collapses at some
-  confinement (\S\ref{sec:kernel-q1b}).
-\item[Intervention.] Hold the backflow \emph{architecture} fixed---the conventional network
-  in both arms---and swap only the correlator, retraining each arm to convergence. Then
-  track both quantities down the $\omega$-sweep (Fig.~\ref{fig:q1-unify}).
-\item[Result.] The backflow's failure boundary moves with the correlator. With a separable
-  correlator both give way together near $\omega\!\approx\!0.05$---hole capture from $0.68$
-  to $0.07$, displacement rank from ${\sim}10$ to $1$ across the same step. With a
-  message-passing correlator both hold half a decade further, to $\omega\!\approx\!0.01$.
-\end{description}
+The backflow's failure boundary moves with the correlator. With a separable correlator the
+two give way together near $\omega\approx0.05$: correlation-hole capture falls from $0.68$
+to $0.07$ and the displacement rank from ${\sim}10$ to $1$ across the same step. With a
+message-passing correlator both hold half a decade further, to $\omega\approx0.01$
+(Fig.~\ref{fig:q1-unify}).
 
-\noindent The inference is that a single relational capability underlies both, since
-intervening on one component relocates the other's failure. Note what the intervention
-\emph{is}: each arm is a separately trained network, not one network reconfigured, so
-``held fixed'' means the same backflow architecture and the same recipe, never the same
-weights. The correlator's grip on the physical correlation modes and the
-backflow's ability to sustain a full-rank displacement are the same capability seen from two
-sides: when the amplitude model can no longer resolve the correlation hole, the nodal
-deformation can no longer stay high-rank, and a better correlator postpones \emph{both}. The
-evidence---coincident transitions that shift together under a correlator swap---supports a
-common relational bottleneck beneath both rather than proving them literally identical.
+Each arm is a separately trained network rather than one network reconfigured, so ``held
+fixed'' means the same architecture and recipe, never the same weights. Within that,
+intervening on one component relocates the other's failure, which is what a shared cause
+predicts and a coincidence does not. The correlator's grip on the physical correlation modes
+and the backflow's ability to sustain a full-rank displacement look like one capability seen
+from two sides: when the amplitude model can no longer resolve the correlation hole, the
+nodal deformation can no longer stay high-rank, and a better correlator postpones both.
 
 \begin{figure}[htbp]\centering
   \includegraphics[width=\textwidth]{q1_unification.png}
@@ -506,39 +440,34 @@ common relational bottleneck beneath both rather than proving them literally ide
 \subsection{What the trained representation looks like}
 \label{sec:kernel-repr}
 
-One descriptive result belongs beside these controlled comparisons, provided it is read at
-its own evidential level. Examining a single high-quality trained solution
-(Appendix~\ref{app:representation}) shows the correlator occupying a feature space of one to
-three effective dimensions across the entire grid, and never expanding: at
-$\omega=10^{-3}$, where the real-space density has developed rings and discrete
-occupancies, the latent rank is no larger than at $\omega=1$. For $N{=}6$ and $N{=}12$,
-what changes across the crossover is which branch the leading axis draws on---pair features
-at moderate coupling, single-particle and global features at strong coupling---not how many
-axes there are. The $N{=}20$ component diagnostic is an explicit exception
-(Appendix~\ref{app:representation}). The
-displacement field is the opposite kind of object, spanning nearly all the spatial
-directions available to it, and it leaves the correlator's feature geometry almost
-unperturbed (centred kernel alignment above $0.98$ everywhere).
+One descriptive result belongs beside these controlled comparisons. Examining a single
+high-quality trained solution shows the correlator occupying a feature space of one to three
+effective dimensions across the entire grid and never expanding: at $\omega=10^{-3}$, where
+the real-space density has developed rings and discrete occupancies, the latent rank is no
+larger than at $\omega=1$. What changes across the crossover is which branch the leading axis
+draws on, not how many axes there are. The displacement field is the opposite kind of object,
+spanning nearly all the spatial directions available to it and leaving the correlator's
+feature geometry almost unperturbed.
 
-These are component-level measurements on one training run, so they are gauge-like in the
-sense of \S\ref{sec:synthesis} and none of the architectural conclusions above depends on
-them. They are worth recording because a low effective covariance rank in the tapped
-representation is not what one would have predicted for a state whose real-space structure
-is this elaborate, and
-because the reorganisation happens near $\omega\approx0.1$---the same confinement at which
-the energy partition crosses over (\S\ref{sec:wigner-energy}) and at which the ablation
-costs of Fig.~\ref{fig:q1b-ablation} exchange order. Whether that coincidence reflects one
-mechanism or three we cannot say from a single run.
+These are component-level measurements on one run. They are gauge-like---the correlator and
+backflow are partial substitutes, so the division of labour between them records the training
+route as much as the state---and no architectural conclusion above depends on them. They are
+worth recording because a low effective covariance rank is not what one would predict for a
+state whose real-space structure is this elaborate, and because the reorganisation happens
+near $\omega\approx0.1$, the same confinement at which the energy partition crosses over
+(\S\ref{sec:wigner-energy}) and the ablation costs of Fig.~\ref{fig:q1b-ablation} exchange
+order. Whether that coincidence reflects one mechanism or three we cannot say from a single
+run. Appendix~\ref{app:representation} gives the full analysis.
 
-\paragraph{What \S\ref{sec:kernel-q1} establishes.} Message passing supplies a relational
-channel whose effect is geometric before it is energetic. In the correlator it shows as a
-tangent space that is smaller at strong confinement and better accounted for by a compact,
-physically motivated operator dictionary, with a local-energy variance lower at every
-confinement by factors of $1.2$ to $3.4$. In the backflow it shows as a collapse averted,
-costing half a percent where it is not. The correlator-swap intervention ties the two
-together. What this does \emph{not} establish is that the two architectures reach different
-states: they agree in energy to four figures, and we did not measure their overlap in this
-comparison.
+\medskip
+\noindent Message passing therefore supplies a relational channel whose effect is geometric
+before it is energetic. In the correlator it shows as a tangent space that is smaller at
+strong confinement and better accounted for by a compact operator dictionary throughout, with
+a local-energy variance lower at every confinement by factors of $1.2$ to $3.4$. In the
+backflow it shows as a collapse averted, costing half a percent where it is not. The
+correlator swap ties the two together. What none of it establishes is that the two
+architectures reach different \emph{states}: they agree in energy to four figures, and we did
+not measure their overlap here.
 
 \section{Conditioning and the sampling measure}
 \label{sec:kernel-cond}
@@ -657,12 +586,10 @@ measure that defines them, so the directions carrying Fisher weight are also the
 the batch populates. That is an alignment between estimator and objective, not
 preconditioning in the sense of applying $S^{-1}$. A fixed covering proposal instead drives
 a monotone \emph{ESS collapse} as $N$ and $1/\omega$ grow: at $N=6,\omega=0.01$ the
-effective sample size falls to $0.11\%$ of the batch: about $5$ of the $4096$ \emph{retained}
-points. Two normalisations are in use in this chapter and they differ by the oversampling
-factor---ESS as a fraction of the $n_{\rm coll}=4096$ resampled points, as here, and ESS as
-a fraction of the $m\,n_{\rm coll}$ raw proposal draws, as in
-\S\ref{sec:colloc-reliability}. Each figure states which. When ESS collapses the gradient
-estimator is degenerate---a hard limit, not undertraining.
+effective sample size falls to $0.11\%$ of the batch---about $5$ of the $4096$ retained
+points---and the gradient estimator is then degenerate. That is a hard limit, not
+undertraining. (Two ESS normalisations appear in this chapter, differing by the oversampling
+factor; each figure states which.)
 
 \S\ref{sec:colloc-reliability} below nonetheless reports usable collocation energies at the
 same $(N,\omega)$---$+0.24$--$0.29\%$ across three seeds, Table~\ref{tab:reliability}---and
@@ -714,31 +641,22 @@ the \emph{full} local energy, in which the kinetic (Laplacian) and potential ter
 to a constant; it is not a property of the Laplacian term alone. The collocation objective
 does \emph{not} discard the Laplacian: it is a score-function (REINFORCE) estimator that
 \emph{forms} the full $E_L$ as a detached reward and differentiates only $\log|\Psi|$
-(\S\ref{sec:colloc-method}). What it gives up is the \emph{measure}, and it is worth separating the three distinct
-reasons the importance-sampled readout is not a trustworthy convergence criterion, because
-they are not equally fundamental. First, the estimator is \emph{self-normalised}: we divide
-by $\sum_i w_i$ because $|\Psi_\theta|^2$ is unnormalised, and a ratio of two Monte Carlo
-estimates carries an $\mathcal O(1/n)$ finite-sample bias even when both are unbiased. This
-vanishes with sample size and is the mildest of the three. Second, the tail controls
-\emph{deliberately} change the target: tempering $w\to w^\alpha$ with $\alpha<1$ and
-clipping the log-weights at an upper quantile both trade bias for variance on purpose, so
-the quantity estimated is no longer $\langle E_L\rangle_{|\Psi|^2}$ at all. Third, and
-dominant in the regimes that matter here, proposal--target mismatch inflates the variance so
-far that the realised estimate is unreliable at any sample size we can afford
-(\S\ref{sec:colloc-reliability}). Ordinary importance sampling is not biased merely for
-being importance sampling; it is the last two that make the readout unusable as a stopping
-rule. The
-reliable criteria are $\Var(E_L)$ and the state overlap, both evaluated on $|\Psi|^2$
-samples.
+(\S\ref{sec:colloc-method}). What it gives up is the \emph{measure}, and three things then spoil the readout, in
+increasing order of severity. The estimator is self-normalised, since $|\Psi_\theta|^2$ is
+unnormalised, so it carries an $\mathcal O(1/n)$ finite-sample bias that vanishes with sample
+size. The tail controls deliberately change the target: tempering $w\to w^\alpha$ and
+clipping the log-weights trade bias for variance on purpose, so the estimated quantity is no
+longer $\langle E_L\rangle_{|\Psi|^2}$. And, dominant in the regimes that matter,
+proposal--target mismatch inflates the variance beyond any affordable sample size
+(\S\ref{sec:colloc-reliability}). Importance sampling is not biased merely for being
+importance sampling; it is the last two that make the readout unusable as a stopping rule.
+The reliable criteria are $\Var(E_L)$ and the state overlap, both on $|\Psi|^2$ samples.
 
-% =====================================================================
-% =====================================================================
-\paragraph{What \S\ref{sec:kernel-cond} establishes.} The value of a natural-gradient step
-is not predicted by the conditioning of the metric, which is large under $|\Psi|^2$ sampling
-on exactly the models where SR buys nothing. What predicts it is whether the batch can
-resolve the metric it inverts. This is a claim about the estimator, and its negative half is
-directly measured while its positive half---that collocation occupies an anisotropic but
-still estimable middle regime---is inferred, since we did not measure $\kappa$ under the
+The value of a natural-gradient step is therefore not predicted by the conditioning of the
+metric, which is large under $|\Psi|^2$ sampling on exactly the models where SR buys nothing.
+What predicts it is whether the batch can resolve the metric it inverts. The negative half of
+that is directly measured; the positive half---that collocation occupies an anisotropic but
+still estimable middle regime---is inferred, since $\kappa$ was never measured under the
 collocation measure at matched batch size.
 
 \section{Training without a Markov chain}
@@ -1151,10 +1069,7 @@ best-VMC checkpoint restored for a final 20\,000-sample IS evaluation.
 
 \subsubsection{Main results}
 
-Table~\ref{tab:reliability} presents the complete results of the
-30-run campaign.
-For each $(\omega,\text{recipe})$ combination the three seeds are listed individually,
-together with their mean, standard deviation and worst case.
+Table~\ref{tab:reliability} gives all thirty runs, three seeds per cell.
 
 \begin{table}[htbp]
   \centering
@@ -1194,19 +1109,12 @@ together with their mean, standard deviation and worst case.
   \end{tabular}
 \end{table}
 
-Several patterns are immediately apparent.
-First, the robust recipe dramatically improves the low-$\omega$ regimes:
-at $\omega{=}0.001$ the mean error drops from $+5.3\%$ (baseline) to
-$+0.28\%$ (robust), a factor of~$19$ improvement.
-Second, the best single result at every $\omega$ is a robust run,
-achieving $+0.013\%$ at $\omega{=}1.0$, $+0.002\%$ at $\omega{=}0.5$,
-$+0.263\%$ at $\omega{=}0.1$, $+0.237\%$ at $\omega{=}0.01$, and
-$+0.250\%$ at $\omega{=}0.001$.
-Third, the robust recipe's IS-evaluated worst case improves at every confinement, and most
-dramatically where sampling is hardest: at $\omega=10^{-3}$ the worst robust seed
-($+0.331\%$) is better than the \emph{best} baseline seed ($+3.876\%$) by an order of
-magnitude. At high $\omega$ the two recipes are within each other's seed spread, so the
-stabilisation mechanisms neither help nor hurt there.
+The stabilisation mechanisms buy nothing at strong confinement, where the two recipes sit
+inside each other's seed spread, and everything at weak confinement. At $\omega=10^{-3}$ the
+mean error falls by a factor of nineteen, from $+5.3\%$ to $+0.28\%$, and the \emph{worst}
+robust seed beats the \emph{best} baseline seed by an order of magnitude. The best single run
+at every confinement is a robust one. What follows explains why the difference appears
+exactly where it does.
 
 
 \subsubsection{The gradient-quality chain}
@@ -1235,26 +1143,16 @@ the chain is a mechanism consistent with every measurement we have, not a set of
 individually isolated causal links. We did not ablate the four stabilisers separately.
 
 \paragraph{Step 1: proposal--target mismatch.}
-As described in~\S\ref{subsec:colloc-proposal}, the REINFORCE estimator
-in Eq.~\eqref{eq:reinforce-method} requires samples from $|\Psi_\theta|^2$,
-but collocation draws from the analytic Gaussian mixture proposal
-$q(\mathbf{R})$ in Eq.~\eqref{eq:colloc-proposal} and reweights via importance
-sampling.
-The quality of this reweighting depends on how well $q$ overlaps
-with $|\Psi_\theta|^2$.
+The REINFORCE estimator of Eq.~\eqref{eq:reinforce-method} requires samples from
+$|\Psi_\theta|^2$, but collocation draws from the analytic mixture
+$q(\mathbf R)$ of Eq.~\eqref{eq:colloc-proposal} and reweights. Everything depends on how
+well $q$ overlaps the target. At $\omega=1$ the electrons occupy a compact cloud of radius
+$\ell=\omega^{-1/2}$ and the three-component mixture covers it. At $\omega=10^{-3}$ the cloud
+extends to ${\sim}100\,a_0^\ast$ against $\ell\approx31.6\,a_0^\ast$, the pair correlation
+develops sharp shell structure (\S\ref{sec:wigner-molecule}), and the mass concentrates in a
+thin correlated region an isotropic Gaussian covers badly.
 
-For the harmonic quantum dot, $|\Psi|^2$ has full support but concentrates its mass in a
-region whose geometry depends on $\omega$:
-at $\omega{=}1.0$, electrons occupy a compact cloud of radius
-of order the oscillator length $\ell=1/\sqrt{\omega}$, and the three-component
-Gaussian mixture in Eq.~\eqref{eq:colloc-proposal} provides adequate coverage.
-At $\omega{=}0.001$, the electron cloud extends to
-$\sim\!100\,a_0^\ast$ (several oscillator lengths, $\ell\approx31.6\,a_0^\ast$), the pair correlation function develops
-sharp shell structure (Section~\ref{sec:wigner-molecule}), and
-$|\Psi|^2$ concentrates in a thin, strongly correlated region that the
-isotropic Gaussian proposal covers inefficiently.
-
-The mismatch manifests directly in the importance weights.
+The mismatch shows directly in the importance weights.
 At $\omega{=}1.0$, weights are relatively uniform:
 the effective sample size is typically ESS~$\sim$~5000--6000
 out of the ${\sim}65\text{k}$ \emph{raw proposal draws} ($16{\times}$ oversampling of 4096
@@ -1518,31 +1416,21 @@ four rungs (Table~\ref{tab:cascade}),
 well past where the origin proposal collapses ($\mathrm{ESS}\!\approx\!1.5$ of $4096$ at
 $\omega=0.01$, Table~\ref{tab:ring-ess}).
 
-What certifies the frontier state, and what does not, is worth being exact about. The
-agreement in Table~\ref{tab:cascade} is against a scaling curve fitted to our own
-$\omega=0.01$ energy, so it establishes continuity rather than accuracy. Two further checks
-are structural: the radial density peaks at $3.34\ell$ against a classical ring at
-$3.42\ell$, and initialising the sampler on the shell converges to the same peak rather than
-to a second basin. What is missing is an \emph{angular} diagnostic at $\omega=0.0035$---the
-bond-order and Lindemann machinery of \S\ref{sec:wigner-angular} was run on the production
-grid and not on the cascade rungs, and those states were not retained. So ``a Wigner
-molecule at $\omega=0.0035$'' rests here on energy continuity and radial geometry, not on
-demonstrated angular order, and the natural next check is to measure
-$|\Phi_5|$ against its random-angle null on that state.
-
-One further qualification concerns the state's ancestry rather than its certification. The
-chain-free claim is a claim about the \emph{gradient}, and it holds exactly: no Metropolis
-sample reaches a parameter update at any rung. It is not a claim that the frontier state is
-reference-free. Each rung is warm-started from the converged state of a stronger
-confinement, that ladder runs back to $\omega=0.01$ and beyond it to the strong-confinement
-runs, and the whole cascade begins from a pretrained checkpoint
-(\S\ref{sec:colloc-reliability}) whose residual objective used an external energy as its
-target wherever one exists. So the parameters arriving at $\omega=0.0035$ inherit structure
-shaped, several confinements upstream, by reference-guided pretraining---which is the same
-inheritance the SR--VMC states carry (\S\ref{sec:energy-discussion}), and which no
-measurement here separates from what collocation itself contributed. Training a rung from
-scratch at weak confinement is the experiment that would settle it; \S\ref{sec:kernel-q3-frontier}
-reports that this does not converge, which is itself part of the finding. The essential ingredient is the continuous re-fit: it keeps ESS healthy
+Three things bound that result. The agreement in Table~\ref{tab:cascade} is against a
+scaling curve fitted to our own $\omega=0.01$ energy, so it establishes continuity rather
+than accuracy; two structural checks support it---the radial density peaks at $3.34\ell$
+against a classical ring at $3.42\ell$, and a sampler initialised on the shell converges to
+the same peak rather than a second basin. No \emph{angular} diagnostic was run at
+$\omega=0.0035$: the bond-order and Lindemann machinery of \S\ref{sec:wigner-angular} ran on
+the production grid, not the cascade rungs, and those states were not retained. So a Wigner
+molecule at $\omega=0.0035$ rests here on energy continuity and radial geometry, not on
+demonstrated angular order. And the chain-free claim is a claim about the gradient---no
+Metropolis sample reaches a parameter update at any rung---not about ancestry: each rung is
+warm-started from a stronger confinement, and that ladder runs back to a pretrained
+checkpoint whose residual objective used an external energy as its target. The frontier
+parameters therefore inherit structure shaped several confinements upstream by
+reference-guided pretraining, the same inheritance the SR--VMC states carry
+(\S\ref{sec:energy-discussion}). The essential ingredient is the continuous re-fit: it keeps ESS healthy
 ($\sim\!10^2$) \emph{while} the energy descends, where a static or slowly-updated proposal
 collapses to $\mathrm{ESS}\!\sim\!1$ as the wavefunction moves away from it.
 
@@ -1609,45 +1497,3 @@ bound it.
 
 % =====================================================================
 % =====================================================================
-\section{Gauge dependence and robust observables}
-\label{sec:synthesis}
-
-Not every number above can be leaned on equally, and the ones that read most vividly are
-among the weaker. The three-way hierarchy set out at the start of Part~IV
-(p.~\pageref{ch:results-map}) is developed here, with the evidence for it.
-
-Quantities defined on a single component---the backflow's rank, its displacement magnitude
-$|\Delta\mathbf{x}|$, the per-component $d_{\mathrm{eff}}$---are \textbf{gauge-like},
-because the Jastrow and the backflow are substitutes and the division of correlation
-between them is a nearly flat, path-dependent direction of the loss. Such quantities record
-the route the training took rather than the state it reached. This is not a hypothetical
-worry: every claim that reversed during this project was of this kind, from the
-$d_{\mathrm{eff}}$ inversion at the crystal that did not survive seeding, through a
-mislabelled backflow, to an artefactual rank collapse produced by training both components
-jointly from scratch. That last one needs separating from the collapse reported in
-\S\ref{sec:kernel-q1b}, since they are the same observable. The artefact appeared only under
-joint from-scratch training, affected \emph{both} architectures, moved with the seed, and
-carried no energy penalty; the reported collapse appears under the staged protocol used
-throughout this chapter, affects only the conventional backflow, is seed-robust at all three
-particle numbers, and is accompanied by the half a percent of energy in
-Table~\ref{tab:bf_energies}. It is the last of those that makes it a finding rather than a
-diagnostic curiosity.
-
-The measurements used here fall into three classes, and the conclusions rest on the first
-two. \emph{State-level} quantities---the energy, the local-energy variance $\Var(E_L)$, and
-the symmetric overlap between two trained states---are properties of the wavefunction and
-are unaffected by how the parameters are arranged. $\Var(E_L)$ does most of the work,
-because it separates the two families where the energy cannot and where $d_{\mathrm{eff}}$
-no longer does: at matched protocol it is lower for the message-passing ansatz at every
-confinement, by factors between $1.2$ and $3.4$ (Table~\ref{tab:varEL}), with
-non-overlapping seeds at the crystal and the widest separation at matched capacity. \emph{Controlled
-interventions}---deleting a component and pricing the loss in energy---are not
-gauge-invariant in the same sense, since two parameterisations that divide correlation
-differently will report different ablation costs; they are reproducible statements about a
-fixed model and training protocol, and are used as such. \emph{Component-level}
-diagnostics---rank, displacement magnitude, per-branch loadings---are the gauge-dependent
-class.
-
-Rank belongs to that third class. It appears throughout this chapter as the clearest
-signature of the mechanism, a field collapsing onto a single mode being easy to see, but
-what carries the finding is the half a percent of energy that collapses with it.

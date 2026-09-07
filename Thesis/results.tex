@@ -36,78 +36,48 @@ acquire angular order inside them. How the network internally represents these s
 question about the solver rather than about the physics, and is deferred to
 Chapter~\ref{ch:kernel} and Appendix~\ref{app:representation}.
 
-\section{Training protocol and ground-state energies}
+\section{Benchmark energies}
 \label{sec:energy-overview}
-Unless otherwise stated, we first apply residual-based pretraining to obtain a
-well-conditioned initialiser, and then run a Stochastic Reconfiguration (SR)
-tail to refine the last digits of the energy. In the residual phase, the
-network initially chooses its own target energy as a stabilizer, before we
-switch to the DMC reference energy (and optionally add a variance penalty).
-The SR phase then uses on the order of $10^3$--$3\times10^3$ iterations with
-batches of $\sim 3{\times}10^3$ samples per iteration. Throughout this section---and
-wherever else the thesis says ``SR tail'' without further qualification---SR is applied
-to \emph{variational Monte Carlo with $|\Psi|^2$ sampling}. This matters because the
-same optimiser reappears in Chapter~\ref{ch:kernel} on the collocation objective, where
-the sampling measure differs and SR behaves quite differently: here it is a refinement
-that buys the last digits; there it is what makes the optimisation viable at all.
 
-We compare two backflow architectures throughout. Both condition each particle's
-displacement on the interparticle coordinates, but they do so differently: the
-\emph{conventional} backflow applies a single round of pairwise messages
-aggregated per particle, whereas the \emph{message-passing} backflow maintains explicit node and
-edge features and transports information between them through learned maps (a single
-copresheaf round) before the displacement is read out; the contrast between them is the subject of the backflow
-analysis in Chapter~\ref{ch:kernel}. The architecture size is identical for all $N$. The correlator is the same in both and is
-the \emph{separable} network of \S\ref{subsec:separable-correlator} (code: \texttt{PINN});
-the message-passing correlator belongs to the architecture study of
-\S\ref{sec:kernel-q1} and does not appear in this chapter. It carries
-$\approx\!54\text{k}$ parameters, the conventional backflow adds
-$\approx\!51\text{k}$ (total $\approx\!105\text{k}$), and the message-passing backflow adds
-$\approx\!182\text{k}$ (total $\approx\!236\text{k}$). The two are not capacity-matched, and
-at equal width they cannot be: the copresheaf network's persistent edge state is the heavier
-object by construction (\S\ref{sec:hyperparameters}). The two production ans\"atze share the
-same correlator and differ only in this component, so they are named for it throughout:
-\emph{conv.\ BF} and \emph{MP BF}. These are not the widths of
-the controlled architecture comparison, which uses its own matched ladder
-(Table~\ref{tab:hyperparams}); the two sets of counts are kept apart throughout and never
-compared. All components are fully trainable;
-the parameter count is independent of $N$ because particle
-interactions enter through permutation-equivariant features rather than
-per-particle weights.
+Training is residual-based pretraining to a well-conditioned initialiser followed by a
+Stochastic Reconfiguration tail, run for $10^3$--$3\times10^3$ iterations on batches of
+${\sim}3\times10^3$ samples, that refines the last digits. Wherever this thesis says ``SR
+tail'' without qualification, SR is applied to variational Monte Carlo under $|\Psi|^2$
+sampling; the same optimiser reappears in Chapter~\ref{ch:kernel} on the collocation
+objective, where the measure differs and so does its role.
 
-These are the \emph{production} networks; they are distinct from both the capacity-matched
-ladder of \S\ref{sec:kernel-q1a} and the smaller collocation models of
-\S\ref{sec:kernel-mcmcfree}, and numbers are never compared across the three (see the
-programme map on p.~\pageref{ch:results-map}).
+Two production ans\"atze carry this chapter. They share the separable correlator of
+\S\ref{subsec:separable-correlator} at ${\approx}54$k parameters and differ only in the
+backflow: a \emph{conventional} single round of pairwise messages aggregated per particle
+(${\approx}51$k, total ${\approx}105$k), or a \emph{message-passing} field that maintains node
+and edge features and transports information between them (${\approx}182$k, total
+${\approx}236$k). They are named \emph{conv.\ BF} and \emph{MP BF} for that difference. The
+counts are independent of $N$, since interactions enter through permutation-equivariant
+features rather than per-particle weights, and they are not the widths of the architecture
+study of \S\ref{sec:kernel-q1} (Table~\ref{tab:hyperparams}).
 
 \subsection{Energies}
 
 \textbf{Across every externally benchmarked system, the trained states reproduce the
 reference energy to between $10^{-5}$ and $5\times10^{-4}$ in relative terms, with no
 systematic deterioration as particles are added or the trap is opened}
-(Tables~\ref{tab:Residual} and \ref{tab:energies},
-Fig.~\ref{fig:rel_error_vs_omega}). That is the result of this section, and everything
-after it depends on it: it is what licenses treating the state as an instrument in
-\S\ref{sec:wigner-molecule} rather than as a claim still under defence.
+(Tables~\ref{tab:Residual} and \ref{tab:energies}, Fig.~\ref{fig:rel_error_vs_omega}).
+Everything after this section depends on it: it is what allows the state to be treated as an
+instrument in \S\ref{sec:wigner-molecule} rather than as a claim still under defence.
 
-Two features of the tables carry more than the energies themselves. The first is
-\emph{where the agreement holds}. A method that matches the reference at $\omega=1$ and
-drifts at $\omega=0.1$ differs from one that holds across the whole benchmarked range, since
-the physics changes character between those points while the architecture does not. The
-second is \emph{where the tables stop}: below $\omega=0.1$ no reference of any kind exists
-for $N\ge6$, so the values reported there are variational predictions rather than validated
-ones, and that boundary is marked wherever it occurs rather than letting a uniformly
-formatted table imply a uniform level of evidence.
+Where the agreement holds matters as much as its size. A method that matches at $\omega=1$
+and drifts at $\omega=0.1$ differs from one that holds across the benchmarked range, since
+the physics changes character between those points while the architecture does not. Below
+$\omega=0.1$ no reference of any kind exists for $N\ge6$, and the values reported there are
+variational predictions rather than validated ones; that boundary is marked wherever it
+occurs.
 
-One qualification attaches to the benchmark itself. Where a reference value exists it is
-not only what we score against: it is also the target that residual pretraining anneals
-toward (\S\ref{sec:opt-overview}). The agreement is therefore between a reference and an
-\emph{independently evaluated variational upper bound on the same ansatz}, not between two
-blind calculations---weaker than independence, and stronger than circularity. A variational
-expectation under $|\Psi|^2$ is bounded below by $E_0$ whatever it was aimed at, so aiming
-at a reference cannot pull the reported energy below what the ansatz can actually reach, and
-aiming at one above that minimum would make the number worse rather than better.
-\S\ref{sec:energy-discussion} takes the argument up properly.
+Where a reference exists it is also the target that residual pretraining anneals toward
+(\S\ref{sec:opt-overview}), so the agreement is between a reference and an independently
+evaluated variational upper bound on the same ansatz---weaker than independence, stronger
+than circularity. A variational expectation under $|\Psi|^2$ lies above $E_0$ whatever it was
+aimed at, so aiming cannot pull the reported energy below what the ansatz can reach.
+\S\ref{sec:energy-discussion} takes this up properly.
 
 Table~\ref{tab:Residual} begins with the easiest case, and its purpose is
 diagnostic rather than competitive: two electrons are few enough that the
@@ -759,35 +729,33 @@ reported elsewhere for $N\ge12$ parabolic dots is the combination of \emph{secto
 bond-order and Lindemann statistics, read against their random-angle null, with a held-out
 polygon reconstruction of $g(r)$ scored against an angle-randomised baseline.
 
-All of it is bounded by two qualifications. The states are the lowest we find within a
-fixed spin-projection sector, and we have not scanned total spin, so these are not proven
+Two qualifications bound all of it. The states are the lowest we find within a fixed
+spin-projection sector, and we have not scanned total spin, so these are not proven
 global-spin ground states. And the combinatorial reconstruction of $g(r)$ establishes
 decomposability rather than sampling correctness; the held-out polygon fit of
 Appendix~\ref{app:structural-tables:mixfit} is the version that could have failed, and
 sampling correctness itself rests on the independent restart and chain diagnostics.
 
-\paragraph{What \S\ref{sec:wigner-molecule} establishes.} The crossover is staged, and the
-two angular diagnostics stage it slightly differently, which is itself informative. Radial
-localisation---expansion, shell separation, falling width-to-radius ratio, classical force
-balance---develops progressively from $\omega=1$ down. Bond-orientational order is flat at
-its null through $\omega=0.1$, departs slightly at $\omega=0.01$ and only at $N{=}6$, and
-becomes large at $10^{-3}$ everywhere. The held-out polygon model, which is sensitive to any
-angular correlation rather than to $n$-fold order specifically, instead grows monotonically
-throughout, roughly doubling per decade. Read together these say that weak angular
-correlations build gradually across the whole range while \emph{crystalline} $n$-fold order
-appears only in the last decade---a three-stage picture rather than a two-stage one. What
-this does \emph{not} establish is the total spin of these states, which we did not scan, nor
-that the occupancy labels denote crystalline topologies outside the weakest-trap cases.
+The two angular diagnostics stage the crossover slightly differently, and the difference is
+informative. Radial localisation---expansion, shell separation, falling width-to-radius
+ratio, classical force balance---develops progressively from $\omega=1$ down.
+Bond-orientational order is flat at its null through $\omega=0.1$, departs slightly at
+$\omega=0.01$ and only at $N{=}6$, and becomes large at $10^{-3}$ everywhere. The held-out
+polygon model, sensitive to any angular correlation rather than to $n$-fold order
+specifically, instead grows monotonically throughout, roughly doubling per decade. Weak
+angular correlations therefore build gradually across the whole range while
+\emph{crystalline} $n$-fold order appears only in the last decade: a three-stage picture
+rather than a two-stage one.
 
-These structural facts also enter the method. The shell radius approaching its classical
-$\omega^{-2/3}$ scaling---to within $1.7\%$ of the classical prefactor at $\omega=10^{-3}$,
+These structural facts then enter the method. The shell radius approaching its classical
+$\omega^{-2/3}$ scaling---within $1.7\%$ of the classical prefactor at $\omega=10^{-3}$,
 Appendix~\ref{app:structural-tables:radius}---and the angular order sharpening in the last
-decade are the quantities a sampler must respect in order to reach the Wigner regime without
-MCMC. Chapter~\ref{ch:kernel} uses them directly: an origin-centred proposal
-aims where the wavefunction no longer has any mass, whereas a proposal built from the
-measured shell radius and angular order tracks it, and carries MCMC-free training far
-into the correlated regime (\S\ref{sec:kernel-q3-frontier}). What the trained model
-reveals about the physics is what later lets us train it more cheaply.
+decade are exactly the quantities a sampler must respect to reach the Wigner regime without a
+Markov chain. An origin-centred proposal aims where the wavefunction no longer has any mass;
+a proposal built from the measured shell radius and angular order tracks it, and carries
+Markov-chain-free training far into the correlated regime
+(\S\ref{sec:kernel-q3-frontier}). What the trained model reveals about the physics is what
+later lets us train it more cheaply.
 
 That is the state seen from outside. What the network had to hold internally in order to
 produce it is a question about the solver, and Chapter~\ref{ch:kernel} takes it up.

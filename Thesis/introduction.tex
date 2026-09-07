@@ -47,22 +47,13 @@ reliably.
 \paragraph{Machine learning and many-body wavefunctions.}
 In parallel with these developments, machine learning—especially deep
 learning—has become a standard tool for representing complex, high-dimensional
-functions and fitting them to data. Neural networks now play a central role in
-domains such as computer vision, language modelling and reinforcement learning.
-They combine flexible parametric families with inductive biases (e.g.\ symmetry
-and locality), normalisation, and optimisation procedures that scale well with
-dimension.
-
-In physics, this has led to two broad uses of neural networks. In the first,
-they act as \emph{surrogates}: they learn mappings from parameters or boundary
-conditions to observables, or approximate solution operators of partial
-differential equations. Physics-informed neural networks (PINNs) and
-operator-learning approaches fall into this category by embedding differential
-operators and constraints directly into the training objective. In the second,
-neural networks are used as \emph{variational ans\"atze} for quantum states
-(neural quantum states, NQS), where the network outputs amplitudes, phases or
-log-probabilities for many-body configurations and is trained by variational
-Monte Carlo.
+functions and fitting them to data. In physics this has taken two broad forms. Neural
+networks act as \emph{surrogates}, learning maps from parameters or boundary conditions to
+observables, or approximating solution operators of partial differential equations---the
+setting of physics-informed neural networks and operator learning. Or they act as
+\emph{variational ans\"atze} for quantum states (neural quantum states), where the network
+outputs amplitudes or log-probabilities for many-body configurations and is trained by
+variational Monte Carlo. This thesis is in the second tradition and borrows from the first.
 
 Universal approximation establishes representational capacity, not trainability. The
 theorems guarantee that a sufficiently large network can \emph{represent} any suitably
@@ -215,88 +206,46 @@ quantum geometric tensor and the neural tangent kernel.
 \end{enumerate}
 
 \paragraph{Diagnostics.}
-Total energies alone cannot separate the models compared here, since both architectures can
-be trained to the same energy. Alongside the DMC benchmarks we therefore use three further
-classes of measurement. For the physics: automatic shell detection with shell-resolved
-reconstructions of the pair distribution $g(r)$, bond-orientational order parameters
-$|\Phi_m|$ and angular Lindemann-like ratios adapted from classical Wigner and Yukawa
-layers~\cite{Mazars_2008}, and the density parameter $r_s$ estimated from the first peak of
-$g(r)$ following Egger \emph{et al.}~\cite{Egger_1999}. For the learned representation:
-entropy effective ranks of correlator and backflow features, principal-component ablations,
-and linear probes relating latent axes to physical observables. And for the ansatz itself:
-the quantum geometric tensor and neural tangent kernel, the effective dimension of the
-variational tangent space, symmetric state overlaps, the local-energy variance $\Var(E_L)$,
-and---for the Markov-chain-free route---the effective sample size and the Pareto shape
-parameter $\hat k$ of the importance weights. All are applied as post-processing to
-$|\Psi|^2$ samples, so the same analysis could be applied to classical, quantum-chemical or
-other neural wavefunctions on the same footing.
+Total energies cannot separate the models compared here, since both architectures train to
+the same energy. The measurements that can are of three kinds: structural diagnostics of the
+trained state (shell detection, bond-orientational order, angular Lindemann ratios), geometric
+diagnostics of the ansatz (the quantum geometric tensor and neural tangent kernel, the
+effective dimension of the tangent space, state overlaps, $\Var(E_L)$), and sampling
+diagnostics for the Markov-chain-free route (effective sample size, the Pareto shape
+$\hat k$). All are post-processing on $|\Psi|^2$ samples, so the same analysis would apply
+to a classical or quantum-chemical wavefunction unchanged. Chapter~\ref{ch:analysis} defines
+them.
 
 \paragraph{Main contributions.}
-The main contributions of this thesis are:
 \begin{enumerate}
-  \item \textbf{Compact, conditioned accuracy.}
-        A small Slater–Jastrow(+backflow) ansatz in trap units reaches
-        DMC-level energies for $N{=}2$ and holds
-        $\sim 10^{-2}\text{--}10^{-1}\%$ relative errors for
-        $N\in\{6,12,20\}$ across $\omega\in\{0.1,0.5,1.0\}$, extrapolating
-        smoothly to ultra-weak traps ($\omega=10^{-3}$). Conditioning—trap
-        units, analytic cusp, safe pair features—matters at least as much as
-        network size for stability and accuracy in these dots.
-  \item \textbf{Message passing as a relational channel, made precise by the
-        tangent kernel.}
-        Read through the quantum geometric tensor, a message-passing correlator
-        represents the ground state in roughly half as many effective tangent
-        directions as a separable one at strong confinement---and keeps its leading
-      directions inside a compact, physically motivated operator dictionary at
-        \emph{every} confinement, where the separable network does not---while a
-        message-passing backflow retains full rank exactly where a conventional,
-        single-round-message backflow collapses to a single collective mode at the Wigner
-        crystal and loses accuracy. The two effects point to a
-        common relational mechanism—a channel the physics requires—and both are invisible
-        in the total energy until weak confinement turns the geometric deficit into an
-        energetic one.
-  \item \textbf{Optimiser and paradigm, governed by the same geometry.}
-        Natural-gradient (SR) preconditioning helps precisely when the tangent metric
-        is anisotropic \emph{and} still estimable. Under $|\Psi|^2$ sampling the empirical metric is
-        badly conditioned yet SR buys nothing, so conditioning alone cannot be the
-        criterion: what matters is whether the batch can resolve it. SR is therefore negligible for
-        $|\Psi|^2$-VMC (tested at $N\le6$) and decisive for collocation under a fixed
-        proposal---though once the proposal adapts, Adam recovers and is more robust in the
-        deep-Wigner regime.
-        And an MCMC-free, importance-sampled collocation objective matches VMC when the
-        sampling is healthy and, with a physics-informed proposal built from the Wigner
-        shell, reaches a radially localised Wigner-regime state at $\omega=0.0035$ with no Markov
-        chain in the gradient training (a Metropolis probe is used only for checkpoint
-        selection and final certification).
-  \item \textbf{Topology-resolved Wigner diagnostics.}
-        Across $\omega\in[1,10^{-3}]$ we quantify the crossover using two-shell
-        probabilities and inner-ring occupancy histograms, a polygon shell model fitted on
-        held-out frames that reproduces $g(r)$ to cosine similarity $0.987$–$0.999$ against
-        $0.936$–$0.996$ for an angle-randomised null, and sector-resolved bond order and
-        Lindemann indices read against their random-angle baselines. At
-      $\omega=10^{-3}$ the $N{=}6$ dot shows persistent mixing between the $(1,5)$ and
-      $(0,6)$ sectors, while the $N{=}12$ dot
-        forms a two-shell molecule with a commensurate $(3,9)$ split as the dominant
-        topology, complementing classical and quantum studies of parabolic
+  \item A compact Slater--Jastrow--backflow ansatz, conditioned in trap units with an
+        analytic cusp and soft-core pair features, that reaches DMC-level energies for
+        $N{=}2$ and $10^{-2}$--$10^{-1}\%$ relative errors for $N\in\{6,12,20\}$ at
+        $\omega\ge0.1$, and extrapolates smoothly to $\omega=10^{-3}$.
+  \item A tangent-space account of what message passing contributes. A message-passing
+        correlator represents the ground state in about half as many effective tangent
+        directions as a separable one at strong confinement, and keeps its leading directions
+        inside a compact operator dictionary at \emph{every} confinement where the separable
+        network does not; a message-passing backflow retains rank exactly where a conventional
+        one collapses to a single displacement mode and loses accuracy. Both effects are
+        invisible in the total energy until weak confinement turns the geometric deficit into
+        an energetic one.
+  \item The criterion under which natural-gradient preconditioning is worth its cost: the
+        tangent metric must be anisotropic \emph{and} still estimable. Conditioning alone is
+        not sufficient---under $|\Psi|^2$ sampling the empirical metric is badly conditioned
+        and SR buys nothing---and the same geometry bounds an importance-sampled collocation
+        objective that trains with no Markov chain in the gradient, reaching a Wigner-regime
+        state at $\omega=0.0035$ once its proposal is built from measured shell geometry.
+  \item Topology-resolved diagnostics of the Wigner crossover: two-shell probabilities and
+        inner-ring occupancy histograms, a polygon shell model fitted on held-out frames
+        reproducing $g(r)$ to cosine similarity $0.987$--$0.999$ against $0.936$--$0.996$ for
+        an angle-randomised null, and sector-resolved bond order and Lindemann indices read
+        against their random-angle baselines. At $\omega=10^{-3}$ the $N{=}6$ dot shows
+        persistent mixing between the $(1,5)$ and $(0,6)$ sectors and the $N{=}12$ dot forms
+        a two-shell molecule with a commensurate $(3,9)$ split, complementing classical and
+        quantum studies of parabolic
         dots~\cite{Egger_1999,Kong_2002,schweigert1994spectralpropertieschargedparticles,Filinov_2001}.
 \end{enumerate}
-
-\noindent One further observation is recorded, at a lower evidential level and not as a
-contribution of the same rank:
-\begin{itemize}
-  \item \textbf{Representation insight, with its gauge explicitly drawn.}
-        The correlator features occupy a low-dimensional manifold (one to three
-        principal directions) whose leading axes act as collective coordinates for
-        global size and radial fluctuations, with a $\phi\leftrightarrow\psi$
-        recomposition across regimes, while backflow spans many local modes. We take
-        care to separate the parts of this picture that are \emph{gauge-like}—fixed by
-        how correlation is divided between the Jastrow and the backflow, two
-        substitutable channels—from the state-level invariants (energy, the local-energy
-        variance, and the overlap between two trained states) and the controlled
-        interventions (the energetic price of ablating a component, reproducible for a fixed
-        model and protocol but not itself gauge-invariant) on which the architectural
-        conclusions actually rest.
-\end{itemize}
 
 \paragraph{Thesis structure.}
 Chapters~\ref{sec:theory} and~\ref{ch:ml_theory} set out the physics and the

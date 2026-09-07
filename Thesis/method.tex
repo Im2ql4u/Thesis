@@ -292,95 +292,66 @@ single copresheaf round; the message-passing \emph{correlator} of the architectu
 comparison (\texttt{CTNNJastrowVCycle}) iterates the same style of update over a down/up
 ``V-cycle''.
 
-\subsection{Shared output, scaling, and initialisation}
-Both variants take inputs in trap units ($\tilde{\mathbf x}=\sqrt{\omega}\,\mathbf x$),
-bound the displacement, and start at the Slater nodes,
+\subsection{Constraints, symmetries and scaling}
+\label{sec:bf-init}
+Both variants take inputs in trap units ($\tilde{\mathbf x}=\sqrt{\omega}\,\mathbf x$), bound
+the displacement, and start at the Slater nodes,
 \begin{equation}
   \Delta_\beta(\tilde R)\;=\;\tanh\!\big(\delta\tilde X\big)\cdot s_\beta,
   \qquad s_\beta=\mathrm{softplus}(s_\beta^{\rm raw})>0,
   \label{eq:bf-bound-scale}
 \end{equation}
-with the last linear layer ($\psi_\beta$ or $W_{\!\Delta}$) zero-initialised so that
-$\Delta_\beta\!\approx\!0$ initially. Empirically this parameterisation stabilises the
-SR/energy tails and protects the Laplacian.
+with the last linear layer zero-initialised so that $\Delta_\beta\!\approx\!0$ initially and
+$s_\beta$ initialised in $[0.02,0.10]$. This parameterisation stabilises the SR and energy
+tails and protects the Laplacian.
 
-\subsection{Short-range behaviour and gates}
-As $\tilde r_{ij}\!\to\!0$, raw $1/\tilde r$ factors can make $\nabla\!\cdot\!\Delta_\beta$ spiky.
-We therefore (i) mollify $\tilde r_{ij}$ as in~\eqref{eq:bf-message}, and optionally (ii) gate the message with
+Near coalescence raw $1/\tilde r$ factors make $\nabla\!\cdot\!\Delta_\beta$ spiky. We
+mollify $\tilde r_{ij}$ as in \eqref{eq:bf-message} and optionally gate the message,
 \begin{equation}
   \chi_{\rm bf}(\tilde r_{ij})=\frac{\tilde r_{ij}^2}{\tilde r_{ij}^2+r_g^2},
   \qquad \chi_{\rm bf}(0)=\chi'_{\rm bf}(0)=0,\quad r_g\approx 0.3,
   \label{eq:bf-gate}
 \end{equation}
-or with degree-normalised radial attention
-\begin{equation}
-  w_{ij}=\exp\!\big[-(\tilde r_{ij}/r_c)^p\big],\qquad
-  \hat w_{ij}=\frac{w_{ij}}{\sum_{k\neq i} w_{ik}}.
-\end{equation}
-Either choice keeps the learned response smooth at coalescence and limits the BF contribution to the local energy variance.
+or use degree-normalised radial attention $\hat w_{ij}=w_{ij}/\sum_{k\neq i}w_{ik}$ with
+$w_{ij}=\exp[-(\tilde r_{ij}/r_c)^p]$. Either keeps the learned response smooth at contact and
+limits the backflow's contribution to the local-energy variance. The mollification scale
+$\varepsilon_{\rm bf}=10^{-6}$ is fixed rather than tuned, and is a numerical guard rather
+than a modelling choice: $\sqrt{\tilde r^2+\varepsilon_{\rm bf}^2}$ differs from $\tilde r$ by
+less than $\varepsilon_{\rm bf}$ everywhere, so it changes no value the network can resolve
+and exists only to keep $\nabla\tilde r$ finite at exact coincidence. The physical short-range
+scale is instead the pair-feature softening $\varepsilon\in[0.15,0.30]$ of
+\eqref{eq:safe-feats}, four to five orders of magnitude larger.
 
-\subsection{Symmetries and COM neutrality}
-Permutation symmetry is automatic (pairwise messages and symmetric aggregation).
-To avoid a spurious centre-of-mass (COM) drift, we project the flow to zero mean:
+Permutation symmetry is automatic. To remove a spurious centre-of-mass drift the flow is
+projected to zero mean,
 \begin{equation}
-  \Delta_\beta \;\leftarrow\; \Delta_\beta \;-\; \frac{1}{N}\sum_{i=1}^N \Delta_{\beta,i}.
+  \Delta_\beta \;\leftarrow\; \Delta_\beta \;-\; \frac{1}{N}\sum_{i=1}^N \Delta_{\beta,i},
   \label{eq:bf-com}
 \end{equation}
-The messages are built from the relative vectors $\mathbf r_{ij}$ and the zero-mean projection removes the spurious centre-of-mass drift; as noted under the design goals, the map is not translation-invariant or rotation-equivariant by construction (the displacement head reads a $d$-vector from the absolute coordinates).%
-\footnote{Implementation note: the mean is taken over particles \emph{within each
-configuration}, not across configurations in the batch, so the constraint removes
-centre-of-mass motion configuration by configuration. It is a one-liner and removes the
-small residual COM drift seen in ablations.}
+taken over particles within each configuration rather than across the batch. Messages are
+built from relative vectors $\mathbf r_{ij}$, but the map is not translation-invariant or
+rotation-equivariant by construction, since the displacement head reads a $d$-vector from
+absolute coordinates. The two variants apply the projection at different points: the
+copresheaf network applies \eqref{eq:bf-com} inside its forward pass, while the conventional
+network returns the raw displacement and the caller projects when $\tilde R'$ is formed. The
+shifted coordinates are identical either way, but a diagnostic evaluated on a network's
+\emph{returned} field sees a centre-of-mass component in one case and not the other, which is
+why the two rank columns of \S\ref{sec:kernel-q1b} sit under ceilings differing by two.
 
-The two backflow variants apply this projection at \emph{different points}, and the
-difference is invisible in the wavefunction but not in the diagnostics. The copresheaf
-network (\S\ref{subsec:ctnn-backflow}) applies Eq.~\eqref{eq:bf-com} inside its forward
-pass, so the field it returns is already COM-free; the conventional network returns the raw
-displacement and the projection is applied by the caller when $\tilde R'$ is formed. The
-shifted coordinates are therefore identical either way, but any diagnostic evaluated on a
-network's \emph{returned} field sees a COM component in one case and not the other. This is
-what puts the two columns of the backflow-rank measurement in \S\ref{sec:kernel-q1b} under
-ceilings that differ by two, and it is stated there again where it bites.
+Because only the determinant is evaluated at $\tilde R'$, backflow moves the \emph{nodes}
+while the correlator exponent stays on $\tilde R$, and no Jacobian term arises. This
+Feynman--Cohen construction~\cite{FeynmanCohen1956-Backflow} targets fixed-node error
+directly; its modern quantum-Monte-Carlo form is due to Holzmann and
+Ceperley~\cite{HolzmannCeperley2003-Backflow}. Compute and memory scale as
+$O(BN^2(d+H))$ for batch size $B$ and hidden width $H$, which is what limits $N$ in practice.
 
-\subsection{Effect on the nodes and variational safety}
-Because only $\mathrm{SD}$ is evaluated at $\tilde R'$, backflow changes the \emph{nodes} but leaves the correlator exponent on $\tilde R$. No Jacobian term is introduced (we are not performing a change of variables of the full wavefunction).
-This ``Feynman--Cohen style''~\cite{FeynmanCohen1956-Backflow} design targets fixed-node
-error directly while keeping the amplitude model simple and smooth; the same idea in its
-modern quantum-Monte-Carlo form is due to Holzmann and
-Ceperley~\cite{HolzmannCeperley2003-Backflow}.
-
-\subsection{Regularization, initialisation, and cost}
-\label{sec:bf-init}
-We found the following defaults robust across $(N,\omega)$:
-(i) $\varepsilon_{\rm bf}=10^{-6}$ (trap units) for the backflow soft norm of
-\eqref{eq:bf-message}, fixed rather than tuned. It is a numerical guard, not a modelling
-choice: $\sqrt{\tilde r^2+\varepsilon_{\rm bf}^2}$ differs from $\tilde r$ by less than
-$\varepsilon_{\rm bf}$ everywhere, so it changes no value the network can resolve and
-exists only to keep $\nabla\tilde r$ finite at exact coincidence, which
-$\nabla\sqrt{\tilde r^2}$ is not. It should not be read as a short-range physical scale:
-that role belongs to the pair-feature softening $\varepsilon\in[0.15,0.30]$ of
-\eqref{eq:safe-feats}, four to five orders of magnitude larger, which is what actually sets
-where the correlator stops resolving structure;
-(ii) bounded output $\tanh$ with a learnable scale $s_\beta$ initialised in $[0.02,0.10]$;
-(iii) optional gate $\chi_{\rm bf}$ with $r_g\approx 0.3$ (trap units).
-Zero-initialising the last layer of $\psi_\beta$ makes the ansatz start exactly at the Slater nodes and improves optimiser stability.
-The compute/memory cost scales as $O\!\big(BN^2(d+H)\big)$ for batch size $B$ and hidden width $H$.
-
-\subsection{Mapping to implementation}
-In the conventional network, $\phi_\beta$ and $\psi_\beta$ correspond to
-\texttt{BackflowNet.phi} (message MLP) and \texttt{BackflowNet.psi} (node/update MLP).
-In the copresheaf network, the embeddings, transport maps, and update MLPs of
-\eqref{eq:ctnn-edge}--\eqref{eq:ctnn-node} correspond to \texttt{CTNNBackflowNet}'s
-\texttt{node\_embed}/\texttt{edge\_embed}, \texttt{rho\_v\_to\_e}/\texttt{rho\_e\_to\_v},
-\texttt{edge\_update}/\texttt{node\_update}, and \texttt{dx\_head}.
-For both, aggregation is selectable (\texttt{sum|mean|max}); spin handling
-(\texttt{use\_spin}, \texttt{same\_spin\_only}) produces the mask $w_{ij}^{\rm spin}$;
-output control matches~\eqref{eq:bf-bound-scale} via \texttt{out\_bound="tanh"} and
-$s_\beta=\mathrm{softplus}(\texttt{bf\_scale\_raw})$; and \eqref{eq:bf-com} is enforced by
-subtracting the per-configuration mean over particles of the predicted $\Delta_\beta$ before forming $\tilde R'$.
-
-\paragraph{Summary.}
-Backflow provides nodal freedom by moving the Slater coordinates, while also modifying the determinant amplitude inside each nodal pocket. With mollified distances, optional short-range gates/attention, zero-mean projection, and bounded outputs, it integrates cleanly with the analytic cusp and smooth NQS correlator, designed to reduce nodal error while controlling local-energy variance.
+\paragraph{Implementation.} The conventional network is \texttt{BackflowNet}, with
+$\phi_\beta$ and $\psi_\beta$ its message and node MLPs; the copresheaf network is
+\texttt{CTNNBackflowNet}, whose embeddings, transport maps and update MLPs realise
+\eqref{eq:ctnn-edge}--\eqref{eq:ctnn-node}. Aggregation is selectable
+(\texttt{sum|mean|max}), spin handling produces the mask $w_{ij}^{\rm spin}$, and the bounded
+output of \eqref{eq:bf-bound-scale} is \texttt{out\_bound="tanh"} with
+$s_\beta=\mathrm{softplus}(\texttt{bf\_scale\_raw})$.
 
 \section{Architecture sizes and hyperparameters}
 \label{sec:hyperparameters}
@@ -595,18 +566,15 @@ Three first-order updates appear in the results, and their comparison is itself 
     $\lambda$.
   \item \textbf{CG-SR}: the same step solved matrix-free by preconditioned conjugate
     gradients, with Tikhonov damping and a trust-region cap. It is most useful where $S$ is
-    anisotropic but still statistically resolved, and becomes unstable at weak confinement,
-    where the sampling that builds $S$ collapses and the empirical metric can no longer be
-    estimated (\S\ref{sec:kernel-cond}).
+    anisotropic but still statistically resolved. Whether that condition holds, and what
+    follows when it does not, is \S\ref{sec:kernel-cond}.
 \end{itemize}
 Solving the SR step without forming $S$ is what makes it affordable at
 $\mathcal{O}(10^5)$ parameters. The same obstacle is addressed from the other side by the
 minSR and kernel-formulation reductions, which exploit the fact that the number of samples,
 rather than the number of parameters, sets the true rank of the
-problem~\cite{ChenHeyl2024-minSR,Rende2024-KernelSR}. In the $N\le6$ comparisons of \S\ref{sec:kernel-q2}, Adam and SR reach indistinguishable
-energies under $|\Psi|^2$ sampling; they differ in conditioning and, decisively, in the
-collocation regime. Whether that equivalence persists at larger $N$ is not established
-there.
+problem~\cite{ChenHeyl2024-minSR,Rende2024-KernelSR}. Whether the extra cost buys anything
+over a diagonal preconditioner is measured in \S\ref{sec:kernel-q2}.
 
 \section{Sampling paradigms and the weak-form collocation objective}
 \label{sec:method-collocation}
@@ -692,16 +660,12 @@ classical ring radius $r_0$, and $|\Psi_\theta|^2$ has essentially no support ne
 origin, so the ESS collapses. We therefore replace $q$ by a proposal built from the Wigner
 shell itself---a radial Gaussian centred at $r_0$ (set by balancing confinement against
 Coulomb repulsion) times an angular distribution over the ring, so that proposed
-configurations resemble electrons spread around the ring rather than clustered at the
-centre. This restores a usable ESS and carries MCMC-free training to $\omega\approx0.0035$
-(Chapter~\ref{ch:kernel}, \S\ref{sec:kernel-q3-frontier}), far past where the naive proposal
-collapses. Angular crystallisation of the Wigner ring sets the next limit and is addressed
-there by a Dirichlet model of the angular gaps; what bounds the route below
-$\omega=0.0035$ is a separate, non-sampling failure of transfer between confinements. Difficult
-confinements are reached by \emph{cascade warm-starting}: parameters converged at one
-$\omega$ initialise the next, following $\omega:1.0\!\to\!0.5\!\to\!0.1\!\to\!0.01\!\to\!0.001$.
-Whether the two paradigms reach the same \emph{state}, and where they diverge, is one of the
-questions of Chapter~\ref{ch:kernel}.
+configurations resemble electrons spread around the ring rather than clustered at the centre.
+Where the ring itself develops angular structure the uniform angular factor is replaced by a
+Dirichlet model of the angular gaps. Difficult confinements are reached by \emph{cascade
+warm-starting}: parameters converged at one $\omega$ initialise the next, following
+$\omega:1.0\!\to\!0.5\!\to\!0.1\!\to\!0.01\!\to\!0.001$. What this construction achieves,
+and where it stops, is \S\ref{sec:kernel-q3-frontier}.
 
 \subsection{Ansatz families used in the collocation programme}
 \label{subsec:colloc-families}
@@ -713,8 +677,8 @@ and memory rather than by capacity.
 
 \emph{Jastrow-only.} The correlator alone at ${\sim}25$k parameters, in its
 message-passing form (\texttt{CTNN\-Jastrow\-VCycle}), acting on node features
-(single-particle orbital values) and edge features (soft-core pair distances). Fastest to
-train and the most robust; used both standalone and as the initialiser for backflow runs.
+(single-particle orbital values) and edge features (soft-core pair distances). It is used
+both standalone and as the initialiser for the backflow runs.
 
 \emph{Backflow $+$ Jastrow.} Adds the copresheaf displacement network
 (\texttt{CTNNBackflowNet}), ${\sim}49$k parameters in total at $h_{\rm bf}{=}128$. Its edge
@@ -732,10 +696,8 @@ All features are computed in trap units $\tilde{\mathbf x}=\sqrt{\omega}\,\mathb
 \section{The two workflows}
 \label{sec:opt-summary}
 
-Two training routes have now been described and they are used for different purposes
-throughout the thesis, so it is worth setting them side by side before the diagnostics
-chapter. Both start from the same ansatz and end at an energy evaluated under
-$|\Psi_\theta|^2$; they differ in the measure that defines the loss in between.
+Both routes start from the same ansatz and end at an energy evaluated under
+$|\Psi_\theta|^2$. They differ in the measure that defines the loss in between.
 \begin{center}\small
 \begin{tabular}{@{}ll@{}}
 \textbf{SR--VMC (\S\ref{sec:residual-stage}--\S\ref{sec:sr-stage})} &
@@ -755,16 +717,11 @@ Metropolis probe for checkpoint choice,\\
 \end{tabular}
 \end{center}
 The right-hand route places no Markov chain in any gradient; the probe that selects its
-checkpoints sits outside the update loop entirely. The steps of the left-hand route, which
-carries the ground-state energies of \S\ref{sec:energy-overview}, are:
-
-\begin{enumerate}
-  \item \textbf{Sample collocation set} $X$ from the stratified capped–simplex mixture (centre, tails, mixed, shells, dimers), then apply rotation and permutation; optionally inject hard examples.
-  \item \textbf{Compute} $E_L$ using the selected Laplacian backend; trim outliers.
-  \item \textbf{Stage I (residual).} Minimize $\frac{1}{B}\sum_b(E_L(\tilde R_b)-E_{\rm eff}(\alpha))^2$ with $\alpha$ ramped from $0$ to $\alpha_{\rm end}$; update mixture/shell weights via EG.
-  \item \textbf{Stage II (SR).} Form $S$ and $g$, solve $(S+\lambda I)\Delta\theta=-g$, apply a trust–region step.
-\end{enumerate}
-This procedure keeps the early dynamics variance–dominated and sampler–aware, then transitions to a geometry–aware natural–gradient refinement. Empirically it yields stable convergence across $(N,\omega)$, including weak traps where shell/dimer coverage and permutation–respecting stratification are essential.
+checkpoints sits outside the update loop entirely. The left-hand route, which carries the
+ground-state energies of \S\ref{sec:energy-overview}, keeps the early dynamics
+variance-dominated and sampler-aware and then transitions to a geometry-aware
+natural-gradient refinement---a division that matters most at weak traps, where the shell and
+dimer coverage of the stratified mixture is what makes the early stage converge at all.
 
 \section{Statistical uncertainties}
 \label{sec:uncertainties}
@@ -1024,7 +981,8 @@ Slater determinant; the correlator and cusp are evaluated on the unshifted $\til
 (\S\ref{subsec:backflow-method}). The coupling diagnostics below additionally probe the
 correlator on the shifted coordinates as a counterfactual sensitivity.
 
-\subsection{Preprocessing and PCA}
+\subsection{Representation geometry}
+\paragraph{Preprocessing and PCA.}
 \label{subsec:repr-prep}
 Given a sample matrix $Z\in\mathbb{R}^{K\times D}$ (rows are frames), we \emph{mean-centre}
 the columns, $Z_c=Z-\mu$, and take the SVD of $Z_c$ to obtain orthonormal loadings
@@ -1036,7 +994,7 @@ per-column standardisation is used---for the branch-power decomposition of
 natural scales---it is stated explicitly. PCA is fitted on block $A$ and reported on the
 held-out block $B$ unless noted.
 
-\subsection{Entropy effective rank}
+\paragraph{Entropy effective rank.}
 \label{subsec:repr-erank}
 Let $\{\lambda_i\}_{i=1}^D$ be the eigenvalues of $\mathrm{Cov}(Z_c)$
 (on the held-out block). With $p_i=\lambda_i/\sum_j\lambda_j$, the
@@ -1056,7 +1014,8 @@ reports $d_{\rm eff}$ for the tangent metric and for the displacement field, so 
 object can carry two slightly different counts in the two chapters; each table names which
 is used.
 
-\subsection{PC ablations of the head}
+\subsection{Probes and ablations}
+\paragraph{Principal-component ablations of the head.}
 \label{subsec:repr-pc-ablate}
 To test how many latent axes the readout truly uses, we project the centred features onto
 the top-$k$ PCs and restore the mean before re-evaluating the trained readout \emph{without
@@ -1083,7 +1042,7 @@ We report a \emph{normalised} error on block $B$,
 \]
 together with the learning curve in $k$.
 
-\subsection{PC1 block power decomposition}
+\paragraph{PC1 block-power decomposition.}
 \label{subsec:repr-pc1-power}
 To attribute the leading axis to branches, we partition $u_1$ conformably with
 $z=[\overline{\phi}\,|\,\overline{\psi}\,|\,\mathbf{g}]$ and report
@@ -1102,7 +1061,7 @@ branch. The shares below are therefore read as \emph{relative} shifts across $\o
 fixed architecture---where the branch widths are constant and the confound cancels---and not
 as absolute statements that one branch dominates.
 
-\subsection{Linear probes from PCs to coarse physics}
+\paragraph{Linear probes to coarse physics.}
 \label{subsec:repr-probes}
 We regress interpretable summaries per configuration on the first $k$ PC scores $S^{(k)}$ using
 ridge regression (tiny penalty $\alpha=10^{-6}$):
@@ -1112,7 +1071,7 @@ y\in\big\{\bar r,\ \mathrm{Var}(r),\ \Pr(r<r_0),\ \text{shell\ contrast}\big\}.
 \]
 We report $R^2$ on the held-out block; $r_0$ is a fixed near-contact cutoff in trap units.
 
-\subsection{Near-field gradient concentration (residual head)}
+\paragraph{Near-field gradient concentration.}
 \label{subsec:repr-nearfield}
 For each frame we compute the minimum pair distance $r_{\min}$ (trap units) and the gradient
 of the residual head with respect to particle coordinates, $\nabla f_{\rm base}(\mathbf{y})$.
@@ -1130,7 +1089,8 @@ fraction, which could not exceed unity. $\mathcal{E}\approx1$ means gradient pow
 in proportion to frame count, so the analytic cusp is handling most short-range structure;
 $\mathcal{E}\gg1$ means residual stiffness is concentrated near contact.
 
-\subsection{Backflow geometry and energy-locality shares}
+\subsection{Backflow--correlator coupling}
+\paragraph{Backflow geometry and energy-locality shares.}
 \label{subsec:repr-bf}
 
 \paragraph{Field spectrum.}
@@ -1153,7 +1113,7 @@ near-field shares at quantile $q$ of $r_{\min}$:
 \]
 (Using absolute values isolates magnitude; signed averages are also available.)
 
-\subsection{Alignment of correlator manifolds (noBF vs BF)}
+\paragraph{Alignment of correlator representations.}
 \label{subsec:repr-alignment}
 We collect two standardized feature matrices $\tilde Z^{\rm noBF}$ and $\tilde Z^{\rm BF}$
 on identical frames (each standardized by its own $\mu,\sigma$), compute their PC1 loadings
@@ -1190,7 +1150,7 @@ high-variance directions, which is exactly the regime here
 (\S\ref{subsec:repr-erank}); values above $0.99$ should therefore be read as ``no detectable
 reorganisation'' rather than as a quantitative distance.
 
-\subsection{Uncertainty and stability}
+\paragraph{Uncertainty and stability.}
 \label{subsec:repr-uncertainty}
 For scalars we report standard errors over blocks.
 For PCA-based quantities and cosines we use a block bootstrap (resampling blocks with replacement)
@@ -1295,16 +1255,9 @@ the comparisons made here this is an accurate proxy for the signed overlap: both
 share the same Slater reference, and the correlator and cusp enter as a strictly positive
 exponential, so the sign of $\Psi$ is fixed by the determinant and the two states agree in
 sign except on the measure-suppressed set where their backflows carry a configuration
-across a node differently. The direction of the bound matters, and it is worth being explicit about which claim it
-protects. The modulus overlap is an \emph{upper} bound on the signed one, so a reported
-$\mathcal{S}^2\to0$ is conservative---the states are at least that different---while a
-reported $\mathcal{S}^2\approx1$ is \emph{not} by itself evidence that they agree in sign.
-For the $\mathcal{S}^2\approx1$ readings the weight is carried by the structural argument
-above (shared Slater reference, strictly positive correlator), not by the bound. These quantities are properties of the state and so are unaffected by how correlation is
-divided between the Jastrow and the backflow. The energetic price of ablating a component is
-\emph{not} in that class: two parameterisations that divide correlation differently will
-report different ablation costs, so it is a reproducible statement about a fixed model and
-training protocol rather than a state invariant (\S\ref{sec:synthesis}). The architectural
-conclusions of Chapter~\ref{ch:kernel} rest on the state-level quantities first and on
-ablation as a controlled intervention second, and on the gauge-dependent component ranks of
-the previous section not at all.
+across a node differently. The modulus overlap is an \emph{upper} bound on the signed one, so $\mathcal S^2\to0$ is
+conservative while $\mathcal S^2\approx1$ rests on the structural argument above rather than
+on the bound. Overlap, energy and $\Var(E_L)$ are properties of the state and are unaffected
+by how correlation is divided between the correlator and the backflow; the energetic price of
+ablating a component is not, since two parameterisations that divide correlation differently
+report different ablation costs.

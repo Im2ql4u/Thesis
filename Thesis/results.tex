@@ -115,7 +115,8 @@ architecture can be tested nearly in isolation. It reports two-electron energies
 from \emph{residual-only} training, with and without the backflow. For $N{=}2$, backflow is
 \emph{not} required to reach reference accuracy;
 it slightly reduces the variance and smooths convergence, and nothing more. The
-Slater--Jastrow correlator already places the nodes well enough at this size. This
+closed-shell two-electron singlet has no nontrivial same-spin fermionic node for
+backflow to repair. This
 matters because it establishes a baseline against which the backflow's later
 contribution, at larger $N$ and weaker traps, can be read as a genuine effect
 rather than as an artefact of having added parameters.
@@ -702,9 +703,8 @@ $L_{12,\mathrm{reg}}\approx0.27$.
 
 Already at $\omega=10^{-2}$ the radial gap detector returns a $(1,19)$ partition rather than
 a three-shell one: the shell radii contract by an order of magnitude ($r_0\approx10$,
-$r_1\approx45$), the registered angular order drops to
-$\tilde C_{\mathrm{global}}\approx0.20$, and the outer-shell Lindemann rises to
-$\approx0.57$. The wording matters here. At $\omega=10^{-3}$ the $(1,7,12)$ label describes a
+$r_1\approx45$), the outer-shell angular disorder rises to $\approx0.57$. The wording
+matters here. At $\omega=10^{-3}$ the $(1,7,12)$ label describes a
 Wigner \emph{topology}, because it is accompanied by separated shells, registered angular
 order and low Lindemann disorder. At $\omega=10^{-2}$ and above, with angular order at its
 random-angle null and disorder high, $(1,19)$ is what the \emph{radial classifier returns}
@@ -712,8 +712,7 @@ on a state that is not angularly ordered at all---a decomposition of the radial 
 a crystalline shell structure. We use the occupancy notation in both cases because the
 detector does, but only the weakest-trap case earns the word topology.
 At $\omega=1$ the classifier returns the same $(1,19)$ partition, with compact radii
-($r_0\approx0.55$, $r_1\approx2.3$), negligible internal order
-($\tilde C_{\mathrm{global}}\approx0.20$), and high disorder
+($r_0\approx0.55$, $r_1\approx2.3$) and high angular disorder
 ($L_{\rm out}\approx0.69$).
 The sharpness of this transition---a single decade in $\omega$ separates a
 stiff three-shell crystal from a disordered single ring about a central electron---is the

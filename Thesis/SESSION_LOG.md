@@ -70,3 +70,19 @@
 - Remaining data-dependent follow-ups: common VMC rescoring of campaign checkpoints,
   row-level non-exact N=2 provenance, finite-$n$ angular null, and density-figure
   axis regeneration.
+
+---
+
+## 2026-09-07 — Final factual-consistency and hierarchy pass
+
+- Reconciled the collocation tables: VMC probes select checkpoints, while final
+  importance-sampling evaluations supply the reported campaign scores.
+- Removed the remaining unreproducible cross-shell order values, corrected the
+  N=2 nodal interpretation, made the $d_{\rm eff}$ meaning local rather than
+  trajectory-based, and moved Naming into the Part IV orientation page.
+- Matched the weak-form summary table to the score-omission derivation, replaced
+  low-omega ``ill-conditioned'' SR language with empirical-metric
+  unresolvability, and narrowed the N=6 sector/dictionary wording.
+- Built with BibTeX and two LaTeX passes: 136 pages, no unresolved citations or
+  references. Common VMC rescoring, a random-dictionary null, and density-map
+  regeneration remain data-dependent follow-ups rather than unverified edits.

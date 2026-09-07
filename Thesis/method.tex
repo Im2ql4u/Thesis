@@ -380,7 +380,7 @@ $s_\beta=\mathrm{softplus}(\texttt{bf\_scale\_raw})$; and \eqref{eq:bf-com} is e
 subtracting the per-configuration mean over particles of the predicted $\Delta_\beta$ before forming $\tilde R'$.
 
 \paragraph{Summary.}
-Backflow provides a compact, symmetry-respecting way to move the Slater nodes toward the true correlated nodes. With mollified distances, optional short-range gates/attention, zero-mean projection, and bounded outputs, it integrates cleanly with the analytic cusp and smooth NQS correlator, designed to reduce nodal error while controlling local-energy variance.
+Backflow provides nodal freedom by moving the Slater coordinates, while also modifying the determinant amplitude inside each nodal pocket. With mollified distances, optional short-range gates/attention, zero-mean projection, and bounded outputs, it integrates cleanly with the analytic cusp and smooth NQS correlator, designed to reduce nodal error while controlling local-energy variance.
 
 \section{Architecture sizes and hyperparameters}
 \label{sec:hyperparameters}

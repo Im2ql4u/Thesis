@@ -511,9 +511,11 @@ its own evidential level. Examining a single high-quality trained solution
 (Appendix~\ref{app:representation}) shows the correlator occupying a feature space of one to
 three effective dimensions across the entire grid, and never expanding: at
 $\omega=10^{-3}$, where the real-space density has developed rings and discrete
-occupancies, the latent rank is no larger than at $\omega=1$. What changes across the
-crossover is which branch the leading axis draws on---pair features at moderate coupling,
-single-particle and global features at strong coupling---not how many axes there are. The
+occupancies, the latent rank is no larger than at $\omega=1$. For $N{=}6$ and $N{=}12$,
+what changes across the crossover is which branch the leading axis draws on---pair features
+at moderate coupling, single-particle and global features at strong coupling---not how many
+axes there are. The $N{=}20$ component diagnostic is an explicit exception
+(Appendix~\ref{app:representation}). The
 displacement field is the opposite kind of object, spanning nearly all the spatial
 directions available to it, and it leaves the correlator's feature geometry almost
 unperturbed (centred kernel alignment above $0.98$ everywhere).
@@ -530,8 +532,8 @@ mechanism or three we cannot say from a single run.
 
 \paragraph{What \S\ref{sec:kernel-q1} establishes.} Message passing supplies a relational
 channel whose effect is geometric before it is energetic. In the correlator it shows as a
-tangent space that is smaller at strong confinement and better accounted for by the
-Hamiltonian's collective modes throughout, with a local-energy variance lower at every
+tangent space that is smaller at strong confinement and better accounted for by a compact,
+physically motivated operator dictionary, with a local-energy variance lower at every
 confinement by factors of $1.2$ to $3.4$. In the backflow it shows as a collapse averted,
 costing half a percent where it is not. The correlator-swap intervention ties the two
 together. What this does \emph{not} establish is that the two architectures reach different
@@ -801,9 +803,10 @@ way is not interpretable.
 \begin{table}[htbp]
   \centering
   \caption[Energies from Markov-chain-free collocation training]{Ground-state energies from
-  Markov-chain-free collocation training, all rows using the backflow+Jastrow ansatz and all
-  values VMC-evaluated (${\geq}20$k samples) at the best checkpoint. For $N{=}6$ the
-  headline number is the \emph{reliability} of the protocol, not its luckiest run: the
+  Markov-chain-free collocation training, all rows using the backflow+Jastrow ansatz. Each
+  run selects its best checkpoint using a VMC probe (${\geq}20$k samples) and reports a
+  final IS evaluation; the latter is the table's scoring estimator. For $N{=}6$ the
+  headline number is the \emph{reliability of that evaluated protocol}, not its luckiest run: the
   campaign of \S\ref{sec:colloc-reliability} fixes a $1200$-epoch budget and the
   hyperparameters and varies only the seed, and both the three-seed mean $\pm$ standard
   deviation and the best of the three are given. The $N{=}2$ rows are single collocation
@@ -852,7 +855,7 @@ regime---the physics-informed ring proposal with cascade warm-starting
 (\S\ref{subsec:colloc-wigner}). Two methodological findings shape what follows. First, among
 the optimisers (\S\ref{sec:sr-stage}), \textbf{Adam} was the robust
 default across all regimes, whereas \textbf{CG-SR} converged faster at $\omega\!\ge\!0.1$ but
-diverged for $\omega\!\le\!0.01$, where the geometric tensor becomes ill-conditioned.
+diverged for $\omega\!\le\!0.01$, where the empirical metric becomes statistically unresolved.
 Second, \textbf{cascade warm-starting}---initialising each confinement from the converged
 checkpoint of a stronger one---was decisive for reaching the deep-Wigner regime, exploiting
 the transfer of correlation structure across $\omega$.
@@ -1011,8 +1014,8 @@ Attempt & Outcome & Mechanism \\
 \midrule
 Pure REINFORCE ($\beta{=}0$) over the hybrid objective
   & adopted
-  & The direct weak-form term is cheaper but minimises a different functional; at
-    $\beta>0$ it pulls toward a kinetic-energy minimum distinct from the variational one,
+  & The direct path omits the sampling-measure score contribution; at
+    $\beta>0$ it contributes a kinetic-only pathwise gradient that conflicts with REINFORCE,
     and the two gradients oscillate against each other. \\
 Cascade warm-start from higher $\omega$
   & essential

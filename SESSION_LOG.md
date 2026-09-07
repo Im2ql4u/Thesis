@@ -1772,3 +1772,59 @@ provenance.
 
 Build: 0 errors, 0 undefined references, 0 undefined citations, no overfull box above 15pt,
 134 pages.
+
+---
+
+## 2026-09-07 (later) — Readability rework, stage 1: macro-architecture
+
+Editorial pass with a different objective from the audits: not "can every sentence survive an
+examiner" but "does every paragraph earn its place". The diagnosis, which the measurements
+support, is that the thesis has two narrators -- the science, and a second voice constantly
+telling the reader how to read it. Counts before the pass: `rather than` 107 times (28 in
+Ch. 7); 360 em-dashes; "the reader should", "What SS.X establishes" and "One/Two
+qualifications" appear almost exclusively in Part IV and the Conclusion, and never in Theory
+or Methods. The defensive voice is audit residue, concentrated exactly where the audits ran.
+
+**Stage 0.** Froze a numeric manifest (3,764 numeric tokens, 261 labels, 60 citations) to
+`scratchpad/numeric_manifest_before.json` before touching prose, so a rewrite cannot silently
+drop a fact. It earned its keep immediately: the manifest caught that rebuilding
+Table 3.1 had deleted the optimiser learning rates, which were in `multicolumn` rows below the
+part of the table I had read. Restored.
+
+**What changed.**
+
+*Part IV preface, 1053 -> 325 words.* Kept the argument and the RQ map, which are the useful
+half. Cut the training-programme bookkeeping, the evidence hierarchy, the three-notions-of-
+dimension table, units/ordering and naming. Those existed because the underlying material was
+genuinely confused -- the programmes really were being conflated, and the abstract really was
+mislabelling a backflow comparison as a correlator one. That was fixed at source earlier
+today, so the scaffolding compensating for it can go. Each item is now stated once at its
+point of use: naming in 3.3, the rank definitions where each rank is measured, d_eff <= r_eff
+in D.1.
+
+*Table 3.1 rebuilt programme-major* and now carries all three programmes, so the preface can
+point at one table instead of describing them.
+
+*Appendix D, ~1150 -> 541 words,* and renamed from "Post-catch-22 experimental history and
+philosophy" to "Additional collocation results". An appendix that opens by telling the reader
+which of its conclusions were superseded and that "where it disagrees with Chapter 7, Chapter
+7 governs" is a research notebook, not a thesis appendix. Kept the unique N=20 energies, what
+was varied, and the negative results. Dropped the history and the six-item interpretive
+summary with its did-not-survive bookkeeping.
+
+*Discussion rewritten from a blank file, 2570 -> 1766 words,* in three movements: geometry
+between architecture and optimiser; physics returned to the solver; scope and next steps. The
+old Chapter 8 spent its first section re-litigating benchmark independence and its second and
+third repeating Chapter 7. The benchmark point survives as one paragraph carrying the
+`sec:energy-discussion` label that seven other places reference. The feedback loop -- solver
+exposes Wigner structure, structure fixes the sampler, sampler reaches states the original
+could not -- is now the centre of the chapter rather than a line in the implications list.
+
+*Conclusion 1634 -> 950 words.* Deleted "Evidential status of the findings" entirely: a reader
+who reaches page 100 should not be handed a compliance ledger. The four research-question
+answers keep their substance and lose their scaffolding.
+
+Main text 48,235 -> 45,986 words. Build clean at 132 pages, 0 undefined references.
+
+Stages 2-5 (de-duplication across Theory/Methods/Results, Chapter 7 pacing, abstract, whole-
+thesis prose pass) still to run.

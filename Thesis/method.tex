@@ -405,40 +405,41 @@ $\omega$, which \S\ref{sec:kernel-q1b} sets out where the measurement is reporte
 \texttt{scripts/source\_state\_check.py} for the production widths).
 
 \begin{table}[htbp]\centering
-\caption[Architecture and training hyperparameters]{Architecture and training
-hyperparameters for two of the three programmes of p.~\pageref{ch:results-map}; the
-collocation models are given in \S\ref{subsec:colloc-families}. Widths are hidden dimensions
-and ``rounds'' are message-passing steps ($n_\downarrow{+}n_\uparrow$ for the V-cycle). The
-two sets of counts are \emph{different networks} and are never compared with one another. The
-architecture-study widths are those of the controlled comparison and of the $\Var(E_L)$
-measurement in Table~\ref{tab:varEL}; within it the correlator variants are not
-capacity-matched, which is why \S\ref{sec:kernel-q1a} also reports a capacity-matched
-$89.4$k separable network and the full $20$k--$164$k ladder. The backflow comparison has no
-separate tier at all: it is run at the production widths, where the two variants differ by a
-factor of $3.6$ in size, for the reason given above. The physics-production widths
-are those carrying the ground-state energies and the structural results of
-Chapter~\ref{ch:results}, where the correlator is the separable network throughout (code:
-\texttt{PINN}) and only the backflow is varied.}
+\caption[Architecture and training hyperparameters]{The three sets of models trained in this
+thesis. They exist for different purposes and are never compared with one another. Widths are
+hidden dimensions; ``rounds'' are message-passing steps ($n_\downarrow{+}n_\uparrow$ for the
+V-cycle). Within the architecture study the correlator variants are not capacity-matched,
+which is why \S\ref{sec:kernel-q1a} also reports the matched $89.4$k separable network and
+the full $20$k--$164$k ladder; the backflow variants are not matched either, and cannot be at
+equal width, for the reason given above. Settings follow the accompanying code
+(\texttt{scripts/run\_depth\_analysis.py}, \texttt{scripts/source\_state\_check.py}).}
 \label{tab:hyperparams}
 \small
 \setlength{\tabcolsep}{4pt}
-\begin{tabular}{@{}l l l r l r@{}}
+\begin{tabular}{@{}l l l r@{}}
 \hline
- & & \multicolumn{2}{c}{Architecture study (\S\ref{sec:kernel-q1})} & \multicolumn{2}{c}{Physics production (\S\ref{sec:energy-overview})} \\
-Component & Variant & setting & params & setting & params \\
+Programme & Correlator & Backflow & Total \\
 \hline
-Correlator & separable        & pair-MLP $64\times4$, out $32$                  & $47.7$k & width $128$, $2$ layers & $54$k \\
-           & message-passing  & node/edge $32$, bottleneck $16$, $2{+}2$ rounds & $79.8$k & ---                     & --- \\
-Backflow   & message-passing  & \emph{as production}                            & $182$k  & msg $128$, node $128\times3$ & $182$k \\
-           & conventional     & \emph{as production}                            & $51$k   & msg $128$, node $128\times3$ & $51$k \\
-Readout    & (correlator)     & hidden $64$, $2$--$3$ layers, SiLU              & ---     & ---                     & --- \\
+\multirow{2}{*}{\makecell[l]{Physics production\\ (\S\ref{sec:energy-overview})}}
+  & separable, width $128$, $2$ layers, $54$k & conventional, msg $128$, node $128\times3$, $51$k & $105$k \\
+  & \emph{(as above)}                         & message-passing, same widths, $182$k             & $236$k \\
 \hline
-\multicolumn{5}{@{}l}{Optimiser: Adam, $\mathrm{lr}=5\times10^{-4}$ (backflow),
-  $5\times10^{-5}$ (Jastrow); CG-SR with Tikhonov damping $\lambda$,} \\
-\multicolumn{5}{@{}l}{\quad trust-region cap and CG restarts. Collocation batch
-  $n_{\rm coll}\sim3\times10^3$, oversampling $m=8$--$16$.} \\
+\multirow{2}{*}{\makecell[l]{Architecture study\\ (\S\ref{sec:kernel-q1})}}
+  & separable, pair-MLP $64\times4$, out $32$, $47.7$k & \multirow{2}{*}{\emph{as production; not matched}} & \multirow{2}{*}{---} \\
+  & message-passing, node/edge $32$, bottleneck $16$, $2{+}2$ rounds, $79.8$k & & \\
+\hline
+\multirow{2}{*}{\makecell[l]{Collocation\\ (\S\ref{sec:kernel-mcmcfree})}}
+  & message-passing V-cycle, $25$k & none & $25$k \\
+  & \emph{(as above)}              & copresheaf, $h_{\rm bf}{=}128$, $+24$k & $49$k \\
 \hline
 \end{tabular}
+
+\medskip
+\footnotesize\noindent Readout for every correlator: hidden $64$, $2$--$3$ layers, SiLU.
+Optimiser: Adam at $\mathrm{lr}=5\times10^{-4}$ (backflow) and $5\times10^{-5}$ (Jastrow);
+CG-SR with Tikhonov damping $\lambda$, a trust-region cap and CG restarts. Collocation batch
+$n_{\rm coll}\sim3\times10^{3}$ with oversampling $m=8$--$16$; the collocation families are
+described further in \S\ref{subsec:colloc-families}.
 \end{table}
 
 

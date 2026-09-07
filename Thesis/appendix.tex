@@ -1087,139 +1087,77 @@ co-adapts with the node position.
 
 
 % =========================================================
-% APPENDIX D: Post-Catch-22 Experimental History and Philosophy
+% APPENDIX D: Additional collocation results
 % =========================================================
-\chapter[Post-catch-22 experimental history]{Post-catch-22 experimental history and philosophy}
+\chapter{Additional collocation results}
 \label{app:postcatch22}
 
-\begin{quote}\small\itshape
-This appendix is a historical record. It documents the experimental programme as it stood
-after the catch-22 analysis and \emph{before} the physics-informed proposal of
-\S\ref{sec:kernel-q3-frontier}, and several of its working conclusions were later
-superseded---most importantly its reliance on CG-SR, which Chapter~\ref{ch:kernel}
-subsequently abandoned below $\omega\simeq0.01$ in favour of Adam. Where it disagrees with
-Chapter~\ref{ch:kernel}, Chapter~\ref{ch:kernel} governs. It is retained because the
-$N{=}20$ collocation energies of \S\ref{app:postcatch22:frontier} are recorded nowhere else,
-and because the shape of the search is itself part of the method.
-\end{quote}
+This appendix records the collocation results that Chapter~\ref{ch:kernel} refers to but does
+not tabulate: the $N{=}20$ energies, and the variants that were tried and failed. Both bear on
+the same question---what limits the Markov-chain-free route---from the side of what does not
+work.
 
-This appendix documents the experimental program executed after the
-backflow catch-22 analysis in Appendix~\ref{app:catch22}. The goal here is not
-to present a single best number, but to make explicit the strategy, the failed
-branches, and the partial recoveries.
-
-\section{The experimental programme}
+\section{What was varied}
 \label{app:postcatch22:programme}
 
-After the catch-22 analysis the work shifted from searching for a single better architecture to
-engineering a training pipeline that makes a physically strong ansatz trainable across regimes.
-Four principles organised it: keep the Slater--Jastrow--backflow ansatz but treat sampling and
-preconditioning as first-class objects; replace single long runs with staged continuation
-(solve easy regimes, warm-start hard ones); separate claims by evidence tier (online probe,
-restored VMC-best, heavy exact VMC); and record negative results, because many theoretically
-plausible variants fail on gradient-noise geometry.
+Four axes were explored. The \emph{sampling}: Gaussian and Gaussian-mixture proposals scaled
+by $1/\sqrt\omega$, oversample-then-resample with ESS diagnostics, ESS-adaptive oversampling,
+weight tempering and log-weight clipping. The \emph{objective}: finite-difference collocation
+residuals, a hybrid weak form, and pure REINFORCE, which became the default, with the
+Laplacian kept in the reward path but never differentiated. The \emph{preconditioner}: Adam,
+diagonal-Fisher natural gradient, and full SR in Woodbury and CG modes with damping anneals
+and trust-region caps. And the \emph{training style}: single sweeps, wave-based cascades with
+checkpoint inheritance, and asynchronous campaigns relaunching from the best available
+checkpoint.
 
-\paragraph{What was varied.} We varied the \emph{sampling} (Gaussian and Gaussian-mixture
-proposals scaled by $1/\sqrt\omega$; oversample-then-resample with ESS diagnostics; ESS-adaptive
-oversampling; weight tempering and log-weight clipping), the \emph{objective} (finite-difference
-collocation residuals; a hybrid weak form; and pure REINFORCE, which became the reliable default,
-with the Laplacian kept in the reward path but never differentiated), the \emph{preconditioner}
-(Adam; diagonal-Fisher natural gradient; and full SR in Woodbury/CG modes with damping anneals
-and trust-region caps), and the \emph{training style} (single sweeps; wave-based cascades with
-checkpoint inheritance; asynchronous campaigns that relaunch from the best available checkpoint).
-Two empirical conclusions were robust. First, optimisation quality dominated architectural
-novelty: moderately sized BF+Jastrow models with stable training beat more ambitious variants
-with weaker optimisation geometry. Second, at low $\omega$ regularising the resampling
-distribution (ESS control, top-mass reduction) helped while hard cusp gating alone did not---a
-controlled $2{\times}2{\times}3$ matrix (hard gate on/off, resampling-regularisation on/off,
-three seeds) confirmed both, with no measurable gain from gating and a consistent gain from
-resampling regularisation.
+Two results held across the search. Optimisation quality dominated architectural novelty:
+moderately sized backflow$+$Jastrow models with stable training beat more ambitious variants
+with weaker optimisation geometry. And at low $\omega$, regularising the resampling
+distribution (ESS control, top-mass reduction) helped where hard cusp gating did not---a
+controlled $2{\times}2{\times}3$ matrix over gating, resampling regularisation and three
+seeds showed no measurable gain from gating and a consistent gain from regularisation.
 
-\paragraph{Outcomes.} At the time of this programme, SR-style preconditioning in CG mode,
-warm-started along the confinement cascade
-$\omega:1.0\!\to\!0.5\!\to\!0.1\!\to\!0.01\!\to\!0.001$, appeared to be what carried
-performance from solved regimes into harder ones; cold starts at low $\omega$ did not
-converge. The cascade survived that assessment and is still essential
-(Table~\ref{tab:colloc-variants}); the attribution to CG-SR did not. Later runs at matched
-budget showed CG-SR diverging below $\omega\simeq0.01$ where Adam succeeded, which is the
-three-regime result of \S\ref{sec:kernel-cond}: what fails at low $\omega$ is the
-\emph{estimate} of the metric, not the cascade. The full
-set of best energies is in \S\ref{sec:colloc-results}; representative cascade successes are
-$N{=}6$ at $\omega{=}1.0$ ($E=20.16167\pm0.00181$, $+0.012\%$), $\omega{=}0.5$
-($E=11.78466\pm0.00199$, $-0.002\%$) and $\omega{=}0.1$ ($E=3.56525\pm0.00046$, $+0.32\%$), and
-$N{=}12$ at $\omega{=}1.0$ ($E=65.70699\pm0.00595$, $+0.010\%$). For $N{=}2$ the collocation route
-now covers the whole confinement range cleanly---$+0.012\%$, $+0.023\%$, $-0.004\%$, $+0.002\%$
-and $+0.154\%$ at $\omega=1,0.5,0.1,0.01,0.001$ (zero-variance extrapolated)---so the paradigm is
-DMC-accurate wherever the importance sampling stays healthy and degrades only in the deep-Wigner
-limit.
+Warm-starting along the confinement cascade
+$\omega:1.0\!\to\!0.5\!\to\!0.1\!\to\!0.01\!\to\!0.001$ was necessary throughout; cold starts
+at low $\omega$ did not converge. Representative cascade results are $N{=}6$ at
+$\omega{=}1.0$ ($E=20.16167\pm0.00181$, $+0.012\%$), $\omega{=}0.5$
+($E=11.78466\pm0.00199$, $-0.002\%$) and $\omega{=}0.1$ ($E=3.56525\pm0.00046$, $+0.32\%$),
+and $N{=}12$ at $\omega{=}1.0$ ($E=65.70699\pm0.00595$, $+0.010\%$). For $N{=}2$ the route
+covers the whole confinement range: $+0.012\%$, $+0.023\%$, $-0.004\%$, $+0.002\%$ and
+$+0.154\%$ at $\omega=1,0.5,0.1,0.01,0.001$, zero-variance extrapolated.
 
-\section{Current frontier: low-$\omega$ and high-$N$ stabilisation}
+\section{The $N=20$ collocation energies}
 \label{app:postcatch22:frontier}
 
-At the close of this phase the unresolved front was the combination of extreme correlation
-regimes and larger particle count:
-\begin{itemize}
-\item $\omega\in\{0.01,0.001\}$: transfer helps, but reliability and
-  reproducibility are not yet at the same confidence level as
-  $\omega\in\{1.0,0.5,0.1\}$.
-\item $N\ge 20$: memory pressure, architecture-capacity constraints, and higher
-  gradient noise make training significantly less stable than $N\in\{6,12\}$.
-\end{itemize}
+At $N{=}20$ the backflow's edge-feature tensor, which scales as
+$\mathcal{O}(N^2 h_{\mathrm{bf}})$, forces the hidden dimension down to
+$h_{\mathrm{bf}}{=}48$--$64$ to fit in memory. The best backflow run at $\omega{=}1.0$ then
+reached only ${\sim}{+}18\%$ error, while a Jastrow-only ansatz---freed of that tensor, and
+so able to afford a larger collocation budget and higher oversampling---reached $+1.32\%$
+($E=157.934\pm0.018$). The more expressive architecture is beaten by the simpler one, which
+is consistent with the memory-forced capacity cut degrading gradient quality more than its
+extra flexibility repays.
 
-Dedicated stabilisation runs introduced stricter SR trust constraints,
-heavier damping, ESS-adaptive sampling, rollback controls, and explicit
-process-level relaunch hygiene for GPU memory contention. These changes improved
-operational stability but did not close the accuracy gap at the hardest targets. What
-eventually did, for low $\omega$ at $N{=}6$, was not a stabilisation measure at all but a
-change of proposal: the Wigner-ring construction of \S\ref{sec:kernel-q3-frontier}, which
-postdates everything in this appendix and carries the cascade to $\omega=0.0035$.
+Polishing the Jastrow checkpoints at reduced learning rate improved the $\omega{=}1.0$ error
+from ${\sim}{+}2.6\%$ to $+1.32\%$ over ${\sim}400$ epochs, and the $\omega{=}0.5$ error from
+${\sim}{+}7.0\%$ to $+2.74\%$ ($E=96.447\pm0.015$); the best $\omega{=}0.1$ result was
+$+5.53\%$ ($E=31.637\pm0.008$). The gap to the sub-percent accuracy reached at $N\in\{6,12\}$
+tracks the capacity cut and the gradient noise it brings. A more memory-frugal backflow is
+the direct next intervention; these experiments do not isolate the collocation objective as
+the source of the remaining gap.
 
-\paragraph{The $N{=}20$ collocation results.}
-For completeness we record here the $N{=}20$ collocation energies referred to in
-\S\ref{sec:colloc-results}; they expose the memory bottleneck at this size. The
-backflow's edge-feature tensor scales as $\mathcal{O}(N^2\times h_{\mathrm{bf}})$, and
-at $N{=}20$ fitting it in memory forces the hidden dimension down to
-$h_{\mathrm{bf}}{=}48$--$64$. The best backflow run at $\omega{=}1.0$ then reached
-only ${\sim}{+}18\%$ error, while a Jastrow-only ansatz---freed of that tensor, and so
-able to afford a larger collocation budget and higher oversampling---reached
-$+1.32\%$ ($E=157.934\pm0.018$). The architecture that should in principle be the more
-expressive is beaten by the simpler one, consistent with the memory-forced capacity
-cut degrading gradient quality more than its extra flexibility repays. Polishing the
-Jastrow checkpoints at reduced learning rate improved the $\omega{=}1.0$ error from
-${\sim}{+}2.6\%$ to $+1.32\%$ over ${\sim}400$ epochs and the $\omega{=}0.5$ error
-from ${\sim}{+}7.0\%$ to $+2.74\%$ ($E=96.447\pm0.015$); the best $\omega{=}0.1$
-result was $+5.53\%$ ($E=31.637\pm0.008$). The gap to
-the sub-percent accuracy reached at $N{=}6,12$ is consistent with the memory-forced
-capacity reduction and the gradient noise it brings. A more memory-frugal backflow is
-the direct next intervention; the present experiments do not isolate the collocation
-objective as the source of the remaining gap.
-
-\section{Interpretive summary}
+\section{Negative results worth recording}
 \label{app:postcatch22:summary}
 
-The post-catch-22 phase supports six robust conclusions.
-\begin{enumerate}
-\item The collocation program is not a single recipe but a coupled system:
-  sampling, objective, and preconditioning must be tuned jointly.
-\item Transfer/cascade is not optional for difficult regimes; it is the primary
-  mechanism by which low-$\omega$ performance becomes attainable.
-\item SR-style preconditioning was judged central for progress beyond early Adam-only
-  basins. This is the one conclusion of the six that did not survive: at matched budget
-  CG-SR converges faster than Adam at $\omega\ge0.1$ and diverges below it
-  (\S\ref{sec:colloc-negatives}), so the operative criterion is whether the metric is
-  estimable, not whether it is preconditioned.
-\item Diagnostic metrics (ESS, top-mass concentration, rollback counts,
-  probe-final gaps) are essential; scalar final energy alone is insufficient
-  for method development.
-\item Several intuitively attractive interventions (e.g., hard cusp gating in
-  this tested range) did not deliver gains, and documenting these negatives
-  was necessary to avoid circular search.
-\item The method now demonstrates near-DMC quality in multiple nontrivial
-  targets, but the strongest claims must still be bounded to regimes where
-  repeated campaign evidence exists.
-\end{enumerate}
-
-
+Scalar final energy is not sufficient for method development on this route: ESS, top-mass
+concentration, rollback counts and the probe-to-final gap are what distinguish a run that
+converged from one that stopped moving. Several intuitively attractive interventions
+delivered nothing in the tested range---hard cusp gating most notably---and recording that
+was necessary to keep the search from circling. Stricter SR trust constraints, heavier
+damping, ESS-adaptive sampling and rollback controls improved operational stability without
+closing the accuracy gap at the hardest targets. What eventually closed it at low $\omega$
+and $N{=}6$ was not a stabilisation measure but a change of proposal
+(\S\ref{sec:kernel-q3-frontier}).
 
 
 \chapter{The learned representation of one trained solution}

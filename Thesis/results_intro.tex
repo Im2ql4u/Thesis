@@ -1,42 +1,38 @@
 \begingroup
 \let\clearpage\relax
 \let\cleardoublepage\relax
-\chapter*{How to read Part IV}
+\chapter*{The argument of Part IV}
 \endgroup
-\addcontentsline{toc}{chapter}{How to read Part IV}
+\addcontentsline{toc}{chapter}{The argument of Part IV}
 \label{ch:results-map}
 
-\section*{The argument}
+The two results chapters run a loop between solver and physics.
 
-The two results chapters follow a feedback loop between solver and physics, and it is worth
-having the shape of it before the details.
+We first establish that the trained states reproduce every external energy benchmark that
+exists for this system. That licenses using them as instruments rather than defending them
+as answers. Read for the physics they contain, they show a crossover from compact dot to
+finite Wigner molecule that is \emph{staged}: the cloud expands and its shells stiffen
+radially well before the electrons acquire angular order within them.
 
-We first establish that the trained variational states reproduce every available external
-energy benchmark across the regime in which such a benchmark exists. That licenses using
-them as instruments rather than defending them as answers. The states are then read for the
-physics they contain, and the crossover from a compact quantum dot to a finite Wigner
-molecule turns out to be \emph{staged}: the cloud expands and its shells stiffen radially
-well before the electrons acquire angular order within those shells.
+We then turn from the state to the solver. Message passing changes the geometry of the
+variational representation even where the total energy cannot tell two networks apart---the
+correlator concentrates its tangent weight on fewer and more interpretable directions, and
+the message-passing backflow avoids a rank collapse that overtakes the conventional one.
+Architecture, optimiser and sampling measure then meet in a single object, the geometry of
+the wavefunction's log-derivatives, and natural-gradient preconditioning earns its cost only
+while that geometry can still be estimated from a batch.
 
-We then turn from the state to the solver. Controlled architecture comparisons show that
-message passing changes the geometry of the variational representation even where the total
-energy cannot tell two networks apart: the correlator concentrates its tangent weight on
-fewer and more physically interpretable directions, and the message-passing backflow avoids
-a rank collapse that overtakes the conventional one. Finally we ask what governs whether
-such states can be \emph{trained} at all. Architecture, optimiser and sampling measure meet
-in one object---the geometry of the wavefunction's log-derivatives---and natural-gradient
-preconditioning earns its cost only while useful geometric information can still be
-estimated from the batch.
-
-The loop then closes. When a generic collocation proposal loses the Wigner state, the
-structural measurements of Chapter~\ref{ch:results} supply the remedy: a proposal built from
-the observed shell geometry carries Markov-chain-free training to $\omega=0.0035$, where a
-different limit---a transfer instability in the Slater--Jastrow balance---takes over.
+The loop closes when a generic collocation proposal loses the Wigner state. The structural
+measurements of Chapter~\ref{ch:results} supply the remedy: a proposal built from the
+observed shell geometry carries Markov-chain-free training to $\omega=0.0035$, where a
+transfer instability in the Slater--Jastrow balance takes over.
 
 \medskip
-\noindent The four research questions of \S\ref{sec:research-questions} are answered in the
-following places, with the energy benchmarks of \S\ref{sec:energy-overview} as the
-foundation that licenses the rest.
+\noindent Three differently sized sets of models appear below---the production states that
+carry the physics, the matched ladder of the architecture study, and the smaller collocation
+networks---and numbers from one are never compared with numbers from another.
+Table~\ref{tab:hyperparams} gives all three. The four research questions of
+\S\ref{sec:research-questions} are answered here:
 
 \begin{center}\small
 \begin{tabular}{@{}ll@{}}
@@ -48,108 +44,5 @@ foundation that licenses the rest.
 \bottomrule
 \end{tabular}
 \end{center}
-
-\section*{Three training programmes, which are never compared with one another}
-
-Three separate sets of models appear in what follows. They exist for different purposes and
-are sized differently, and numbers from one are never compared with numbers from another.
-
-\begin{center}\footnotesize
-\setlength{\tabcolsep}{4pt}
-\begin{tabular}{@{}p{0.155\textwidth} p{0.185\textwidth} p{0.185\textwidth} p{0.115\textwidth} p{0.235\textwidth}@{}}
-\toprule
-Programme & Correlator & Backflow & Total & Supports \\
-\midrule
-Production (SR--VMC), Ch.~\ref{ch:results} &
-  separable, $54$k &
-  conventional $51$k, or message-passing $182$k &
-  $105$k or $236$k &
-  the energies of \S\ref{sec:energy-overview} and every structural claim \\[2pt]
-Architecture study, \S\ref{sec:kernel-q1} &
-  separable $47.7$k (matched: $89.4$k) \emph{vs.}\ message-passing $79.8$k &
-  conventional $51$k \emph{vs.}\ message-passing $182$k (\emph{not} matched) &
-  correlator ladder $20$--$164$k &
-  the architecture claims and $\Var(E_L)$ \\[2pt]
-Collocation, \S\ref{sec:kernel-mcmcfree} &
-  message-passing, $25$k &
-  message-passing, $+24$k (or none) &
-  $25$--$49$k &
-  the training-paradigm claims \\
-\bottomrule
-\end{tabular}
-\end{center}
-
-\noindent Widths and the remaining settings are in Table~\ref{tab:hyperparams} for the first
-two and \S\ref{subsec:colloc-families} for the third. Two consequences are worth stating
-plainly, because they are easy to lose. The physics of Chapter~\ref{ch:results} was produced
-with the \emph{separable} correlator; the message-passing correlator appears only in the
-architecture study and in the collocation programme, so no energy in Chapter~\ref{ch:results}
-is evidence for or against it. And the two production ans\"atze share that correlator and
-differ only in their backflow, which is why they are named \emph{conv.\ BF} and
-\emph{MP BF} rather than by correlator type.
-
-\section*{An evidence hierarchy}
-
-Not every measurement below carries the same weight, and the distinction is used
-throughout rather than restated each time. \S\ref{sec:synthesis} develops it in full.
-
-\begin{description}
-\item[State-level quantities] --- the energy, the local-energy variance $\Var(E_L)$, and the
-  overlap between two trained states. These are properties of the wavefunction and are
-  unaffected by how the parameters are arranged. The architectural conclusions rest here.
-\item[Controlled interventions] --- deleting a component and pricing the loss in energy, or
-  swapping one architecture for another and retraining. Reproducible for a fixed model and
-  protocol, but conditional on how that model divided the correlation between its parts.
-\item[Component-level diagnostics] --- ranks, displacement magnitudes, per-branch loadings.
-  These are interpretive and \emph{gauge-like}: the Jastrow and the backflow are partial
-  substitutes, so the division of labour between them records the training route as much as
-  the state. Reported where they illuminate a mechanism; never load-bearing.
-\end{description}
-
-\section*{Three different notions of ``dimension''}
-
-Three distinct geometries are measured in these chapters and all three are conventionally
-described as low- or high-dimensional. They decompose different objects and are not
-comparable with one another.
-
-\begin{center}\small
-\setlength{\tabcolsep}{5pt}
-\begin{tabular}{@{}p{0.20\textwidth} p{0.24\textwidth} p{0.46\textwidth}@{}}
-\toprule
-Quantity & Object decomposed & What it counts \\
-\midrule
-Latent rank $r_{\mathrm{eff}}(Z)$ & correlator feature covariance &
-  feature-space directions the correlator uses \\
-Displacement rank & backflow displacement covariance &
-  spatial directions the backflow moves particles along \\
-Tangent dimension $d_{\mathrm{eff}}(S)$ & quantum geometric tensor &
-  parameter-space directions carrying Fisher weight \\
-\bottomrule
-\end{tabular}
-\end{center}
-
-\noindent A correlator that is low-rank in its \emph{features} says nothing about how many
-\emph{tangent} directions it uses, and neither constrains how many \emph{spatial} directions
-the backflow occupies. Where the text says ``rank'' without qualification it means the one
-named in the surrounding table. Two spectral counts are also in use and differ: the entropy
-effective rank $\exp(H_1)$ and the participation ratio $(\sum_a\lambda_a)^2/\sum_a\lambda_a^2$,
-with the second never larger than the first (\S\ref{subsec:repr-erank}).
-
-\section*{Units and ordering}
-
-Structural quantities are accumulated in trap units $\tilde{\mathbf r}=\sqrt\omega\,\mathbf r$
-so that shapes can be compared across confinements; absolute radii quoted against classical
-predictions are in Bohr; and sampling-proposal geometry is expressed in oscillator lengths
-$\ell=\omega^{-1/2}$. Each table states which. Tables and prose run from strong to weak
-confinement, $\omega:1\to0.5\to0.1\to0.01\to10^{-3}$, which is the direction the physics
-develops.
-
-\medskip
-\noindent\textbf{Naming.} The two learnable objects are named by function here, not by implementation class. The
-\emph{correlator} is the Jastrow factor $W_\theta$, in a \emph{separable} form
-(per-particle and pairwise embeddings pooled independently) or a \emph{message-passing} one;
-the \emph{backflow} is the displacement field, in a \emph{conventional} form (one round of
-pairwise messages) or a \emph{message-passing} one (persistent, transported edge state). The
-corresponding code classes are specified in Chapter~\ref{ch:trial_wavefunction}.
 
 \clearpage

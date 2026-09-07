@@ -1828,3 +1828,64 @@ Main text 48,235 -> 45,986 words. Build clean at 132 pages, 0 undefined referenc
 
 Stages 2-5 (de-duplication across Theory/Methods/Results, Chapter 7 pacing, abstract, whole-
 thesis prose pass) still to run.
+
+---
+
+## 2026-09-07 (later still) — Readability rework, stages 2-5
+
+Completed the remaining four stages of the editorial pass. Main text 48,392 -> 42,087 words
+(-13%), 137 -> 123 pages, build clean throughout.
+
+**Stage 2, de-duplication.** Theory lost the Hilbert-space and second-quantisation
+exposition (SS1.2 had described itself as "vocabulary and not machinery", which is a fair
+self-diagnosis for half a page of unused operator algebra); the four subsections on gradient
+descent, SGD, momentum and Adam became one; the generic PINN formulation and the automatic-
+differentiation tutorial were replaced by the four difficulties that actually recur by name
+in the results. Methods lost eight backflow subsections in favour of two plus an
+implementation paragraph, and the nine representation-analysis subsections were regrouped
+under three headings with their corrected definitions kept verbatim -- three of those were
+fixed against the code earlier today and were not going to be re-summarised loosely.
+Results-spoiling was removed from Methods in four places: the SR bullet, the Wigner-proposal
+definition, the ansatz families ("fastest and most robust" is a result, not a definition) and
+the four-step recap after the two-workflow schematic.
+
+SS6.1 was the clearest case of a strong result buried. The finding -- every externally
+benchmarked system reproduced to 1e-5 to 5e-4 -- arrived after nomenclature, parameter
+counts, programme distinctions, provenance archaeology and variational philosophy. It now
+arrives in the second paragraph. Chapter 6 also ended three times; the three endings are one,
+keeping the three-stage refinement (which is new information, not repetition) and closing on
+the hinge into Chapter 7.
+
+**Stage 3, Chapter 7.** The chapter announced its results before showing them. SS7.1.1's
+four-item pre-summary is gone and the section opens on the finding. SS7.1.2's half-page of
+COM bookkeeping is one sentence plus the table note it belonged in. SS7.1.3's
+Observation/Intervention/Result laboratory structure is prose. SS7.1.4 is one paragraph
+pointing at Appendix E, which is its home. SS7.5 is deleted as a section: its two load-bearing
+pieces -- the gauge classification and the artefact-versus-finding distinction, which concern
+the same observable -- moved into SS7.1.2 where rank is first measured, carrying the
+sec:synthesis label so the four external references still resolve.
+
+The dictionary result gained the one caveat that matters, in the one-objection-one-answer
+form: a smaller d_eff makes a four-operator dictionary easier to cover, and the answer is
+that the two effective dimensions converge to ~3.7 toward Wigner while the gap persists.
+
+**Stage 4, abstract.** Rewritten from a blank file, 811 -> 604 words. It opens on the
+question the thesis asks -- what the energy cannot see -- instead of an inventory, and drops
+the benchmark genealogy and per-run certification language that belong in the chapters.
+
+**Stage 5, prose.** Targeted rather than global: the sentences carrying three or four chained
+em-dash qualifications, and the specific meta-language. "the reader should" 3 -> 0, "What
+SS.X establishes" 4 -> 0, em-dashes 360 -> 298, "rather than" 107 -> 97. The residual
+"rather than" count is deliberate; only paragraphs where it repeated within a few sentences
+were changed, since the construction is correct in most of its uses.
+
+**Verification.** The frozen numeric manifest was diffed after every stage. Three real
+catches: the optimiser learning rates lost with the old Table 3.1, the per-seed Var(E_L)
+values lost when raw numbers were handed to the figure (restored as a parenthetical, since
+they are what supports the "sets do not overlap" claim), and an overfull Table 3.1 after the
+programme-major rebuild. Final state: no number, label or citation absent from the document
+that was in it before, no dangling references, no overfull box above 15pt.
+
+**Left for Morten.** Chapter 1's formalism was cut hard on the merits but a Norwegian MSc
+carries an examiner-facing expectation of demonstrated command; whether to restore any of it
+is a supervisor question, not an editorial one.

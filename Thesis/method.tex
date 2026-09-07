@@ -356,8 +356,7 @@ $s_\beta=\mathrm{softplus}(\texttt{bf\_scale\_raw})$.
 \section{Architecture sizes and hyperparameters}
 \label{sec:hyperparameters}
 Table~\ref{tab:hyperparams} collects the representative settings. The two comparisons in
-Chapter~\ref{ch:kernel} stand on different footings in this respect and it is worth saying
-so before either is read.
+Chapter~\ref{ch:kernel} stand on different footings in this respect.
 
 The \emph{correlator} comparison is capacity-controlled. The two variants are held at
 comparable parameter counts, so a difference in outcome cannot be attributed to one simply
@@ -387,21 +386,23 @@ equal width, for the reason given above. Settings follow the accompanying code
 \label{tab:hyperparams}
 \small
 \setlength{\tabcolsep}{4pt}
-\begin{tabular}{@{}l l l r@{}}
+\begin{tabular}{@{}p{0.17\linewidth} p{0.34\linewidth} p{0.31\linewidth} r@{}}
 \hline
 Programme & Correlator & Backflow & Total \\
 \hline
-\multirow{2}{*}{\makecell[l]{Physics production\\ (\S\ref{sec:energy-overview})}}
-  & separable, width $128$, $2$ layers, $54$k & conventional, msg $128$, node $128\times3$, $51$k & $105$k \\
-  & \emph{(as above)}                         & message-passing, same widths, $182$k             & $236$k \\
+Physics production (\S\ref{sec:energy-overview})
+  & separable; width $128$, $2$ layers; $54$k
+  & conventional; msg $128$, node $128\times3$; $51$k & $105$k \\
+  & \emph{(as above)} & message-passing; same widths; $182$k & $236$k \\
 \hline
-\multirow{2}{*}{\makecell[l]{Architecture study\\ (\S\ref{sec:kernel-q1})}}
-  & separable, pair-MLP $64\times4$, out $32$, $47.7$k & \multirow{2}{*}{\emph{as production; not matched}} & \multirow{2}{*}{---} \\
-  & message-passing, node/edge $32$, bottleneck $16$, $2{+}2$ rounds, $79.8$k & & \\
+Architecture study (\S\ref{sec:kernel-q1})
+  & separable; pair-MLP $64\times4$, out $32$; $47.7$k
+  & \multirow{2}{*}{\emph{as production; not matched}} & --- \\
+  & message-passing; node/edge $32$, bottleneck $16$, $2{+}2$ rounds; $79.8$k & & --- \\
 \hline
-\multirow{2}{*}{\makecell[l]{Collocation\\ (\S\ref{sec:kernel-mcmcfree})}}
-  & message-passing V-cycle, $25$k & none & $25$k \\
-  & \emph{(as above)}              & copresheaf, $h_{\rm bf}{=}128$, $+24$k & $49$k \\
+Collocation (\S\ref{sec:kernel-mcmcfree})
+  & message-passing V-cycle; $25$k & none & $25$k \\
+  & \emph{(as above)} & copresheaf; $h_{\rm bf}{=}128$; $+24$k & $49$k \\
 \hline
 \end{tabular}
 
@@ -1224,7 +1225,7 @@ by the hole channel alone.
 The dictionary is a \emph{chosen, non-exhaustive} probe, and nothing here establishes that
 it spans the physically meaningful directions. A large $M_\perp$ means the tangent space is
 poorly accounted for by these four operators; it does not mean the remaining directions are
-unphysical. What the comparison licenses is a relative statement between two architectures
+unphysical. The comparison supports a relative statement between two architectures
 scored against the same dictionary on the same probe batch, and that is how
 Chapter~\ref{ch:kernel} uses it.
 

@@ -31,7 +31,7 @@ All three can be examined through the per-sample, column-centred log-derivative 
 \end{equation}
 and on its two Gram matrices, the quantum geometric tensor $S = O^{\!\top}O / B$ and the
 neural tangent kernel $K = OO^{\!\top}$~\cite{JacotEtAl2018-NTK,StokesEtAl2020-QuantumNaturalGradient}.
-That gives the chapter its structure, and it is worth stating in one line each:
+That gives the chapter its structure:
 
 \begin{quote}
 \emph{Architecture} determines the shape of the tangent space.\\
@@ -118,8 +118,9 @@ $\Var(E_L)$ is lower for the message-passing correlator at every confinement
 indistinguishable in energy.
 
 Two things fix the size of that effect. At the crystal, where a seeded replication exists,
-the three-seed sets do not overlap and their means differ by $1.8$---not the $7.4$ obtained
-by pairing single best runs, which is why the seeded ratio is the one quoted. And capacity
+the three-seed sets do not overlap---$(1.95,1.63,1.96)\times10^{-5}$ against
+$(3.40,3.23,3.41)\times10^{-5}$---and their means differ by $1.8$, not the $7.4$ obtained by
+pairing single best runs, which is why the seeded ratio is the one quoted. And capacity
 works the other way: the production rows give the message-passing network a $1.7\times$ size
 advantage, but repeating $\omega=1$ against the capacity-matched $89.4$k separable network
 widens the ratio to $3.4$ rather than closing it. Intermediate confinements
@@ -227,8 +228,8 @@ $B\times B$ kernel rather than the $P\times P$ metric, which is what makes it af
 $B\ll P$---and vary only the backflow architecture (conventional single-round messages
 vs.\ the copresheaf network), training both to convergence.
 
-Unlike the correlator comparison, this one is \emph{not} capacity-matched, and the reader
-should hold that in mind for the next two tables. At the shared production width the
+Unlike the correlator comparison, this one is \emph{not} capacity-matched. At the shared
+production width the
 copresheaf network carries $182$k parameters against the conventional network's $51$k,
 because a persistent edge state is intrinsically heavier than a per-particle aggregate
 (\S\ref{sec:hyperparameters}); no matched pair was trained. A raw energy gap between the two
@@ -452,7 +453,7 @@ feature geometry almost unperturbed.
 These are component-level measurements on one run. They are gauge-like---the correlator and
 backflow are partial substitutes, so the division of labour between them records the training
 route as much as the state---and no architectural conclusion above depends on them. They are
-worth recording because a low effective covariance rank is not what one would predict for a
+recorded because a low effective covariance rank is not what one would predict for a
 state whose real-space structure is this elaborate, and because the reorganisation happens
 near $\omega\approx0.1$, the same confinement at which the energy partition crosses over
 (\S\ref{sec:wigner-energy}) and the ablation costs of Fig.~\ref{fig:q1b-ablation} exchange
@@ -473,12 +474,11 @@ not measure their overlap here.
 \label{sec:kernel-cond}
 \label{sec:kernel-q2}
 
-Two design choices remain, and the tangent geometry settles both at once. The optimiser
-question---what does a natural-gradient step buy over a diagonal one---and the paradigm
-question---what changes when the loss is defined by an analytic proposal instead of by
-$|\Psi|^2$---turn out to be the same question asked twice. Stochastic reconfiguration
-inverts the metric $S$. The sampling measure is what builds $S$ in the first place. Neither
-can be understood without the other, so we take them together.
+Two design choices remain, and the tangent geometry settles both at once. One asks what a
+natural-gradient step buys over a diagonal one. The other asks what changes when the loss is
+defined by an analytic proposal instead of by $|\Psi|^2$. They are the same question twice
+over: stochastic reconfiguration inverts the metric $S$, and the sampling measure is what
+builds $S$ in the first place.
 
 \subsection{Natural-gradient preconditioning}
 Stochastic reconfiguration preconditions the gradient by the inverse QGT,
@@ -540,12 +540,11 @@ DeepSet (large)    & $164$k  & $1.4\times10^{7}$  & $4.76$ \\
 \end{tabular}
 \end{table}
 
-\textbf{SR matters when the tangent metric is ill-conditioned and still estimable}, and it is
-the second half of that sentence that does the work. Anisotropy is certainly present under
-$|\Psi|^2$ sampling, where we measured it; we did not measure $\kappa$ under the collocation
-measure at matched batch size, so what the table licenses is the negative half of the
-argument---that conditioning does not distinguish the regime where SR is unnecessary---rather
-than a matched comparison between them. What separates the two regimes, on the evidence we
+\textbf{SR matters when the tangent metric is ill-conditioned and still estimable}, and the
+second half of that sentence does the work. Anisotropy is present under $|\Psi|^2$ sampling,
+where we measured it. We did not measure $\kappa$ under the collocation measure at matched
+batch size, so the table supports only the negative half of the argument: conditioning does
+not distinguish the regime where SR is unnecessary. What separates the two regimes, on the evidence we
 do have, is whether a batch can resolve the metric. Under $|\Psi|^2$
 the samples are drawn from the very measure that defines $S$, so the directions carrying
 Fisher weight are also the directions the batch populates, and Adam's diagonal step already
@@ -556,11 +555,11 @@ batch size, so this is an argument from the estimator, not a second condition-nu
 distinguish the two regimes.
 
 ``More ill-conditioned $\Rightarrow$ more useful SR'' cannot hold without bound, since
-inverting $S$ requires $S$ itself to be \emph{reliably estimated}. SR helps when the tangent metric is anisotropic but its
-empirical estimate is trustworthy; once the sampling that builds $S$ collapses---as the
-importance weights do deep in the Wigner regime---the empirical $S$ becomes noisy and
-rank-deficient, and preconditioning by its inverse amplifies that noise rather than the
-signal. This is exactly the behaviour seen at ultra-weak confinement, where CG-SR on the
+inverting $S$ requires $S$ itself to be \emph{reliably estimated}. SR helps when the tangent
+metric is anisotropic and its empirical estimate is trustworthy. Once the sampling that builds
+$S$ collapses, as the importance weights do deep in the Wigner regime, the empirical $S$
+becomes noisy and rank-deficient, and preconditioning by its inverse amplifies the noise
+instead of the signal. This is exactly the behaviour seen at ultra-weak confinement, where CG-SR on the
 collocation objective becomes unstable (\S\ref{sec:colloc-negatives}). SR pays off in the
 window where the metric is both ill-conditioned and estimable, and fails once estimation
 itself breaks down.
@@ -898,15 +897,14 @@ This marks the boundary of the current collocation approach for
 $N{=}12$.
 
 \paragraph{$N{=}20$ exposes the memory--sampling trade-off.}
-Twenty electrons in two dimensions push the collocation pipeline against a hardware
-wall rather than a conceptual one. The backflow's edge-feature tensor scales as
-$\mathcal{O}(N^2\times h_{\mathrm{bf}})$, which at $N{=}20$ forces the hidden
-dimension, the collocation budget, or the oversampling factor down far enough that
-the gradient quality suffers---so much so that a Jastrow-only ansatz, freed of that
-cost, trains better than the backflow ansatz it should in principle beat. Because the
-limitation is one of memory and gradient noise rather than of the method, we report
-the $N{=}20$ collocation results, and the reversal that exposes the bottleneck, in
-Appendix~\ref{app:postcatch22:frontier} rather than here.
+Twenty electrons in two dimensions push the collocation pipeline against a hardware wall,
+not a conceptual one. The backflow's edge-feature tensor scales as
+$\mathcal{O}(N^2 h_{\mathrm{bf}})$, which at $N{=}20$ forces the hidden dimension, the
+collocation budget or the oversampling factor down far enough to degrade the gradient---so
+far that a Jastrow-only ansatz, freed of that cost, trains better than the backflow ansatz it
+should in principle beat. Since the limitation is memory and gradient noise, the $N{=}20$
+results and the reversal that exposes them are reported in
+Appendix~\ref{app:postcatch22:frontier}.
 
 \subsection{Ablations and failed variants}
 \label{sec:colloc-negatives}

@@ -50,9 +50,13 @@ stochastic reconfiguration is what makes the optimisation work at all. That is a
 about the bare objective: once adaptive proposal refitting, oversampling and rollback are in
 place they do the same conditioning work, and Adam---which degrades more gracefully when the
 sampling fails---becomes the production choice. And once the
-sampling that builds the metric collapses, inverting it amplifies the noise instead of the signal, and the method that was decisive
-becomes harmful. Ill-conditioning is not the
-criterion. Estimability is.
+sampling that builds the metric collapses, inverting it amplifies the noise instead of the
+signal, and the method that was decisive becomes harmful. The negative half of that is
+measured: a large $\kappa(S)$ does not imply SR will help. The positive half---that the
+collocation objective under a fixed proposal occupies an anisotropic but still estimable
+middle regime---is the mechanism the evidence points to rather than one we measured
+directly, since $\kappa$ was never obtained under the collocation measure at matched batch
+size. Estimability, not conditioning alone, is what the data identify as decisive.
 
 \paragraph{Paradigm.} Can an accurate wavefunction be trained without a Markov chain? Yes,
 inside a regime whose edges we had to find by walking off them
@@ -81,8 +85,9 @@ plot---though the radial shelling is.
 
 The findings fall into three evidential categories, which are not interchangeable.
 
-\emph{Externally benchmarked.} The energies for $N\le12$ at $\omega\ge0.1$, and for
-$N{=}2$ down to $\omega=0.01$. An independently evaluated variational upper bound agrees
+\emph{Externally benchmarked.} The energies for $N\in\{6,12,20\}$ at $\omega\ge0.1$, and for
+$N{=}2$ down to $\omega=0.01$---the twenty-electron dot included, since fixed-node DMC exists
+there too (Table~\ref{tab:energies}). An independently evaluated variational upper bound agrees
 with the fixed-node reference there to a few hundredths of a percent. The two are not blind
 of one another---the reference is also the pretraining target where it exists
 (\S\ref{sec:energy-discussion})---but a variational energy is bounded below by $E_0$
@@ -137,11 +142,15 @@ from indicated into established.
 
 \section{Concluding perspective}
 
-Capacity was never the scarce resource in this problem. What determined the outcome, across
+At the production widths reached for the well-resolved $N\le12$ studies, raw representational
+capacity was rarely the first bottleneck; alignment, conditioning and sampling were. (It was
+not irrelevant everywhere: at $N{=}20$ the memory cost of the backflow's edge tensor forces a
+capacity cut that degrades the collocation gradients.) What determined the outcome, across
 architecture, optimisation and sampling alike, was alignment with the low-dimensional
-collective structure the physics already possesses---the structure that, in real space, is
-the Wigner molecule. That this holds in all three places is probably a fact about the
-system rather than about neural networks.
+collective structure the Hamiltonian already possesses---breathing, correlation-hole and
+relative modes at strong confinement, resolving at weak confinement into the shell geometry
+of the Wigner molecule. That the same alignment matters in all three places is probably a
+fact about the system rather than about neural networks.
 
 Several of the results reported here were reached only after an initial reading of the same
 data proved wrong: a rank collapse that survived seeding where a dimension inversion did

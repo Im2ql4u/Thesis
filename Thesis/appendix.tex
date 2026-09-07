@@ -36,6 +36,25 @@ A key message of the numerical-analysis viewpoint is that strong residual losses
 can be \emph{severely ill-conditioned}, and training speed is tightly linked to
 spectral properties of an operator/matrix induced by $L$ \cite{De_Ryck_2024}.
 
+\paragraph{Which of the thesis's objectives this analyses.} Three objectives appear in the
+main text and Eq.~\eqref{eq:lap:resloss} is exactly one of them. Stage~I pretraining
+(\S\ref{sec:residual-stage}) minimises $\frac1B\sum_b (E_L(\tilde R_b)-E_{\rm eff})^2$
+over configurations drawn from $|\Psi_\theta|^2$; since $E_L=\hat H\Psi/\Psi$, that sample
+average estimates $\int |\Psi_\theta|^2\,(\hat H\Psi_\theta/\Psi_\theta - E)^2
+=\|(\hat H-E)\Psi_\theta\|^2_{L^2}$, which is Eq.~\eqref{eq:lap:resloss} with $w\equiv1$.
+Everything in this appendix therefore applies to stage~I directly. It does \emph{not} apply
+in the same way to the other two. Stage~II is variational energy minimisation
+(\S\ref{sec:sr-stage}), whose objective is linear rather than quadratic in the residual and
+whose conditioning is governed by the quantum geometric tensor measured in
+\S\ref{sec:kernel-cond}, not by the $\Delta^2$ stiffness derived below. The collocation
+route (\S\ref{sec:method-collocation}) replaces the strong residual with a weak-form
+score-function objective under an analytic proposal, for the reason developed in
+\S\ref{app:laplacian:barron} and Appendix~\ref{app:catch22}: the weak form is what removes the
+second-derivative amplification, and it is the escape from the mechanism analysed here
+rather than an instance of it. Where the two production objectives inherit anything from
+this analysis, it is through the single channel they share with stage~I---the Laplacian
+inside $E_L$---and not through the squared-residual structure.
+
 \section{Linearized geometry and the matrix \(A\)}
 \label{app:laplacian:A}
 
@@ -555,8 +574,7 @@ We consider a Slater--Jastrow--backflow ans\"atz of the form
 \end{equation}
 where $\tilde S_\sigma$ is the Slater matrix evaluated at backflow-shifted
 coordinates $\tilde{\mathbf r}_i = \mathbf r_i + \Delta\mathbf
-x_i(\mathbf R;\theta_{\mathrm{BF}})$, $J$ is a neural Jastrow factor
-(PINN), and $\theta=(\theta_J,\theta_{\mathrm{BF}})$ are trainable
+x_i(\mathbf R;\theta_{\mathrm{BF}})$, $J$ is a neural Jastrow correlator, and $\theta=(\theta_J,\theta_{\mathrm{BF}})$ are trainable
 parameters.
 A CTNN message-passing network produces the backflow shifts $\Delta\mathbf x_i$.
 
@@ -742,7 +760,7 @@ A ``catch-22'' emerges:
 backflow shrinks defensively or diverges.
 Excluding them gives stable training but removes backflow's learning signal.
 In either regime, collocation cannot effectively train backflow beyond an
-accuracy floor set by the Jastrow (PINN) quality alone.}
+accuracy floor set by the correlator quality alone.}
 \end{quote}
 
 
@@ -803,19 +821,19 @@ rather than a theorem that no collocation method can ever avoid it.
 We present a systematic study for $N{=}6$ electrons in a 2D harmonic trap
 with $\omega{=}0.5$ (DMC reference: $E_{\mathrm{DMC}}=11.78484(6)$
 \cite{Pederiva2000-QD-DMC}).
-The ans\"atz uses a PINN Jastrow (${\sim}15{,}000$ parameters)
+The ans\"atz uses a neural Jastrow correlator (${\sim}15{,}000$ parameters)
 and a CTNN backflow network (${\sim}8{,}600$ parameters) with
 $\mathrm{bf\_scale}=0.7$.
 All energies are evaluated via MCMC with 15\,000 samples after
 burn-in.
 
-\subsection{Baseline: PINN alone vs.\ PINN\,+\,CTNN}
+\subsection{Baseline: correlator alone vs.\ correlator\,+\,backflow}
 \label{app:catch22:baseline}
 
 \begin{table}[htbp]
 \centering
 \caption[Baseline strong-form collocation results]{Baseline collocation results for $N{=}6$, $\omega{=}0.5$.
-``PINN only'' trains without backflow; ``PINN\,+\,CTNN joint'' trains both
+``Correlator only'' trains without backflow; ``joint'' trains both
 networks from scratch for 300 epochs with $\mathrm{bf\_scale}=0.7$.
 The backflow provides only a marginal improvement of ${\sim}0.1$ percentage
 points.}
@@ -824,9 +842,9 @@ points.}
 \toprule
 Configuration & $E$ (Ha) & $\sigma_E$ & err (\%) \\
 \midrule
-PINN only (300 ep) & 11.834 & 0.003 & 0.42 \\
-PINN\,+\,CTNN joint (300 ep) & 11.823 & 0.003 & 0.33 \\
-PINN\,+\,CTNN separate opt & 11.822 & 0.003 & 0.32 \\
+Correlator only (300 ep) & 11.834 & 0.003 & 0.42 \\
+Correlator\,+\,BF, joint (300 ep) & 11.823 & 0.003 & 0.33 \\
+Correlator\,+\,BF, separate opt & 11.822 & 0.003 & 0.32 \\
 \midrule
 DMC reference & 11.78484 & --- & 0.00 \\
 \bottomrule
@@ -984,14 +1002,14 @@ to show the size of the gap, not as a matched comparison.}
 \toprule
 Experiment & err (\%) & Category \\
 \midrule
-PINN\,+\,CTNN sep opt (best) & 0.32 & baseline \\
-PINN\,+\,CTNN joint 300 ep & 0.33 & baseline \\
+Correlator\,+\,BF, sep opt (best) & 0.32 & baseline \\
+Correlator\,+\,BF, joint 300 ep & 0.33 & baseline \\
 K-FAC on CTNN & 0.34 & preconditioner \\
 Adam fine-tune 30 ep & 0.34 & optimiser \\
 Top-$K$ baseline (retrained) & 0.35 & sampling \\
 Hard mining + smoothness & 0.38 & sampling \\
 Hard mining + Huber & 0.41 & sampling \\
-PINN only & 0.42 & no backflow \\
+Correlator only & 0.42 & no backflow \\
 $T$ clipping & 0.43 & regularisation \\
 SIR (mixture) & 0.44 & sampling \\
 SIR (single) & 0.47 & sampling \\
@@ -1230,7 +1248,7 @@ Every diagnostic below is evaluated on fresh samples drawn from $|\Psi_\theta|^2
 estimators and stability protocol of \S\ref{sec:repr-methods}.
 
 %% ──────────────────────────────────────────────────────────────────────
-\section{Correlator geometry: a compact manifold that reorganises}
+\section{Correlator geometry: a low-rank representation that reorganises}
 \label{sec:repr-geom}
 
 We characterise the correlator feature space $Z = \overline\phi\|\overline\psi\|\mathbf{g}$
@@ -1458,7 +1476,7 @@ $N$ & $\omega$ & $\langle\cos\rangle$ & Aligned & $|\delta f|/\sigma_f$ & $\righ
 The data reveal a sharp regime change.
 At $\omega \leq 0.01$ the coupling is weak and inconsistent in sign: $\langle\cos\rangle$
 runs from $-0.48$ to $0.32$ across the six cells, the alignment fraction is erratic, and
-backflow barely affects the PINN output ($|\delta f|/\sigma_f < 0.07$ everywhere). The
+backflow barely affects the correlator output ($|\delta f|/\sigma_f < 0.07$ everywhere). The
 $N{=}12$, $\omega{=}0.001$ cell is strongly \emph{anti}-aligned
 ($\langle\cos\rangle=-0.48$, alignment fraction $0.01$), which we record without an
 account of it: at that confinement the displacement field is small enough
@@ -1628,14 +1646,22 @@ $N{=}12$ $(3,9)$ molecule, and $1.19$ and $1.47$ on the outer two rings of the $
 $(1,7,12)$ molecule.
 
 Whether the small excesses are \emph{resolved} is a separate question from whether they are
-\emph{large}, and with these sample sizes the two come apart. Under the null $|\Phi_n|$ is
-Rayleigh distributed with mean $0.886/\sqrt n$ and standard deviation $0.463/\sqrt n$, so
-the standard error on the mean over $K$ frames is $0.463/\sqrt{nK}$. At $N{=}6$,
-$\omega=0.1$, with $K=1.19\times10^6$ frames, that is $1.9\times10^{-4}$, and the $2\%$
-excess is $46$ standard errors---resolved beyond any doubt, and still only $2\%$. Statistical
-detectability is therefore not what separates the regimes here; magnitude is. On that
-criterion the ordering is flat through $\omega=0.1$, weakly present at $\omega=0.01$ and
-only at $N{=}6$, and unambiguous at $10^{-3}$.
+\emph{large}, and with these sample sizes the two come apart. Two caveats attach to the null
+before it is used quantitatively. The Rayleigh form is the large-$n$ limit of the resultant
+of $n$ unit steps; for the small rings here ($n=3$ to $19$) it is an approximation, accurate
+to well within the effect at $10^{-3}$ but of the same order as the few-percent excesses at
+$\omega\ge0.1$. And the frames come from a Markov chain, so a naive standard error over $K$
+raw frames understates the uncertainty, whereas the block bootstrap of
+\S\ref{subsec:repr-uncertainty} is used for the reported errors elsewhere. Taking those at
+face value, the excess at $N{=}6$, $\omega=0.1$ is of order tens of block standard errors and
+still only $2\%$.
+
+The conclusion that survives both caveats is the one that matters: statistical detectability
+is not what separates the regimes here, magnitude is. On that criterion the ordering is flat
+through $\omega=0.1$, weakly present at $\omega=0.01$ and only at $N{=}6$, and unambiguous at
+$10^{-3}$. A cleaner version of this comparison would generate the null numerically at each
+actual occupancy $n$, through the same block-bootstrap pipeline, rather than relying on the
+asymptotic form; that is a small addition we did not make.
 
 The Lindemann numbers of the same table fall monotonically throughout, so radial stiffening
 precedes $n$-fold angular ordering rather than accompanying it---the separation between

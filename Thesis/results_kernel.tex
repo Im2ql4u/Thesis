@@ -210,7 +210,7 @@ $1.0$  & $2.75\times10^{-2}$ & $9.38\times10^{-2}$ & $3.4$ & matched, $79.8$k vs
 \end{tabular}
 \end{table}
 
-\paragraph{Naming the manifold, at every size.} The leading tangent directions are not
+\paragraph{Naming the leading tangent directions, at every size.} The leading tangent directions are not
 abstract. At the exact $N=2$ anchor an operator decomposition identifies them, to
 $R^2=1.00$, as the physical collective modes of $H$---a breathing mode
 ($\partial_\omega$), a correlation-hole mode, and the first relative excitation. This is not
@@ -275,12 +275,21 @@ $\approx\!0.77$ at $\omega=1$---the gap \emph{widens} with system size rather th
 \subsection{The backflow: rank collapse and its absence}
 \label{sec:kernel-q1b}
 
-The same relational channel is decisive, in a sharper form, in the backflow. Here we
-fix everything but the backflow architecture (conventional single-round messages vs.\ the
-copresheaf CTNN) and train both to convergence under the same SR variant---the matrix-free
-CG solve of \S\ref{sec:sr-stage}, using the Woodbury identity to apply
-$(S+\lambda I)^{-1}$ through the $B\times B$ kernel rather than the $P\times P$ metric, which
-is what makes it affordable at $B\ll P$. At $\omega=1$ both reach reference
+The same relational channel is decisive, in a sharper form, in the backflow. Here we fix
+the correlator, the data, the protocol and the optimiser---the matrix-free CG solve of
+\S\ref{sec:sr-stage}, using the Woodbury identity to apply $(S+\lambda I)^{-1}$ through the
+$B\times B$ kernel rather than the $P\times P$ metric, which is what makes it affordable at
+$B\ll P$---and vary only the backflow architecture (conventional single-round messages
+vs.\ the copresheaf network), training both to convergence.
+
+Unlike the correlator comparison, this one is \emph{not} capacity-matched, and the reader
+should hold that in mind for the next two tables. At the shared production width the
+copresheaf network carries $182$k parameters against the conventional network's $51$k,
+because a persistent edge state is intrinsically heavier than a per-particle aggregate
+(\S\ref{sec:hyperparameters}); no matched pair was trained. A raw energy gap between the two
+is therefore not by itself evidence about architecture. What does separate the two
+explanations is set out after the rank measurement, and it is internal to the conventional
+network rather than a comparison between networks. At $\omega=1$ both reach reference
 quality, but they diverge as the trap weakens (Table~\ref{tab:bf_energies}): the
 CTNN backflow stays within $0.01$--$0.12\%$ across all $N,\omega$, while the
 conventional backflow degrades to $+0.58\%$ at $N=6,\omega=0.01$ and $\sim\!6\times$
@@ -330,14 +339,36 @@ two columns anywhere, and the reader should not either. Toward Wigner the \emph{
 collective mode (rank $\to1$) while the CTNN backflow stays near the ceiling
 (Table~\ref{tab:bf_rank}). The endpoint is the same at every size---rank $1$, from ceilings
 of $10$, $22$ and $38$ at $N=6$, $12$ and $20$---so what grows with $N$ is the height of the
-fall, not the sharpness of it. The tangent dimension tells the same story
+fall, not the sharpness of it. At $N=6$ and $N=12$ both seeds return exactly $1.00$; the
+$N=20$ entry comes from a separate re-run of that cell and is single-sourced (see the
+table note). The tangent dimension tells the same story
 from the other side: toward Wigner $d_{\mathrm{eff}}$ grows for CTNN ($\sim\!4\!\to\!10$)
-and collapses for the conventional backflow ($\sim\!6\!\to\!1$). The collapse to
-\emph{exactly} rank~1 is seed-robust at every size. Rank is not the discriminator above the
+and collapses for the conventional backflow ($\sim\!6\!\to\!1$). The collapse to \emph{exactly} rank~1 is seed-robust where two seeds
+exist ($N=6$ and $N=12$). Rank is not the discriminator above the
 crystal: at $\omega\ge0.1$ the conventional field is nominally the higher-rank of the two
 (Table~\ref{tab:bf_rank}), though that comparison is confounded by the differing ceilings
 noted above, and the two architectures are then also within $0.2\%$ of each other in energy.
 It is the collapse, not the level, that carries the finding.
+
+\paragraph{Why this is not the capacity difference.} The conventional network is a third the
+size of the copresheaf one, so the obvious alternative reading is that it simply runs out of
+parameters at weak confinement. The conventional network's own $\omega$-dependence rules that
+out. Capacity does not vary with $\omega$: the same $51$k network, trained on the same
+protocol, holds a displacement rank of $10.4$--$10.8$ at $N=6$, $21.7$--$22.3$ at $N=12$ and
+$33.7$--$38.7$ at $N=20$ for every $\omega\ge0.1$---within a unit or two of its own ceiling
+of $12$, $24$ and $40$---and then falls to exactly $1.00$ below $\omega=0.1$. A capacity
+deficit would show as a rank held down across the whole range, or degrading smoothly with
+the difficulty of the state; it would not produce a network that is near-full-rank at one
+confinement and rank-one at the next. What changes between those cells is the physics, not
+the parameter budget.
+
+The same argument does \emph{not} rescue Table~\ref{tab:bf_energies}. The energy gap there
+is a between-network comparison at unequal size, and nothing in our data separates the
+architecture from the extra $131$k parameters. We report it as what the two production
+ans\"atze achieve---which is a real and useful statement, since these are the models that
+produced the energies of Chapter~\ref{ch:results}---and not as an architecture ablation. The
+missing experiment is a widened conventional backflow at matched capacity; it was not
+run.
 
 \begin{table}[htbp]\centering
 \caption[Backflow displacement rank (participation ratio)]{Backflow displacement rank
@@ -345,7 +376,13 @@ It is the collapse, not the level, that carries the finding.
 The ceilings differ by construction: $2N-2$ ($10/22/38$) for the copresheaf network, which
 projects out the centre of mass inside its forward pass, and $2N$ ($12/24/40$) for the
 conventional one, which does not, so the columns are comparable in their collapse and not in
-their level.}
+their level. The two networks are also not capacity-matched ($51$k against $182$k;
+\S\ref{sec:hyperparameters}), which is why the collapse is argued from the conventional
+network's own $\omega$-dependence rather than from the comparison. Provenance: all entries
+are seed means over two seeds from the scaling sweep, except the $N=20$, $\omega=0.01$
+column, whose cells exhausted GPU memory in that sweep and were re-run separately; the
+per-run rank artefacts of that re-run were not retained, so unlike every other entry it
+cannot be regenerated from the saved outputs.}
 \label{tab:bf_rank}
 \begin{tabular}{l|cc|cc|cc}
 \hline
@@ -483,8 +520,9 @@ unperturbed (centred kernel alignment above $0.98$ everywhere).
 
 These are component-level measurements on one training run, so they are gauge-like in the
 sense of \S\ref{sec:synthesis} and none of the architectural conclusions above depends on
-them. They are worth recording because a low-dimensional latent representation is not what
-one would have predicted for a state whose real-space structure is this elaborate, and
+them. They are worth recording because a low effective covariance rank in the tapped
+representation is not what one would have predicted for a state whose real-space structure
+is this elaborate, and
 because the reorganisation happens near $\omega\approx0.1$---the same confinement at which
 the energy partition crosses over (\S\ref{sec:wigner-energy}) and at which the ablation
 costs of Fig.~\ref{fig:q1b-ablation} exchange order. Whether that coincidence reflects one
@@ -1198,15 +1236,15 @@ sampling.
 The quality of this reweighting depends on how well $q$ overlaps
 with $|\Psi_\theta|^2$.
 
-For the harmonic quantum dot, $|\Psi|^2$ concentrates on a manifold
-whose geometry depends on $\omega$:
+For the harmonic quantum dot, $|\Psi|^2$ has full support but concentrates its mass in a
+region whose geometry depends on $\omega$:
 at $\omega{=}1.0$, electrons occupy a compact cloud of radius
 of order the oscillator length $\ell=1/\sqrt{\omega}$, and the three-component
 Gaussian mixture in Eq.~\eqref{eq:colloc-proposal} provides adequate coverage.
 At $\omega{=}0.001$, the electron cloud extends to
 $\sim\!100\,a_0^\ast$ (several oscillator lengths, $\ell\approx31.6\,a_0^\ast$), the pair correlation function develops
 sharp shell structure (Section~\ref{sec:wigner-molecule}), and
-$|\Psi|^2$ concentrates on a thin correlated submanifold that the
+$|\Psi|^2$ concentrates in a thin, strongly correlated region that the
 isotropic Gaussian proposal covers inefficiently.
 
 The mismatch manifests directly in the importance weights.
@@ -1483,7 +1521,21 @@ bond-order and Lindemann machinery of \S\ref{sec:wigner-angular} was run on the 
 grid and not on the cascade rungs, and those states were not retained. So ``a Wigner
 molecule at $\omega=0.0035$'' rests here on energy continuity and radial geometry, not on
 demonstrated angular order, and the natural next check is to measure
-$|\Phi_5|$ against its random-angle null on that state. The essential ingredient is the continuous re-fit: it keeps ESS healthy
+$|\Phi_5|$ against its random-angle null on that state.
+
+One further qualification concerns the state's ancestry rather than its certification. The
+chain-free claim is a claim about the \emph{gradient}, and it holds exactly: no Metropolis
+sample reaches a parameter update at any rung. It is not a claim that the frontier state is
+reference-free. Each rung is warm-started from the converged state of a stronger
+confinement, that ladder runs back to $\omega=0.01$ and beyond it to the strong-confinement
+runs, and the whole cascade begins from a pretrained checkpoint
+(\S\ref{sec:colloc-reliability}) whose residual objective used an external energy as its
+target wherever one exists. So the parameters arriving at $\omega=0.0035$ inherit structure
+shaped, several confinements upstream, by reference-guided pretraining---which is the same
+inheritance the SR--VMC states carry (\S\ref{sec:energy-discussion}), and which no
+measurement here separates from what collocation itself contributed. Training a rung from
+scratch at weak confinement is the experiment that would settle it; \S\ref{sec:kernel-q3-frontier}
+reports that this does not converge, which is itself part of the finding. The essential ingredient is the continuous re-fit: it keeps ESS healthy
 ($\sim\!10^2$) \emph{while} the energy descends, where a static or slowly-updated proposal
 collapses to $\mathrm{ESS}\!\sim\!1$ as the wavefunction moves away from it.
 

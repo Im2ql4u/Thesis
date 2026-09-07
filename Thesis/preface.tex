@@ -35,9 +35,9 @@ explanations apart.
 The most important lessons came from failures. An error in the
 importance-sampling code went undetected for months because its signature---loss
 of accuracy at larger particle numbers and weaker confinement---was exactly what
-an inadequate architecture might have produced. In $Nd$ dimensions, a small
-error in a log-density grows linearly with dimension and is amplified in the
-normalised weights; the bug was invisible where experiments were cheap and
+an inadequate architecture might have produced. A small per-particle error in a log-density
+accumulates over the $N$ particles and is then exponentiated into the importance
+weights; the bug was invisible where experiments were cheap and
 ruinous where they mattered. Discovering it damaged my confidence in everything
 else. Re-establishing that confidence, rather than assuming it, became a
 substantial part of the later work.
@@ -49,7 +49,6 @@ Neither result was useful merely because it was negative. Each exposed an
 assumption that had been invisible until the computation violated it. Negative
 results of this kind are not a concession or an embarrassment; they are part of
 the method, and I have written them up as such.
-
 
 That diagnostic stance also changed what I thought the network was for. I began
 by asking whether a machine-learning construction could solve the many-body
@@ -63,8 +62,8 @@ character: each is at once a physics problem and an optimisation problem.
 Stochastic reconfiguration, developed for variational wavefunctions, is natural
 gradient descent on the variational manifold. The REINFORCE estimator from
 reinforcement learning is the score-function gradient of the variational energy.
-The Fisher information matrix of statistics is the quantum geometric tensor of
-physics. The same mathematics appears under different names in different
+The Fisher information matrix of statistics is, for a real amplitude and up to a
+factor of four, the quantum geometric tensor of physics. The same mathematics appears under different names in different
 communities. Recognising that felt less like discovering a bridge between fields
 than like realising that the two fields had been approaching the same problem
 from opposite sides.
@@ -86,7 +85,7 @@ undertaking I have had and have simply always been there; and to my friends,
 inside CCSE and out, who supplied the joy, the laughter, and a good deal of the
 sanity this project required.
 
-To Morten, again, and properly: thank you for the assignment, for the two years,
+To Morten, again, and properly: I thank you for the assignment, for the two years we've had together,
 and above all for a genuine and undisguised interest in what I was finding at
 every stage---including the stages where what I was finding was that I had been
 wrong. That interest is most of what encouragement actually consists of.

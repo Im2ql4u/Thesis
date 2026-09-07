@@ -1709,3 +1709,66 @@ them still exists, regenerating with the right label is a five-minute fix and wo
 better than the caption workaround.
 
 Build: 0 warnings, 0 overfull boxes, 0 undefined references, 131 pages. 34 of 34 checks pass.
+
+---
+
+## 2026-09-07 — Whole-thesis coherence pass; the parameter counts turned out to be wrong
+
+Worked through the last review as a whole-thesis pass. Most of it was tying language
+together; one item turned into a real correction.
+
+**The parameter-count contradiction was not a labelling problem.** The review flagged that
+Table 3.1 ("production: correlator 79.8k, backflow 83k") and Chapter 6 ("correlator 54k,
+conventional backflow 83k, total 137k") could not both describe the production models. They
+could not, and neither was right. Instantiating the classes settles it: `PINN` at width 128,
+2 layers = 53,933; `BackflowNet` at msg 128x2 / node 128x3 = 51,203; `CTNNBackflowNet` at the
+same widths = 182,403. The sums 105,136 and 236,336 are exactly the `n_params` recorded in
+136 run directories under `results/analysis/`. So the conventional backflow is 51k and its
+total is 105k -- the thesis said 83k and 137k, and 83k corresponds to no model that was ever
+trained. Corrected in Table 3.1, 6.1, the Table 6.2 caption and the Part IV programme table.
+
+**Two consequences that mattered more than the numbers.**
+
+*The production correlator is the separable one.* Every production checkpoint has
+`"class": "PINN"`, whose forward pass pools particlewise and pairwise embeddings
+independently -- the separable form. The message-passing correlator never entered
+Chapter 6. The abstract had been calling the two production ansaetze "the message-passing
+ansatz" and "the separable one", which mislabels a backflow comparison as a correlator one.
+They now read conv. BF and MP BF throughout, and the Part IV map says in as many words that
+no Chapter 6 energy bears on the correlator question.
+
+*The backflow comparison is not capacity-matched.* 51k against 182k, a factor of 3.6, and no
+matched pair exists in the data. Section 3.7 had claimed the controlled study "fixes each
+pair of variants at the same capacity tier" -- true of the correlator, false of the backflow.
+The rank-collapse finding survives, on an internal control rather than a matched one: the
+same 51k network holds rank 10.4-10.8 (N=6), 21.7-22.3 (N=12) and 33.7-38.7 (N=20) at every
+omega >= 0.1, within a unit or two of its own ceiling, and falls to exactly 1.00 below that.
+Capacity does not vary with omega. The *energy* gap of Table 7.2 is not rescued by that
+argument and is now reported as what two production ansaetze achieve, not as an ablation.
+
+**One entry I could not verify.** The N=20, omega=0.01 column of the backflow-rank table
+(CTNN 35.2, conv 1.0) is not in any retained artefact: those four cells OOM'd in the scaling
+sweep (`ANALYSIS.log`), their `summary.json` files carry only `n_params`, and the re-run that
+produced the *energies* for that cell (`n20_wigner.log`, +0.685/+0.688% conv, +0.088/+0.157%
+ctnn -- which do support the +0.69/+0.12 in the energy table) logged no rank. The numbers are
+left in place with a provenance note in the caption saying they cannot be regenerated, and
+"seed-robust at every size" is now scoped to N=6 and N=12, where both seeds give exactly 1.00.
+
+**Also corrected against the code.** eps_bf is `sqrt(r2 + 1e-12)`, hard-coded -- not a tuned
+range [1e-6, 1e-4], and not a physical short-range scale: it changes no value the network can
+resolve and only keeps the gradient of the norm finite at coincidence. Said so.
+
+**Language and framing.** Abstract cut 811 -> 692 words (14.7%) with every caveat kept and
+the staged crossover added. PINN retired as a model label everywhere it named a network
+rather than the method class. "Manifold" removed where the object is a full-support density
+or a feature covariance. Preface: the log-density error claim and the Fisher/QGT identity
+scoped. Conclusion 9.2 wrongly excluded N=20 from external benchmarking -- Table 6.2 has DMC
+there at three confinements. Rotation equivariance elevated to the Discussion with the
+concrete fix (learned scalar gains on relative vectors). Backflow COM asymmetry now stated in
+Chapter 3 where the projection is defined, not only where it bites. Appendix A now says which
+of the three objectives it analyses (stage I, exactly) and which it does not. Cascade section
+gained the ancestry caveat: chain-free is a claim about the gradient, not about the state's
+provenance.
+
+Build: 0 errors, 0 undefined references, 0 undefined citations, no overfull box above 15pt,
+134 pages.

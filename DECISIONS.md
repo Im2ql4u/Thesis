@@ -651,3 +651,25 @@ future collocation-side comparison must match B against Table 7.4.
 
 **Confidence:** high for the measurement; the collocation-side mechanism remains
 an argument from the estimator, not a second measurement, and is labelled as such.
+
+---
+
+## 2026-09-07 — The backflow comparison is reported as uncontrolled, not repaired
+
+**Decision:** keep the conventional-vs-copresheaf backflow comparison in the thesis, state
+plainly that it is not capacity-matched (51k vs 182k), and rest the rank-collapse claim on
+the conventional network's own omega-dependence instead of on a matched control.
+
+**Why:** at equal width the copresheaf network cannot be size-matched to the conventional one
+-- a persistent edge state is heavier than a per-particle aggregate by construction -- so
+"matched" would have required deliberately widening the conventional network, which was never
+trained. Deleting the comparison would discard the mechanism that explains the Chapter 6
+energy gap. The internal control is available and is stronger than a matched pair would be
+for this particular claim: capacity is constant in omega, so a network that is near-full-rank
+at omega >= 0.1 and rank-one below it is not running out of parameters.
+
+**Constraints introduced:** the backflow energy table may not be cited as an architecture
+ablation anywhere. Any future claim that the copresheaf backflow is better *per parameter*
+requires the widened conventional run that does not exist yet.
+
+**Confidence:** high for the rank collapse; the energy gap is now explicitly unattributed.

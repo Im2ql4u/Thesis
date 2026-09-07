@@ -1777,3 +1777,21 @@ No experiments run; writing session.
   22.2 < 24 are legal; the columns are comparable in collapse, not in level.
 - k-hat: E_q[|Psi|^2/q] = int|Psi|^2 < inf, so the mean is finite by construction and
   k>1 is a finite-sample diagnostic. k-hat is fitted to w, not to w(E_L-b)grad log|Psi|.
+
+### 2026-09-07 — Parameter-count audit against the code and the run records
+- Instantiated counts: `PINN`(128,2)=53,933; `BackflowNet`(msg 128x2,node 128x3)=51,203;
+  `CTNNBackflowNet`(same)=182,403. Sums 105,136 and 236,336 match `n_params` in 36 and 100
+  run directories respectively. The thesis's 83k backflow / 137k total match no trained model.
+- Production correlator class is `PINN` in every checkpoint meta -- separable, not
+  message-passing. Chapter 6 varies only the backflow.
+- Two backflow tiers exist: small (13.3k conv / 46.1k ctnn, `2026-07-04_pinn_ansatz`) and
+  production (51.2k / 182.4k, `2026-07-16_scaling`, `2026-07-11_pinn_ansatz_v3`). Neither is
+  matched.
+- bf_rank, conv, both seeds: 10.38-10.75 (N=6), 21.69-22.33 (N=12), 33.69-38.69 (N=20) at
+  omega >= 0.1; exactly 1.00 at omega <= 0.01. Ceilings 12/24/40.
+- `backflow_master.csv` measures `dx_effective_rank` (entropy rank exp(H1)) on the production
+  checkpoints and shows no collapse (N=6 conv: 9.26 at omega=0.01, 6.02 at 1e-3). Consistent
+  with PR -> 1 under a flat tail, since PR <= exp(H1); different metric, not a contradiction.
+  Worth keeping in mind if anyone asks why the two rank tables disagree.
+- N=20, omega=0.01 rank entries have no surviving source; the energies for that cell do
+  (`n20_wigner.log`).

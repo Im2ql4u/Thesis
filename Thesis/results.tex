@@ -26,7 +26,8 @@ $\omega\in\{1.0,\,0.5,\,0.1,\,0.01,\,0.001\}$.
 Section~\ref{sec:energy-overview} benchmarks the energies against every published reference
 that exists: fixed-node diffusion Monte Carlo for $N\in\{6,12,20\}$
 \cite{Hogberget2013-DMC,Nordhagen2023-NeuralNetworksFermions} and the analytic two-electron
-solution for $N{=}2$~\cite{Taut1994-TwoElectrons}. Those references reach down to
+compiled reference values for $N{=}2$~\cite{Taut1994-TwoElectrons,Hogberget2013-DMC}. Those
+references reach down to
 $\omega=0.1$ for every $N$, and to $\omega=0.01$ for $N{=}2$; below that, for $N\ge6$, no
 published value exists, and the boundary is marked wherever it occurs. Section~\ref{sec:wigner-molecule} then uses the trained wavefunction as an instrument and
 follows the Wigner crossover from two electrons to twenty. Its result is that the crossover
@@ -56,10 +57,17 @@ displacement on the interparticle coordinates, but they do so differently: the
 aggregated per particle, whereas the \emph{message-passing} backflow maintains explicit node and
 edge features and transports information between them through learned maps (a single
 copresheaf round) before the displacement is read out; the contrast between them is the subject of the backflow
-analysis in Chapter~\ref{ch:kernel}. The architecture size is identical for all $N$. The correlator used for the energies in this
-section has $\approx\!54\text{k}$ parameters, the conventional backflow adds
-$\approx\!83\text{k}$ (total PINN+BF $\approx\!137\text{k}$), and the message-passing backflow adds
-$\approx\!182\text{k}$ (total PINN+CTNN $\approx\!236\text{k}$). These are not the widths of
+analysis in Chapter~\ref{ch:kernel}. The architecture size is identical for all $N$. The correlator is the same in both and is
+the \emph{separable} network of \S\ref{subsec:separable-correlator} (code: \texttt{PINN});
+the message-passing correlator belongs to the architecture study of
+\S\ref{sec:kernel-q1} and does not appear in this chapter. It carries
+$\approx\!54\text{k}$ parameters, the conventional backflow adds
+$\approx\!51\text{k}$ (total $\approx\!105\text{k}$), and the message-passing backflow adds
+$\approx\!182\text{k}$ (total $\approx\!236\text{k}$). The two are not capacity-matched, and
+at equal width they cannot be: the copresheaf network's persistent edge state is the heavier
+object by construction (\S\ref{sec:hyperparameters}). The two production ans\"atze share the
+same correlator and differ only in this component, so they are named for it throughout:
+\emph{conv.\ BF} and \emph{MP BF}. These are not the widths of
 the controlled architecture comparison, which uses its own matched ladder
 (Table~\ref{tab:hyperparams}); the two sets of counts are kept apart throughout and never
 compared. All components are fully trainable;
@@ -104,7 +112,7 @@ aiming at one above that minimum would make the number worse rather than better.
 Table~\ref{tab:Residual} begins with the easiest case, and its purpose is
 diagnostic rather than competitive: two electrons are few enough that the
 architecture can be tested nearly in isolation. It reports two-electron energies
-from \emph{residual-only} training (PINN and PINN+BF). For $N{=}2$, backflow is
+from \emph{residual-only} training, with and without the backflow. For $N{=}2$, backflow is
 \emph{not} required to reach reference accuracy;
 it slightly reduces the variance and smooths convergence, and nothing more. The
 Slater--Jastrow correlator already places the nodes well enough at this size. This
@@ -119,14 +127,11 @@ rather than as an artefact of having added parameters.
 Table~\ref{tab:energies}, which reports the same systems after SR refinement: the
 comparison isolates what pretraining alone achieves, and the residual bias at
 $\omega=0.01$ visible here is the one the SR tail removes. The reference column is the same
-as in Table~\ref{tab:energies}: Taut's analytic two-electron
-solution~\cite{Taut1994-TwoElectrons} at $\omega=1$ and $0.5$, and fixed-node diffusion
-Monte Carlo~\cite{Hogberget2013-DMC} at $\omega=0.1$ and $0.01$, where no analytic solution
-is available. Parentheses denote $1\sigma$ on the last digits.}
+as in Table~\ref{tab:energies}; see its notes for provenance. Parentheses denote $1\sigma$ on the last digits.}
 \label{tab:Residual}
 \begin{tabular}{c c c c}
 \hline
-$\omega$ & PINN+BF & PINN & Reference \\
+$\omega$ & correlator${}+{}$BF & correlator only & Reference \\
 \hline
 1.00  & 2.99998(3)   & 2.999940(5)  & 3.00000(1) \\
 0.50  & 1.65975(2)   & 1.65979(3)   & 1.65977(1) \\
@@ -137,7 +142,7 @@ $\omega$ & PINN+BF & PINN & Reference \\
 \end{table}
 
 Table~\ref{tab:energies} compares diffusion Monte Carlo (DMC) references with
-our \emph{final} PINN+BF energies after residual pretraining and an SR tail.
+our \emph{final} conv.-BF energies after residual pretraining and an SR tail.
 From the ultra–shallow two-electron case ($\omega{=}0.01$) to the many-electron
 systems, absolute deviations are small; for $N{=}2$ they lie within DMC
 uncertainties, and for $N\!\in\!\{6,12\}$ the relative deviations span
@@ -146,20 +151,23 @@ Fig.~\ref{fig:rel_error_vs_omega}).
 
 \begin{table}[htbp]
   \centering
-  \caption[Ground-state energies against the available references]{Residual-based pretraining + SR tail. Reference energies and our PINN+BF
-  and PINN+CTNN ground-state energies (Hartree) for selected $(N,\omega)$.
+  \caption[Ground-state energies against the available references]{Residual-based pretraining + SR tail. Reference energies and our conv.-BF
+  and MP-BF ground-state energies (Hartree) for selected $(N,\omega)$.
 For $N\in\{6,12,20\}$ the references are the fixed-node diffusion Monte Carlo energies of
   H{\o}gberget~\cite{Hogberget2013-DMC}, as tabulated in
-  Ref.~\cite{Nordhagen2023-NeuralNetworksFermions}; the $N{=}2$ entries coincide with the
-  analytic two-electron results of Taut~\cite{Taut1994-TwoElectrons}. All are benchmarks of
-  the same kind, so the fixed-node reading of \S\ref{sec:energy-discussion} applies at every
-  size, $N{=}20$ included.
+  Ref.~\cite{Nordhagen2023-NeuralNetworksFermions}; the $N{=}2$ entries are drawn from the same
+  compilation, whose reference column is assembled from H{\o}gberget's DMC and from Taut's
+  analytic two-electron solutions~\cite{Taut1994-TwoElectrons}, which exist only at a
+  discrete set of frequencies. We do not attribute individual $N{=}2$ rows to one source or
+  the other, except at $\omega=1$, where the tabulated $3.00000$ is the known exact result.
+  The fixed-node reading of \S\ref{sec:energy-discussion} therefore applies wherever the
+  reference is DMC, which is every $N\ge6$ entry.
   Parentheses denote $1\sigma$ on the last digit(s). The ``rel.\ dev.'' columns give
   $100\,(E-E_{\rm ref})/E_{\rm ref}$; because the $N\ge6$ references are fixed-node upper
   bounds, a negative entry is not necessarily an error, and the columns are labelled
   deviation rather than error for that reason (\S\ref{sec:energy-discussion}).
   \textbf{These are production energies and the two architectures are not capacity
-  matched} ($\approx137$k against $\approx236$k parameters); the controlled architecture
+  matched} ($\approx105$k against $\approx236$k parameters); the controlled architecture
   comparison is \S\ref{sec:kernel-q1}, and this table must not be read as an architecture
   ablation. A dash in the reference column marks
   $(N,\omega)$ for which no published DMC value exists (all $\omega=0.001$, and
@@ -169,7 +177,7 @@ For $N\in\{6,12,20\}$ the references are the fixed-node diffusion Monte Carlo en
   \begin{threeparttable}
     \begin{tabular}{c|c|c|cc|cc}
       \toprule
-      $N$ & $\omega$ & Reference & PINN+BF & rel.\ dev. & PINN+CTNN & rel.\ dev. \\
+      $N$ & $\omega$ & Reference & conv.\ BF & rel.\ dev. & MP BF & rel.\ dev. \\
       \midrule
       2 & 1.00 & $3.00000$ & $2.99999(1)$ & $-0.0003$ & $3.00000(2)$ & $+0.0000$ \\
          & 0.50 & $1.65977(1)$ & $1.65976(2)$ & $-0.0006$ & $1.65976(1)$ & $-0.0006$ \\
@@ -199,8 +207,12 @@ For $N\in\{6,12,20\}$ the references are the fixed-node diffusion Monte Carlo en
     \begin{tablenotes}\footnotesize
       \item[] Reference-energy provenance: values marked $^{\mathrm{H}}$ are fixed-node
       diffusion Monte Carlo energies computed by H{\o}gberget~\cite{Hogberget2013-DMC} and
-      tabulated in Ref.~\cite{Nordhagen2023-NeuralNetworksFermions}; the $N{=}2$ values are
-      the analytic two-electron results of Taut~\cite{Taut1994-TwoElectrons}. The
+      tabulated in Ref.~\cite{Nordhagen2023-NeuralNetworksFermions}. The $N{=}2$ values come
+      from the reference column of the same compilation, which draws on both
+      H{\o}gberget's DMC and Taut's analytic solutions~\cite{Taut1994-TwoElectrons}; since
+      Taut's construction is quasi-exactly solvable only at particular frequencies, we do not
+      assign individual $N{=}2$ rows between the two, beyond noting that $3.00000$ at
+      $\omega=1$ is the exact analytic value. The
       foundational DMC study of these dots is Pederiva \emph{et al.}
       \cite{Pederiva2000-QD-DMC} (spanning $N\le13$; see also its
       erratum~\cite{Pederiva2003-QD-DMC-Erratum}), cited here for the method rather than for
@@ -214,13 +226,15 @@ For $N\in\{6,12,20\}$ the references are the fixed-node diffusion Monte Carlo en
 \begin{figure}[htbp]
   \centering
   \includegraphics[width=0.8\textwidth]{rel_error_vs_omega_allN}
-  \caption[Relative deviation from the external references]{Relative deviation of PINN+BF
+  \caption[Relative deviation from the external references]{Relative deviation of the conv.-BF
   ground-state energies from the external reference energies, as a function of trap
   frequency $\omega$, for the cases where a reference exists. The references are of two
-  kinds: the $N{=}2$ values are Taut's analytic two-electron
-  solution~\cite{Taut1994-TwoElectrons}, and the $N{=}6$ and $N{=}12$ values are fixed-node
-  diffusion Monte Carlo~\cite{Hogberget2013-DMC}. For $N{=}2$ the deviations are at the
-  $10^{-3}\,\%$ level, comparable to the quoted precision of the analytic values; for
+  kinds: the $N{=}6$ and $N{=}12$ values are fixed-node diffusion Monte
+  Carlo~\cite{Hogberget2013-DMC}, while the $N{=}2$ values come from a reference column
+  drawing on both that source and Taut's analytic
+  solutions~\cite{Taut1994-TwoElectrons} (Table~\ref{tab:energies}). For $N{=}2$ the
+  deviations are at the $10^{-3}\,\%$ level, comparable to the quoted precision of the
+  reference itself; for
   $N{=}6$ and $N{=}12$ they span $0.008$--$0.05\,\%$ across $\omega$, with no sign of
   deterioration in the shallow- or tight-trap limits.}
   \label{fig:rel_error_vs_omega}
@@ -237,8 +251,7 @@ energies are tabulated there (Table~\ref{tab:collocation}) rather than here, bec
 are not interpretable until that mechanism is in hand.
 
 \paragraph{Where the tables stop.}
-One subtlety matters here, because the message-passing (CTNN) ansatz
-occasionally sits \emph{below} the quoted DMC reference (for example $N{=}12$,
+One subtlety matters here, because the MP-BF ansatz occasionally sits \emph{below} the quoted DMC reference (for example $N{=}12$,
 $\omega{=}1$: $65.6956$ vs.\ $65.7001$\,Ha). This does not violate the variational
 principle, which bounds the energy only from below by the \emph{exact} ground state,
 $E_{\rm VMC}\ge E_0$. The DMC benchmarks are \emph{fixed-node} calculations and therefore
@@ -680,7 +693,10 @@ $r_0\approx38$, $r_1\approx132$, $r_2\approx247$
 Rotation-registered angular order is strong
 ($\tilde C_{\mathrm{global}}\approx0.79$), while the lab-frame pinning
 metric remains small ($C_{\mathrm{global}}\approx0.06$), as expected for
-a freely rotating molecule.
+a freely rotating molecule. The cross-shell quantity $\tilde C_{\mathrm{global}}$ depends on
+the registration convention and its analysis code was not retained
+(\S\ref{subsec:orient}), so it is reported here as indicative; the per-shell moduli and
+Lindemann numbers below are rotation-invariant and carry no such dependence.
 Lindemann disorder on the two occupied outer shells is low:
 $L_{7,\mathrm{reg}}\approx0.35$ and
 $L_{12,\mathrm{reg}}\approx0.27$.

@@ -79,25 +79,29 @@ electrons is already far beyond reach. Cheaper methods such as coupled cluster b
 their favourable scaling instead by deciding in advance which correlations may be
 described at all.
 
-A variational neural ansatz avoids both of those particular costs. It is not an expansion
-whose size must grow with the space it covers, and it fixes no prior truncation on which
-correlations are available. It is a parameterisation free, in principle, to
-concentrate its capacity wherever the solution actually varies. Whether it does so in
+A variational neural ansatz avoids both of those particular costs. It requires no explicit
+enumeration of the determinant space, and it fixes no prior truncation on which correlations
+may be described; its parameter count is set empirically by the structure of the target
+rather than by the size of a basis. That is not freedom from scaling---capacity can still
+have to grow with $N$ or with the accuracy demanded, as the twenty-electron results below
+show---but it is freedom to concentrate capacity wherever the solution actually varies. Whether it does so in
 practice is an empirical question, and this thesis treats it as one.
 
 That question also suggests a different way to use a solver. Nearly every
 established method for the many-body Schrödinger equation is constructed outward
 from physical principles: an approximation is chosen, justified physically, and
-then implemented. A trained network inverts the order. It is obtained largely on
-machine-learning terms, and only afterwards interrogated as to what it has
-represented---and unlike an implicit stochastic representation, it is a concrete
+then implemented. A trained network inverts the order. Physical structure is still imposed on it---antisymmetry,
+the cusp, trap scaling, permutation symmetry---but the \emph{specific correlations} it
+develops within those constraints are not prescribed, and are interrogated only afterwards---and unlike an implicit stochastic representation, it is a concrete
 parameterised object whose internal structure can be examined directly. This
 motivates a question that the size of the problem does not by itself settle. A
 twenty-electron dot is a function of forty coordinates, and any basis expansion of it
 grows combinatorially---but it does not follow that the solution itself is
-forty-dimensional in any useful sense. How many directions does the \emph{solved
-state} actually vary along---which is a question about the solution rather than about the
-equation.
+forty-dimensional in any useful sense. How many active tangent directions does a given parameterisation
+actually use to represent the solved state---a question about the solution and its
+representation rather than about the equation. It is worth saying at once that this is not an
+intrinsic dimension of the wavefunction: the count depends on how the state is parameterised,
+as \S\ref{sec:theory-tangent-kernel} makes precise.
 
 We make that question quantitative through the geometry of the wavefunction's
 log-derivatives. Perturbing the parameters of a trained ansatz over an ensemble of
@@ -107,8 +111,8 @@ eigenvalues report how much variation each independent direction carries, and th
 distribution counts how many directions are doing genuine work. The physically
 appropriate version of this covariance is the quantum geometric tensor (equivalently,
 the Fisher metric), and the corresponding count is the participation ratio of its
-spectrum---an effective dimension rather than a hard rank, insensitive to the raw
-parameter count. Chapter~\ref{ch:kernel} develops this instrument and applies it to
+spectrum---an effective dimension rather than a hard rank, insensitive to the raw parameter
+count but not to the choice of parameterisation. Chapter~\ref{ch:kernel} develops this instrument and applies it to
 architecture, optimiser, and training paradigm alike; the questions it answers are how
 this effective dimension behaves as particles are added and as the trap is opened, and
 whether different architectures arrive at the same solution by different routes.
@@ -179,7 +183,8 @@ states.
 \paragraph{Scope and questions.}
 \label{sec:research-questions}
 In this thesis we revisit two-dimensional harmonic quantum dots with a
-Slater–Jastrow(+backflow) ansatz implemented as a physics-informed neural network.
+Slater–Jastrow(+backflow) neural quantum state, pretrained on a physics-informed residual
+objective and refined variationally.
 The design is meant to be \emph{safe by construction} for Laplacian-based objectives:
 coordinates are scaled to trap units ($\tilde R=\sqrt{\omega}R$), learned pair
 features are soft-core (avoiding spurious $1/r$ behaviour in derivatives), and the
@@ -274,6 +279,11 @@ The main contributions of this thesis are:
         forms a two-shell molecule with a commensurate $(3,9)$ split as the dominant
         topology, complementing classical and quantum studies of parabolic
         dots~\cite{Egger_1999,Kong_2002,schweigert1994spectralpropertieschargedparticles,Filinov_2001}.
+\end{enumerate}
+
+\noindent One further observation is recorded, at a lower evidential level and not as a
+contribution of the same rank:
+\begin{itemize}
   \item \textbf{Representation insight, with its gauge explicitly drawn.}
         The correlator features occupy a low-dimensional manifold (one to three
         principal directions) whose leading axes act as collective coordinates for
@@ -286,15 +296,15 @@ The main contributions of this thesis are:
         interventions (the energetic price of ablating a component, reproducible for a fixed
         model and protocol but not itself gauge-invariant) on which the architectural
         conclusions actually rest.
-\end{enumerate}
+\end{itemize}
 
 \paragraph{Thesis structure.}
 Chapters~\ref{sec:theory} and~\ref{ch:ml_theory} set out the physics and the
 machine-learning background the later chapters require. Chapters~\ref{ch:trial_wavefunction}
 to~\ref{ch:analysis} give the ansatz, the optimisation pipeline, and the diagnostics.
-Chapter~\ref{ch:results} reports the energies, the Wigner-molecule structure, and the
-learned representation; Chapter~\ref{ch:kernel} analyses architecture, optimisation and
-sampling through the tangent geometry, and reports the Markov-chain-free training
-programme. A discussion and a conclusion follow, and the appendices develop the
+Chapter~\ref{ch:results} reports the energies and the Wigner-molecule structure;
+Chapter~\ref{ch:kernel} analyses architecture, optimisation and sampling through the tangent
+geometry, and reports the Markov-chain-free training programme. Part~IV opens with a short
+guide to how the two fit together. A discussion and a conclusion follow, and the appendices develop the
 conditioning theory, the collocation--backflow obstruction that motivated the weak-form
 objective, and the full diagnostic tables.

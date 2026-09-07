@@ -54,21 +54,39 @@ foundation that licenses the rest.
 Three separate sets of models appear in what follows. They exist for different purposes and
 are sized differently, and numbers from one are never compared with numbers from another.
 
-\begin{center}\small
-\setlength{\tabcolsep}{5pt}
-\begin{tabular}{@{}p{0.19\textwidth} p{0.30\textwidth} p{0.13\textwidth} p{0.30\textwidth}@{}}
+\begin{center}\footnotesize
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{@{}p{0.155\textwidth} p{0.185\textwidth} p{0.185\textwidth} p{0.115\textwidth} p{0.235\textwidth}@{}}
 \toprule
-Programme & Purpose & Size & Supports \\
+Programme & Correlator & Backflow & Total & Supports \\
 \midrule
-Production (SR--VMC) & best attainable state; the physics of Ch.~\ref{ch:results} &
-  $137$--$236$k & energy and structural claims \\
-Architecture study & controlled separable vs.\ message-passing comparison &
-  matched ladder, $20$--$164$k & architecture claims \\
-Collocation & Markov-chain-free training &
-  $25$--$49$k & training-paradigm claims \\
+Production (SR--VMC), Ch.~\ref{ch:results} &
+  separable, $54$k &
+  conventional $51$k, or message-passing $182$k &
+  $105$k or $236$k &
+  the energies of \S\ref{sec:energy-overview} and every structural claim \\[2pt]
+Architecture study, \S\ref{sec:kernel-q1} &
+  separable $47.7$k (matched: $89.4$k) \emph{vs.}\ message-passing $79.8$k &
+  conventional $51$k \emph{vs.}\ message-passing $182$k (\emph{not} matched) &
+  correlator ladder $20$--$164$k &
+  the architecture claims and $\Var(E_L)$ \\[2pt]
+Collocation, \S\ref{sec:kernel-mcmcfree} &
+  message-passing, $25$k &
+  message-passing, $+24$k (or none) &
+  $25$--$49$k &
+  the training-paradigm claims \\
 \bottomrule
 \end{tabular}
 \end{center}
+
+\noindent Widths and the remaining settings are in Table~\ref{tab:hyperparams} for the first
+two and \S\ref{subsec:colloc-families} for the third. Two consequences are worth stating
+plainly, because they are easy to lose. The physics of Chapter~\ref{ch:results} was produced
+with the \emph{separable} correlator; the message-passing correlator appears only in the
+architecture study and in the collocation programme, so no energy in Chapter~\ref{ch:results}
+is evidence for or against it. And the two production ans\"atze share that correlator and
+differ only in their backflow, which is why they are named \emph{conv.\ BF} and
+\emph{MP BF} rather than by correlator type.
 
 \section*{An evidence hierarchy}
 

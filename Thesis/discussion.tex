@@ -37,8 +37,10 @@ pure-energy SR tail, and such an expectation is bounded below by $E_0$ no matter
 aimed at. Aiming at a reference above the ansatz's reachable minimum can only make the
 reported energy worse. What the agreement therefore establishes is that an independently
 evaluated upper bound lands on the reference, not that two methods found it separately---and
-the cases where the message-passing ansatz lands \emph{below} the reference are the direct
-evidence that the training is not simply reproducing its target. Exactness is a further
+the cases where the MP-BF ansatz lands \emph{below} the reference show that the
+final variational stage is not numerically pinned to the target scalar. They do not
+establish that the internal geometry is independent of reference-guided pretraining, which
+is a separate question taken up below. Exactness is a further
 matter, because the reference itself retains a nodal bias.
 
 One limit of that argument should be stated, because it is narrower than it looks. The
@@ -102,8 +104,9 @@ small set of physical operators than the other. The gap persists at every confin
 strong confinement merely disguises it, correlation being a small slice of the energy there
 and the two networks agreeing to four figures.
 
-The practical upshot is a design rule rather than a theorem. For parabolic dots a
-compact smooth correlator with a moderately wide backflow is a sound default: the
+The practical upshot is a design rule rather than a theorem, and on the present evidence---seeded
+at $N{=}6$ and thinner above it---it is offered as such. For parabolic dots a compact smooth
+correlator with a moderately wide backflow appears to be a sound default: the
 correlator behaves like a learned set of collective coordinates, while the backflow acts as
 a local correction channel that switches on where the near-field physics is delicate and
 falls quiet in the Wigner limit. The \emph{kind} of backflow continues to matter after its energy
@@ -196,7 +199,7 @@ in three particular ways.
 
 \emph{Up to the frontier, the proposal is the bottleneck rather than the objective.}
 That makes the next move a better sampler rather than a better loss---normalising flows
-trained against $|\Psi|^2$~\cite{Vehtari2024}, or the physics-informed proposals of
+trained against $|\Psi|^2$, or the physics-informed proposals of
 \S\ref{sec:kernel-q3-frontier} generalised beyond ring geometries. Rebuilding the
 proposal from the Wigner shell lifted the effective sample size by $15$--$32\times$
 without any training at all. Past the frontier the target changes: what is needed there
@@ -219,6 +222,23 @@ formulation~\cite{ChenHeyl2024-minSR,Rende2024-KernelSR}, which attack the same 
 the other side---would extend the reach without touching anything else in the pipeline---and, on the
 evidence of Chapter~\ref{ch:kernel}, without giving up the nodal correction that is the
 reason for having a backflow at all.
+
+\emph{Rotational symmetry is the one the ansatz leaves on the table.} Permutation
+equivariance is exact by construction and the centre of mass is projected out, but the
+displacement head reads a $d$-vector out of a network that has seen absolute coordinates,
+so $\mathrm{SO}(2)$ equivariance is only \emph{encouraged}---by relative-vector edge
+features and by the random in-plane rotation applied to every training batch
+(\S\ref{sec:sampling})---and never enforced. In a rotationally invariant trap whose weak-confinement
+physics is a freely rotating molecule, that is the wrong symmetry to leave approximate, and
+paying for it with data augmentation spends capacity on a constraint that could be free.
+The fix is structural and local to one module: build the displacement as
+$\Delta\mathbf r_i=\sum_{j\neq i} g_\beta(\text{invariants}_{ij})\,\mathbf r_{ij}$, a
+learned \emph{scalar} gain on each relative vector, so that the output rotates with the
+input exactly and the network never sees an absolute direction. Nothing else in the
+pipeline changes---the COM projection, the bounded scale and the spin mask all survive
+unaltered---and the augmentation can then be dropped. We did not run this variant, so we
+cannot say what it is worth; that it is a free symmetry currently being learned rather than
+imposed is not in doubt.
 
 Finally, a caution that applies to this thesis more than to any of its predictions. The
 architecture comparison is cleanest at $N{=}6$, where it is seeded; the $N{=}12$ contrast

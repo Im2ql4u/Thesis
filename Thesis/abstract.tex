@@ -3,69 +3,62 @@
 This thesis studies how far a compact, well-conditioned neural network can be taken as a
 variational wavefunction for interacting electrons, what a relational architecture
 contributes that a separable one does not, and whether such a state can be trained without
-a Markov chain. The system is the two-dimensional harmonic quantum dot, from the compact,
-kinetic-energy-dominated droplet at strong confinement to the dilute Wigner molecule at
-weak confinement, for \(N\in\{2,6,12,20\}\) electrons and trap frequencies \(\omega\) from
-\(1\) down to \(10^{-3}\).
+a Markov chain. The system is the two-dimensional harmonic quantum dot, from the
+kinetic-energy-dominated droplet to the dilute Wigner molecule, for \(N\in\{2,6,12,20\}\)
+electrons and \(\omega\) from \(1\) down to \(10^{-3}\).
 
 The ansatz is a Slater determinant dressed by a neural Jastrow correlator, which reshapes
-the amplitude, and a coordinate backflow, which reshapes the nodes. Both are constructed to
-be safe for Laplacian-based training: coordinates are scaled to trap units, pair features
-are soft-core, and the electron--electron cusp is imposed analytically. Each learnable
-object is built in two forms---one that pools per-particle and pairwise features in a
-single pass, and one that passes messages between particles on a graph---and the trained
-states are read through the geometry of their log-derivatives, the quantum geometric tensor
-and the neural tangent kernel. Training is by residual pretraining followed by stochastic
-reconfiguration (SR), and, separately, by importance-sampled collocation that uses no
-Markov chain.
+the amplitude, and a coordinate backflow, which reshapes the nodes. Both are built to be
+safe for Laplacian-based training: trap-unit coordinates, soft-core pair features, an
+analytic electron--electron cusp. Each exists in a separable form and a message-passing
+one, and the trained states are read through the geometry of their log-derivatives. Training is by residual pretraining
+followed by stochastic reconfiguration (SR), and, separately, by importance-sampled
+collocation.
 
-Energies match the analytic two-electron result for \(N=2\), and for
-\(N\in\{6,12,20\}\) they match published fixed-node diffusion Monte Carlo wherever it
-exists (\(\omega\ge0.1\)): the message-passing ansatz to \(0.0008\!-\!0.04\%\) across all
-three sizes, the separable one to \(0.008\!-\!0.05\%\) at the two sizes it was run at. Where a reference exists it also serves as the
-pretraining target, so what these numbers report is an independently evaluated variational
-upper bound agreeing with the reference, not two blind calculations meeting. Below
-\(\omega=0.1\) no external benchmark exists for \(N\ge6\), and that boundary is marked
-wherever it occurs.
+Energies match the analytic two-electron result at \(N=2\), and for \(N\in\{6,12,20\}\)
+they match published fixed-node diffusion Monte Carlo wherever it exists: the
+message-passing-backflow ansatz to \(0.0008\!-\!0.04\%\) at all three sizes, the
+conventional-backflow one, run at two of them, to \(0.008\!-\!0.05\%\). Where a reference exists it is also the pretraining
+target: these are independently evaluated upper bounds agreeing with the reference, not
+two blind calculations meeting. Below \(\omega=0.1\) no external benchmark
+exists for \(N\ge6\), and that boundary is marked wherever it occurs.
 
-Message passing introduces a relational channel, and its effect is visible in the tangent
-geometry before it is visible in the energy. At strong confinement the message-passing
-correlator reaches reference-quality solutions along roughly half as many effective tangent
-directions as a single-pass network of matched or larger capacity needs; at every confinement its tangent space is
-more completely accounted for by a compact dictionary of the Hamiltonian's collective modes
-than the separable network's is, with the gap widening toward the Wigner crystal; and its local-energy
-variance is lower throughout, by factors between \(1.2\) and \(3.4\)---while the two
-networks agree in energy to four figures. In the nodes the same
-channel shows as a collapse averted: toward the Wigner crystal a conventional backflow
-falls onto a single collective displacement mode and loses half a percent of the energy,
-where the message-passing field retains its rank. Correlator and backflow give way at the
-same confinement, which supports a common relational bottleneck rather than two independent
-deficits. Stochastic reconfiguration earns its cost only where the tangent metric is
-both anisotropic and still estimable: under \(|\Psi|^2\) sampling, where the empirical
-metric is badly conditioned but well estimated, it changes nothing that Adam does not
-already do (tested at \(N\le6\)); under a fixed collocation proposal it is what makes the
-optimisation work at all, though once proposal adaptation and gradient stabilisation are
-added Adam becomes sufficient and is the more robust choice; and once the sampling that
-builds the metric collapses, inverting it does harm. Importance-sampled collocation matches SR--VMC while its sampling stays
-healthy and reaches a radially localised Wigner-regime state at \(\omega=0.0035\) with no
-Markov chain in the gradient---certified there on energy continuity and radial geometry, the
-angular diagnostics of the physics chapter not having been run on that state. Two limits bound that route: a statistical one, which a proposal built from the measured
-shell geometry moves back by a factor of three in \(\omega\), and beyond it a failure of
-transfer between confinements, arising from a fine-tuned Slater--Jastrow cancellation that
-no change of proposal repairs.
+Message passing's relational channel shows in the tangent geometry before it shows in the
+energy. At strong confinement it reaches reference-quality solutions along
+half as many effective tangent directions as a separable network of matched or larger
+capacity; its tangent space is better explained by a compact
+dictionary of the Hamiltonian's collective modes at every confinement, increasingly so
+toward the Wigner crystal; and its local-energy variance is lower throughout, by factors of
+\(1.2\) to \(3.4\)---while the two networks agree in energy to four figures. In the nodes
+it shows as a collapse averted: a conventional backflow falls onto a single
+collective displacement mode and loses half a percent of the energy, where the
+message-passing field keeps its rank. Both give way at the same confinement, which points
+to a common relational bottleneck rather than two independent deficits.
 
-The trained states are then used to map the Fermi-liquid-to-Wigner crossover from the
-inside. We give topology-resolved shell, bond-orientational, and stiffness diagnostics,
-with a polygon shell model fitted on held-out frames reproducing the measured pair
-distribution to cosine similarity \(0.987\!-\!0.999\), against \(0.936\!-\!0.996\) for an
-angle-randomised null: at \(\omega=10^{-3}\) the \(N=6\) dot is a single
-ring with a robust \((1,5)\leftrightarrow(0,6)\) near-degeneracy (radial mode
-\(\approx114\,a_0\)), the \(N=12\) dot a two-shell molecule with a modal \((3,9)\) split,
-and the \(N=20\) dot a three-shell molecule that collapses to a single ring about a central
-electron within one decade in \(\omega\). The measured \(N=6\) shell radius approaches the
-classical Wigner value \(1.334\,\omega^{-2/3}\) monotonically, to within \(1.7\%\) at the
-weakest trap, and it and the angular order are the inputs to the physics-informed proposal
-described above.
+Stochastic reconfiguration earns its cost only where the tangent metric is anisotropic and
+still estimable. Under \(|\Psi|^2\) sampling the metric is badly conditioned but well
+estimated, and SR changes nothing Adam does not already do (tested at \(N\le6\)); under a
+fixed collocation proposal it is what makes the optimisation work at all, though with
+proposal adaptation and gradient stabilisation in place Adam is sufficient and more robust;
+and once the sampling collapses, inverting the metric does harm. Collocation matches
+SR--VMC while its sampling stays healthy and reaches a radially localised Wigner-regime
+state at \(\omega=0.0035\) with no Markov chain in the gradient---certified there on energy
+continuity and radial geometry only, the angular diagnostics not having been run there.
+Two limits bound the route: a statistical one, pushed back a factor of three in
+\(\omega\) by a proposal built from the measured shell geometry, and beyond it a failure
+of transfer between confinements, from a fine-tuned Slater--Jastrow cancellation
+that no proposal repairs.
+
+The trained states then map the Fermi-liquid-to-Wigner crossover from the inside, through
+topology-resolved shell, bond-orientational and stiffness diagnostics. The crossover is
+staged: the shells expand and stiffen radially well before the electrons acquire angular
+order within them. A polygon shell model fitted on held-out frames reproduces the measured
+pair distribution to cosine similarity \(0.987\!-\!0.999\), against \(0.936\!-\!0.996\) for
+an angle-randomised null. At \(\omega=10^{-3}\) the \(N=6\) dot is a single ring with a
+robust \((1,5)\leftrightarrow(0,6)\) near-degeneracy, the \(N=12\) dot a two-shell
+molecule, and the \(N=20\) dot a three-shell molecule that collapses to a single ring about
+a central electron within one decade in \(\omega\). The \(N=6\) shell radius approaches the
+classical Wigner value \(1.334\,\omega^{-2/3}\) monotonically, to within \(1.7\%\).
 
 Two limits on scope apply throughout. All states reported here are the lowest found within
 a fixed spin-projection sector; total spin is not scanned. And the architecture comparison

@@ -34,3 +34,55 @@
   restatement. Also: collocation occupies 24 pages across four locations while Q2
   occupies under one page, and the thesis carries four competing organising triads
   when the abstract's three already fit. No structural edits made yet.
+
+---
+
+## 2026-09-07 — Post-audit claim and bibliography repairs
+
+- Regenerated the missing BibTeX output and ran two resolving LaTeX passes. The
+  rebuilt PDF has no unresolved citations or references; the prior `[?]` markers
+  were a missing-build-artifact problem, not absent citation keys.
+- Corrected the Chapter 1 like-spin cusp to apply $1/3$ to the regular factor
+  after the antisymmetric linear zero, and removed stale phase-alignment wording.
+- Replaced Appendix C's false generic $\nabla^2D=\mathcal O(d)$ claim with the
+  correct cancellation statement for the full $D e^J$ wavefunction. Softened
+  unsupported Appendix D novelty/causality claims while retaining the observed
+  memory-constrained capacity and gradient-quality relation.
+- Repaired Appendix E's N=20 contradiction, scoped the backflow capacity claim,
+  harmonised reference-free ancestry, corrected feature-covariance notation, and
+  weakened N=2/SR benchmark wording to the available evidence.
+- Evidence gaps retained rather than invented: row-level non-exact N=2 source
+  provenance and a finite-$n$ numerical angular-order null.
+
+---
+
+## 2026-09-07 — Final consistency repair pass
+
+- Separated the pair-distance probability $P_{\rm pair}$ from the one-body radial
+  probability $P_1$; headline $r_{\rm mode}$ and $\gamma$ statistics now explicitly
+  belong to $P_1$. Scoped the $N=2$ radial exponent to its weakest-three-point fit.
+- Relabelled Appendix F's per-shell `L` values as radial relative widths rather
+  than angular Lindemann numbers, because the generated table includes singleton
+  shells for which angular spacing is undefined.
+- Recast raw conventional-backflow rank one as a COM-ambiguous raw-field spectral
+  collapse; corrected its ceilings to 12/24/40. Reframed the IS campaign as
+  evaluator reliability, and corrected the direct weak-form explanation.
+- Remaining data-dependent follow-ups: common VMC rescoring of campaign checkpoints,
+  row-level non-exact N=2 provenance, finite-$n$ angular null, and density-figure
+  axis regeneration.
+
+---
+
+## 2026-09-07 — Final factual-consistency and hierarchy pass
+
+- Reconciled the collocation tables: VMC probes select checkpoints, while final
+  importance-sampling evaluations supply the reported campaign scores.
+- Removed the remaining unreproducible cross-shell order values, corrected the
+  N=2 nodal interpretation, made the $d_{\rm eff}$ meaning local rather than
+  trajectory-based, and moved Naming into the Part IV orientation page.
+- Matched the weak-form summary table to the score-omission derivation, replaced
+  low-omega ``ill-conditioned'' SR language with empirical-metric
+  unresolvability, and narrowed the N=6 sector/dictionary wording.
+- Built with BibTeX and two LaTeX passes: 136 pages, no unresolved citations or
+  references. Common VMC rescoring, a random-dictionary null, and density-map
+  regeneration remain data-dependent follow-ups rather than unverified edits.

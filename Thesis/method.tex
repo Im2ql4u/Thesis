@@ -380,7 +380,7 @@ $s_\beta=\mathrm{softplus}(\texttt{bf\_scale\_raw})$; and \eqref{eq:bf-com} is e
 subtracting the per-configuration mean over particles of the predicted $\Delta_\beta$ before forming $\tilde R'$.
 
 \paragraph{Summary.}
-Backflow provides a compact, symmetry-respecting way to move the Slater nodes toward the true correlated nodes. With mollified distances, optional short-range gates/attention, zero-mean projection, and bounded outputs, it integrates cleanly with the analytic cusp and smooth NQS correlator, designed to reduce nodal error while controlling local-energy variance.
+Backflow provides nodal freedom by moving the Slater coordinates, while also modifying the determinant amplitude inside each nodal pocket. With mollified distances, optional short-range gates/attention, zero-mean projection, and bounded outputs, it integrates cleanly with the analytic cusp and smooth NQS correlator, designed to reduce nodal error while controlling local-energy variance.
 
 \section{Architecture sizes and hyperparameters}
 \label{sec:hyperparameters}
@@ -825,18 +825,25 @@ g(r_\alpha)\;=\;\frac{A_{\mathrm{eff}}}{N(N-1)}\;
 with $A_{\mathrm{eff}}=\pi R_{0.95}^2$ and $R_{0.95}$ the 95\% quantile of single‐particle radii in trap units.
 This $g(r)$-based structural analysis follows established practice in mesoscopic 2D electron systems
 and quantum dots~\cite{Filinov_2001,Egger_1999,manninen2007metalclustersquantumdots}.
-We also form the normalised \emph{radial probability}
+The pair-distance probability is therefore denoted
 \(
-P(r)\propto r^{d-1}g(r)
-\)
-and report the mode $r_{\mathrm{mode}}$, mean $\bar r$, standard deviation $\sigma_r$, and FWHM (all in Bohr).
-A compact width–to–scale marker is
+P_{\rm pair}(r_{ij})\propto r_{ij}^{d-1}g(r_{ij})
+\).
+It is used for pair-structure diagnostics, distinct from the one-body radial
+probability
+\(
+P_1(r)\propto r\rho_1(r)
+\),
+from which we report the headline mode $r_{\mathrm{mode}}$, mean $\bar r$,
+standard deviation $\sigma_r$, and FWHM (all in Bohr). A compact one-body
+width-to-scale marker is
 \begin{equation}
 \gamma \;=\; \sigma_r / r_{\mathrm{mode}},
 \label{eq:gamma}
 \end{equation}
-which decreases as correlations strengthen (narrower distribution around a larger typical radius),
-consistent with the liquid$\to$Wigner crossover picture~\cite{Egger_1999,Filinov_2001}.
+which tracks the width of $P_1$ relative to its modal radius. It is interpreted
+alongside shell separation and pair/angular diagnostics, rather than as a
+universal monotone Wigner marker~\cite{Egger_1999,Filinov_2001}.
 
 \subsection{Automatic shell detection and topologies}
 \label{subsec:shells}
@@ -1030,7 +1037,7 @@ held-out block $B$ unless noted.
 
 \subsection{Entropy effective rank}
 \label{subsec:repr-erank}
-Let $\{\lambda_i\}_{i=1}^D$ be the eigenvalues of $\mathrm{Cov}(\tilde Z)$
+Let $\{\lambda_i\}_{i=1}^D$ be the eigenvalues of $\mathrm{Cov}(Z_c)$
 (on the held-out block). With $p_i=\lambda_i/\sum_j\lambda_j$, the
 \emph{entropy effective rank} is
 \[
@@ -1042,8 +1049,8 @@ number. $r_{\rm eff}=\exp(H_1)$ above is the exponential of the Shannon entropy 
 spectrum; the \emph{participation ratio}
 $d_{\rm eff}=(\sum_a\lambda_a)^2/\sum_a\lambda_a^2$ of \S\ref{sec:theory-tangent-kernel} is
 the exponential of the R\'enyi-2 entropy. Since R\'enyi entropies decrease in their order,
-$d_{\rm eff}\le r_{\rm eff}$ always, with equality only for a flat spectrum. Chapter
-\ref{ch:results} reports $r_{\rm eff}$ for feature covariances and Chapter~\ref{ch:kernel}
+$d_{\rm eff}\le r_{\rm eff}$ always, with equality only for a flat spectrum. Appendix~\ref{app:representation}
+reports $r_{\rm eff}$ for feature covariances and Chapter~\ref{ch:kernel}
 reports $d_{\rm eff}$ for the tangent metric and for the displacement field, so the same
 object can carry two slightly different counts in the two chapters; each table names which
 is used.

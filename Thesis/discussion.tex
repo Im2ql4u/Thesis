@@ -135,10 +135,11 @@ are Monte-Carlo operations themselves.
 the instability rollback monitors the relative error against it, so the DMC value enters
 the training signal. Those runs are trained without a Markov chain; they are not an
 unsupervised solution of the Schr\"odinger equation.
-(iii)~The deep-Wigner cascade is the one regime that is both Markov-chain-free
-\emph{and} reference-free: below $\omega=0.1$ no DMC value exists, so the cascade is
-guided by the variational objective alone and cross-checked against the fitted Wigner
-scaling curve, never against an external benchmark.
+(iii)~At the deep-Wigner rungs no external reference enters the loss or checkpoint
+criterion: below $\omega=0.1$ no DMC value exists, so the cascade is guided locally by
+the variational objective and cross-checked against the fitted Wigner scaling curve. It is
+not strictly reference-free in ancestry, however, because its warm starts descend from
+benchmark-guided states at stronger confinement (\S\ref{sec:kernel-q3-frontier}).
 
 \paragraph{Two walls, of different kinds.}
 Most of the failures lie on a single chain of causes. Proposal--target mismatch inflates

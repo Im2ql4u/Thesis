@@ -335,10 +335,10 @@ computing the participation ratio, which would put them under a common $2N-2$ ce
 make the levels directly comparable. That was not possible here: the diagnostic was computed
 during training and the trained checkpoints for this sweep were not retained, so it cannot
 be recomputed from the saved artefacts. We therefore make no comparison of level between the
-two columns anywhere, and the reader should not either. Toward Wigner the \emph{conventional} backflow collapses to a single
-collective mode (rank $\to1$) while the CTNN backflow stays near the ceiling
+two columns anywhere, and the reader should not either. Toward Wigner the \emph{conventional} raw field undergoes a
+spectral collapse to rank~$1$, while the CTNN backflow stays near the ceiling
 (Table~\ref{tab:bf_rank}). The endpoint is the same at every size---rank $1$, from ceilings
-of $10$, $22$ and $38$ at $N=6$, $12$ and $20$---so what grows with $N$ is the height of the
+of $12$, $24$ and $40$ at $N=6$, $12$ and $20$---so what grows with $N$ is the height of the
 fall, not the sharpness of it. At $N=6$ and $N=12$ both seeds return exactly $1.00$; the
 $N=20$ entry comes from a separate re-run of that cell and is single-sourced (see the
 table note). The tangent dimension tells the same story
@@ -350,17 +350,17 @@ crystal: at $\omega\ge0.1$ the conventional field is nominally the higher-rank o
 noted above, and the two architectures are then also within $0.2\%$ of each other in energy.
 It is the collapse, not the level, that carries the finding.
 
-\paragraph{Why this is not the capacity difference.} The conventional network is a third the
+\paragraph{Why a simple global capacity shortage is unlikely to explain the collapse.} The conventional network is a third the
 size of the copresheaf one, so the obvious alternative reading is that it simply runs out of
-parameters at weak confinement. The conventional network's own $\omega$-dependence rules that
-out. Capacity does not vary with $\omega$: the same $51$k network, trained on the same
+parameters at weak confinement. The conventional network's own $\omega$-dependence makes a
+simple global shortage unlikely. Capacity does not vary with $\omega$: the same $51$k network, trained on the same
 protocol, holds a displacement rank of $10.4$--$10.8$ at $N=6$, $21.7$--$22.3$ at $N=12$ and
 $33.7$--$38.7$ at $N=20$ for every $\omega\ge0.1$---within a unit or two of its own ceiling
-of $12$, $24$ and $40$---and then falls to exactly $1.00$ below $\omega=0.1$. A capacity
-deficit would show as a rank held down across the whole range, or degrading smoothly with
-the difficulty of the state; it would not produce a network that is near-full-rank at one
-confinement and rank-one at the next. What changes between those cells is the physics, not
-the parameter budget.
+of $12$, $24$ and $40$---and then falls to exactly $1.00$ below $\omega=0.1$. This abrupt
+change disfavors the reading that the network is simply too small throughout the grid. It
+does not exclude a regime-dependent capacity limitation: without a widened
+conventional-backflow control, the change in target complexity at weak confinement remains
+a confound.
 
 The same argument does \emph{not} rescue Table~\ref{tab:bf_energies}. The energy gap there
 is a between-network comparison at unequal size, and nothing in our data separates the
@@ -511,9 +511,11 @@ its own evidential level. Examining a single high-quality trained solution
 (Appendix~\ref{app:representation}) shows the correlator occupying a feature space of one to
 three effective dimensions across the entire grid, and never expanding: at
 $\omega=10^{-3}$, where the real-space density has developed rings and discrete
-occupancies, the latent rank is no larger than at $\omega=1$. What changes across the
-crossover is which branch the leading axis draws on---pair features at moderate coupling,
-single-particle and global features at strong coupling---not how many axes there are. The
+occupancies, the latent rank is no larger than at $\omega=1$. For $N{=}6$ and $N{=}12$,
+what changes across the crossover is which branch the leading axis draws on---pair features
+at moderate coupling, single-particle and global features at strong coupling---not how many
+axes there are. The $N{=}20$ component diagnostic is an explicit exception
+(Appendix~\ref{app:representation}). The
 displacement field is the opposite kind of object, spanning nearly all the spatial
 directions available to it, and it leaves the correlator's feature geometry almost
 unperturbed (centred kernel alignment above $0.98$ everywhere).
@@ -530,8 +532,8 @@ mechanism or three we cannot say from a single run.
 
 \paragraph{What \S\ref{sec:kernel-q1} establishes.} Message passing supplies a relational
 channel whose effect is geometric before it is energetic. In the correlator it shows as a
-tangent space that is smaller at strong confinement and better accounted for by the
-Hamiltonian's collective modes throughout, with a local-energy variance lower at every
+tangent space that is smaller at strong confinement and better accounted for by a compact,
+physically motivated operator dictionary, with a local-energy variance lower at every
 confinement by factors of $1.2$ to $3.4$. In the backflow it shows as a collapse averted,
 costing half a percent where it is not. The correlator-swap intervention ties the two
 together. What this does \emph{not} establish is that the two architectures reach different
@@ -686,7 +688,7 @@ ratio estimator built from the same degenerate weights, so at this ESS it report
   \label{fig:q3-ess}
 \end{figure}
 
-\paragraph{Same state, until the sampling loses the target.} We test whether the two
+\paragraph{State agreement degrades with proposal overlap.} We test whether the two
 paradigms reach the same \emph{state} (not merely the same energy) via the symmetric
 overlap
 $\mathcal{S}^2=\langle\Psi_B/\Psi_A\rangle_{|\Psi_A|^2}
@@ -801,9 +803,10 @@ way is not interpretable.
 \begin{table}[htbp]
   \centering
   \caption[Energies from Markov-chain-free collocation training]{Ground-state energies from
-  Markov-chain-free collocation training, all rows using the backflow+Jastrow ansatz and all
-  values VMC-evaluated (${\geq}20$k samples) at the best checkpoint. For $N{=}6$ the
-  headline number is the \emph{reliability} of the protocol, not its luckiest run: the
+  Markov-chain-free collocation training, all rows using the backflow+Jastrow ansatz. Each
+  run selects its best checkpoint using a VMC probe (${\geq}20$k samples) and reports a
+  final IS evaluation; the latter is the table's scoring estimator. For $N{=}6$ the
+  headline number is the \emph{reliability of that evaluated protocol}, not its luckiest run: the
   campaign of \S\ref{sec:colloc-reliability} fixes a $1200$-epoch budget and the
   hyperparameters and varies only the seed, and both the three-seed mean $\pm$ standard
   deviation and the best of the three are given. The $N{=}2$ rows are single collocation
@@ -852,7 +855,7 @@ regime---the physics-informed ring proposal with cascade warm-starting
 (\S\ref{subsec:colloc-wigner}). Two methodological findings shape what follows. First, among
 the optimisers (\S\ref{sec:sr-stage}), \textbf{Adam} was the robust
 default across all regimes, whereas \textbf{CG-SR} converged faster at $\omega\!\ge\!0.1$ but
-diverged for $\omega\!\le\!0.01$, where the geometric tensor becomes ill-conditioned.
+diverged for $\omega\!\le\!0.01$, where the empirical metric becomes statistically unresolved.
 Second, \textbf{cascade warm-starting}---initialising each confinement from the converged
 checkpoint of a stronger one---was decisive for reaching the deep-Wigner regime, exploiting
 the transfer of correlation structure across $\omega$.
@@ -905,9 +908,12 @@ minimisation fails.
 The superiority of pure REINFORCE ($\beta{=}0$) over the hybrid
 objective ($\beta{>}0$) has a related explanation.
 The direct weak-form term $\tilde{E} = \tfrac{1}{2}\|\nabla\log\Psi\|^2 + V$
-is cheaper to evaluate (no Laplacian needed) but minimises a different
-functional: it drives the wavefunction toward low kinetic energy rather
-than low total energy.
+is cheaper to evaluate (no Laplacian needed). Averaged under the current
+$|\Psi|^2$ measure, it equals the variational energy by integration by parts.
+The implemented direct path, however, differentiates $\tilde E(R)$ at retained
+samples without the score contribution from the changing sampling measure; $V(R)$
+then has no explicit parameter derivative and the update behaves as a kinetic-only
+pathwise gradient.
 At nonzero~$\beta$, the resulting gradient conflict between the two
 objectives manifests as oscillatory behaviour in the energy, with the
 REINFORCE term pulling toward the variational minimum and the direct
@@ -1008,8 +1014,8 @@ Attempt & Outcome & Mechanism \\
 \midrule
 Pure REINFORCE ($\beta{=}0$) over the hybrid objective
   & adopted
-  & The direct weak-form term is cheaper but minimises a different functional; at
-    $\beta>0$ it pulls toward a kinetic-energy minimum distinct from the variational one,
+  & The direct path omits the sampling-measure score contribution; at
+    $\beta>0$ it contributes a kinetic-only pathwise gradient that conflicts with REINFORCE,
     and the two gradients oscillate against each other. \\
 Cascade warm-start from higher $\omega$
   & essential
@@ -1159,7 +1165,8 @@ together with their mean, standard deviation and worst case.
   consistency rather than absolute accuracy. Each cell is the final IS-evaluated deviation
   for one $(\omega,\text{recipe},\text{seed})$ combination. Bold marks the best run at each
   $\omega$. The last two columns give the mean $\pm$ standard deviation and the worst of the
-  three seeds; the worst case is the number that matters for reliability, and the standard
+  three seeds; these quantify the reliability of the final IS evaluator, not trained-state
+  quality independently of that evaluator. The standard
   deviation is reported in place of a coefficient of variation because the latter is
   uninformative when the mean deviation approaches zero.}
   \label{tab:reliability}
@@ -1195,7 +1202,7 @@ Second, the best single result at every $\omega$ is a robust run,
 achieving $+0.013\%$ at $\omega{=}1.0$, $+0.002\%$ at $\omega{=}0.5$,
 $+0.263\%$ at $\omega{=}0.1$, $+0.237\%$ at $\omega{=}0.01$, and
 $+0.250\%$ at $\omega{=}0.001$.
-Third, the robust recipe's worst case improves at every confinement, and most
+Third, the robust recipe's IS-evaluated worst case improves at every confinement, and most
 dramatically where sampling is hardest: at $\omega=10^{-3}$ the worst robust seed
 ($+0.331\%$) is better than the \emph{best} baseline seed ($+3.876\%$) by an order of
 magnitude. At high $\omega$ the two recipes are within each other's seed spread, so the

@@ -673,3 +673,27 @@ ablation anywhere. Any future claim that the copresheaf backflow is better *per 
 requires the widened conventional run that does not exist yet.
 
 **Confidence:** high for the rank collapse; the energy gap is now explicitly unattributed.
+
+---
+
+## 2026-09-07 — Backflow rank collapse disfavors, but does not exclude, capacity limitation
+
+**Decision:** Supersede the claim that the fixed-width rank collapse rules out a
+capacity explanation. Report it instead as evidence against a simple global
+capacity shortage, while retaining regime-dependent capacity limitation as an
+unresolved confound.
+
+**Alternatives considered:** Preserve the stronger inference from the
+within-network omega transition; or delete the backflow comparison entirely.
+
+**Reasoning:** A fixed-size network can be adequate at strong confinement and
+capacity-limited once the target changes character. The abrupt rank-one collapse
+is evidence against the network being globally too small, but only a widened
+conventional-backflow control could isolate architecture from weak-regime
+capacity.
+
+**Constraints introduced:** The rank-collapse discussion must name the missing
+widened conventional-backflow control and may not claim that parameter capacity
+has been excluded as an explanation.
+
+**Confidence:** high.

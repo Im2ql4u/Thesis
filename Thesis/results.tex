@@ -115,7 +115,8 @@ architecture can be tested nearly in isolation. It reports two-electron energies
 from \emph{residual-only} training, with and without the backflow. For $N{=}2$, backflow is
 \emph{not} required to reach reference accuracy;
 it slightly reduces the variance and smooths convergence, and nothing more. The
-Slater--Jastrow correlator already places the nodes well enough at this size. This
+closed-shell two-electron singlet has no nontrivial same-spin fermionic node for
+backflow to repair. This
 matters because it establishes a baseline against which the backflow's later
 contribution, at larger $N$ and weaker traps, can be read as a genuine effect
 rather than as an artefact of having added parameters.
@@ -488,7 +489,8 @@ adding to them, are collected in Appendix~\ref{app:energy-exponents}.
 \subsection{Radial localization and pair correlations}
 \label{sec:wigner-radial}
 
-The typical radius $r_{\rm mode}$ grows as a power law, $r_{\rm mode}\!\sim\!\omega^{\alpha}$ with $\alpha\simeq-0.62$ at $N{=}2$---close to
+Over the weakest three confinements, the typical one-body radius follows
+$r_{\rm mode}\!\sim\!\omega^{\alpha}$ with $\alpha\simeq-0.626$ at $N{=}2$---close to
 the classical two-body value $-2/3$, which nothing in the ansatz knows about. And the
 width-to-scale ratio $\gamma=\sigma_r/r_{\rm mode}$ falls, which is the shell stiffening
 rather than merely dilating (Table~\ref{tab:radial-compact}).
@@ -690,22 +692,19 @@ At $\omega=10^{-3}$ the dominant shell topology is $(1,7,12)$---a clear
 three-shell Wigner molecule with widely separated rings at radii
 $r_0\approx38$, $r_1\approx132$, $r_2\approx247$
 (gaps $\approx94$ and $\approx115$).
-Rotation-registered angular order is strong
-($\tilde C_{\mathrm{global}}\approx0.79$), while the lab-frame pinning
-metric remains small ($C_{\mathrm{global}}\approx0.06$), as expected for
-a freely rotating molecule. The cross-shell quantity $\tilde C_{\mathrm{global}}$ depends on
-the registration convention and its analysis code was not retained
-(\S\ref{subsec:orient}), so it is reported here as indicative; the per-shell moduli and
-Lindemann numbers below are rotation-invariant and carry no such dependence.
+The lab-frame pinning metric remains small ($C_{\mathrm{global}}\approx0.06$), as expected
+for a freely rotating molecule. The cross-shell quantity $\tilde C_{\mathrm{global}}$ is
+omitted: it depends on a registration convention whose original analysis code was not
+retained (\S\ref{subsec:orient}). The per-shell moduli and angular-spacing diagnostics below
+are rotation-invariant and carry no such dependence.
 Lindemann disorder on the two occupied outer shells is low:
 $L_{7,\mathrm{reg}}\approx0.35$ and
 $L_{12,\mathrm{reg}}\approx0.27$.
 
 Already at $\omega=10^{-2}$ the radial gap detector returns a $(1,19)$ partition rather than
 a three-shell one: the shell radii contract by an order of magnitude ($r_0\approx10$,
-$r_1\approx45$), the registered angular order drops to
-$\tilde C_{\mathrm{global}}\approx0.20$, and the outer-shell Lindemann rises to
-$\approx0.57$. The wording matters here. At $\omega=10^{-3}$ the $(1,7,12)$ label describes a
+$r_1\approx45$), the outer-shell angular disorder rises to $\approx0.57$. The wording
+matters here. At $\omega=10^{-3}$ the $(1,7,12)$ label describes a
 Wigner \emph{topology}, because it is accompanied by separated shells, registered angular
 order and low Lindemann disorder. At $\omega=10^{-2}$ and above, with angular order at its
 random-angle null and disorder high, $(1,19)$ is what the \emph{radial classifier returns}
@@ -713,8 +712,7 @@ on a state that is not angularly ordered at all---a decomposition of the radial 
 a crystalline shell structure. We use the occupancy notation in both cases because the
 detector does, but only the weakest-trap case earns the word topology.
 At $\omega=1$ the classifier returns the same $(1,19)$ partition, with compact radii
-($r_0\approx0.55$, $r_1\approx2.3$), negligible internal order
-($\tilde C_{\mathrm{global}}\approx0.20$), and high disorder
+($r_0\approx0.55$, $r_1\approx2.3$) and high angular disorder
 ($L_{\rm out}\approx0.69$).
 The sharpness of this transition---a single decade in $\omega$ separates a
 stiff three-shell crystal from a disordered single ring about a central electron---is the

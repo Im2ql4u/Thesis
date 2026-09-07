@@ -619,17 +619,17 @@ If $\Psi$ is an eigenstate, $E_L=E$ everywhere. The cancellation is a property o
 term $2\nabla J\cdot\nabla D/D$ of Eq.~\eqref{eq:c22:EL_decomp} participates alongside
 $\nabla^2D/D$; we isolate the determinant terms below because they are the ones the backflow
 parameters move, not because the others are absent.
-Concretely, for a smooth wavefunction with a simple node at surface
-$\mathcal N$, both $D$ and $\nabla^2 D$ vanish linearly in the
-signed distance~$d$ from~$\mathcal N$:
+For an exact eigenstate, the potentially singular contributions in the full
+expression $\nabla^2(De^J)/(De^J)$ cancel at a simple node. This is not a
+property of $\nabla^2D/D$ in isolation: for a generic smooth determinant with
+$D\sim d$ near the nodal surface $\mathcal N$, $\nabla^2D$ may remain
+$\mathcal O(1)$. The exact eigenstate satisfies
 \begin{equation}
-D(\mathbf R) = \mathcal O(d),
-\qquad
-\nabla^2 D(\mathbf R) = \mathcal O(d),
-\qquad
-\frac{\nabla^2 D}{D}\;\text{is finite on }\mathcal N.
+\frac{\nabla^2(De^J)}{De^J}\;\text{finite on }\mathcal N,
 \label{eq:c22:exact_cancel}
 \end{equation}
+through cancellation among the determinant, Jastrow-cross, and remaining
+Jastrow terms in Eq.~\eqref{eq:c22:EL_decomp}.
 
 \paragraph{For an approximate wavefunction, the cancellation generically fails.}
 During training, the backflow parameters $\theta_{\mathrm{BF}}$ are
@@ -1176,23 +1176,23 @@ postdates everything in this appendix and carries the cascade to $\omega=0.0035$
 
 \paragraph{The $N{=}20$ collocation results.}
 For completeness we record here the $N{=}20$ collocation energies referred to in
-\S\ref{sec:colloc-results}; they are the first collocation-trained wavefunctions at
-this size, and they show the memory bottleneck in the clearest possible form. The
+\S\ref{sec:colloc-results}; they expose the memory bottleneck at this size. The
 backflow's edge-feature tensor scales as $\mathcal{O}(N^2\times h_{\mathrm{bf}})$, and
 at $N{=}20$ fitting it in memory forces the hidden dimension down to
 $h_{\mathrm{bf}}{=}48$--$64$. The best backflow run at $\omega{=}1.0$ then reached
 only ${\sim}{+}18\%$ error, while a Jastrow-only ansatz---freed of that tensor, and so
 able to afford a larger collocation budget and higher oversampling---reached
 $+1.32\%$ ($E=157.934\pm0.018$). The architecture that should in principle be the more
-expressive is beaten by the simpler one, purely because the memory-forced capacity cut
-degrades its gradients more than its extra flexibility repays. Polishing the
+expressive is beaten by the simpler one, consistent with the memory-forced capacity
+cut degrading gradient quality more than its extra flexibility repays. Polishing the
 Jastrow checkpoints at reduced learning rate improved the $\omega{=}1.0$ error from
 ${\sim}{+}2.6\%$ to $+1.32\%$ over ${\sim}400$ epochs and the $\omega{=}0.5$ error
 from ${\sim}{+}7.0\%$ to $+2.74\%$ ($E=96.447\pm0.015$); the best $\omega{=}0.1$
 result was $+5.53\%$ ($E=31.637\pm0.008$). The gap to
-the sub-percent accuracy reached at $N{=}6,12$ follows from the memory-forced capacity
-reduction and the gradient noise it brings, not from the collocation objective; closing
-it is a question of a more memory-frugal backflow, not of a different method.
+the sub-percent accuracy reached at $N{=}6,12$ is consistent with the memory-forced
+capacity reduction and the gradient noise it brings. A more memory-frugal backflow is
+the direct next intervention; the present experiments do not isolate the collocation
+objective as the source of the remaining gap.
 
 \section{Interpretive summary}
 \label{app:postcatch22:summary}
@@ -1300,8 +1300,9 @@ $N$ & $\omega$ & $r_{\mathrm{eff}}$ & $|\rho|$ & $\phi$ & $\psi$ & $\mathrm{g}$ 
 
 \paragraph{The manifold is low-dimensional everywhere.}
 The effective rank stays below $3.1$ across the entire grid,
-and the head output is almost perfectly reconstructed from PC1 alone
-($|\rho| > 0.94$ for all $N\geq 6$ and all $\omega$).
+and the head output is almost perfectly reconstructed from PC1 alone in all but
+one analysed cell ($|\rho|\geq0.94$ except $N{=}20$, $\omega{=}0.01$, where
+$|\rho|=0.79$).
 This holds even at strong correlation where the real-space density develops pronounced shell
 structure---the correlator does not respond by expanding its latent dimensionality.
 The modest peak at $N{=}12$, $\omega{=}0.1$ ($r_{\mathrm{eff}} = 3.08$) coincides with the
@@ -1313,9 +1314,11 @@ What varies across regimes is \emph{which branch dominates PC1}.
 At moderate-to-weak correlation ($\omega \geq 0.1$, $N\geq 6$),
 PC1 is predominantly $\psi$-loaded: the pair branch carries 60--73\% of the variance,
 meaning the correlator's primary degree of freedom tracks pair correlations.
-At strong correlation ($\omega \leq 0.01$, $N\geq 12$),
-the loading shifts toward $\phi$ (orbital) or $\mathbf{g}$ (auxiliary) branches,
-with $\psi$ dropping below 15\%.
+At strong correlation the loading shifts toward $\phi$ (orbital) or $\mathbf{g}$
+(auxiliary) branches for $N{=}6$ and $N{=}12$. The $N{=}20$ run does not follow
+the same branch-switching pattern: its pair branch remains dominant at both weakest
+confinements. Given that these are single-run, component-level diagnostics, we do
+not interpret this discrepancy as a size-dependent physical transition.
 The transition is sharpest at $N{=}12$, where $\psi$ goes from 0.09 at $\omega{=}0.01$
 to 0.63 at $\omega{=}0.1$.
 
@@ -1328,8 +1331,9 @@ the leading correlator coordinate shifts away from pair features toward the
 single-particle and auxiliary branches. The network reorganises the features through
 which it represents the state, and that reorganisation---not any growth in
 dimension---is how it adapts.
-Nothing in the architecture imposes this behaviour: regime changes appear as a rotation of
-a low-dimensional axis across branches rather than as growth in latent dimensionality.
+Nothing in the architecture imposes this behaviour: the $N{=}6$ and $N{=}12$
+regime changes appear as a rotation of a low-dimensional axis across branches rather
+than as growth in latent dimensionality.
 
 %% ──────────────────────────────────────────────────────────────────────
 \section{Backflow: a high-rank field with a low-rank footprint}
@@ -1674,18 +1678,19 @@ and run slightly higher.
 \centering
 \caption[Shell-resolved diagnostics across the whole grid]{Shell-resolved diagnostics at the modal topology, all frames, for every
 $(N,\omega)$. Occupancies are $(n_{\rm in},\dots,n_{\rm out})$; $\tilde r_s$ are mean shell
-radii in trap units; $\lambda_s$ are the per-shell angular Lindemann numbers; $|\Phi_{n_s}|$
+radii in trap units; $w_s=\sigma(r_s)/\langle r_s\rangle$ are per-shell radial relative
+widths; $|\Phi_{n_s}|$
 is the rotation-registered bond order on shell $s$; and the final column is $|\Phi_{n_s}|$
 divided by its random-angle expectation, Eq.~\eqref{eq:phi-null}. A value of $1.00$ in that column means the ring is
-angularly indistinguishable from randomly placed electrons; see the text for why
-resolvability and magnitude come apart at these sample sizes. Single-particle inner shells are omitted from the
+equal to the Rayleigh null approximation within quoted precision; see the text for
+why resolvability and magnitude come apart at these sample sizes. Single-particle inner shells are omitted from the
 angular columns, where $|\Phi_1|=1$ trivially.}
 \label{tab:shell-summary}
 \small
 \setlength{\tabcolsep}{5pt}
 \begin{tabular}{ccl cc cc}
 \toprule
-$N$ & $\omega$ & occ. & $\tilde r_s$ & $\lambda_s$ & $|\Phi_{n_s}|$ & ratio to null \\
+$N$ & $\omega$ & occ. & $\tilde r_s$ & $w_s$ & $|\Phi_{n_s}|$ & ratio to null \\
 \midrule
  6 & $1.0$   & $(1,5)$     & $0.70,\,1.66$ & $0.43,\,0.32$ & $0.397$ & $1.00$ \\
  6 & $0.5$   & $(1,5)$     & $0.76,\,1.78$ & $0.42,\,0.31$ & $0.397$ & $1.00$ \\

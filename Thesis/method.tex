@@ -371,9 +371,9 @@ the full $20$k--$164$k ladder; the backflow variants are not matched either, and
 equal width, for the reason given above. Settings follow the accompanying code
 (\texttt{scripts/run\_depth\_analysis.py}, \texttt{scripts/source\_state\_check.py}).}
 \label{tab:hyperparams}
-\small
-\setlength{\tabcolsep}{4pt}
-\begin{tabular}{@{}p{0.17\linewidth} p{0.34\linewidth} p{0.31\linewidth} r@{}}
+\setlength{\tabcolsep}{5pt}
+\renewcommand{\arraystretch}{1.25}
+\begin{tabular}{@{}p{0.165\linewidth} p{0.335\linewidth} p{0.30\linewidth} r@{}}
 \hline
 Programme & Correlator & Backflow & Total \\
 \hline
@@ -394,7 +394,7 @@ Collocation (\S\ref{sec:kernel-mcmcfree})
 \end{tabular}
 
 \medskip
-\footnotesize\noindent Readout for every correlator: hidden $64$, $2$--$3$ layers, SiLU.
+\small\noindent Readout for every correlator: hidden $64$, $2$--$3$ layers, SiLU.
 Optimiser: Adam at $\mathrm{lr}=5\times10^{-4}$ (backflow) and $5\times10^{-5}$ (Jastrow);
 CG-SR with Tikhonov damping $\lambda$, a trust-region cap and CG restarts. Collocation batch
 $n_{\rm coll}\sim3\times10^{3}$ with oversampling $m=8$--$16$; the collocation families are

@@ -15,9 +15,9 @@ form and a message-passing one. Training is by residual pretraining followed by 
 reconfiguration, and separately by importance-sampled collocation that places no Markov chain
 in the gradient. The trained states are read through the geometry of their
 log-derivatives (the quantum geometric tensor and the neural tangent kernel) and through
-structural diagnostics of the electron arrangement. Energies reproduce published fixed-node
-diffusion Monte Carlo wherever it exists, to $0.0008$--$0.04\%$; below $\omega=0.1$ for
-$N\ge6$ none exists, and those states are predictions.
+structural diagnostics of the electron arrangement. The energies reproduce all available published fixed-node
+diffusion-Monte-Carlo benchmarks, to $0.0008$--$0.04\%$; below $\omega=0.1$ for $N\ge6$ no
+benchmark exists, and those states are predictions.
 
 Message passing changes the variational geometry before it changes the energy. At strong
 confinement a message-passing correlator reaches the same reference-quality solution along

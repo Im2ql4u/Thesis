@@ -672,12 +672,13 @@ tips that balance. No change of proposal repairs it, because the proposal is not
 \noindent \S\ref{sec:kernel-mcmcfree} establishes the first wall and the mechanism behind
 it; \S\ref{sec:kernel-q3-frontier} moves it and then runs into the second.
 
-MCMC is what makes neural variational Monte Carlo sequential. Chains must equilibrate,
-successive samples are correlated, and mixing times grow with particle number and with
-correlation strength---which is to say, they grow fastest exactly where the physics gets
-interesting. Draw the configurations instead from a fixed analytic proposal and reweight
-them, and the whole gradient step becomes embarrassingly parallel. The question is what
-that costs.
+A Markov chain is what makes neural variational Monte Carlo sequential. Chains must
+equilibrate, successive samples are correlated, and mixing times grow with particle number
+and with correlation strength. They grow fastest, in other words, exactly where the physics
+gets interesting.
+
+Draw the configurations instead from a fixed analytic proposal and reweight them, and the
+whole gradient step becomes embarrassingly parallel. The question is what that costs.
 
 Two ways of posing the problem behave very differently, and the difference decides
 everything downstream. The \emph{strong form} asks the wavefunction to satisfy the local
@@ -1439,7 +1440,8 @@ locates the obstacle not in the proposal but in the warm-start, and four transfe
 (taking the converged $\omega=0.0035$ rung down to $\omega=0.0027$, a $23\%$ step) pin down
 its mechanism precisely.
 
-First, the frontier state is a genuinely Wigner-localised one on the evidence available: at
+\paragraph{Where the collapse lives.} First, the frontier state is a genuinely
+Wigner-localised one on the evidence available: at
 its own $\omega=0.0035$ its radial density peaks at $3.34\ell$ against a classical ring at
 $3.42\ell$, and it occupies a \emph{single} basin---initialising the sampler on the shell
 converges to the same $3.34\ell$. We stop short of calling it a Wigner molecule in the sense
@@ -1454,7 +1456,7 @@ essentially \emph{preserved} across the transfer ($0.15\ell\!\to\!0.13\ell$)---i
 correctly with $\ell$ but is far too small to bridge the $2.4\ell$ gap between the Slater core
 ($\sim\!1\ell$) and the Wigner shell.
 
-The mechanism is a delicate cancellation. The bare harmonic-oscillator determinant suppresses
+\paragraph{The mechanism.} A delicate cancellation. The bare harmonic-oscillator determinant suppresses
 the shell by $\exp(-\omega r^2/2)\!\sim\!\exp(-5.6)$ in amplitude ($\sim\!10^{-5}$ in density);
 the Wigner peak exists only because the Jastrow amplifies it back by a comparable factor, with
 the backflow contributing a small inward nudge. A $23\%$ change in $\omega$ perturbs both the

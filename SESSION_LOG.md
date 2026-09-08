@@ -1953,3 +1953,56 @@ removed from Methods as Results-spoiling, and six per-seed d_eff values the figu
 stated ranges carry). No dangling references, no citations dropped, no overfull box above 15pt.
 
 Whole rework across both passes: main text 48,392 -> 41,506 words (-14%), 137 -> 121 pages.
+
+---
+
+## 2026-09-08 — Layout and pacing pass on the 121-page build
+
+A reading of the rendered pages rather than the source. Nine items, all treated. This was
+mostly typesetting and rhythm; only the Conclusion lost text.
+
+**The two layout defects were real and both came from the same cause.** `conclusion.tex` and
+`discussion.tex` both wrapped their `\chapter` in `\begingroup \let\clearpage\relax`, which
+suppressed the chapter page break. That is why p.87 was trying to be the end of SS8.2, the whole
+of SS8.3, a literary pause, a chapter opening and the first two lines of the Conclusion at once.
+Removing the suppression alone stranded the Marcus Aurelius epigraph at the foot of the
+Discussion, since it sits before `\chapter` in the file; the fix is an explicit `\clearpage`
+before the epigraph with the suppression kept, so the epigraph and the chapter heading open the
+new page together. SS8.3 now ends on 86 and Chapter 9 opens 87.
+
+A `\clearpage` before "Main contributions" splits the Introduction's crowded page into two
+natural units: scope, the four questions and diagnostics on 13; contributions and thesis
+structure on 14.
+
+**Content.** SS9.1 "Limitations and further work" repeated SS8.3 "Scope, and what to do next" one
+page later; it is now four lines at the head of the concluding perspective, so Chapter 9 runs
+answers -> what we can claim -> what it means. The four research-question recaps lost the
+sentences the review named: a clause from Architecture, the kappa range from Optimiser, the
+per-N topology enumeration from Physics, all of which appear twice already. Conclusion
+830 -> 743 words.
+
+Added one sentence after the four research questions explaining why the Results answer the
+physics question first, so a reader knows on p.13 why RQ4 precedes RQ1 on p.63 instead of
+discovering it at the Part IV guide.
+
+**Chapter 7 rhythm.** Checked whether the density was float distribution: it is not. No run of
+three consecutive pages in Chapter 7 lacks a figure or table. The problem is paragraph-level,
+so the Slater--Jastrow section gained two run-in rests at its logical turns, and the long
+Markov-chain exposition after "Two walls" was split.
+
+**Table 3.1** returned to full body size with wider rows; it is the one table the Results send
+the reader back to repeatedly, so it should not be the smallest type in the chapter.
+
+Two wordings the review named: "Energies reproduce published fixed-node diffusion Monte Carlo
+wherever it exists" -> "The energies reproduce all available published fixed-node
+diffusion-Monte-Carlo benchmarks"; and "used as instruments instead of defended as answers" ->
+"establishes the accuracy needed to use them as instruments in the physics analysis that
+follows".
+
+**Final sweep.** One American "artifact"; two pieces of metadiscourse the earlier review had
+flagged and I had missed ("It is worth saying at once", "The framing matters in two respects").
+"The order matters." was left alone -- the review named it as a short sentence that works.
+
+Manifest unchanged: the same eleven numeric tokens absent, all accounted for. No dangling
+references, no citations dropped, no overfull box above 15pt, 92-entry PDF outline intact.
+121 pages.

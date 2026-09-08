@@ -84,8 +84,8 @@ motivates a question that the size of the problem does not by itself settle. A
 twenty-electron dot is a function of forty coordinates, and any basis expansion of it
 grows combinatorially---but it does not follow that the solution itself is
 forty-dimensional in any useful sense. How many active tangent directions does a given parameterisation
-actually use to represent the solved state---a question about the solution and its representation, not about the equation. It is worth saying at once that this is not an
-intrinsic dimension of the wavefunction: the count depends on how the state is parameterised,
+actually use to represent the solved state---a question about the solution and its representation, not about the equation. This is not an intrinsic dimension of the
+wavefunction: the count depends on how the state is parameterised,
 as \S\ref{sec:theory-tangent-kernel} makes precise.
 
 We make that question quantitative through the geometry of the wavefunction's
@@ -193,6 +193,10 @@ quantum geometric tensor and the neural tangent kernel.
         melting—and does its internal representation reflect that physics?
 \end{enumerate}
 
+\noindent The results take these in a different order. Chapter~\ref{ch:results} answers the
+physics question first, because the state has to be shown accurate enough to trust before
+either its physical content or the solver that produced it can be interpreted.
+
 \paragraph{Diagnostics.}
 Total energies cannot separate the models compared here, since both architectures train to
 the same energy. The measurements that can are of three kinds: structural diagnostics of the
@@ -204,6 +208,7 @@ $\hat k$). All are post-processing on $|\Psi|^2$ samples, so the same analysis w
 to a classical or quantum-chemical wavefunction unchanged. Chapter~\ref{ch:analysis} defines
 them.
 
+\clearpage
 \paragraph{Main contributions.}
 \begin{enumerate}
   \item A compact Slater--Jastrow--backflow ansatz, conditioned in trap units with an

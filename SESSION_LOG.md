@@ -2006,3 +2006,36 @@ flagged and I had missed ("It is worth saying at once", "The framing matters in 
 Manifest unchanged: the same eleven numeric tokens absent, all accounted for. No dangling
 references, no citations dropped, no overfull box above 15pt, 92-entry PDF outline intact.
 121 pages.
+
+---
+
+## 2026-09-09 — Standalone text repository (Im2ql4u/Thesis_text)
+
+Carved the manuscript out of this repo into its own GitHub repository so the text can be
+built and handed to someone without dragging along the research code, the data trees, and
+the several GB under `results/`.
+
+**What went in:** the fourteen `.tex` files under `Thesis/`, `references.bib`, the committed
+`main.pdf`, and the twenty-two figures the document actually includes. The figure list was
+not taken from the sources but from `Thesis/main.log`, which records what the last successful
+build actually opened; the count matched the twenty-two `\includegraphics` calls exactly, so
+nothing was pulled in by a path the grep would have missed.
+
+**Layout decision:** the new repo mirrors this one — `Thesis/` alongside a top-level
+`results/figures/` — rather than flattening the figures into `Thesis/figures/`. The chapter
+files set `\graphicspath` to `../results/figures/...`, so preserving the shape meant zero
+edits to the sources. They are byte-identical to their originals and can be diffed or synced
+against them. Recorded in DECISIONS.md.
+
+**Verification:** clean `latexmk` build from the extracted copy alone. 121 pages, matching
+this repo's build; output within 36 bytes of the original (the `\today` timestamp). No
+missing files, no undefined references, no undefined citations.
+
+**Left behind deliberately:** `Thesis/tables_generated_compact/` — five generated table
+`.tex` files that nothing in the document `\input`s. Confirmed unreferenced by grep across
+all sources before excluding them. If they are meant to be live, something is missing an
+`\input` and that is a bug in this repo, not in the extract.
+
+**Note on visibility:** `Thesis_text` was created public and I flagged that before pushing;
+Aleksander confirmed public was intended. The full unsubmitted text is therefore world-
+readable and indexable as of today.

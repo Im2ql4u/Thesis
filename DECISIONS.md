@@ -697,3 +697,34 @@ widened conventional-backflow control and may not claim that parameter capacity
 has been excluded as an explanation.
 
 **Confidence:** high.
+
+---
+
+## 2026-09-09 — The thesis text lives in a second repository, mirroring this one's layout
+
+**Decision:** Maintain the manuscript in a standalone repo (`Im2ql4u/Thesis_text`)
+containing only the `.tex` sources, the bibliography, and the twenty-two figures the
+document includes. The new repo reproduces this repo's directory shape — `Thesis/`
+beside a top-level `results/figures/` — instead of flattening the figures next to
+the sources.
+
+**Alternatives considered:** Flatten figures into `Thesis/figures/` and rewrite the
+three `\graphicspath` declarations; or keep everything in this repo and hand people a
+PDF.
+
+**Reasoning:** The chapter files set `\graphicspath` to `../results/figures/...`.
+Mirroring the layout means the extracted sources are byte-identical to their
+originals, so the two copies can be diffed and changes moved either direction without
+a translation step. Flattening would have bought a tidier tree at the cost of a
+permanent divergence in every file that loads a figure, on a document that is still
+being edited here.
+
+**Constraints introduced:** The two copies must be kept in sync by hand — there is no
+automation, and edits made in one place will not appear in the other. Any new
+`\graphicspath` entry, or any figure added from outside `results/figures/`, has to be
+mirrored into the text repo or its build will break while this one still succeeds.
+The figure set was derived from `main.log`, so it is correct for the current build
+only and must be re-derived whenever figures are added.
+
+**Confidence:** high for the layout choice; the sync burden is real but small, since
+the figure set has been stable and the manuscript is near final.

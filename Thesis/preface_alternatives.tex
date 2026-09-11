@@ -1,0 +1,157 @@
+% Four alternative openings for preface.tex.
+% Each option places the poem after the Preface title. Use one option only.
+
+% -----------------------------------------------------------------------------
+% OPTION A: Centered and quiet
+% The poem reads as a personal dedication without competing with the chapter title.
+% -----------------------------------------------------------------------------
+
+\begingroup
+\let\clearpage\relax
+\let\cleardoublepage\relax
+\chapter*{Preface}
+\endgroup
+\addcontentsline{toc}{chapter}{Preface}
+
+\vspace{1.5em}
+\begin{center}
+\begin{minipage}{0.62\textwidth}
+\centering
+\textsc{No One Saw You Leave}\par\medskip
+\itshape
+How easy it is\par
+to gaze across the sea\par
+while resting on the white sand.\par\medskip
+Perhaps you never noticed,\par
+but you swam so swiftly\par
+that no one saw you leave.\par\medskip
+The waves carried you\par
+while you simply lay there.\par
+You reached for air\par
+as your vision faded.\par\medskip
+You open your mouth to call out,\par
+and that is when your chest begins to burn.
+\end{minipage}
+\end{center}
+\vspace{2em}
+
+When I came to UiO, Morten read my background and said: ``You know PINNs, you know
+many-body quantum systems. I want you to do PINNs on quantum dots.''
+
+
+% -----------------------------------------------------------------------------
+% OPTION B: Left inset with an accent rule
+% This treats the poem as part of the Preface rather than as a formal epigraph.
+% -----------------------------------------------------------------------------
+
+\begingroup
+\let\clearpage\relax
+\let\cleardoublepage\relax
+\chapter*{Preface}
+\endgroup
+\addcontentsline{toc}{chapter}{Preface}
+
+\vspace{1em}
+\noindent
+\begin{minipage}{0.035\textwidth}
+\color{myaccent}\rule{1pt}{18em}
+\end{minipage}%
+\hfill
+\begin{minipage}{0.88\textwidth}
+\small
+\textbf{No One Saw You Leave}\par\medskip
+\itshape
+How easy it is\par
+to gaze across the sea\par
+while resting on the white sand.\par\medskip
+Perhaps you never noticed,\par
+but you swam so swiftly\par
+that no one saw you leave.\par\medskip
+The waves carried you\par
+while you simply lay there.\par
+You reached for air\par
+as your vision faded.\par\medskip
+You open your mouth to call out,\par
+and that is when your chest begins to burn.
+\end{minipage}
+\vspace{2em}
+
+When I came to UiO, Morten read my background and said: ``You know PINNs, you know
+many-body quantum systems. I want you to do PINNs on quantum dots.''
+
+
+% -----------------------------------------------------------------------------
+% OPTION C: Embedded in the opening prose
+% A short sentence gives the poem a reason to be here and makes the transition personal.
+% -----------------------------------------------------------------------------
+
+\begingroup
+\let\clearpage\relax
+\let\cleardoublepage\relax
+\chapter*{Preface}
+\endgroup
+\addcontentsline{toc}{chapter}{Preface}
+
+This work began with a question about where to start. Before that question, and
+behind much of what followed, were words I had written elsewhere:
+
+\begin{quote}
+\centering
+\textbf{No One Saw You Leave}\par\medskip
+\itshape
+How easy it is\par
+to gaze across the sea\par
+while resting on the white sand.\par\medskip
+Perhaps you never noticed,\par
+but you swam so swiftly\par
+that no one saw you leave.\par\medskip
+The waves carried you\par
+while you simply lay there.\par
+You reached for air\par
+as your vision faded.\par\medskip
+You open your mouth to call out,\par
+and that is when your chest begins to burn.
+\end{quote}
+
+When I came to UiO, Morten read my background and said: ``You know PINNs, you know
+many-body quantum systems. I want you to do PINNs on quantum dots.''
+
+
+% -----------------------------------------------------------------------------
+% OPTION D: A dedicated poem page inside the Preface
+% The Preface title comes first; prose starts cleanly on the following page.
+% -----------------------------------------------------------------------------
+
+\begingroup
+\let\clearpage\relax
+\let\cleardoublepage\relax
+\chapter*{Preface}
+\endgroup
+\addcontentsline{toc}{chapter}{Preface}
+
+\thispagestyle{empty}
+\vspace*{\fill}
+\begin{center}
+\begin{minipage}{0.62\textwidth}
+\centering
+\textsc{No One Saw You Leave}\par\bigskip
+\itshape
+How easy it is\par
+to gaze across the sea\par
+while resting on the white sand.\par\medskip
+Perhaps you never noticed,\par
+but you swam so swiftly\par
+that no one saw you leave.\par\medskip
+The waves carried you\par
+while you simply lay there.\par
+You reached for air\par
+as your vision faded.\par\medskip
+You open your mouth to call out,\par
+and that is when your chest begins to burn.
+\end{minipage}
+\end{center}
+\vspace*{\fill}
+\clearpage
+
+When I came to UiO, Morten read my background and said: ``You know PINNs, you know
+many-body quantum systems. I want you to do PINNs on quantum dots.''

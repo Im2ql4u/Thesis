@@ -2066,3 +2066,34 @@ like part of the document.
 `preface.tex`, `main.tex`, and three chapter files are behind, and it has no
 `preface_alternatives.tex`. This is the hand-sync cost recorded in DECISIONS.md on 2026-09-09
 arriving for the first time.
+
+---
+
+## 2026-09-11 (later) — Preface poem settled; Thesis_text brought level
+
+**Preface.** Built all four layouts from `preface_alternatives.tex` plus the live version as
+standalone previews (real preamble, real prose, Dostoevsky page in front) and put them on the
+Desktop for comparison. Aleksander chose option A — poem below the Preface heading, centred,
+plain italic — with no title, and supplied revised wording. The stanza breaks are reproduced
+exactly as given, including "The waves carried you" closing the second stanza and "while you
+simply lay there." standing alone.
+
+The change also fixes a colour leak: the old hand-rolled block set `\color{myaccent}` for its
+rule and never reset it, so all fourteen lines of the poem were printing in wine red. The
+`\chapterepigraph` macro resets to black for its body text; the copy in `preface.tex` did not.
+
+Build unchanged at 122 pages, clean.
+
+**Thesis_text sync.** It was still at the original extract commit, five files behind
+(discussion, introduction, main, method, preface). Copied them across, confirmed the figure
+set was unchanged against the build log (same 22 files — the drift was text only), rebuilt
+from a clean clone at 122 pages with no missing files or undefined references, and pushed.
+Verified afterwards by comparing git blob hashes from the GitHub API against the local files:
+all 14 `.tex`/`.bib` files identical.
+
+`preface_alternatives.tex` was deliberately not synced: it is not part of the document, and
+now that A is chosen it is obsolete in this repo too.
+
+A zsh trap worth remembering: `path` is tied to `$PATH`, so `while read -r sha path` wipes
+the command search path inside the loop. The first verification pass reported every file as
+a mismatch for that reason alone.

@@ -2039,3 +2039,30 @@ all sources before excluding them. If they are meant to be live, something is mi
 **Note on visibility:** `Thesis_text` was created public and I flagged that before pushing;
 Aleksander confirmed public was intended. The full unsubmitted text is therefore world-
 readable and indexable as of today.
+
+---
+
+## 2026-09-11 — Merged the preface/epigraph work and rebuilt
+
+Pulled the two commits that had landed on `origin/main` (`60fbf3b` restoring the chapter
+epigraphs and opening the preface with the poem, `083f090` adding alternative preface poem
+layouts) and merged them into `thesis/audit-fixes-2026-09-06`. The branch was already level
+with its own upstream, so the new work was only reachable via main.
+
+The merge was clean and touched `Thesis/` only — discussion, introduction, method, main,
+preface, plus the new `preface_alternatives.tex`. No overlap with the ~30 uncommitted files
+under `results/` that have been dirty for some time, so nothing of yours was disturbed.
+
+**Build:** 122 pages, up one from 121. The extra page is the new `\thesisepigraph` between
+the abstract and the preface, which takes a page of its own by construction (`\clearpage`).
+No missing files, no undefined references, no undefined citations.
+
+**`preface_alternatives.tex` is not `\input` by anything.** That looks deliberate given the
+commit message calls them alternatives to choose between, so it is inert scratch rather than
+a missing include. Worth deciding on before submission, since it will sit in the repo looking
+like part of the document.
+
+**Thesis_text is now stale.** The standalone text repo does not have any of this. Its
+`preface.tex`, `main.tex`, and three chapter files are behind, and it has no
+`preface_alternatives.tex`. This is the hand-sync cost recorded in DECISIONS.md on 2026-09-09
+arriving for the first time.

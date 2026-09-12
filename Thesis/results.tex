@@ -609,21 +609,24 @@ $\Delta\cos$, is what \emph{angular} order buys over shell radii alone, and it g
 monotonically as the trap weakens at every particle number---at $N{=}12$ from $0.006$ at $\omega=1$ to $0.026$ at $\omega=10^{-3}$, at $N{=}6$ from
 $0.012$ to $0.058$, at $N{=}20$ from $0.003$ to $0.010$. Shell radii alone account for most
 of the pair structure at strong confinement; angular structure accounts for a growing
-remainder as the molecule forms. How firmly is a separate matter. Each $\Delta\cos$ comes
-from a single split of the frames and carries no interval, and the smallest values---a few
-thousandths at $N{=}20$---are of a size that the split, the histogram binning, the shell
-threshold or the parametrisation of the angular jitter could move. The growth is consistent
-across all three particle numbers, which argues against noise, but it is suggestive rather
-than established until it carries a block-bootstrap interval and survives those choices.
+remainder as the molecule forms. How firmly is a separate question, because the smallest
+values are a few thousandths, and it was tested directly
+(Appendix~\ref{app:structural-tables:mixfit}). Every $\Delta\cos$ carries a block-bootstrap
+interval that excludes zero---at $N{=}20$, $\omega=1$ it is $[0.0027,0.0030]$---and the
+growth with $1/\omega$ is resolved at every particle number. It survives changes of histogram
+binning and of the train/test split essentially unchanged. What does move it is the
+angular-jitter model, by up to a third, and the shell threshold where that changes the
+partition; the size of $\Delta\cos$ is model-dependent, its sign and its trend are not.
 
 That growth has a different shape from the bond order. $\Delta\cos$ rises by a factor of
 $1.1$--$2.1$ per decade at every particle number, monotonically and without a threshold,
 whereas the bond order stays flat at its null and then jumps. The two are not in conflict:
 $\Delta\cos$ responds to \emph{any} angular correlation that improves the pair-distance
 density, while $|\Phi_n|$ responds specifically to $n$-fold order on a registered ring. Weak
-angular correlations appear to build gradually from strong confinement onward, and
-crystalline $n$-fold order emerges from them only in the final decade---three stages, not a
-single threshold, with the middle one resting on the weaker of the two measurements.
+angular correlations build gradually from strong confinement onward, and crystalline $n$-fold
+order emerges from them only in the final decade---three stages, not a single threshold, with
+the middle one measured by a quantity whose sign and trend are robust but whose size depends
+on the shell model.
 
 \begin{table}[htbp]
 \centering
@@ -634,33 +637,35 @@ angular jitter; and the resulting pair-distance density is scored on the \emph{h
 half. $\cos_{\rm poly}$ is the polygon model's agreement with the empirical density and
 $\cos_{\rm uni}$ that of an angle-randomised null with the same fitted radial
 distributions, so $\Delta\cos$ isolates what polygonal order contributes over shell radii
-alone. It grows as the trap weakens at every particle number; no uncertainty is attached
-to it here (see text). Full table including residuals in
-Appendix~\ref{app:structural-tables:mixfit}.}
+alone. The interval is a $95\%$ block bootstrap over frames that refits the model and draws
+a fresh model sample in every replicate; the tabulated point uses the original single model
+sample, whose Monte Carlo noise is part of what the interval measures, so a point can sit
+near an edge. Sensitivity to binning, split, shell threshold and jitter model is in
+Appendix~\ref{app:structural-tables:mixfit}, with the full table and residuals.}
 \label{tab:shell-model-fit-main}
 \small
 \setlength{\tabcolsep}{6pt}
-\begin{tabular}{ccl ccc}
+\begin{tabular}{ccl cccc}
 \toprule
-$N$ & $\omega$ & occ. & $\cos_{\rm poly}$ & $\cos_{\rm uni}$ & $\Delta\cos$ \\
+$N$ & $\omega$ & occ. & $\cos_{\rm poly}$ & $\cos_{\rm uni}$ & $\Delta\cos$ & $95\%$ interval \\
 \midrule
-6 & $1.0$ & $1,5$ & $0.9988$ & $0.9866$ & $\mathbf{0.0122}$ \\
-6 & $0.5$ & $1,5$ & $0.9986$ & $0.9836$ & $\mathbf{0.0150}$ \\
-6 & $0.1$ & $1,5$ & $0.9974$ & $0.9741$ & $\mathbf{0.0234}$ \\
-6 & $0.01$ & $1,5$ & $0.9922$ & $0.9536$ & $\mathbf{0.0386}$ \\
-6 & $0.001$ & $1,5$ & $0.9942$ & $0.9358$ & $\mathbf{0.0585}$ \\
+6 & $1.0$ & $1,5$ & $0.9988$ & $0.9866$ & $\mathbf{0.0122}$ & $[0.0122,\,0.0136]$ \\
+6 & $0.5$ & $1,5$ & $0.9986$ & $0.9836$ & $\mathbf{0.0150}$ & $[0.0147,\,0.0160]$ \\
+6 & $0.1$ & $1,5$ & $0.9974$ & $0.9741$ & $\mathbf{0.0234}$ & $[0.0219,\,0.0236]$ \\
+6 & $0.01$ & $1,5$ & $0.9922$ & $0.9536$ & $\mathbf{0.0386}$ & $[0.0371,\,0.0395]$ \\
+6 & $0.001$ & $1,5$ & $0.9942$ & $0.9358$ & $\mathbf{0.0585}$ & $[0.0556,\,0.0592]$ \\
 \midrule
-12 & $1.0$ & $1,11$ & $0.9993$ & $0.9937$ & $\mathbf{0.0056}$ \\
-12 & $0.5$ & $1,11$ & $0.9990$ & $0.9927$ & $\mathbf{0.0063}$ \\
-12 & $0.1$ & $1,11$ & $0.9980$ & $0.9896$ & $\mathbf{0.0085}$ \\
-12 & $0.01$ & $1,11$ & $0.9929$ & $0.9805$ & $\mathbf{0.0124}$ \\
-12 & $0.001$ & $3,9$ & $0.9868$ & $0.9604$ & $\mathbf{0.0264}$ \\
+12 & $1.0$ & $1,11$ & $0.9993$ & $0.9937$ & $\mathbf{0.0056}$ & $[0.0054,\,0.0059]$ \\
+12 & $0.5$ & $1,11$ & $0.9990$ & $0.9927$ & $\mathbf{0.0063}$ & $[0.0060,\,0.0066]$ \\
+12 & $0.1$ & $1,11$ & $0.9980$ & $0.9896$ & $\mathbf{0.0085}$ & $[0.0083,\,0.0088]$ \\
+12 & $0.01$ & $1,11$ & $0.9929$ & $0.9805$ & $\mathbf{0.0124}$ & $[0.0124,\,0.0132]$ \\
+12 & $0.001$ & $3,9$ & $0.9868$ & $0.9604$ & $\mathbf{0.0264}$ & $[0.0258,\,0.0271]$ \\
 \midrule
-20 & $1.0$ & $1,19$ & $0.9992$ & $0.9964$ & $\mathbf{0.0028}$ \\
-20 & $0.5$ & $1,19$ & $0.9990$ & $0.9958$ & $\mathbf{0.0032}$ \\
-20 & $0.1$ & $1,19$ & $0.9982$ & $0.9942$ & $\mathbf{0.0040}$ \\
-20 & $0.01$ & $1,19$ & $0.9947$ & $0.9900$ & $\mathbf{0.0047}$ \\
-20 & $0.001$ & $1,7,12$ & $0.9915$ & $0.9820$ & $\mathbf{0.0095}$ \\
+20 & $1.0$ & $1,19$ & $0.9992$ & $0.9964$ & $\mathbf{0.0028}$ & $[0.0027,\,0.0030]$ \\
+20 & $0.5$ & $1,19$ & $0.9990$ & $0.9958$ & $\mathbf{0.0032}$ & $[0.0030,\,0.0033]$ \\
+20 & $0.1$ & $1,19$ & $0.9982$ & $0.9942$ & $\mathbf{0.0040}$ & $[0.0038,\,0.0040]$ \\
+20 & $0.01$ & $1,19$ & $0.9947$ & $0.9900$ & $\mathbf{0.0047}$ & $[0.0046,\,0.0049]$ \\
+20 & $0.001$ & $1,7,12$ & $0.9915$ & $0.9820$ & $\mathbf{0.0095}$ & $[0.0091,\,0.0095]$ \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -741,8 +746,8 @@ established than where, within the coarse $\omega$ grid, each stage sets in.
 \centering
 \caption[Which diagnostic supports which claim]{Which diagnostic supports which claim about
 the crossover. ``Firm'' means a large effect in a state-level or shell-resolved quantity;
-``weak'' marks evidence that is suggestive but either small, without an uncertainty
-estimate, or carried by a quantity known to mix structures.}
+``weak'' marks evidence that is suggestive but small or carried by a quantity known to
+mix structures.}
 \label{tab:wigner-evidence}
 \small
 \renewcommand{\arraystretch}{1.2}
@@ -772,11 +777,11 @@ Discrete Wigner topologies form &
 radial classifier with registered order: $(1,5)$, $(3,9)$, $(1,7,12)$ &
 firm at $10^{-3}$; above it, radial partitions only \\
 Weak angular correlation builds gradually &
-held-out polygon model against angle-randomised null, $\Delta\cos$ &
-weak: small at $N{=}20$, no interval \\
+held-out polygon model against angle-randomised null, $\Delta\cos$ (block bootstrap) &
+firm in sign and trend; size depends on the jitter model \\
 $n$-fold angular order appears late &
-$|\Phi_n|$ against its exact null &
-firm at $10^{-3}$; within resolution above $0.1$ \\
+$|\Phi_n|$ against its exact null, which is also the pipeline's null &
+firm at $10^{-3}$; absent above $0.1$ (resolved departures ${\lesssim}1\%$) \\
 Where each stage sets in &
 one grid point per decade &
 not established \\
@@ -800,7 +805,8 @@ specifically, instead grows monotonically throughout, roughly doubling per decad
 face value, weak angular correlations build gradually across the whole range while
 \emph{crystalline} $n$-fold order appears only in the last decade: a three-stage picture
 rather than a two-stage one. The two-stage separation of radial and $n$-fold angular order
-is firm; the gradual middle stage rests on $\Delta\cos$ values that as yet carry no interval.
+is the firmer statement; the gradual middle stage is resolved in sign and trend, but its size
+depends on the shell model used to measure it.
 
 These structural facts then enter the method. The shell radius approaching its classical
 $\omega^{-2/3}$ scaling---within $1.7\%$ of the classical prefactor at $\omega=10^{-3}$,

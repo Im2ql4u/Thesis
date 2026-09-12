@@ -918,10 +918,18 @@ recomputed under Eq.~\eqref{eq:Ctilde} before it is relied on quantitatively.
 
 \paragraph{The random-angle null.}
 None of these is interpretable without a baseline. For $n$ particles at independent uniform
-angles, $\Phi_n$ is a two-dimensional random walk of $n$ unit steps, so
-$\langle|\Phi_n|\rangle=\sqrt\pi/(2\sqrt n)\approx0.886/\sqrt n$ and
-$\langle|\Phi_n|^2\rangle=1/n$. A five-particle ring with no angular order whatever returns
-$|\Phi_5|\approx0.40$. We therefore report $|\Phi_n|$ together with its ratio to this null
+angles, $n\Phi_n$ is a two-dimensional random walk of $n$ unit steps, so
+$\langle|\Phi_n|^2\rangle=1/n$ exactly, and the mean modulus follows from Kluyver's integral,
+\begin{equation}
+  \big\langle|\Phi_n|\big\rangle_{\rm random}
+  =\frac1n\int_0^\infty\frac{1-J_0(t)^n}{t^2}\,dt ,
+  \label{eq:phi-null-exact}
+\end{equation}
+which we evaluate numerically. The familiar Rayleigh form $\sqrt\pi/(2\sqrt n)\approx0.886/\sqrt n$
+is its large-$n$ limit and undershoots it at the ring sizes that occur here, by $2.6\%$ at
+$n=3$, $1.3\%$ at $n=5$ and $0.4\%$ at $n=19$---the same size as the effects being tested at
+strong confinement, which is why the exact value is used throughout. A five-particle ring with
+no angular order whatever returns $|\Phi_5|\approx0.40$. We therefore report $|\Phi_n|$ together with its ratio to this null
 wherever the ordering claim depends on it (Appendix~\ref{app:structural-tables:shells}).
 This is a Lindemann–type orientational metric tailored to finite rings, motivated by
 the use of Lindemann criteria to diagnose intershell rotational (angular) melting in mesoscopic

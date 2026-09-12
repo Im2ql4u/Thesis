@@ -1,0 +1,37 @@
+/itf-fi-ml/home/aleksns/Thesis_repo/scripts/eval_collocation_blocked.py:149: FutureWarning: You are using `torch.load` with `weights_only=False` (the current default value), which uses the default pickle module implicitly. It is possible to construct malicious pickle data which will execute arbitrary code during unpickling (See https://github.com/pytorch/pytorch/blob/main/SECURITY.md#untrusted-models for more details). In a future release, the default value for `weights_only` will be flipped to `True`. This limits the functions that could be executed during unpickling. Arbitrary objects will no longer be allowed to be loaded via this mode unless they are explicitly allowlisted by the user via `torch.serialization.add_safe_globals`. We recommend you start setting `weights_only=True` for any use case where you don't have full control of the loaded file. Please open an issue on GitHub for any issues related to this experimental feature.
+  ckpt = torch.load(a.ckpt, map_location="cpu")
+================================================================
+  Weak-Form Collocation — blockeval_robust_p1fix_n6w0p01_s42
+  Mode: bf   Device: cuda:0   Seed: 20260912
+  N=6  omega=0.01  basis=3x3 (n_basis=9, n_occ=3)
+  Spin layout: block   pattern=000111
+  DMC reference: 0.69036
+================================================================
+  Cusp compatibility: legacy exp(-r) cusp decay
+  Resume requested: skipping optional pretrained BF+Jastrow init
+  Jastrow: 25,562 params
+  Backflow: 182,403 params
+  Resuming from results/arch_colloc/robust_p1fix_n6w0p01_s42.pt
+/itf-fi-ml/home/aleksns/Thesis_repo/src/run_weak_form.py:2422: FutureWarning: You are using `torch.load` with `weights_only=False` (the current default value), which uses the default pickle module implicitly. It is possible to construct malicious pickle data which will execute arbitrary code during unpickling (See https://github.com/pytorch/pytorch/blob/main/SECURITY.md#untrusted-models for more details). In a future release, the default value for `weights_only` will be flipped to `True`. This limits the functions that could be executed during unpickling. Arbitrary objects will no longer be allowed to be loaded via this mode unless they are explicitly allowlisted by the user via `torch.serialization.add_safe_globals`. We recommend you start setting `weights_only=True` for any use case where you don't have full control of the loaded file. Please open an issue on GitHub for any issues related to this experimental feature.
+  rckpt = torch.load(a.resume, map_location=DEVICE)
+/itf-fi-ml/home/aleksns/Thesis_repo/src/run_weak_form.py:2265: FutureWarning: You are using `torch.load` with `weights_only=False` (the current default value), which uses the default pickle module implicitly. It is possible to construct malicious pickle data which will execute arbitrary code during unpickling (See https://github.com/pytorch/pytorch/blob/main/SECURITY.md#untrusted-models for more details). In a future release, the default value for `weights_only` will be flipped to `True`. This limits the functions that could be executed during unpickling. Arbitrary objects will no longer be allowed to be loaded via this mode unless they are explicitly allowlisted by the user via `torch.serialization.add_safe_globals`. We recommend you start setting `weights_only=True` for any use case where you don't have full control of the loaded file. Please open an issue on GitHub for any issues related to this experimental feature.
+  base = torch.load(bf_ckpt_path, map_location=DEVICE)
+    Loaded bf_state
+    Loaded jas_state
+  Eval-only: skipping training
+
+  Final VMC eval: 1 samples ...
+    chain 0: E=0.692216 +- 0.000120 (blocked)  acc=0.84
+    chain 1: E=0.691840 +- 0.000084 (blocked)  acc=0.84
+    chain 2: E=0.692117 +- 0.000086 (blocked)  acc=0.84
+    chain 3: E=0.692067 +- 0.000082 (blocked)  acc=0.84
+
+  *** Final: E = 0.69206 ± 0.00008   err = +0.246%
+  Saved → /itf-fi-ml/home/aleksns/Thesis_repo/results/arch_colloc/blockeval_robust_p1fix_n6w0p01_s42.pt
+
+============================================================
+  WEAK-FORM RESULT  N=6  ω=0.01  E_DMC=0.69036
+  Mode: bf   Tag: blockeval_robust_p1fix_n6w0p01_s42
+  E = 0.692060 ± 0.000080   err = +0.246%
+============================================================
+  wrote results/analysis/2026-09-12_colloc_blocked_eval/robust_p1fix_n6w0p01_s42.json: E=0.692060 +- 0.000080 (logged 0.6923522881072673)

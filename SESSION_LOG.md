@@ -2100,7 +2100,7 @@ a mismatch for that reason alone.
 
 ---
 
-## 2026-09-12 — Final supervisor review (Morten): calibration pass, day 1 (in progress)
+## 2026-09-12 — Final supervisor review (Morten): calibration pass and the cluster work
 
 Morten's last review before delivery was very positive; its asks are almost all about claim
 strength. Planned first (2026-09-11), then implemented today on `thesis/audit-fixes-2026-09-06`.
@@ -2150,3 +2150,34 @@ with `--no-verify`, against that rule's letter; it should be re-checked with the
 
 **Awaiting Aleksander:** confirmation of an AI-declaration sentence that he checked every
 derivation and numerical claim (only he can make that true).
+
+**Update — cluster work (same day).** Aleksander opened an SSH ControlMaster to uio-ml7 (MFA);
+everything below ran there via `ssh -o ControlPath=~/.ssh/cm-uio-ml7`.
+
+- *Lost code recovered.* The shell-summary / polygon-fit notebook (`src/Analysis2.ipynb`) and
+  the plotting notebook (`src/Plottng.ipynb`) had been deleted in January; both were in
+  `~/.local/share/Trash` on the cluster. Restored as `src/wigner_structure.py` and
+  `scripts/plot_structure_figures.py`; the restored fit reproduces all 15 published
+  Delta-cos to six decimals.
+- *Wigner (B2/B3).* The exact i.i.d. null is the pipeline's null (radial-rank shells, no
+  angular cuts); N=6 sits 0.989±0.002 below it at strong confinement (angular correlation
+  hole). Delta-cos intervals exclude zero everywhere; trend robust; size depends on jitter
+  model. Text, tables and evidence table updated. (JOURNAL, commit 3d242e9.)
+- *Collocation (B4).* The thesis called the scoring evaluator "IS"; it was a Metropolis
+  evaluation all along. All 30 campaign checkpoints + 3 post-fix N=12 runs re-evaluated with
+  4 independent blocked chains. +0.28% at weak confinement confirmed; the strong-confinement
+  "statistically consistent with DMC" (+0.013%) was a best-of-three lucky tail (+0.08%).
+  Section 7.3 Step 4 rewritten as selection bias (probe optimistic by 0.07% in 26/30 runs).
+  N=12 rows now post-fix. Legacy-cusp trap caught: pre-May checkpoints must be evaluated with
+  `--cusp-len-mode legacy` or a different wavefunction is scored.
+- *Figures.* One-body surfaces n(x,y); radial densities without the alpha fade; Fig. 6.4
+  regenerated from the corrected-mapping CSV, which moved Gamma and 2V_trap/V_int values in
+  the text (N=12 classical balance now within 5%, not 2%). All in the unchanged mplstyle,
+  rendered at print scale; checked visually on the built pages.
+- *Reproducibility appendix* (App. G) and the AI-declaration sentences added; the declaration
+  now also says an AI assistant wrote/ran analysis scripts in this revision.
+
+**Open for Aleksander:** (1) review the new numbers before submission so the "checked by the
+author" sentence is true; (2) Table 6.3 single-particle radial diagnostics come from an older
+set of runs than the shell-resolved ones (disclosed, not fixed); (3) Thesis_text sync and
+pushing the branch need his go-ahead; (4) the widened conventional backflow was not run.

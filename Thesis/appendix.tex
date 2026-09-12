@@ -1120,7 +1120,10 @@ $\omega:1.0\!\to\!0.5\!\to\!0.1\!\to\!0.01\!\to\!0.001$ was necessary throughout
 at low $\omega$ did not converge. Representative cascade results are $N{=}6$ at
 $\omega{=}1.0$ ($E=20.16167\pm0.00181$, $+0.012\%$), $\omega{=}0.5$
 ($E=11.78466\pm0.00199$, $-0.002\%$) and $\omega{=}0.1$ ($E=3.56525\pm0.00046$, $+0.32\%$),
-and $N{=}12$ at $\omega{=}1.0$ ($E=65.70699\pm0.00595$, $+0.010\%$). For $N{=}2$ the route
+and $N{=}12$ at $\omega{=}1.0$ ($E=65.70699\pm0.00595$, $+0.010\%$). These are single
+end-of-run evaluations of selected runs and were not independently re-evaluated; the
+selection effect documented in \S\ref{sec:gradient-chain} makes the strong-confinement values
+among them optimistic by several hundredths of a percent. For $N{=}2$ the route
 covers the whole confinement range: $+0.012\%$, $+0.023\%$, $-0.004\%$, $+0.002\%$ and
 $+0.154\%$ at $\omega=1,0.5,0.1,0.01,0.001$, zero-variance extrapolated.
 
@@ -1800,3 +1803,58 @@ $\alpha\approx-0.58$ at $N{=}6$ and $-0.54$ at $N{=}2$ over the full grid, and a
 $-2/3$ only on the weak-trap half. Second, the shell-resolved radius is the quantity the
 physics-informed proposal of \S\ref{sec:kernel-q3-frontier} actually needs, so the agreement
 recorded here is what licenses building a sampler out of it.
+
+\chapter{Code, data and reproducibility}
+\label{app:reproducibility}
+
+\paragraph{Code.} All code used in this thesis---the ansatz, both training routes, the
+structural and tangent-space diagnostics, the evaluation scripts and the figure scripts---is
+public at \url{https://github.com/Im2ql4u/Thesis}, together with the run configurations,
+the metadata of every saved model and the derived tables from which the numbers in
+Chapters~\ref{ch:results} and~\ref{ch:kernel} are quoted. The text alone, with the figures it
+includes, is at \url{https://github.com/Im2ql4u/Thesis_text}.
+
+\paragraph{Models and raw data.} Trained weights and the $|\Psi|^2$ sample bundles from
+which every structural diagnostic is computed are too large for the repository. They are kept
+on the University of Oslo machine-learning nodes where the calculations ran and are available
+on request.
+
+\paragraph{Seeds and initialisation.} Every run records its seed in its metadata, and seeds
+are stated in the text wherever a claim rests on seed variation. The collocation runs are
+warm-started, and two facts limit how far they can be repeated from the current code. The
+canonical pretrained initialisation behind the continuation chains was lost in a repository
+rewrite in June 2026, so those runs can be re-evaluated from their saved checkpoints but not
+retrained bit for bit. And the Jastrow cusp convention changed in May 2026, from a fixed
+decay length to the oscillator length; checkpoints trained before the change must be
+evaluated with the convention they were trained with, which the evaluation script infers from
+the checkpoint metadata.
+
+\paragraph{The importance-sampling error and what was checked after it.} In March 2026 the
+collocation sampler was found to return, for each proposal draw, the log-density of the
+Gaussian component that generated it rather than the log-density of the whole mixture. The
+resulting error in the log-weights grows with the dimension $Nd$ and with the spread of the
+component widths: negligible at $N{=}2$, $\omega=1$, it reached a factor of order $e^{12}$ in
+the importance weights at $N{=}6$, $\omega=0.01$, which is why its signature---loss of
+accuracy at larger $N$ and weaker confinement---was indistinguishable from an architectural
+limit. The error sat in the importance weights and therefore only in the collocation route;
+the production energies of Chapter~\ref{ch:results} are evaluated by Metropolis sampling of
+$|\Psi|^2$, which does not use those weights. After the correction (26 March 2026) three
+things were checked. The collocation results reported here come from runs made after it, or,
+for $N{=}12$, from continuation runs whose final training stage used the corrected weights.
+Every $N{=}6$ and $N{=}12$ collocation energy in Tables~\ref{tab:collocation}
+and~\ref{tab:reliability} was independently re-evaluated for this thesis by Metropolis
+sampling, with four separately seeded chains per checkpoint and a blocking analysis
+(\texttt{scripts/eval\_collocation\_blocked.py}). And the structural analysis, whose
+original code had been lost with a deleted notebook, was recovered and restored
+(\texttt{src/wigner\_structure.py}); it reproduces every published $\Delta\cos$ to six
+decimals.
+
+\paragraph{Known gaps.} Two quantities cannot be regenerated from the saved outputs: the
+cross-shell registration statistic $\tilde C_{\rm global}$ at $N{=}20$
+(\S\ref{sec:wigner-angular}), whose analysis code was not retained, and the $N{=}20$,
+$\omega=0.01$ entry of the backflow rank table (Table~\ref{tab:bf_rank}), whose per-run
+artefacts were not kept. One inconsistency also remains: the single-particle radial
+diagnostics of Table~\ref{tab:radial-compact} and Appendix~\ref{app:structural-tables} were
+computed in an earlier analysis pass, on runs that at the weakest traps are not the same
+trained states as those behind the shell-resolved diagnostics and the radial-density
+figures.

@@ -47,9 +47,10 @@ metric was never measured under the collocation measure itself.
 gradient, inside a regime whose edges we found by crossing them
 (\S\ref{sec:kernel-mcmcfree}). The claim is about the gradient only: a Metropolis probe still
 selects checkpoints and certifies the final energy, and the cascades start from
-reference-guided pretrained states. The weak-form objective reaches DMC accuracy at
-$N\in\{6,12\}$ under strong confinement and holds within a few tenths of a percent of our own
-converged energies well into the correlated regime. It fails through one chain of
+reference-guided pretrained states. The weak-form objective comes within about a tenth of a
+percent of DMC at $N\in\{6,12\}$ under strong confinement and within three tenths of a
+percent of our own converged energies well into the correlated regime, as measured by
+independent Metropolis evaluation of every trained state. It fails through one chain of
 causes---proposal mismatch, weight-tail inflation, gradient noise, an unestimable
 metric---which a better proposal moves but does not remove, and then through a second failure
 of transfer between confinements.
@@ -85,8 +86,10 @@ fact about the system rather than about neural networks.
 
 Several of these results were reached only after an initial reading of the same data proved
 wrong: a rank collapse that survived seeding where a dimension inversion did not, a transfer
-failure first attributed to the sampler and later to the ansatz, and an importance-sampling
-error whose signature was indistinguishable from an architectural deficiency. Each was
+failure first attributed to the sampler and later to the ansatz, an importance-sampling
+error whose signature was indistinguishable from an architectural deficiency, and a
+strong-confinement collocation energy that looked statistically exact until an independent
+evaluation showed it to be the lucky tail of a best-of-three selection. Each was
 identified by a diagnostic that could separate the competing explanations. That is the
 methodological point these chapters have tried to make concrete: a variational calculation is
 only as trustworthy as the tests that can tell its failure modes apart.

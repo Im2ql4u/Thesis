@@ -589,7 +589,7 @@ undertraining. (Two ESS normalisations appear in this chapter, differing by the 
 factor; each figure states which.)
 
 \S\ref{sec:colloc-reliability} below nonetheless reports usable collocation energies at the
-same $(N,\omega)$---$+0.24$--$0.29\%$ across three seeds, Table~\ref{tab:reliability}---and
+same $(N,\omega)$---$+0.22$--$0.26\%$ across three seeds, Table~\ref{tab:reliability}---and
 the two situations differ in the sampler and in the quantity being described. The sampler
 first: the collapse measured above is for the \emph{static} origin-centred
 mixture, while the campaign's robust recipe refits its proposal every $30$ epochs and
@@ -646,7 +646,9 @@ longer $\langle E_L\rangle_{|\Psi|^2}$. And, dominant in the regimes that matter
 proposal--target mismatch inflates the variance beyond any affordable sample size
 (\S\ref{sec:colloc-reliability}). Importance sampling is not biased merely for being
 importance sampling; it is the last two that make the readout unusable as a stopping rule.
-The reliable criteria are $\Var(E_L)$ and the state overlap, both on $|\Psi|^2$ samples.
+The reliable criteria are $\Var(E_L)$ and the state overlap, both on $|\Psi|^2$ samples, and
+for the same reason no energy reported in this thesis is an importance-sampling estimate:
+every one is a Metropolis evaluation of $|\Psi|^2$.
 
 The value of a natural-gradient step is therefore not predicted by the conditioning of the
 metric, which is large under $|\Psi|^2$ sampling on exactly the models where SR buys nothing.
@@ -715,10 +717,9 @@ with the backflow contributing almost nothing. That is a property of the objecti
 the idea. Everything below uses the weak form.
 
 On the same Slater--Jastrow--backflow ansatz, and with no
-Markov chain in any gradient, the weak form recovers the variational energy to statistical
-consistency with DMC at strong confinement and to a few tenths of a percent of our gold
-standard well into the correlated regime for $N\in\{6,12\}$
-(Table~\ref{tab:collocation}). The energies are collected here, where the method that
+Markov chain in any gradient, the weak form comes within about a tenth of a percent of DMC
+at strong confinement and within three tenths of a percent of our own converged energies
+well into the correlated regime for $N\in\{6,12\}$ (Table~\ref{tab:collocation}). The energies are collected here, where the method that
 produced them is explained, rather than beside the SR--VMC energies of
 \S\ref{sec:energy-overview}: without the failure mechanism of
 \S\ref{sec:colloc-reliability} in hand, the pattern of where they hold and where they give
@@ -727,15 +728,18 @@ way is not interpretable.
 \begin{table}[htbp]
   \centering
   \caption[Energies from Markov-chain-free collocation training]{Variational energies from
-  Markov-chain-free collocation training, all rows using the backflow+Jastrow ansatz. Each
-  run selects its best checkpoint using a VMC probe (${\geq}20$k samples) and reports a
-  final IS evaluation; the latter is the table's scoring estimator. For $N{=}6$ the
-  headline number is the \emph{reliability of that evaluated protocol}, not its luckiest run: the
-  campaign of \S\ref{sec:colloc-reliability} fixes a $1200$-epoch budget and the
+  Markov-chain-free collocation training, all rows using the backflow+Jastrow ansatz. No
+  Markov chain enters any gradient; every energy is a Metropolis evaluation of $|\Psi|^2$.
+  For $N{=}6$ and $N{=}12$ it is an independent re-evaluation of the saved checkpoint, made
+  for this table with four separately seeded chains of $102\,400$ samples each and a blocking
+  analysis; parentheses give the larger of the blocked and the between-chain standard error.
+  For $N{=}6$ the headline number is the \emph{reliability of the protocol}, not its luckiest
+  run: the campaign of \S\ref{sec:colloc-reliability} fixes a $1200$-epoch budget and the
   hyperparameters and varies only the seed, and both the three-seed mean $\pm$ standard
   deviation and the best of the three are given. The $N{=}2$ rows are single collocation
-  runs, zero-variance extrapolated. The $N{=}12$ rows are marked $^{\dagger}$: no campaign
-  was run at that size, so they are the best of the independent runs and are \emph{not}
+  runs, zero-variance extrapolated. The $N{=}12$ rows are marked $^{\dagger}$: they are
+  single continuation runs whose final training stage used the corrected proposal density
+  (Appendix~\ref{app:reproducibility}); no campaign was run at that size, so they are not
   protocol-controlled---read them as what the method reached, not as what it reaches
   reliably. The reference column is the external value where one exists and, where none does
   ($N{=}6$ at $\omega\le0.01$ and $N{=}2$ at $\omega=10^{-3}$; see Table~\ref{tab:energies}),
@@ -754,15 +758,15 @@ way is not interpretable.
       & 0.01  & $0.073839(2)$  & $0.073840$     & $+0.001$ & --- \\
       & 0.001 & $0.013778$     & $0.013799$     & $+0.152$ & --- \\
     \midrule
-    6 & 1.0   & $20.15932(8)$  & $20.1620(56)$  & $+0.013$ & $+0.050\pm0.049$ \\
-      & 0.5   & $11.78484(6)$  & $11.7850(48)$  & $+0.001$ & $+0.054\pm0.055$ \\
-      & 0.1   & $3.55385(5)$   & $3.5632(7)$    & $+0.263$ & $+0.286\pm0.034$ \\
-      & 0.01  & $0.69036$      & $0.69200(1)$   & $+0.238$ & $+0.269\pm0.028$ \\
-      & 0.001 & $0.140832$     & $0.14118(1)$   & $+0.247$ & $+0.281\pm0.044$ \\
+    6 & 1.0   & $20.15932(8)$  & $20.1731(18)$  & $+0.068$ & $+0.082\pm0.014$ \\
+      & 0.5   & $11.78484(6)$  & $11.7952(12)$  & $+0.088$ & $+0.098\pm0.009$ \\
+      & 0.1   & $3.55385(5)$   & $3.56393(24)$  & $+0.284$ & $+0.293\pm0.009$ \\
+      & 0.01  & $0.69036$      & $0.691895(80)$ & $+0.222$ & $+0.244\pm0.020$ \\
+      & 0.001 & $0.140832$     & $0.141175(4)$  & $+0.244$ & $+0.282\pm0.059$ \\
     \midrule
-    12$^{\dagger}$ & 1.0 & $65.7001(1)$   & $65.706(4)$   & $+0.009$ & --- \\
-       & 0.5   & $39.1596(1)$   & $39.169(4)$   & $+0.024$ & --- \\
-       & 0.1   & $12.26984(8)$  & $12.2824(6)$  & $+0.102$ & --- \\
+    12$^{\dagger}$ & 1.0 & $65.7001(1)$   & $65.7207(17)$  & $+0.031$ & --- \\
+       & 0.5   & $39.1596(1)$   & $39.1727(12)$  & $+0.034$ & --- \\
+       & 0.1   & $12.26984(8)$  & $12.28361(32)$ & $+0.112$ & --- \\
     \bottomrule
   \end{tabular}
 \end{table}
@@ -794,7 +798,7 @@ initialiser for the backflow runs, and becomes the better choice at $N{=}20$ for
 reason of \S\ref{sec:colloc-arch-discussion}. The \textbf{neural
 Pfaffian}~\cite{GaoGuennemann2024-NeuralPfaffian}, which replaces the determinant with a
 more general antisymmetric form and in principle offers richer nodal topology, reached only
-$+0.43$--$0.50\%$ at $N{=}6$, $\omega{=}1$ against $+0.013\%$ for backflow+Jastrow: its
+$+0.43$--$0.50\%$ at $N{=}6$, $\omega{=}1$ against $+0.07$--$0.10\%$ for backflow+Jastrow: its
 extra expressivity was not exploitable under this sampling regime, because the larger
 parameter space amplifies importance-sampling gradient noise faster than the richer nodes
 repay.
@@ -846,20 +850,20 @@ distinct.
 \subsection{Collocation performance}
 \label{sec:colloc-results}
 
-\paragraph{$N{=}6$: near-reference accuracy across all~$\omega$.}
-For six electrons, collocation training reaches DMC-level accuracy
-where DMC exists: at $\omega\ge 0.5$ the errors are $\lesssim 0.01\%$, which is
-statistically consistent with the reference once the collocation uncertainty is
-included---though it is several times the DMC error bar taken alone, so ``consistent'' here
-is a statement about the combined uncertainty and not about matching DMC's own precision. At the most extreme confinements,
+\paragraph{$N{=}6$: within a few tenths of a percent across all~$\omega$.}
+For six electrons, collocation training comes close to the reference wherever one exists,
+but not to within it. At $\omega\ge0.5$ every run lands $0.07$--$0.10\%$ above DMC, with
+evaluation errors of $0.005$--$0.013\%$, so the gap is resolved and several times the
+deviation of the SR--VMC route (Table~\ref{tab:energies}). An earlier reading of these runs put
+the best of them at $+0.013\%$, statistically consistent with DMC; that number came from a
+single $30\,000$-sample evaluation of the best of three seeds, and the independent
+re-evaluation shows it to have been the lucky tail of a noisier estimate. At $\omega=0.1$
+the robust recipe sits at $+0.29\%$. At the most extreme confinements,
 $\omega\in\{0.01,0.001\}$, where the electrons are separated by
 ${\sim}30$--$120\,a_0^\ast$ (a few oscillator lengths) and no DMC reference is available,
-the energies stay within $0.1$--$0.25\%$ of our converged variational gold
-standard; this is agreement between two independent training paradigms on
-the same ansatz, not a certificate of absolute accuracy. The best campaign result at
-$\omega{=}1.0$ is $E{=}20.1620\pm0.0056$ ($+0.013\%$), which lies within $0.5\sigma$ of the
-reference on the combined uncertainty---dominated by ours, since the deviation is some tens
-of times the DMC error bar of $8\times10^{-5}$.
+the energies stay within $0.22$--$0.35\%$ of our converged variational energies; this is
+agreement between two independent training paradigms on the same ansatz, not a certificate
+of absolute accuracy.
 
 These results are achieved without any Markov chain in the training gradients.
 MCMC enters only outside the gradient loop: a small Metropolis probe periodically selects the
@@ -882,13 +886,13 @@ not among the protocol-controlled numbers of Table~\ref{tab:collocation}; we rep
 because it is the observation that put cascade warm-starting into the campaign's robust
 recipe (Table~\ref{tab:colloc-variants}).
 
-\paragraph{$N{=}12$: sub-$0.03\%$ at strong confinement.}
+\paragraph{$N{=}12$: a few hundredths of a percent at strong confinement.}
 For twelve electrons, the BF+Jastrow collocation results track DMC
-closely at $\omega\ge 0.5$, with best-run errors of $+0.009\%$ and
-$+0.024\%$ at $\omega{=}1.0$ and $0.5$ respectively (Table~\ref{tab:collocation}). No
-reliability campaign was run at this size, so these are the best of the independent runs and
-not protocol-controlled in the way the $N{=}6$ rows are.
-At $\omega{=}0.1$ the error increases to $+0.102\%$, reflecting the
+closely at $\omega\ge 0.5$, at $+0.031\%$ and $+0.034\%$ for $\omega{=}1.0$ and $0.5$
+(Table~\ref{tab:collocation}), resolved above the reference at evaluation errors of
+$0.003\%$. No reliability campaign was run at this size, so these are single continuation
+runs and not protocol-controlled in the way the $N{=}6$ rows are.
+At $\omega{=}0.1$ the error increases to $+0.11\%$, reflecting the
 growing difficulty of importance sampling in 24~dimensions at weak
 confinement.
 The ESS at $\omega{=}0.1$ is typically $5$--$15$ per epoch
@@ -1067,8 +1071,12 @@ Two training recipes are compared head-to-head:
 \end{itemize}
 
 All runs train for 1200 epochs.
-Evaluation uses a 20\,000-sample VMC probe every 50 epochs, with the
-best-VMC checkpoint restored for a final 20\,000-sample IS evaluation.
+A $20\,000$-sample Metropolis probe of $|\Psi|^2$ every 50 epochs selects the checkpoint, and
+the selected checkpoint was evaluated at the end of training by a fresh $30\,000$-sample
+Metropolis run. Every number below is instead an independent re-evaluation of that saved
+checkpoint, made for this revision with four separately seeded chains of $102\,400$ samples
+each and blocking; it reproduces the original evaluations within their errors on average,
+but not the best-of-three values selected on them (\S\ref{sec:gradient-chain}).
 
 \subsubsection{Main results}
 
@@ -1080,13 +1088,12 @@ Table~\ref{tab:reliability} gives all thirty runs, three seeds per cell.
   relative energy deviations for $N{=}6$ across five trap frequencies, scored against the
   reference column of Table~\ref{tab:collocation}---external at $\omega\ge0.1$, and our own
   converged SR--VMC energy at $\omega\le0.01$, where the deviation then measures internal
-  consistency rather than absolute accuracy. Each cell is the final IS-evaluated deviation
-  for one $(\omega,\text{recipe},\text{seed})$ combination. Bold marks the best run at each
-  $\omega$. The last two columns give the mean $\pm$ standard deviation and the worst of the
-  three seeds; these quantify the reliability of the final IS evaluator, not trained-state
-  quality independently of that evaluator. The standard
-  deviation is reported in place of a coefficient of variation because the latter is
-  uninformative when the mean deviation approaches zero.}
+  consistency rather than absolute accuracy. Each cell is one $(\omega,\text{recipe},\text{seed})$
+  run, evaluated by independent blocked Metropolis sampling of the saved checkpoint (errors
+  $0.003$--$0.02\%$, $0.05$--$0.09\%$ for the baseline at $\omega=10^{-3}$). Bold marks the best
+  run at each $\omega$. The last two columns give the mean $\pm$ standard deviation and the
+  worst of the three seeds. The standard deviation is reported in place of a coefficient of
+  variation because the latter is uninformative when the mean deviation approaches zero.}
   \label{tab:reliability}
   \small
   \setlength{\tabcolsep}{4.5pt}
@@ -1094,30 +1101,31 @@ Table~\ref{tab:reliability} gives all thirty runs, three seeds per cell.
     \toprule
     $\omega$ & Recipe & Seed 42 & Seed 137 & Seed 314 & mean $\pm$ s.d. & worst \\
     \midrule
-    1.0 & Baseline & $+0.073$ & $+0.045$ & $+0.060$ & $0.059\pm0.014$ & $0.073$ \\
-     & Robust & $+0.032$ & $\mathbf{+0.013}$ & $+0.105$ & $0.050\pm0.049$ & $0.105$ \\
+    1.0 & Baseline & $+0.067$ & $\mathbf{+0.066}$ & $+0.078$ & $0.070\pm0.006$ & $0.078$ \\
+     & Robust & $+0.068$ & $+0.081$ & $+0.096$ & $0.082\pm0.014$ & $0.096$ \\
     \midrule
-    0.5 & Baseline & $+0.106$ & $+0.060$ & $+0.108$ & $0.091\pm0.027$ & $0.108$ \\
-     & Robust & $\mathbf{+0.002}$ & $+0.112$ & $+0.047$ & $0.054\pm0.055$ & $0.112$ \\
+    0.5 & Baseline & $+0.107$ & $+0.112$ & $+0.104$ & $0.108\pm0.004$ & $0.112$ \\
+     & Robust & $+0.103$ & $+0.103$ & $\mathbf{+0.088}$ & $0.098\pm0.009$ & $0.103$ \\
     \midrule
-    0.1 & Baseline & $+0.419$ & $+0.547$ & $+0.427$ & $0.464\pm0.072$ & $0.547$ \\
-     & Robust & $+0.325$ & $\mathbf{+0.263}$ & $+0.270$ & $0.286\pm0.034$ & $0.325$ \\
+    0.1 & Baseline & $+0.479$ & $+0.597$ & $+0.486$ & $0.520\pm0.066$ & $0.597$ \\
+     & Robust & $\mathbf{+0.284}$ & $+0.302$ & $+0.293$ & $0.293\pm0.009$ & $0.302$ \\
     \midrule
-    0.01 & Baseline & $+0.500$ & $+0.379$ & $+0.746$ & $0.542\pm0.187$ & $0.746$ \\
-     & Robust & $+0.289$ & $+0.282$ & $\mathbf{+0.237}$ & $0.269\pm0.028$ & $0.289$ \\
+    0.01 & Baseline & $+0.368$ & $+0.455$ & $+0.661$ & $0.494\pm0.150$ & $0.661$ \\
+     & Robust & $+0.246$ & $+0.262$ & $\mathbf{+0.222}$ & $0.244\pm0.020$ & $0.262$ \\
     \midrule
-    0.001 & Baseline & $+3.876$ & $+7.187$ & $+4.733$ & $5.265\pm1.718$ & $7.187$ \\
-     & Robust & $\mathbf{+0.250}$ & $+0.331$ & $+0.263$ & $0.281\pm0.044$ & $0.331$ \\
+    0.001 & Baseline & $+4.012$ & $+6.906$ & $+4.628$ & $5.182\pm1.525$ & $6.906$ \\
+     & Robust & $+0.252$ & $+0.350$ & $\mathbf{+0.244}$ & $0.282\pm0.059$ & $0.350$ \\
     \bottomrule
   \end{tabular}
 \end{table}
 
-The stabilisation mechanisms buy nothing at strong confinement, where the two recipes sit
-inside each other's seed spread, and everything at weak confinement. At $\omega=10^{-3}$ the
-mean error falls by a factor of nineteen, from $+5.3\%$ to $+0.28\%$, and the \emph{worst}
-robust seed beats the \emph{best} baseline seed by an order of magnitude. The best single run
-at every confinement is a robust one. What follows is a mechanism for why the difference
-appears where it does.
+The stabilisation mechanisms buy nothing at strong confinement, where the two recipes land
+within a few hundredths of a percent of each other and the best runs are indistinguishable,
+and nearly everything at weak confinement. At $\omega=0.1$ and $0.01$ the robust recipe
+halves the mean error and shrinks its seed spread about sevenfold; at $\omega=10^{-3}$ the
+mean error falls by a factor of eighteen, from $+5.2\%$ to $+0.28\%$, and the \emph{worst}
+robust seed beats the \emph{best} baseline seed by an order of magnitude. What follows is a
+mechanism for why the difference appears where it does.
 
 
 \subsubsection{The gradient-quality chain}
@@ -1185,7 +1193,7 @@ downstream, and it is all we claim.
 Table~\ref{tab:khat-regime} summarises the average $\hat{k}$ across
 the campaign.
 The correspondence between $\hat{k}$ and final accuracy is
-striking.
+striking where $\hat k$ exceeds about $0.7$, and absent below it.
 
 \begin{table}[htbp]
   \centering
@@ -1203,11 +1211,11 @@ striking.
     \cmidrule(lr){2-3} \cmidrule(lr){4-5}
     $\omega$ & Baseline & Robust & Baseline & Robust \\
     \midrule
-    1.0   & 0.75 & 0.50 & 0.059 & 0.050 \\
-    0.5   & 0.83 & 0.54 & 0.091 & 0.054 \\
-    0.1   & 1.48 & 0.70 & 0.464 & 0.286 \\
-    0.01  & 2.63 & 1.39 & 0.542 & 0.269 \\
-    0.001 & 3.13 & 1.86 & 5.265 & 0.281 \\
+    1.0   & 0.75 & 0.50 & 0.070 & 0.082 \\
+    0.5   & 0.83 & 0.54 & 0.108 & 0.098 \\
+    0.1   & 1.48 & 0.70 & 0.520 & 0.293 \\
+    0.01  & 2.63 & 1.39 & 0.494 & 0.244 \\
+    0.001 & 3.13 & 1.86 & 5.182 & 0.282 \\
     \bottomrule
   \end{tabular}
 \end{table}
@@ -1215,13 +1223,13 @@ striking.
 The robust recipe reduces $\hat{k}$ by a factor of $1.5$ to $2.1$, with the larger
 reductions at the confinements where the baseline is worst.
 At $\omega{=}1.0$ this takes $\hat{k}$ from 0.75 (borderline) to
-0.50 (reliable), resulting in a modest improvement.
+0.50 (reliable), with no measurable effect on the energy.
 At $\omega{=}0.1$ it takes $\hat{k}$ from 1.48 (broken) to 0.70
 (borderline), corresponding to the transition from mediocre
-($+0.46\%$) to marginal ($+0.29\%$) accuracy.
+($+0.52\%$) to marginal ($+0.29\%$) accuracy.
 At $\omega{=}0.001$ even the robust recipe has $\hat{k}{=}1.86$,
 but the adaptive proposal and rollback mechanisms prevent the
-catastrophic divergence seen in the baseline ($+5.3\%$).
+catastrophic divergence seen in the baseline ($+5.2\%$).
 
 \paragraph{Step 3: from gradient noise to optimisation stochasticity.}
 When $\hat{k}$ is large, most of the gradient signal comes from a
@@ -1244,69 +1252,64 @@ The result is optimisation trajectories that diverge qualitatively
 across seeds, explaining the large run-to-run variance observed
 at low~$\omega$.
 
-\paragraph{Step 4: the evaluation bottleneck.}
-An additional subtlety is that the final energy evaluation itself
-uses importance sampling from the same proposal distribution.
-Even if the model has found an excellent wavefunction, a noisy
-evaluation can report a misleading energy.
-
-The data expose this directly.
-Table~\ref{tab:vmc-gap} compares the VMC-best energy seen during
-training (a 20\,000-sample Metropolis probe from the model's own
-$|\Psi|^2$, used for checkpoint selection) with the final IS
-evaluation that uses the Gaussian proposal.
-At high~$\omega$ where IS is reliable, the two estimates agree
-closely.
-At low~$\omega$, the gap between them grows, and its sign is
-unpredictable---the IS evaluation can overestimate or underestimate
-the true energy.
+\paragraph{Step 4: where the reported energy can mislead.}
+The final energy is not an importance-sampling estimate. It is a Metropolis evaluation of
+$|\Psi_\theta|^2$ at the checkpoint the probe selected, and every value in
+Tables~\ref{tab:collocation} and~\ref{tab:reliability} is an independent re-evaluation of
+that checkpoint with four separately seeded chains and blocking. Where the reported number
+can mislead is one step earlier, in the selection. The checkpoint is the best of about
+two dozen probe readings of $20\,000$ samples each, and the minimum of noisy readings is
+biased low. Across all thirty runs the probe that chose a checkpoint read it as better than
+the independent evaluation finds, by $0.07\%$ on average and in $26$ of $30$ cases; the
+original single end-of-training evaluation, by contrast, is unbiased on average ($+0.001\%$)
+but noisy enough that the best of three seeds selected on it came out optimistic.
+Table~\ref{tab:vmc-gap} shows representative runs.
 
 \begin{table}[htbp]
   \centering
-  \caption[Gap between the VMC probe and the IS evaluation]{Gap between VMC-best checkpoint energy (Metropolis sampling
-  from $|\Psi|^2$) and final IS evaluation, for selected runs.
-  Positive gap means IS reports higher (worse) energy than the VMC
-  probe saw.}
+  \caption[Selection bias of the checkpoint probe]{Selection bias of the checkpoint probe.
+  ``Probe'' is the Metropolis probe reading that selected the checkpoint during training;
+  ``original'' the single $30\,000$-sample evaluation made at the end of training;
+  ``independent'' the blocked re-evaluation used in the tables (error in parentheses, last
+  digits). The gap is independent minus probe. All values are deviations in percent.}
   \label{tab:vmc-gap}
   \small
-  \begin{tabular}{r l l cc c}
+  \begin{tabular}{r l l cccc}
     \toprule
-    $\omega$ & Recipe & Seed & VMC-best (\%) & Final IS (\%) & Gap (\%) \\
+    $\omega$ & Recipe & Seed & probe & original & independent & gap \\
     \midrule
-    1.0   & Baseline & 314 & $+0.001$ & $+0.060$ & $+0.059$ \\
-    1.0   & Robust   & 137 & $+0.002$ & $+0.013$ & $+0.011$ \\
-    0.5   & Robust   & 42  & $+0.037$ & $+0.002$ & $-0.035$ \\
-    0.1   & Robust   & 137 & $+0.136$ & $+0.263$ & $+0.127$ \\
-    0.01  & Baseline & 42  & $+0.320$ & $+0.500$ & $+0.180$ \\
-    0.001 & Baseline & 314 & $+4.114$ & $+4.733$ & $+0.619$ \\
+    1.0   & Baseline & 314 & $+0.001$ & $+0.060$ & $+0.078(12)$ & $+0.077$ \\
+    1.0   & Robust   & 137 & $+0.002$ & $+0.013$ & $+0.081(6)$  & $+0.079$ \\
+    0.5   & Robust   & 42  & $+0.037$ & $+0.002$ & $+0.103(12)$ & $+0.066$ \\
+    0.1   & Robust   & 137 & $+0.136$ & $+0.263$ & $+0.302(8)$  & $+0.166$ \\
+    0.01  & Baseline & 42  & $+0.320$ & $+0.500$ & $+0.368(17)$ & $+0.048$ \\
+    0.001 & Baseline & 314 & $+4.114$ & $+4.733$ & $+4.628(52)$ & $+0.514$ \\
     \bottomrule
   \end{tabular}
 \end{table}
 
-The first row is particularly instructive: this baseline run with
-seed~314 achieved a VMC-best energy of $+0.001\%$---essentially
-exact---during training, but the IS evaluation reports $+0.060\%$.
-The wavefunction is excellent; the evaluation is noisy.
-This demonstrates that some nominally ``bad'' runs may contain
-excellent wavefunctions measured poorly, and some nominally ``good''
-results may benefit from evaluation noise in the favorable direction.
+The first two rows are the instructive ones. A probe reading of $+0.001\%$ looked like an
+essentially exact wavefunction; the state sits at $+0.08\%$, and it was the probe that was
+lucky. The second row was, until this re-evaluation, the headline strong-confinement number
+of this chapter. Selection on a noisy estimate inflates any ``best run'', which is why the
+tables report independent re-evaluations and why the reliability campaign is summarised by
+seed means rather than by its best seeds.
 
 \paragraph{Summary of the chain.}
 The chain in Eq.~\eqref{eq:chain} provides a unified account of
 the full landscape of collocation results.
 At high~$\omega$, the proposal matches the target well
 ($\hat{k}\sim 0.5$), gradients are reliable, optimisation is
-stable, and all seeds converge to near-DMC accuracy.
+stable, and all seeds converge to within about a tenth of a percent of DMC.
 At low~$\omega$, the proposal-to-target mismatch grows, $\hat{k}$
-inflates, gradients become noisy, optimisation becomes seed-dependent,
-and the evaluation itself becomes unreliable.
+inflates, gradients become noisy, and optimisation becomes seed-dependent.
 The robust recipe acts on multiple links of this chain simultaneously:
 higher oversampling improves the raw ESS, reward normalisation
 stabilises the gradient scale, rollback prevents catastrophic
 divergence, and the adaptive proposal reduces the fundamental
 mismatch.
-No single mechanism is sufficient; each addresses a different link
-in the chain.
+Each is aimed at a different link in the chain; which of them is necessary was not tested,
+and the campaign shows only that together they suffice.
 \subsection{The memory wall at $N{=}20$}
 \label{sec:colloc-arch-discussion}
 

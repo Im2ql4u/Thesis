@@ -779,3 +779,37 @@ have nothing to check in such commits.
 means first resolving or stashing the dirty `results/` files deliberately.
 
 **Confidence:** high.
+
+## 2026-09-12 — Collocation energies are reported from independent blocked re-evaluation
+
+**Decision:** Every N=6 and N=12 collocation energy in Tables 7.5/7.7 is replaced by an
+independent Metropolis re-evaluation of the saved checkpoint (4 seeded chains x 102,400
+samples, blocking, SE = max(blocked, between-chain)). N=12 rows switch from the pre-fix
+best-of-many runs (21 March, +0.009/+0.024/+0.102%) to the post-fix continuations (6 April).
+
+**Reasoning:** The original single 30k-sample evaluations were unbiased on average but noisy,
+and best-of-three selection on them produced optimistic headlines (+0.013% at w=1 became
++0.081%). The pre-fix N=12 runs were trained with the mis-weighted gradient.
+
+**Constraints introduced:** Any collocation number added later must be evaluated the same
+way; pre-May checkpoints must be evaluated with the legacy cusp (the script infers it).
+
+**Confidence:** high.
+
+## 2026-09-12 — Energy-partition figure and text use the corrected-mapping CSV
+
+**Decision:** Fig. 6.4 and the Gamma / 2V_trap/V_int numbers in Sec. 6.2.3 and App. D now
+come from `src/energy_summary_out/energy_summary_fixed.csv` (the "authoritative corrected
+mapping", matching the production energies), replacing December 2025 values that predate
+that correction.
+
+**Alternatives considered:** Keeping the December numbers and figure — rejected because no
+source for them survives and they disagree with the production energies.
+
+**Constraints introduced:** Chapter 6 structural figures now use the runs listed in
+`results/structural_tables/shell_summary.csv` (N>=6); Table 6.3's single-particle radial
+diagnostics still come from an earlier pass on different runs (recorded as a known gap in
+App. G, not fixed).
+
+**Confidence:** medium-high — the CSV's provenance is documented only by its notebook
+comment, but its energies match Table 6.2 at 17 of 20 points.

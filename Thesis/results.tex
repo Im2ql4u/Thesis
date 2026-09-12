@@ -383,9 +383,8 @@ null model to answer.
   \caption[One-body densities at strong and weak confinement, $N=2,6,12$]{One-body
   densities for $N=2,6,12$ at $\omega=1.0$ (top) and $\omega=0.001$ (bottom). The vertical
   axis is the one-body density $n(x,y)$ over the two Cartesian components of a single
-  particle's position; the axis label carried in the figure files reads $n(r_1,r_2)$ for the
-  same quantity, which collides with the convention used elsewhere in this thesis, where
-  $\mathbf r_i$ is the position of particle $i$. As confinement weakens the densities broaden
+  particle's position, in trap units; the curves on the back walls are its marginals. As
+  confinement weakens the densities broaden
   and develop pronounced \emph{radial} shell structure. Being lab-frame averages over all
   orientations of the molecule, they cannot show angular order: that requires the registered
   diagnostics of \S\ref{sec:wigner-angular}.}
@@ -444,20 +443,20 @@ The energy partition carries two messages, and only two.
 
 \emph{Interactions take over.} The interaction-to-kinetic ratio
 $\Gamma=\langle V_{\rm int}\rangle/\langle T\rangle$ rises across
-$\omega\in[1,10^{-3}]$ from $0.9$ to $8.7$ at $N{=}2$, from $2.4$ to $25.4$ at $N{=}6$ and
-from $3.6$ to $39.9$ at $N{=}12$ (Fig.~\ref{fig:wigner_ratios}a). The dot stops being a
+$\omega\in[1,10^{-3}]$ from $0.9$ to $8.6$ at $N{=}2$, from $2.4$ to $24.5$ at $N{=}6$ and
+from $3.6$ to $41.1$ at $N{=}12$ (Fig.~\ref{fig:wigner_ratios}a). The dot stops being a
 kinetic-energy-dominated droplet and becomes a Coulomb-dominated one.
 
 \emph{Classical force balance emerges.} At $\omega=10^{-3}$ the trap--interaction partition
-$2\langle V_{\rm trap}\rangle/\langle V_{\rm int}\rangle$ reaches $1.25$, $1.12$ and $1.02$
+$2\langle V_{\rm trap}\rangle/\langle V_{\rm int}\rangle$ reaches $1.23$, $1.07$ and $1.05$
 at $N=2,6,12$, so the twelve-electron dot satisfies the classical condition
-$V_{\rm int}\approx2V_{\rm trap}$ to within $2\%$ (Fig.~\ref{fig:wigner_ratios}b). The
+$V_{\rm int}\approx2V_{\rm trap}$ to within $5\%$ (Fig.~\ref{fig:wigner_ratios}b). The
 approach is monotone and improves with $N$, as it should: the classical limit is reached
 faster when there are more particles to arrange.
 
 Both are consistent with real-space expansion. The rms radius extracted from
 $V_{\rm trap}=\tfrac12\omega^2\sum_i\langle r_i^2\rangle$ grows from $1.1$--$2.0\,a_B^\ast$
-at $\omega=1$ to $70$--$169\,a_B^\ast$ at $\omega=10^{-3}$, faster than the non-interacting
+at $\omega=1$ to $70$--$170\,a_B^\ast$ at $\omega=10^{-3}$, faster than the non-interacting
 $\omega^{-1/2}$ law, which is interaction-driven swelling. The fitted exponents for the
 individual energy components and for the radius, which support these statements without
 adding to them, are collected in Appendix~\ref{app:energy-exponents}.
@@ -521,15 +520,21 @@ A single-particle width is the weakest of the radial diagnostics for exactly thi
 
 \begin{figure}[htp]
   \centering
-  \includegraphics[width=0.8\textwidth]{N2_all_densities}
-  \caption{Two-electron radial densities $P(r)$ across $\omega$.}
+  \includegraphics[width=0.9\textwidth]{N2_all_densities}
+  \caption[Two-electron radial and pair-distance densities]{One-body radial density
+  $\rho_1(\tilde r)$ (top) and pair-distance density $P(r_{12})$ (bottom) for $N{=}2$ across
+  $\omega$, in trap units $\tilde r=\sqrt\omega\,r$.}
   \label{fig:2N_radial_densities}
 \end{figure}
 
 \begin{figure}[htp]
   \centering
-  \includegraphics[width=0.8\textwidth]{N6_all_densities}
-  \caption{Six-electron radial densities $P(r)$ across $\omega$.}
+  \includegraphics[width=0.9\textwidth]{N6_all_densities}
+  \caption[Six-electron radial and pair-distance densities]{As
+  Fig.~\ref{fig:2N_radial_densities}, for $N{=}6$. At $\omega=10^{-3}$ the one-body density
+  separates into the central electron and the ring, and the pair distribution splits into
+  centre--ring and nearest-neighbour distances (first peak) and cross-ring distances
+  (second).}
   \label{fig:6N_radial_densities}
 \end{figure}
 
@@ -674,8 +679,9 @@ $N$ & $\omega$ & occ. & $\cos_{\rm poly}$ & $\cos_{\rm uni}$ & $\Delta\cos$ & $9
 
 \begin{figure}[htp]
   \centering
-  \includegraphics[width=0.8\textwidth]{N12_all_densities}
-  \caption{Twelve-electron radial densities $P(r)$ across $\omega$.}
+  \includegraphics[width=0.9\textwidth]{N12_all_densities}
+  \caption[Twelve-electron radial and pair-distance densities]{As
+  Fig.~\ref{fig:2N_radial_densities}, for $N{=}12$.}
   \label{fig:12N_radial_densities}
 \end{figure}
 
@@ -764,7 +770,7 @@ Interactions take over &
 $\Gamma=\langle V_{\rm int}\rangle/\langle T\rangle$ rises tenfold &
 firm, $N\le12$ \\
 Classical force balance emerges &
-$2\langle V_{\rm trap}\rangle/\langle V_{\rm int}\rangle\to1.25,\,1.12,\,1.02$ &
+$2\langle V_{\rm trap}\rangle/\langle V_{\rm int}\rangle\to1.23,\,1.07,\,1.05$ &
 firm at $N{=}12$ \\
 Shells stiffen radially &
 shell-resolved widths ($N{=}6$ ring: $0.32\to0.15$) and pair Lindemann ratios; global

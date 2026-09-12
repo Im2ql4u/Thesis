@@ -88,14 +88,12 @@ authority than the design supports.
 
 \begin{figure}[htbp]\centering
   \includegraphics[width=0.95\textwidth]{fair_dimension.png}
-  \caption[Message passing compresses the correlator]{Message passing compresses the correlator ($N{=}6$, $\omega{=}1$).
-  \emph{Left:} the effective rank of the quantum geometric tensor on a common pooled probe,
-  converged in the number of probe samples. \emph{Right:} the same pooled measure per model.
-  The CTNN (blue) reaches the ground state in $d_{\mathrm{eff}}\!\approx\!1.2$--$1.7$, while
-  every DeepSet (red) needs $\approx\!2.9$--$3.6$---and the gap does not close as the DeepSet
-  is scaled from $20$k to $164$k parameters. Capacity does not explain it; the comparison is
-  at the parametrisation and normalisation conventions described in the text, on which
-  $d_{\mathrm{eff}}$ depends.}
+  \caption[Message passing concentrates the correlator's Fisher weight]{Effective dimension
+  of the correlator's tangent space ($N{=}6$, $\omega{=}1$) on a common pooled probe.
+  \emph{Left:} convergence in the number of probe samples. \emph{Right:} per model. The CTNN
+  (blue) sits at $d_{\mathrm{eff}}\!\approx\!1.2$--$1.7$ and every DeepSet (red) at
+  $\approx\!2.9$--$3.6$; scaling the DeepSet from $20$k to $164$k parameters does not close
+  the gap. $d_{\mathrm{eff}}$ depends on the parametrisation (\S\ref{sec:kernel-q1a}).}
   \label{fig:q1a-fairdim}
 \end{figure}
 
@@ -180,7 +178,7 @@ correlator, the direction carrying most of the tangent weight is one of the hand
 coordinates the Hamiltonian actually couples.
 
 \begin{figure}[htbp]\centering
-  \includegraphics[width=0.8\textwidth]{mode_naming_scan.png}
+  \includegraphics[width=0.9\textwidth]{mode_naming_scan.png}
   \caption[The leading tangent mode is a nameable physical mode]{The leading tangent mode is a nameable physical mode. $R^2$ of the correlator's
   leading tangent-kernel eigenmode onto the physical-operator dictionary, seed-averaged over
   well-trained checkpoints. The CTNN stays physical at every $\omega$ and both sizes; the
@@ -215,15 +213,13 @@ $\lesssim\!0.02$ across $\omega$, while a matched DeepSet (trained to $+0.2\%$) 
 $\approx\!0.77$ at $\omega=1$---the gap \emph{widens} with system size rather than closing.
 
 \begin{figure}[htbp]\centering
-  \includegraphics[width=0.72\textwidth]{nonphys_mass.png}
-  \caption[Dictionary-orthogonal tangent mass against $\omega$]{A limitation visible where the energy cannot see it. Dictionary-orthogonal tangent mass---the
-  eigenvalue-weighted tangent variance outside the span of a compact physical-operator
-  dictionary---versus $\omega$. At
-  $\omega=1$ the two correlators are indistinguishable in energy ($-0.001\%$) and in
-  leading-mode physicality, yet the DeepSet already spends $44\%$ of its tangent variance on
-  directions not resolved by the chosen physical-operator dictionary, against the CTNN's $6\%$. The excess is roughly constant
-  in $\omega$: the gap is present throughout, disguised at high $\omega$ only because
-  correlation is a small slice of the energy there.}
+  \includegraphics[width=0.85\textwidth]{nonphys_mass.png}
+  \caption[Dictionary-orthogonal tangent mass against $\omega$]{A limitation visible where
+  the energy cannot see it. Dictionary-orthogonal tangent mass---the eigenvalue-weighted
+  tangent variance outside the span of a compact physical-operator dictionary---against
+  $\omega$. At $\omega=1$, where the two correlators agree in energy to $0.001\%$, the DeepSet
+  places $44\%$ of its tangent variance outside the dictionary and the CTNN $6\%$; the excess
+  persists at every $\omega$.}
   \label{fig:nonphys}
 \end{figure}
 
@@ -378,24 +374,15 @@ response, and the ablation shows that this transport carries essentially the ent
 effect.
 
 \begin{figure}[htbp]\centering
-  \includegraphics[width=0.72\textwidth]{message_ablation.png}
+  \includegraphics[width=0.85\textwidth]{message_ablation.png}
   \caption[Fixed-measure ablation cost of each component]{The \emph{fixed-measure
   instantaneous ablation cost} of each component (trained networks, $N{=}6$). Configurations
   are drawn once from the full model's $|\Psi|^2$ and every arm is re-evaluated on them, so
-  the trap and Coulomb terms are identical across arms by construction and the plotted ratio
-  $\Delta E_{\rm probe}/E_{\rm full}$ is the instantaneous change in the kinetic term when a
-  component is switched off. It is \emph{not} the energy of a network retrained without that component, which would be
-  smaller, since nothing is allowed to re-relax. Removing the backflow (cyan) costs
-  ${\sim}6\%$ at $\omega{=}1$ and under $0.02\%$ at $\omega{=}0.01$; removing the Jastrow
-  messages (dark red) grows from $3.9\%$ to $11.4\%$ over the same range. The curves cross
-  near $\omega\approx0.4$. Removing all message passing (blue) tracks the Jastrow-message curve
-  and meets it at $\omega{=}0.01$: once the correlator's messages are gone, deleting the
-  displacement as well costs nothing measurable. The relational work
-  migrates from the nodes to the amplitude: at the crystal it is the correlator's messages,
-  not the backflow, that carry it. This is a statement about how \emph{this} trained model
-  divided the correlation between two substitutable components, and so is conditional on the
-  staged training protocol rather than gauge-invariant (\S\ref{sec:synthesis}); the ablation
-  costs themselves are reproducible at fixed protocol.}
+  $\Delta E_{\rm probe}/E_{\rm full}$ is the change in the kinetic term when a component is
+  switched off, not the energy of a retrained network. Cyan: backflow removed; dark red:
+  Jastrow messages removed; blue: all message passing removed. The curves cross near
+  $\omega\approx0.4$. The division of labour shown is conditional on the training protocol
+  (\S\ref{sec:synthesis}).}
   \label{fig:q1b-ablation}
 \end{figure}
 
@@ -614,7 +601,7 @@ certify a state. We stop short of saying the overlap \emph{is} zero: $\mathcal{S
 ratio estimator built from the same degenerate weights, so at this ESS it reports \emph{unresolved} and not orthogonal.
 
 \begin{figure}[htbp]\centering
-  \includegraphics[width=0.62\textwidth]{ess_collapse.png}
+  \includegraphics[width=0.8\textwidth]{ess_collapse.png}
   \caption[ESS collapse of the naive collocation proposal]{The naive collocation proposal collapses in the Wigner regime ($N{=}6$). The
   effective sample size (as a percentage of the batch) falls by more than an order of
   magnitude from $\omega{=}1$ to $\omega{=}0.01$, where it reaches $\sim\!0.1\%$---about five

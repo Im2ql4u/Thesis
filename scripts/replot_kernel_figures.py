@@ -82,7 +82,7 @@ def ess_collapse() -> None:
     ax.set_xscale("log")
     ax.set_yscale("log")
     ax.set_xlabel(r"$\omega$")
-    ax.set_ylabel("ESS fraction (\\%)")
+    ax.set_ylabel("ESS fraction (%)")
     ax.set_title(r"Collocation ESS collapse vs $\omega$ ($N{=}6$)")
     fig.tight_layout()
     fig.savefig(OUT / "ess_collapse.png", dpi=200)

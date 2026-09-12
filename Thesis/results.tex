@@ -608,16 +608,21 @@ $\Delta\cos$, is what \emph{angular} order buys over shell radii alone, and it g
 monotonically as the trap weakens at every particle number---at $N{=}12$ from $0.006$ at $\omega=1$ to $0.026$ at $\omega=10^{-3}$, at $N{=}6$ from
 $0.012$ to $0.058$, at $N{=}20$ from $0.003$ to $0.010$. Shell radii alone account for most
 of the pair structure at strong confinement; angular structure accounts for a growing
-remainder as the molecule forms.
+remainder as the molecule forms. How firmly is a separate matter. Each $\Delta\cos$ comes
+from a single split of the frames and carries no interval, and the smallest values---a few
+thousandths at $N{=}20$---are of a size that the split, the histogram binning, the shell
+threshold or the parametrisation of the angular jitter could move. The growth is consistent
+across all three particle numbers, which argues against noise, but it is suggestive rather
+than established until it carries a block-bootstrap interval and survives those choices.
 
 That growth has a different shape from the bond order. $\Delta\cos$ rises by a factor of
 $1.1$--$2.1$ per decade at every particle number, monotonically and without a threshold,
 whereas the bond order stays flat at its null and then jumps. The two are not in conflict:
 $\Delta\cos$ responds to \emph{any} angular correlation that improves the pair-distance
 density, while $|\Phi_n|$ responds specifically to $n$-fold order on a registered ring. Weak
-angular correlations build gradually from strong confinement onward, and crystalline
-$n$-fold order emerges from them only in the final decade---three stages, not a single
-threshold.
+angular correlations appear to build gradually from strong confinement onward, and
+crystalline $n$-fold order emerges from them only in the final decade---three stages, not a
+single threshold, with the middle one resting on the weaker of the two measurements.
 
 \begin{table}[htbp]
 \centering
@@ -628,8 +633,9 @@ angular jitter; and the resulting pair-distance density is scored on the \emph{h
 half. $\cos_{\rm poly}$ is the polygon model's agreement with the empirical density and
 $\cos_{\rm uni}$ that of an angle-randomised null with the same fitted radial
 distributions, so $\Delta\cos$ isolates what polygonal order contributes over shell radii
-alone. It grows monotonically as the trap weakens at every particle number. Full table
-including residuals in Appendix~\ref{app:structural-tables:mixfit}.}
+alone. It grows as the trap weakens at every particle number; no uncertainty is attached
+to it here (see text). Full table including residuals in
+Appendix~\ref{app:structural-tables:mixfit}.}
 \label{tab:shell-model-fit-main}
 \small
 \setlength{\tabcolsep}{6pt}
@@ -725,6 +731,58 @@ reported elsewhere for $N\ge12$ parabolic dots is the combination of \emph{secto
 bond-order and Lindemann statistics, read against their random-angle null, with a held-out
 polygon reconstruction of $g(r)$ scored against an angle-randomised baseline.
 
+The diagnostics do not carry equal weight, and they do not all support the same claims.
+Table~\ref{tab:wigner-evidence} sets out which one carries which statement and how firmly.
+The strongest evidence is at the deepest Wigner points; the qualitative staging is better
+established than where, within the coarse $\omega$ grid, each stage sets in.
+
+\begin{table}[htbp]
+\centering
+\caption[Which diagnostic supports which claim]{Which diagnostic supports which claim about
+the crossover. ``Firm'' means a large effect in a state-level or shell-resolved quantity;
+``weak'' marks evidence that is suggestive but either small, without an uncertainty
+estimate, or carried by a quantity known to mix structures.}
+\label{tab:wigner-evidence}
+\small
+\renewcommand{\arraystretch}{1.2}
+\begin{tabular}{@{}>{\raggedright\arraybackslash}p{0.29\textwidth}
+                >{\raggedright\arraybackslash}p{0.42\textwidth}
+                >{\raggedright\arraybackslash}p{0.21\textwidth}@{}}
+\toprule
+Claim & Carried by & Strength \\
+\midrule
+The cloud expands faster than the non-interacting $\omega^{-1/2}$ &
+rms radius from $\langle V_{\rm trap}\rangle$; $r_{\rm mode}$ exponent &
+firm, all $N$ \\
+Interactions take over &
+$\Gamma=\langle V_{\rm int}\rangle/\langle T\rangle$ rises tenfold &
+firm, $N\le12$ \\
+Classical force balance emerges &
+$2\langle V_{\rm trap}\rangle/\langle V_{\rm int}\rangle\to1.25,\,1.12,\,1.02$ &
+firm at $N{=}12$ \\
+Shells stiffen radially &
+shell-resolved widths ($N{=}6$ ring: $0.32\to0.15$) and pair Lindemann ratios; global
+$\gamma$ only at $N{=}2$ &
+firm; global $\gamma$ weak at $N{=}6$ \\
+The ring approaches its classical radius &
+outer radius over $1.334\,\omega^{-2/3}$: $1.247\to1.017$ &
+firm, $N{=}6$ \\
+Discrete Wigner topologies form &
+radial classifier with registered order: $(1,5)$, $(3,9)$, $(1,7,12)$ &
+firm at $10^{-3}$; above it, radial partitions only \\
+Weak angular correlation builds gradually &
+held-out polygon model against angle-randomised null, $\Delta\cos$ &
+weak: small at $N{=}20$, no interval \\
+$n$-fold angular order appears late &
+$|\Phi_n|$ against its exact null &
+firm at $10^{-3}$; within resolution above $0.1$ \\
+Where each stage sets in &
+one grid point per decade &
+not established \\
+\bottomrule
+\end{tabular}
+\end{table}
+
 Two qualifications bound all of it. The states are the lowest we find within a fixed
 spin-projection sector, and we have not scanned total spin, so these are not proven
 global-spin ground states. And the combinatorial reconstruction of $g(r)$ establishes
@@ -737,10 +795,11 @@ informative. Radial localisation (expansion, shell separation, falling shell-res
 Bond-orientational order is flat at its null through $\omega=0.1$, departs at $\omega=0.01$
 clearly only at $N{=}6$, and becomes large at $10^{-3}$ everywhere. The held-out
 polygon model, sensitive to any angular correlation rather than to $n$-fold order
-specifically, instead grows monotonically throughout, roughly doubling per decade. Weak
-angular correlations therefore build gradually across the whole range while
+specifically, instead grows monotonically throughout, roughly doubling per decade. Read at
+face value, weak angular correlations build gradually across the whole range while
 \emph{crystalline} $n$-fold order appears only in the last decade: a three-stage picture
-rather than a two-stage one.
+rather than a two-stage one. The two-stage separation of radial and $n$-fold angular order
+is firm; the gradual middle stage rests on $\Delta\cos$ values that as yet carry no interval.
 
 These structural facts then enter the method. The shell radius approaching its classical
 $\omega^{-2/3}$ scaling---within $1.7\%$ of the classical prefactor at $\omega=10^{-3}$,

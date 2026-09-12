@@ -56,12 +56,13 @@ study of \S\ref{sec:kernel-q1} (Table~\ref{tab:hyperparams}).
 
 \subsection{Energies}
 
-\textbf{Across every externally benchmarked system, the trained states reproduce the
-reference energy to between $10^{-5}$ and $5\times10^{-4}$ in relative terms, with no
-systematic deterioration as particles are added or the trap is opened}
-(Tables~\ref{tab:Residual} and \ref{tab:energies}, Fig.~\ref{fig:rel_error_vs_omega}).
-Everything after this section depends on it: it is what allows the state to be treated as an
-instrument in \S\ref{sec:wigner-molecule} rather than as a claim still under defence.
+\textbf{Across every externally benchmarked system, the trained states agree with the
+available fixed-node reference energies to between $10^{-5}$ and $5\times10^{-4}$ in
+relative terms, with no systematic deterioration as particles are added or the trap is
+opened} (Tables~\ref{tab:Residual} and \ref{tab:energies}, Fig.~\ref{fig:rel_error_vs_omega}).
+Everything after this section depends on it. It is less than a validation of the
+wavefunction, for reasons set out below, but it is the precondition for treating the state
+as an instrument in \S\ref{sec:wigner-molecule} rather than as a claim still under defence.
 
 Where the agreement holds matters as much as its size. A method that matches at $\omega=1$
 and drifts at $\omega=0.1$ differs from one that holds across the benchmarked range, since
@@ -71,10 +72,13 @@ variational predictions rather than validated ones; that boundary is marked wher
 occurs.
 
 Where a reference exists it is also the target that residual pretraining anneals toward
-(\S\ref{sec:opt-overview}), so the agreement is between a reference and an independently
-evaluated variational upper bound on the same ansatz---weaker than independence, stronger
-than circularity. A variational expectation under $|\Psi|^2$ lies above $E_0$ whatever it was
-aimed at, so aiming cannot pull the reported energy below what the ansatz can reach.
+(\S\ref{sec:opt-overview}), so the agreement is not a fully independent validation. The SR
+tail that follows strengthens it considerably, since it minimises the variational energy
+itself and no longer sees the target; but the final states still descend from
+reference-guided training. Nor does closeness to a reference certify the state. The
+variational principle guarantees that the expectation does not fall below the exact $E_0$,
+not that it lies near it, and a flexible ansatz can reproduce an approximate reference
+without describing every property of the exact state correctly.
 \S\ref{sec:energy-discussion} takes this up properly.
 
 Table~\ref{tab:Residual} begins with the easiest case, and its purpose is diagnostic, not competitive: two electrons are few enough that the
@@ -119,19 +123,23 @@ Fig.~\ref{fig:rel_error_vs_omega}).
 
 \begin{table}[htbp]
   \centering
-  \caption[Ground-state energies against the available references]{Ground-state energies
+  \caption[Variational energies against the available references]{Variational energies
   (Hartree) from residual pretraining plus an SR tail, for the conventional-backflow and
   message-passing-backflow ans\"atze. Reference values are the fixed-node diffusion Monte
   Carlo energies compiled in Ref.~\cite{HaasHFQD}; provenance and the $N{=}2$ attribution are
-  given in the notes below. Parentheses denote $1\sigma$ on the last digit(s). ``Rel.\ dev.''
+  given in the notes below. Parentheses denote the $1\sigma$ blocked statistical error on the
+  last digit(s) for the single optimised state reported; they do not include the variation
+  between independent training runs, which was not measured for these production states,
+  and at $N{=}20$ in particular each entry is one training run. ``Rel.\ dev.''
   is $100\,(E-E_{\rm ref})/E_{\rm ref}$, labelled deviation and not error because the
   $N\ge6$ references are themselves fixed-node upper bounds, so a negative entry is not
   necessarily wrong (\S\ref{sec:energy-discussion}). \textbf{These are production energies and
   the two ans\"atze are not capacity matched} ($\approx105$k against $\approx236$k); the
   controlled architecture comparison is \S\ref{sec:kernel-q1}, and this table is not an
-  architecture ablation. A dash marks $(N,\omega)$ with no published value---all
-  $\omega=0.001$, and $\omega=0.01$ for $N\ge6$---where the deviation columns are
-  correspondingly blank.}
+  architecture ablation. Rows whose reference column reads \emph{prediction}---all
+  $\omega=0.001$, and $\omega=0.01$ for $N\ge6$---have no published value to compare with.
+  They are variational predictions, not validated energies, and in the deep-Wigner rows they
+  are the lowest states found at fixed spin projection (\S\ref{sec:wigner-molecule}).}
   \label{tab:energies}
   \begin{threeparttable}
     \begin{tabular}{c|c|c|cc|cc}
@@ -142,25 +150,25 @@ Fig.~\ref{fig:rel_error_vs_omega}).
          & 0.50 & $1.65977(1)$ & $1.65976(2)$ & $-0.0006$ & $1.65976(1)$ & $-0.0006$ \\
          & 0.10 & $0.44079(1)$ & $0.44079(1)$ & $+0.0000$ & $0.440796(4)$ & $+0.0014$ \\
          & 0.01 & $0.073839(2)$ & $0.073838(1)$ & $-0.0014$ & $0.0738382(5)$ & $-0.0011$ \\
-         & 0.001 & --- & $0.0137948(8)$ & --- & $\mathbf{0.013778(1)}$ & --- \\
+         & 0.001 & \emph{prediction} & $0.0137948(8)$ & --- & $\mathbf{0.013778(1)}$ & --- \\
     \midrule
       6 & 1.00 & $20.15932(8)^{\mathrm{H}}$ & $20.1610(6)$ & $+0.0083$ & $\mathbf{20.1585(3)}$ & $-0.0041$ \\
          & 0.50 & $11.78484(6)^{\mathrm{H}}$ & $11.7895(4)$ & $+0.0395$ & $\mathbf{11.7847(2)}$ & $-0.0012$ \\
          & 0.10 & $3.55385(5)^{\mathrm{H}}$ & $3.5549(1)$ & $+0.0295$ & $\mathbf{3.55388(5)}$ & $+0.0008$ \\
-         & 0.01 & --- & $0.69125(2)$ & --- & $\mathbf{0.69036(1)}$ & --- \\
-         & 0.001 & --- & $0.140913(1)$ & --- & $\mathbf{0.140832(1)}$ & --- \\
+         & 0.01 & \emph{prediction} & $0.69125(2)$ & --- & $\mathbf{0.69036(1)}$ & --- \\
+         & 0.001 & \emph{prediction} & $0.140913(1)$ & --- & $\mathbf{0.140832(1)}$ & --- \\
     \midrule
       12 & 1.00 & $65.7001(1)^{\mathrm{H}}$ & $65.717(1)$ & $+0.0257$ & $\mathbf{65.69556(5)}$ & $-0.0069$ \\
          & 0.50 & $39.1596(1)^{\mathrm{H}}$ & $39.1786(8)$ & $+0.0485$ & $\mathbf{39.1604(3)}$ & $+0.0020$ \\
          & 0.10 & $12.26984(8)^{\mathrm{H}}$ & $12.2731(2)$ & $+0.0266$ & $\mathbf{12.2743(2)}$ & $+0.0363$ \\
-         & 0.01 & --- & $2.48620(5)$ & --- & $\mathbf{2.47363(4)}$ & --- \\
-         & 0.001 & --- & $0.515823(3)$ & --- & $\mathbf{0.515365(4)}$ & --- \\
+         & 0.01 & \emph{prediction} & $2.48620(5)$ & --- & $\mathbf{2.47363(4)}$ & --- \\
+         & 0.001 & \emph{prediction} & $0.515823(3)$ & --- & $\mathbf{0.515365(4)}$ & --- \\
     \midrule
       20 & 1.00 & $155.8822(1)^{\mathrm{H}}$ & --- & --- & $\mathbf{155.8738(7)}$ & $-0.0054$ \\
          & 0.50 & $93.8752(1)^{\mathrm{H}}$ & --- & --- & $\mathbf{93.8789(5)}$ & $+0.0039$ \\
          & 0.10 & $29.9779(1)^{\mathrm{H}}$ & --- & --- & $29.9888(2)$ & $+0.0364$ \\
-         & 0.01 & --- & --- & --- & $\mathbf{6.14645(5)}$ & --- \\
-         & 0.001 & --- & --- & --- & $\mathbf{1.293033(6)}$ & --- \\
+         & 0.01 & \emph{prediction} & --- & --- & $\mathbf{6.14645(5)}$ & --- \\
+         & 0.001 & \emph{prediction} & --- & --- & $\mathbf{1.293033(6)}$ & --- \\
     \bottomrule
     \end{tabular}
     \begin{tablenotes}\footnotesize
@@ -176,7 +184,7 @@ Fig.~\ref{fig:rel_error_vs_omega}).
       \cite{Pederiva2000-QD-DMC} (spanning $N\le13$; see also its
       erratum~\cite{Pederiva2003-QD-DMC-Erratum}), cited here for the method, not for these particular numbers. We took the values from the compilation in the master's
       thesis of Haas~\cite{HaasHFQD}, which reproduces the same benchmarks; the attribution
-      above is to their origin. Dashes mark $(N,\omega)$ with no published value.
+      above is to their origin. Rows marked \emph{prediction} have no published value.
     \end{tablenotes}
   \end{threeparttable}
 \end{table}
@@ -209,16 +217,19 @@ energies are tabulated there (Table~\ref{tab:collocation}) and not here, because
 are not interpretable until that mechanism is in hand.
 
 \paragraph{Where the tables stop.}
-One subtlety matters here, because the MP-BF ansatz occasionally sits \emph{below} the quoted DMC reference (for example $N{=}12$,
-$\omega{=}1$: $65.6956$ vs.\ $65.7001$\,Ha). This does not violate the variational
-principle, which bounds the energy only from below by the \emph{exact} ground state,
-$E_{\rm VMC}\ge E_0$. The DMC benchmarks are \emph{fixed-node} calculations and therefore
-carry their own nodal (systematic) bias; a neural ansatz with a better nodal surface can
-legitimately lie below a fixed-node DMC value obtained with poorer nodes. We therefore do
-not treat sitting above the published DMC number as a requirement, and where the CTNN
-falls below it we read this as a plausibly improved nodal structure rather than an error
---- though establishing that rigorously would require the DMC trial nodes and a matched
-uncertainty analysis, which we have not undertaken.
+One subtlety matters here, because the MP-BF ansatz sits \emph{below} the quoted DMC
+reference in four cells, and at $N{=}12$ and $N{=}20$, $\omega=1$, by more than ten combined
+standard errors (for example $65.6956$ vs.\ $65.7001$\,Ha at $N{=}12$). This does not violate
+the variational principle, which bounds the energy from below only by the \emph{exact}
+ground state, $E_{\rm VMC}\ge E_0$; the DMC benchmarks are \emph{fixed-node} calculations
+and carry their own nodal bias. A better nodal surface in the network would produce exactly
+this pattern. It is not the only thing that would. A difference in the convention for the
+Hamiltonian or its units, a time-step or population extrapolation in the reference, an
+underestimated statistical error on either side, or an error somewhere in the chain of
+compilations by which the reference reached us (see the notes to Table~\ref{tab:energies})
+would do the same, and nothing here distinguishes them. The clean test is a fixed-node DMC
+calculation that uses the network's own nodes as its trial surface, which we have not run.
+The sub-reference values are therefore recorded as deviations and not interpreted.
 
 Wherever an external check exists, the pattern is the same. For $N{=}2$ the ansatz reaches reference
 accuracy at every $\omega$ for which a reference exists, and for $N\!\in\!\{6,12\}$
@@ -253,6 +264,21 @@ $\omega=1$ down to $\omega=0.1$, reaches $1.10$ at $\omega=0.01$ for $N{=}6$ (an
 within $1.03$ at $N{=}12$ and $N{=}20$), and only at $\omega=10^{-3}$ jumps to $1.19$--$1.65$
 on every ring at every particle number. Radial localisation and angular crystallisation are
 not one transition, and the diagnostics below are arranged to separate them.
+
+\paragraph{Which states these are.}
+Every state in this section is the lowest we find with $N_\uparrow=N_\downarrow$ held fixed,
+starting from the closed-shell singlet of the non-interacting problem. That is not a
+formality here. Fixing the spin projection does not fix the total spin, since an $S=1$ state
+also has an $S_z=0$ component, and we never compare sectors of different $S$. In parabolic
+dots the interaction is known to drive spin transitions as it strengthens---for instance
+$S=0\!\to\!S=1$ at $N=6$ in the strongly correlated regime~\cite{Egger_1999}---so a change
+of ground-state spin is plausible precisely at the weakest traps, where the structural
+conclusions below are strongest. The deep-Wigner states are therefore the lowest states
+found within a fixed spin-projection sector, not established global ground states, and
+every statement below is about them. There is a reason to expect the \emph{charge}
+geometry to be less sensitive than the energy ordering---deep in the Wigner regime exchange
+is weak and states of different $S$ become nearly degenerate over the same classical
+arrangement---but that is an expectation we have not tested, not a result.
 
 The subsections take that in order. \S\ref{sec:wigner-onebody} shows the cloud expanding and
 acquiring visible radial structure; \S\ref{sec:wigner-energy} shows interactions taking over
@@ -446,9 +472,11 @@ adding to them, are collected in Appendix~\ref{app:energy-exponents}.
 
 Over the weakest three confinements, the typical one-body radius follows
 $r_{\rm mode}\!\sim\!\omega^{\alpha}$ with $\alpha\simeq-0.626$ at $N{=}2$---close to
-the classical two-body value $-2/3$, which nothing in the ansatz knows about. And the
-width-to-scale ratio $\gamma=\sigma_r/r_{\rm mode}$ falls, which is the shell stiffening
-rather than merely dilating (Table~\ref{tab:radial-compact}).
+the classical two-body value $-2/3$, which nothing in the ansatz knows about. At $N{=}2$ the
+width-to-scale ratio $\gamma=\sigma_r/r_{\rm mode}$ falls as well, from $0.49$ to $0.29$, so
+the pair stiffens rather than merely dilating. At $N{=}6$ the same global ratio barely moves
+(Table~\ref{tab:radial-compact}), and radial stiffening there has to be read from quantities
+that resolve the shell, not from this one.
 
 \begin{table}[H]
 \centering
@@ -487,10 +515,13 @@ sampler knows the number $1.334$.
 The two sizes stiffen differently, and the difference is physical. At $\omega=10^{-3}$
 the $N{=}2$ pair sits at separation $r_{12}\!\approx\!122$ with Lindemann ratio
 $\gamma_{r_{12}}\!\approx\!0.20$ and a relative angle sharply peaked at $\pi$: a dilute,
-anti-aligned dimer. At $N{=}6$ the ring's angular fluctuations and pair Lindemann ratio
-fall monotonically while $\gamma$ plateaus near $0.42$. The shell is stiffening
-internally even as its radial profile broadens, because the equilibrium radius is growing
-faster than the width.
+anti-aligned dimer. At $N{=}6$ the global $\gamma$ plateaus near $0.42$, and the evidence
+for stiffening comes from the shell-resolved and pair quantities instead: the outer ring's
+own relative radial width falls from $0.32$ at $\omega=1$ to $0.15$ at $10^{-3}$
+(Table~\ref{tab:shell-summary}), and the ring's angular fluctuations and pair Lindemann
+ratio fall monotonically. The global ratio stays flat because it mixes the ring with the
+central electron, whose relative spread grows from $0.43$ to $0.63$ as the ring moves out.
+A single-particle width is the weakest of the radial diagnostics for exactly this reason.
 
 \begin{figure}[htp]
   \centering
@@ -640,7 +671,7 @@ $N$ & $\omega$ & occ. & $\cos_{\rm poly}$ & $\cos_{\rm uni}$ & $\Delta\cos$ \\
   \label{fig:12N_radial_densities}
 \end{figure}
 
-\paragraph{$N{=}20$: three-shell molecule and rapid topology collapse.}
+\paragraph{$N{=}20$: three-shell molecule and a rapid radial reorganisation.}
 At $\omega=10^{-3}$ the dominant shell topology is $(1,7,12)$---a clear
 three-shell Wigner molecule with widely separated rings at radii
 $r_0\approx38$, $r_1\approx132$, $r_2\approx247$
@@ -667,23 +698,11 @@ detector does, but only the weakest-trap case earns the word topology.
 At $\omega=1$ the classifier returns the same $(1,19)$ partition, with compact radii
 ($r_0\approx0.55$, $r_1\approx2.3$) and high angular disorder
 ($L_{\rm out}\approx0.69$).
-The sharpness of this transition---a single decade in $\omega$ separates a
-stiff three-shell crystal from a disordered single ring about a central electron---is the
-most dramatic structural collapse observed in our system-size series.
-
-% ──────────────────────────────────────────────────────────────────────
-\paragraph{A caveat on total spin.}
-Our reference states are the closed-shell singlets of the non-interacting problem, with
-$N_\uparrow=N_\downarrow$ held fixed throughout. This is safe at weak coupling, but in the
-deep-Wigner regime the ground-state \emph{spin} can change: for parabolic dots the
-interaction can drive spin transitions as it strengthens (for instance an
-$S=0\!\to\!S=1$ change for $N=6$ at strong coupling)~\cite{Egger_1999}. Fixing
-$N_\uparrow=N_\downarrow$ does not by itself pin the total spin, since an $S=1$ state also
-has an $S_z=0$ component. We do not scan total spin here, so the weak-trap energies and
-structures below should be read as the lowest states we find \emph{within the fixed
-spin-projection sector}, not as proven global-spin ground states. Determining the true
-spin ordering across the crossover, by comparing sectors of different $S$, is left to
-future work.
+What the data show, then, is a rapid radial reorganisation somewhere between
+$\omega=10^{-3}$ and $10^{-2}$, not a collapse of one crystalline topology into another: the
+state at $10^{-2}$ has no demonstrated angular order to lose. How rapid, and where in that
+decade it happens, the grid cannot say. It samples one point per decade, and the radial
+classifier reports a partition at each point rather than tracking a structure between them.
 
 \subsection{The crossover across diagnostics}
 \label{sec:wigner-synthesis}
@@ -703,8 +722,9 @@ ${\sim}40$ for $N{=}12$ at the weakest trap. None of these was built into the an
 $(1,11)$ and $(2,10)$ besides, which is the quantum rotational mixing the rotating-Wigner-molecule
 picture
 predicts~\cite{manninen2007metalclustersquantumdots,Filinov_2001}. At $N{=}20$ the
-three-shell structure and its collapse to a single ring about a central electron within one
-decade in $\omega$ is the sharpest transition in the series. The $(1,7,12)$ configuration itself is not new. It is the known classical shelling, reported in quantum calculations of comparable dots, and no novelty is claimed for it. What we have not found
+three-shell structure at $\omega=10^{-3}$ gives way, by $\omega=10^{-2}$, to a radial
+partition of a state without angular order; the grid is too coarse to place that
+reorganisation more finely than within the decade. The $(1,7,12)$ configuration itself is not new. It is the known classical shelling, reported in quantum calculations of comparable dots, and no novelty is claimed for it. What we have not found
 reported elsewhere for $N\ge12$ parabolic dots is the combination of \emph{sector-conditioned}
 bond-order and Lindemann statistics, read against their random-angle null, with a held-out
 polygon reconstruction of $g(r)$ scored against an angle-randomised baseline.
@@ -717,7 +737,7 @@ Appendix~\ref{app:structural-tables:mixfit} is the version that could have faile
 sampling correctness itself rests on the independent restart and chain diagnostics.
 
 The two angular diagnostics stage the crossover slightly differently, and the difference is
-informative. Radial localisation (expansion, shell separation, falling width-to-radius ratio, classical force balance) develops progressively from $\omega=1$ down.
+informative. Radial localisation (expansion, shell separation, falling shell-resolved width, classical force balance) develops progressively from $\omega=1$ down.
 Bond-orientational order is flat at its null through $\omega=0.1$, departs slightly at
 $\omega=0.01$ and only at $N{=}6$, and becomes large at $10^{-3}$ everywhere. The held-out
 polygon model, sensitive to any angular correlation rather than to $n$-fold order

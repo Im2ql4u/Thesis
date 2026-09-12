@@ -28,73 +28,32 @@ and that was when your chest burned.
 
 When I came to UiO, Morten read my background and said: ``You know PINNs, you know
 many-body quantum systems. I want you to do PINNs on quantum dots.'' I said
-``sure'' and then asked the only sensible follow-up question I had:
-``Where do I start?''
+``sure.'' I knew enough about each of those things separately to imagine that putting
+them together would mostly be a technical problem.
 
-I did not realise then that this was the question I had been assigned to answer.
-This thesis is the long answer. The short answer is: start by arranging to be
-wrong in a way that can be measured.
+It was not.
 
-That is what variational methods make possible. The variational principle does
-not say how to improve a trial wavefunction, but it does guarantee that its
-energy lies above the ground-state energy. Improvement therefore has a direction:
-lower energy is better. For a project with few fixed landmarks,
-that was enough to begin. The harder task was learning what a disappointing
-result meant.
+The difficult part was rarely producing a result. The difficult part was knowing what
+a result meant. When a calculation stopped improving, there were always several
+plausible explanations: the wavefunction might be too restrictive, the optimiser
+unsuitable, the sampling insufficient, the physical regime genuinely harder, or
+something in the implementation simply wrong. Much of this thesis grew out of trying
+to tell those possibilities apart.
 
-It was a solitary problem, not for want of literature---neural quantum states,
-FermiNet, PauliNet, and neural backflow offered much to learn from---but because
-the particular route I was trying to take had little precedent. When an
-experiment failed, it was rarely clear whether the method was unsound, the
-architecture inadequate, the optimiser poorly matched to the problem, or the
-code quietly broken. For long stretches, I did not know. The work became an attempt to construct tests that could tell these
-explanations apart.
+That is what variational methods make possible. The variational principle offers no recipe for improving a trial wavefunction, but it gives every attempt a direction: its energy cannot lie below the true ground-state energy, and a lower variational energy is therefore a better one. In a project with few fixed landmarks, that was enough to start. The harder question was what to make of a result that refused to improve.
 
-The most important lessons came from failures. An error in the
-importance-sampling code went undetected for months because its signature---loss
-of accuracy at larger particle numbers and weaker confinement---was exactly what
-an inadequate architecture might have produced. A small per-particle error in a log-density
-accumulates over the $N$ particles and is then exponentiated into the importance
-weights; the bug was invisible where experiments were cheap and
-ruinous where they mattered. Discovering it damaged my confidence in everything
-else. Re-establishing that confidence, rather than assuming it, became a
-substantial part of the later work.
+There was no shortage of literature. Neural quantum states, FermiNet, PauliNet and neural backflow all provided examples to learn from. What was missing was a well-trodden path through the particular combination of methods I was trying to assemble. When an experiment failed, the failure rarely identified its cause. The method might be wrong, the architecture too restrictive, the optimiser ill-suited, the sampling poor, or the code simply broken. Often, several of these explanations looked equally plausible. Much of the work therefore became an exercise in designing calculations that could force them apart.
 
-Other failures taught the same lesson from different directions. A Langevin
-refinement step introduced bias into the gradient. A second-order optimiser
-became least reliable when its estimated metric was too noisy to resolve.
-Neither result was useful merely because it was negative. Each exposed an
-assumption that had been invisible until the computation violated it. Negative
-results of this kind are not a concession or an embarrassment; they are part of
-the method, and I have written them up as such.
+One failure made that need especially clear. An error in the importance-sampling code survived for months because it produced exactly the behaviour I had been prepared to attribute to the model itself: accuracy deteriorated as the particle number grew and the confinement weakened. The mechanism was simple in retrospect. A small error in a per-particle log-density accumulates over \(N\) particles and is then exponentiated in the importance weights. Where the calculations were cheap, the effect was barely visible; where the physics became interesting, it was catastrophic. Finding the bug did more than invalidate a set of runs. It made clear how easily a numerical failure could masquerade as a physical or architectural one. After that, confidence had to be earned by tests rather than inherited from the code.
 
-That diagnostic stance also changed what I thought the network was for. I began
-by asking whether a machine-learning construction could solve the many-body
-Schr\"odinger equation. I ended up using the trained state as an apparatus:
-something to examine for the structure it had captured and the directions of
-variation that mattered. That shift, from treating a network as an answer to
-treating it as an object of study, is the thread running through this thesis.
+The same lesson returned in other forms. A Langevin refinement meant to improve the proposal instead biased the gradient. A second-order optimiser became least trustworthy precisely when the metric it attempted to invert was no longer resolved by the available samples. These were useful results not because they were negative, but because each failure exposed an assumption that had previously gone untested. In that sense, failure became part of the method: not something to be hidden once a better calculation had been found, but evidence about where the calculation ceased to be reliable.
 
-The work also made a connection harder to ignore. Its obstacles have a double
-character: each is at once a physics problem and an optimisation problem.
-Stochastic reconfiguration, developed for variational wavefunctions, is natural
-gradient descent on the variational manifold. The REINFORCE estimator from
-reinforcement learning is the score-function gradient of the variational energy.
-The Fisher information matrix of statistics is, for a real amplitude and up to a
-factor of four, the quantum geometric tensor of physics. The same mathematics appears under different names in different
-communities. Recognising that felt less like discovering a bridge between fields
-than like realising that the two fields had been approaching the same problem
-from opposite sides.
+This also changed what I thought the neural network was for. I began with the comparatively simple question of whether a machine-learning ansatz could solve the many-body Schr\"odinger equation. By the end, the trained wavefunction had become something closer to an instrument. Its energy mattered, but so did the structure of its tangent space, the correlations carried by its internal representation, and the ways in which those changed across the physical regime. The network was no longer only a means of obtaining an answer; it had become an object through which the problem itself could be examined. That shift runs through the rest of this thesis.
 
-Looking back, it is easy to make a catalogue of what I would now do differently.
-Most of that knowledge, however, was purchased by the failures and could not
-have been read off in advance. The regret and the result are the same object seen
-from two sides.
-
-\bigskip
+It also made one connection increasingly difficult to regard as accidental. The obstacles encountered here are simultaneously problems in physics and in optimisation, and the same mathematical objects appear on both sides under different names. Stochastic reconfiguration, introduced in variational quantum Monte Carlo, is natural-gradient descent on the manifold of variational states. The REINFORCE estimator is the score-function form of the variational energy gradient. For a real wavefunction, the Fisher information matrix is, up to a conventional factor of four, the quantum geometric tensor. What initially looked like a collection of techniques borrowed from neighbouring fields gradually revealed itself as a common geometric language. Recognising that felt less like finding a bridge between two subjects than realising that they had been describing the same terrain from opposite directions.
 
 The most consistent source of inspiration, motivation, and steadiness through all
-of it has been my girlfriend, Elida. Her support made it possible to begin this
+of it has been my girlfriend, Elida. Your support made it possible to begin this
 work and to stay with it when it became difficult. I am more grateful than I can
 put down here.
 
@@ -110,7 +69,15 @@ wrong. That interest is most of what encouragement actually consists of.
 
 \bigskip
 
-Which is, at last, the answer to the question I asked on the first day. You start
-by being willing to be wrong on the record, and then you keep the record.
+When I look back, it is easy to make a catalogue of what I would now do differently.
+Most of that knowledge, however, was purchased by the failures and could not
+have been read off in advance. In a sense, the regret and the result are the same object
+seen from two sides.
+
+I began this project thinking that the central difficulty would be finding a
+sufficiently good answer to the many-body problem. More often, the difficult part was
+discovering which question a disappointing result was actually answering.
+
+I think that is the part of the work I will carry with me.
 
 \clearpage

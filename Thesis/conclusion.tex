@@ -11,8 +11,8 @@ Aurelius}{\textit{Meditations}}
 \endgroup
 
 The work formed a feedback cycle between solver and physics. A variational state was
-constructed and checked against every external benchmark available; the checked state was
-then used as an instrument, and resolved the shell geometry of the Wigner regime: rings at
+constructed and compared against every external reference available, with which it agrees
+closely; the state was then used as an instrument, and resolved the shell geometry of the Wigner regime: rings at
 definite occupancies, $n$-fold angular order becoming large only in the last decade of
 confinement, a shell radius approaching its classical $\omega^{-2/3}$ scaling. Those are the
 measurements a sampler needs in order to place its mass correctly. Feeding the measured
@@ -21,27 +21,33 @@ origin-centred sampler at $\omega\approx0.01$ down to $\omega=0.0035$, into stat
 original method could not reach.
 
 \emph{Architecture.} Message passing supplies a relational channel whose effect appears in
-the tangent geometry before it appears in the energy (\S\ref{sec:kernel-q1}). A
-message-passing correlator reaches a reference-quality solution along half as many effective
-tangent directions as a separable network of matched or larger capacity, keeps more of its
-tangent weight inside a compact operator dictionary, and carries a lower local-energy
-variance. In the nodes the same channel averts a collapse: toward the Wigner regime a
-conventional backflow's displacement field falls spectrally to rank one and loses half a
-percent of the energy. A controlled correlator swap moves that boundary, which points to one
-relational bottleneck rather than two deficits.
+the tangent geometry before it appears in the energy (\S\ref{sec:kernel-q1}). Under the
+parametrisations and normalisation conventions used here, a message-passing correlator
+reaches a reference-quality solution with its Fisher weight concentrated in half as many
+effective directions as a separable network of matched or larger capacity, and keeps more of
+that weight inside a compact operator dictionary. That is a statement about the networks as
+parametrised, not about how many degrees of freedom the state intrinsically needs. What is
+independent of parametrisation is that the message-passing correlator carries a lower
+local-energy variance. In the nodes, toward the Wigner regime, a conventional backflow's
+displacement field falls spectrally to rank one and loses half a percent of the energy while
+a larger message-passing field does not; a capacity-matched conventional backflow is the
+control that would make this an architectural result. A controlled correlator swap moves the
+collapse boundary, which points to one relational bottleneck rather than two deficits.
 
-\emph{Optimiser.} Natural-gradient preconditioning earns its cost where the tangent metric is
-anisotropic and still estimable (\S\ref{sec:kernel-cond}). That is narrower than the usual
-claim. Under $|\Psi|^2$ sampling the empirical metric is badly conditioned on the very
-models where Adam and stochastic reconfiguration agree to four decimals, so conditioning
-alone is not the criterion. Under a fixed collocation
-proposal SR is what makes the optimisation work at all; once the sampling that builds the
-metric collapses, inverting it amplifies noise. In these experiments estimability, rather than conditioning,
-is what separates the regimes.
+\emph{Optimiser.} Conditioning alone does not decide whether natural-gradient
+preconditioning earns its cost (\S\ref{sec:kernel-cond}). Under $|\Psi|^2$ sampling the
+empirical metric is badly conditioned on the very models where Adam and stochastic
+reconfiguration agree to four decimals. Under a fixed collocation proposal SR is what makes
+the optimisation work at all; once the sampling that builds the metric collapses, inverting it
+amplifies noise. We read that pattern as saying that estimability, rather than conditioning,
+separates the regimes. It is a hypothesis the failures support, not yet a criterion: the
+metric was never measured under the collocation measure itself.
 
 \emph{Paradigm.} An accurate wavefunction can be trained with no Markov chain in the
 gradient, inside a regime whose edges we found by crossing them
-(\S\ref{sec:kernel-mcmcfree}). The weak-form objective reaches DMC accuracy at
+(\S\ref{sec:kernel-mcmcfree}). The claim is about the gradient only: a Metropolis probe still
+selects checkpoints and certifies the final energy, and the cascades start from
+reference-guided pretrained states. The weak-form objective reaches DMC accuracy at
 $N\in\{6,12\}$ under strong confinement and holds within a few tenths of a percent of our own
 converged energies well into the correlated regime. It fails through one chain of
 causes---proposal mismatch, weight-tail inflation, gradient noise, an unestimable
@@ -52,15 +58,20 @@ of transfer between confinements.
 (\S\ref{sec:wigner-molecule}). The crossover it resolves is staged: the cloud expands and its
 shells stiffen radially well before the electrons acquire angular order within them. The
 shell geometry that emerges at the weakest traps is resolved topology by topology, and its
-measured radius approaches the classical value $1.334\,\omega^{-2/3}$ to within $1.7\%$.
+measured radius approaches the classical value $1.334\,\omega^{-2/3}$ to within $1.7\%$. The
+staging itself is better established than where the transition sits: a grid with one point
+per decade can order the stages but not locate them. And these are the lowest states found
+at fixed spin projection, in the regime where a change of ground-state spin is most
+plausible.
 
 \section{Concluding perspective}
 
 All four answers are bounded in the same way. Every state is the lowest found within a fixed
-spin-projection sector, the architecture comparison is seeded at $N{=}6$ and thinner above
-it, and the two backflow variants are not capacity-matched, so the cross-architecture energy
-gap does not isolate architecture. \S\ref{sec:implications} sets out what would move each of
-those.
+spin-projection sector; the architecture comparison is seeded at $N{=}6$ and thinner above
+it, and its tangent-space measures belong to the networks as parametrised; and the two
+backflow variants are not capacity-matched, so neither the cross-architecture energy gap nor
+the rank collapse isolates architecture. \S\ref{sec:implications} sets out what would move
+each of those.
 
 At the widths reached for the well-resolved $N\le12$ studies, raw representational capacity
 was rarely the first bottleneck; alignment, conditioning and sampling were. It was not

@@ -58,7 +58,7 @@ Universal approximation establishes representational capacity, not trainability.
 theorems guarantee that a sufficiently large network can \emph{represent} any suitably
 regular function to arbitrary accuracy. They say nothing about whether gradient-based optimisation will
 \emph{find} that representation, nor at what sample cost. This thesis measures that
-gap directly: the same ansatz, demonstrably able to express the ground state, is
+gap directly: the same ansatz, demonstrably able to reach reference-quality energies, is
 placed in training schemes that do and do not allow it to get there. Representability is the easier question; trainability is the harder one.
 
 A weaker but sounder case for a neural ansatz survives that objection. Established methods pay for
@@ -215,18 +215,21 @@ them.
 \paragraph{Main contributions.}
 \begin{enumerate}
   \item A compact Slater--Jastrow--backflow ansatz, conditioned in trap units with an
-        analytic cusp and soft-core pair features, that reproduces every available external
-        benchmark for $N\in\{2,6,12,20\}$ and extrapolates smoothly into the Wigner regime.
-  \item A tangent-space account of what message passing contributes. A message-passing
-        correlator represents the ground state in about half as many effective tangent
-        directions as a separable one at strong confinement, and keeps its leading directions
-        inside a compact operator dictionary where the separable network does not; a
+        analytic cusp and soft-core pair features, that agrees closely with every available
+        fixed-node reference for $N\in\{2,6,12,20\}$ and extends smoothly into the Wigner
+        regime, where its energies are predictions.
+  \item A tangent-space account of what message passing contributes. Under the
+        parametrisations used here, a message-passing correlator concentrates its Fisher
+        weight in about half as many effective directions as a separable one at strong
+        confinement, keeps its leading directions inside a compact operator dictionary where
+        the separable network does not, and reaches a lower local-energy variance; a larger
         message-passing backflow retains rank exactly where a conventional one collapses to a
         single displacement mode and loses accuracy. Both effects are invisible in the total
         energy until weak confinement turns the geometric deficit into an energetic one.
-  \item The criterion under which natural-gradient preconditioning is worth its cost: the
-        tangent metric must be anisotropic \emph{and} still estimable. Conditioning alone is
-        not sufficient, and the same geometry bounds an importance-sampled collocation
+  \item A proposed criterion for when natural-gradient preconditioning is worth its cost:
+        the tangent metric must be anisotropic \emph{and} still estimable. That conditioning
+        alone is not sufficient is measured; that estimability decides is a hypothesis the
+        failure pattern supports. The same geometry bounds an importance-sampled collocation
         objective that trains with no Markov chain in the gradient, reaching a Wigner-regime
         state at $\omega=0.0035$ once its proposal is built from measured shell geometry.
   \item Topology-resolved diagnostics of the Wigner crossover---two-shell probabilities,

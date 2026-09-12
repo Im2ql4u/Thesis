@@ -8,19 +8,22 @@
 
 The two results chapters run a loop between solver and physics.
 
-We first establish that the trained states reproduce every external energy benchmark that
-exists for this system. That establishes the accuracy needed to use them as instruments in
-the physics analysis that follows. Read for the physics they contain, they show a crossover from compact dot to
+We first show that the trained states agree closely with every external energy reference
+that exists for this system---an agreement rather than an independent validation, and one
+that stops at $\omega=0.1$ for $N\ge6$, below which the energies are predictions. That
+agreement is the precondition for using the states as instruments in the physics analysis
+that follows. Read for the physics they contain, they show a crossover from compact dot to
 finite Wigner molecule that is \emph{staged}: the cloud expands and its shells stiffen
 radially well before the electrons acquire angular order within them.
 
 We then turn from the state to the solver. Message passing changes the geometry of the
-variational representation even where the total energy cannot tell two networks apart---the
-correlator concentrates its tangent weight on fewer and more interpretable directions, and
-the message-passing backflow avoids a rank collapse that overtakes the conventional one.
-Architecture, optimiser and sampling measure then meet in a single object, the geometry of
-the wavefunction's log-derivatives, and natural-gradient preconditioning earns its cost only
-while that geometry can still be estimated from a batch.
+variational representation even where the total energy cannot tell two networks apart---under
+the parametrisations used here the correlator concentrates its tangent weight on fewer and
+more interpretable directions, and the message-passing backflow avoids a rank collapse that
+overtakes a smaller conventional one. Architecture, optimiser and sampling measure then meet
+in a single object, the geometry of the wavefunction's log-derivatives, and the evidence
+suggests that natural-gradient preconditioning earns its cost only while that geometry can
+still be estimated from a batch.
 
 The loop closes when a generic collocation proposal loses the Wigner state. The structural
 measurements of Chapter~\ref{ch:results} supply the remedy: a proposal built from the

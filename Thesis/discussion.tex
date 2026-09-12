@@ -18,20 +18,26 @@ that arrived separately become a single chain.
 
 Its first link is the one the energy cannot see. Two correlators of matched or deliberately
 mismatched capacity reach the same reference-quality state at strong confinement, agreeing
-to four figures, and arrive there through tangent spaces of different size and different
-content. Counting directions is the weaker half of that observation---it says how many the
-correlator uses, and it is measured on one of two substitutable components. Which directions
-is the stronger half. The message-passing correlator's leading tangent modes lie inside a
+to four figures, and arrive there through tangent spaces that carry their Fisher weight very
+differently. Counting directions is the weaker half of that observation---it says how many the
+correlator uses, it is measured on one of two substitutable components, and it depends on how
+the network is parametrised and normalised. Which directions is the stronger half, because
+whether a direction lies inside an operator span does not depend on the parametrisation,
+although the weight it carries does. The message-passing correlator's leading tangent modes lie inside a
 four-operator physical dictionary to $R^2\approx1$ across confinement and up to $N{=}12$,
 where a separable network of equal or greater capacity leaves close to half its tangent
 budget outside it. A direction outside a chosen dictionary need not be unphysical, so what
 the measurement supports is that one tangent space is far more completely accounted for by a
 small set of collective operators than the other---and that a smaller $d_{\rm eff}$ makes
 such a dictionary easier to cover cannot explain the gap, since the two effective dimensions
-converge toward $3.7$ at weak confinement while the dictionary gap persists.
+converge toward $3.7$ at weak confinement while the dictionary gap persists. None of this yet
+shows that the architecture represents the state with intrinsically fewer degrees of freedom.
+The comparison that does not depend on parametrisation at all is the local-energy variance,
+lower for the message-passing correlator at every confinement; it is the one that says the two
+\emph{states} differ, and not only the two ways of laying out their parameters.
 
 The second link is where the optimiser meets that space. The result there is narrower than
-the usual one about natural gradients. Under $|\Psi|^2$ sampling the empirical metric is badly conditioned, $\kappa\sim10^{7}$--$10^{10}$ on precisely the models where Adam and SR agree to four decimals, so conditioning cannot be the criterion. What separates the regimes
+the usual one about natural gradients. Under $|\Psi|^2$ sampling the empirical metric is badly conditioned, $\kappa\sim10^{7}$--$10^{10}$ on precisely the models where Adam and SR agree to four decimals, so conditioning cannot be the criterion. What we propose separates the regimes
 is whether a batch resolves the metric at all. Under $|\Psi|^2$ the samples come from the
 measure that defines $S$; under a fixed collocation proposal they do not, and preconditioning
 becomes what makes the optimisation converge; and once the proposal loses the target,
@@ -53,16 +59,27 @@ a scaling study, and the comparison is seeded at $N{=}6$.
 
 \paragraph{What agreement with the benchmarks supports.}
 \label{sec:energy-discussion}
-The energies agree with fixed-node DMC over the benchmarked grid, and that agreement is
-neither exactness nor a meeting of two blind calculations: where a DMC value exists it is
-also the target of residual pretraining. What protects the comparison is the variational
-bound. The reported energies are expectations of $\hat H$ under $|\Psi_\theta|^2$ taken
-after a pure-energy SR tail, and such an expectation lies above $E_0$ whatever it was aimed
-at, so agreement from above cannot be manufactured by aiming; aiming at a target above the
-ansatz's reachable minimum would only make the number worse. The reference itself is
-variational with respect to its own imposed nodes, which is why several of our energies sit
-below it without contradiction, and why the tables report deviation, not error.
-Below $\omega=0.1$ for $N\ge6$ no external value exists and those states are predictions.
+The energies agree closely with the available fixed-node references over the benchmarked
+grid, and that agreement is neither exactness nor a meeting of two blind calculations.
+Three separate things limit what it shows. The first is ancestry: where a DMC value exists
+it is also the target of residual pretraining. The pure-energy SR tail that follows
+minimises $\langle\hat H\rangle$ under $|\Psi_\theta|^2$ and no longer sees the target, which
+strengthens the comparison considerably, but the final states still descend from
+reference-guided training. The second is what an energy can certify. The variational bound
+keeps the reported expectation above $E_0$ whatever the training aimed at, but it says
+nothing about how close to $E_0$ it lies, and a flexible ansatz can reproduce an approximate
+reference without describing every other property of the exact state. Our evidence beyond
+the energy is partial: the local-energy variance, which vanishes only for an eigenstate, and
+a squared overlap of $1.000000$ with the exact state where one is available, at $N{=}2$. The
+third concerns the cells where our energies sit below the reference. The reference is
+variational only with respect to its own imposed nodes, so there is no contradiction, and
+better nodes in the network would explain it; but so would a convention difference in the
+Hamiltonian, an extrapolation or sampling error on either side, or an error in the chain of
+compilations through which the reference reached us, and we cannot tell these apart. A
+fixed-node DMC calculation that uses the network's nodes would be the cleanest test. The
+tables accordingly report deviation, not error, and what we claim is close agreement with the
+available fixed-node references, not a validation of the wavefunctions. Below $\omega=0.1$
+for $N\ge6$ no external value exists and those states are predictions.
 
 \section{Physics returned to the solver}
 \label{sec:feedback-discussion}
@@ -137,15 +154,19 @@ final accuracy where correlation is strong.
 \section{Scope, and what to do next}
 \label{sec:implications}
 
-Four limits bound everything above. All states are the lowest found within a fixed
-spin-projection sector, and total spin is not scanned. The architecture comparison is seeded
-at $N{=}6$, rests on fewer models at $N{=}12$ and on a single production state at $N{=}20$.
-The backflow variants are not capacity-matched and cannot be at equal width, so the
-cross-architecture energy gap does not isolate architecture. And one entry in the backflow
-rank table, at $N{=}20$ and $\omega=0.01$, comes from a re-run whose diagnostics were not
-retained.
+Five limits bound everything above. All states are the lowest found within a fixed
+spin-projection sector, and total spin is not scanned; that matters most in the deep-Wigner
+regime, where spin transitions are plausible and the structural conclusions are strongest.
+The architecture comparison is seeded at $N{=}6$, rests on fewer models at $N{=}12$ and on a
+single production state at $N{=}20$, and the error bars on the production energies do not
+include the variation between independent training runs. The backflow variants are not
+capacity-matched and cannot be at equal width, so neither the cross-architecture energy gap
+nor the rank collapse isolates architecture. The tangent-space quantities are properties of
+the networks as parametrised, not of the states they represent. And one entry in the
+backflow rank table, at $N{=}20$ and $\omega=0.01$, comes from a re-run whose diagnostics
+were not retained.
 
-Four things follow that we would do next.
+Five things follow that we would do next.
 
 \emph{Make the proposal learned, not designed.} Up to the frontier the proposal is the
 bottleneck and not the objective, which argues for a better sampler rather than a better
@@ -175,4 +196,11 @@ giving up the nodal correction that is the reason for having a backflow at all.
 
 \emph{Match the backflow capacities.} A widened conventional backflow at $182$k parameters
 is the one control that would turn the rank-collapse observation into an architecture
-ablation. It is a single training run.
+ablation, and it is the most important experiment this thesis leaves undone.
+
+\emph{Measure the metric where the hypothesis lives.} The estimability account of
+\S\ref{sec:kernel-cond} rests on a spectrum measured under $|\Psi|^2$ and inferred under
+collocation. Measuring the QGT under the collocation measure at matched batch size, with the
+stability of its leading eigenvalues across independent batches, a bootstrap on the
+resolvable part, and its sensitivity to batch size and regularisation, would turn that
+account from a hypothesis into a criterion or refute it.

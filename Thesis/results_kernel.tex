@@ -93,8 +93,9 @@ authority than the design supports.
   converged in the number of probe samples. \emph{Right:} the same pooled measure per model.
   The CTNN (blue) reaches the ground state in $d_{\mathrm{eff}}\!\approx\!1.2$--$1.7$, while
   every DeepSet (red) needs $\approx\!2.9$--$3.6$---and the gap does not close as the DeepSet
-  is scaled from $20$k to $164$k parameters. The compression is architectural, not a matter
-  of capacity.}
+  is scaled from $20$k to $164$k parameters. Capacity does not explain it; the comparison is
+  at the parametrisation and normalisation conventions described in the text, on which
+  $d_{\mathrm{eff}}$ depends.}
   \label{fig:q1a-fairdim}
 \end{figure}
 
@@ -104,6 +105,22 @@ no correlation to divide between substitutable channels and the gauge caveat of
 closes toward the Wigner crystal, where both families reach ${\sim}3.7$ but occupy different
 tangent subspaces. A single-seed dimension inversion at the crystal, reported in an earlier
 draft, did not survive seeding and is retracted.
+
+A third bound is more basic, and it applies to every tangent-space quantity in this
+chapter. The QGT is the metric that the parameters induce on the space of states, so its
+spectrum depends on how the parameters are laid out: rescaling a layer, or changing a
+normalisation or an initialisation scale, reweights the tangent directions without changing
+the state. $d_{\mathrm{eff}}$ is therefore a property of the network as parametrised, not of
+the state it represents, and using the same sampling convention for both architectures
+removes one arbitrary difference between them but not these. What the measurement supports
+is that, \emph{under the parametrisations and normalisation conventions used here, the
+message-passing correlator concentrates its empirical Fisher weight in fewer directions}. It
+does not show that the architecture represents the state with intrinsically fewer degrees of
+freedom. The dictionary measures below inherit the caveat in part: whether a direction lies
+inside the operator span is fixed by the state and the parameter family, but how much weight
+each direction carries is not. Of the architecture comparisons in this section, only the
+energy and the local-energy variance are properties of the state itself, and of those two
+only the variance separates the families.
 
 \paragraph{Local-energy variance.} $d_{\mathrm{eff}}$
 stops separating the families at the crystal, and rank will turn out to be gauge-like
@@ -158,9 +175,9 @@ dictionary of physical operators (breathing/monopole, quadrupole, correlation-ho
 pair-linear), seed-averaged over well-trained checkpoints (energy within $1.5\%$ of
 reference), the CTNN reaches $R^2\!\gtrsim\!0.93$ at $N=6$ and $R^2\!\approx\!1.00$ at $N=12$
 across the whole confinement range $\omega\in[0.01,1]$, and both architectures reproduce the
-$N=2$ naming at strong confinement (Fig.~\ref{fig:mode-naming}). The message-passing
-correlator finds the ground state by moving along the handful of coordinates the Hamiltonian
-actually couples.
+$N=2$ naming at strong confinement (Fig.~\ref{fig:mode-naming}). In the message-passing
+correlator, the direction carrying most of the tangent weight is one of the handful of
+coordinates the Hamiltonian actually couples.
 
 \begin{figure}[htbp]\centering
   \includegraphics[width=0.8\textwidth]{mode_naming_scan.png}
@@ -213,7 +230,7 @@ $\approx\!0.77$ at $\omega=1$---the gap \emph{widens} with system size rather th
 \subsection{The backflow: rank collapse and its absence}
 \label{sec:kernel-q1b}
 
-The same relational channel is decisive, in a sharper form, in the backflow. Here we fix
+The contrast is sharper in the backflow, and also less controlled. Here we fix
 the correlator, the data, the protocol and the optimiser---the matrix-free CG solve of
 \S\ref{sec:sr-stage}, using the Woodbury identity to apply $(S+\lambda I)^{-1}$ through the
 $B\times B$ kernel rather than the $P\times P$ metric, which is what makes it affordable at
@@ -298,7 +315,10 @@ $10.4$--$10.8$ at $N{=}6$, $21.7$--$22.3$ at $N{=}12$ and $33.7$--$38.7$ at $N{=
 every $\omega\ge0.1$---within a unit or two of its own ceiling---and then falls to exactly
 $1.00$ below it. A network too small throughout the grid would not behave that way. What this
 does not exclude is a regime-dependent limitation, since the target also becomes harder at
-weak confinement; without a widened conventional backflow that confound stands.
+weak confinement. Without a widened conventional backflow that confound stands, and that
+control---a conventional backflow at the copresheaf network's capacity---is the most
+important one this chapter lacks. Until it is run, the rank collapse is an observation about
+these two networks, not a demonstrated consequence of architecture.
 
 This argument does not remove the capacity confound in Table~\ref{tab:bf_energies}. That gap
 is a between-network comparison at unequal size, and nothing in our data separates
@@ -389,8 +409,8 @@ moves it back and forth between nodes and edges through learned transport maps
 a V-cycle, while the backflow applies a single such copresheaf round. Where a compact
 representation exists this \emph{compresses} the correlation onto fewer tangent directions
 (Jastrow: smaller $d_{\mathrm{eff}}$); where the physics demands a genuinely collective,
-full-rank response the single-round baseline instead collapses to a single collective
-displacement mode (backflow: rank~1), which the copresheaf transport avoids. Both effects are visible only
+full-rank response the single-round baseline, at the width tested, instead collapses to a
+single collective displacement mode (backflow: rank~1), which the copresheaf transport avoids. Both effects are visible only
 in the tangent-kernel geometry, not in the total energy, until weak confinement makes
 the geometric deficit an energetic one.
 
@@ -446,12 +466,15 @@ order. Whether that coincidence reflects one mechanism or three we cannot say fr
 run. Appendix~\ref{app:representation} gives the full analysis.
 
 \medskip
-\noindent Message passing therefore supplies a relational channel whose effect is geometric
-before it is energetic. In the correlator it shows as a tangent space that is smaller at
-strong confinement and better accounted for by a compact operator dictionary throughout, with
-a local-energy variance lower at every confinement by factors of $1.2$ to $3.4$. In the
-backflow it shows as a collapse averted, costing half a percent where it is not. The
-correlator swap ties the two together. What none of it establishes is that the two
+\noindent Message passing therefore changes the variational geometry before it changes the
+energy. In the correlator, under the parametrisations used here, it shows as Fisher weight
+concentrated in fewer directions at strong confinement and better accounted for by a compact
+operator dictionary throughout; and, independently of any parametrisation, as a local-energy
+variance lower at every confinement by factors of $1.2$ to $3.4$. In the backflow the
+conventional network, at a third of the parameter count, collapses to rank one and loses half
+a percent where the message-passing field does not; without a capacity-matched conventional
+backflow that contrast does not separate architecture from size. The correlator swap, which
+does hold the backflow architecture fixed, is what links the two. What none of it establishes is that the two
 architectures reach different \emph{states}: they agree in energy to four figures, and we did
 not measure their overlap here.
 
@@ -487,8 +510,9 @@ the rest of the pipeline. Stripped to a bare objective and a fixed proposal, the
 gradient is badly enough behaved that a diagonal step stalls and preconditioning rescues it.
 The production recipe never runs in that condition: adaptive proposal refitting, $16\times$
 oversampling, reward normalisation, instability rollback and cascade warm-starting between
-confinements each attack the gradient's conditioning at its source, and once they are in
-place a diagonal step suffices. The two findings are therefore complementary---SR
+confinements are all aimed at the gradient's conditioning at its source, and once they are
+in place a diagonal step suffices---though which of them does the work was not isolated
+(\S\ref{sec:gradient-chain}). On this reading the two findings are complementary---SR
 substitutes for sampling control, and sampling control substitutes for SR---with one
 asymmetry that decides the production choice: below $\omega\simeq0.01$ the sampling that
 builds $S$ collapses, so the substitution stops working in one direction only
@@ -507,9 +531,11 @@ metric is well conditioned.
 \caption[Condition number of the empirical geometric tensor]{Condition number of the empirical quantum geometric tensor at $N{=}6$, $\omega=1$,
 measured on each trained state's own $|\Psi|^2$ samples at fixed batch $B=768$. Because
 $B<P$, $\lambda_{\min}$ is the smallest sample-supported eigenvalue and $\kappa$ is a
-property of the metric the optimiser actually sees (\S\ref{sec:analysis-kernel}); the values
-are comparable to one another but not across batch sizes. Adam and SR reach the same energy
-on every row of this table.}
+property of the metric the optimiser actually sees (\S\ref{sec:analysis-kernel}). For the
+same reason $\lambda_{\min}$, and with it $\kappa$, is sensitive to the batch size, the
+regularisation and the numerical threshold below which eigenvalues are discarded, so the
+values are comparable to one another at fixed settings and indicate orders of magnitude, not
+more. Adam and SR reach the same energy on every row of this table.}
 \label{tab:kappa}
 \begin{tabular}{llcc}
 \hline
@@ -525,8 +551,8 @@ DeepSet (large)    & $164$k  & $1.4\times10^{7}$  & $4.76$ \\
 \end{tabular}
 \end{table}
 
-\textbf{SR matters when the tangent metric is ill-conditioned and still estimable}, and the
-second half of that sentence does the work. Anisotropy is present under $|\Psi|^2$ sampling,
+\textbf{Our working hypothesis is that SR matters when the tangent metric is ill-conditioned
+and still estimable}, and the second half of that sentence does the work. Anisotropy is present under $|\Psi|^2$ sampling,
 where we measured it. We did not measure $\kappa$ under the collocation measure at matched
 batch size, so the table supports only the negative half of the argument: conditioning does
 not distinguish the regime where SR is unnecessary. What separates the two regimes, on the evidence we
@@ -637,10 +663,15 @@ The reliable criteria are $\Var(E_L)$ and the state overlap, both on $|\Psi|^2$ 
 
 The value of a natural-gradient step is therefore not predicted by the conditioning of the
 metric, which is large under $|\Psi|^2$ sampling on exactly the models where SR buys nothing.
-What predicts it is whether the batch can resolve the metric it inverts. The negative half of
-that is directly measured; the positive half---that collocation occupies an anisotropic but
-still estimable middle regime---is inferred, since $\kappa$ was never measured under the
-collocation measure at matched batch size.
+What predicts it, on our reading, is whether the batch can resolve the metric it inverts. The
+negative half of that is directly measured; the positive half---that collocation occupies an
+anisotropic but still estimable middle regime---is inferred, since $\kappa$ was never measured
+under the collocation measure at matched batch size. It is a hypothesis supported by the
+pattern of failures, not an established criterion. A decisive test would measure the
+stability of the leading eigenvalues across independent batches, a bootstrap uncertainty on
+the resolvable part of the spectrum, its sensitivity to batch size and regularisation, the
+same spectrum under both $|\Psi|^2$ and the collocation measure, and the agreement between
+the estimated natural-gradient direction and an independently evaluated update.
 
 \section{Training without a Markov chain}
 \label{sec:kernel-mcmcfree}
@@ -648,7 +679,11 @@ collocation measure at matched batch size.
 
 The conditioning story has a practical edge. If the sampling measure is what makes the
 metric estimable, then choosing that measure is a design decision, not a fact of nature---and
-the obvious thing to try is a measure with no Markov chain in it at all.
+the obvious thing to try is a measure with no Markov chain in it at all. ``Markov-chain-free''
+refers to the gradient throughout: no configuration entering a parameter update comes from a
+chain, but a Metropolis probe still selects checkpoints and certifies the final energy, and
+the cascades start from reference-guided pretrained states
+(\S\ref{sec:collocation-discussion} states the claim exactly).
 
 \paragraph{Two walls.} What follows is easier to hold if the destination is given first.
 The Markov-chain-free route runs into two limits of entirely different kinds, and almost
@@ -1094,8 +1129,8 @@ The stabilisation mechanisms buy nothing at strong confinement, where the two re
 inside each other's seed spread, and everything at weak confinement. At $\omega=10^{-3}$ the
 mean error falls by a factor of nineteen, from $+5.3\%$ to $+0.28\%$, and the \emph{worst}
 robust seed beats the \emph{best} baseline seed by an order of magnitude. The best single run
-at every confinement is a robust one. What follows explains why the difference appears
-exactly where it does.
+at every confinement is a robust one. What follows is a mechanism for why the difference
+appears where it does.
 
 
 \subsubsection{The gradient-quality chain}
@@ -1117,10 +1152,13 @@ the quality of collocation-trained wavefunctions:
 \end{aligned}\;}
 \label{eq:chain}
 \end{equation}
-Each link can be checked quantitatively against the training logs, and each is supported
-below. One caveat on how strongly to read the arrows: the robust recipe changes four things at once (oversampling, reward normalisation, rollback and adaptive proposal refitting) so
-the chain is a mechanism consistent with every measurement we have, not a set of
-individually isolated causal links. We did not ablate the four stabilisers separately.
+Each link is checked against the training logs below. One caveat governs how strongly to
+read the arrows: the robust recipe changes four things at once (oversampling, reward
+normalisation, rollback and adaptive proposal refitting), so the campaign shows that the
+package works, not which element causes which improvement. The chain is a mechanism
+consistent with every measurement we have, not a set of individually isolated causal links.
+We did not ablate the four stabilisers separately; a factorial or stepwise ablation is what
+would be needed to establish the chain link by link.
 
 \paragraph{Step 1: proposal--target mismatch.}
 The REINFORCE estimator of Eq.~\eqref{eq:reinforce-method} requires samples from

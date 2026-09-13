@@ -40,48 +40,24 @@ unsuitable, the sampling insufficient, the physical regime genuinely harder, or
 something in the implementation simply wrong. Much of this thesis grew out of trying
 to tell those possibilities apart.
 
-It was a solitary problem, not for want of literature---neural quantum states,
-FermiNet, PauliNet, and neural backflow offered much to learn from---but because
-the particular route I was trying to take had little precedent. For long stretches,
-I did not know.
+There was always one more explanation, simpler than the others: that it could not be
+done. It was a bleak explanation, and as the results failed to improve it became harder
+to dismiss. For a period, I surrendered to it.
 
-Gradually at first, as the results kept coming back bad, one very simple explanation
-was always present, and it became more and more prevalent: maybe it simply is not
-possible. For a while I saw no option but to surrender to it. I kept going anyway,
-simply out of a will to understand at least \emph{why} it was not. The hardest part
-was when I could not do that either---when I knew it did not work, and had no idea why.
+I continued, but no longer in the belief that it would succeed. I wanted to understand,
+at least, why it did not. It was hardest when even that was out of reach. I knew that it
+did not work, and I could not say why.
 
-I was in Rome during this period, and that helped. Elida really helped me as well.
+I spent that period in Rome. The city helped, and Elida helped more.
 
-The most important lessons came from failures. An error in the
-importance-sampling code went undetected for months because its signature---loss
-of accuracy at larger particle numbers and weaker confinement---was exactly what
-an inadequate architecture might have produced. A small per-particle error in a log-density
-accumulates over the $N$ particles and is then exponentiated into the importance
-weights; the bug was invisible where experiments were cheap and
-ruinous where they mattered. Discovering it damaged my confidence in everything
-else. Re-establishing that confidence, rather than assuming it, became a
-substantial part of the later work. Negative results of this kind are not a
-concession or an embarrassment; they are part of the method, and I have written them
-up as such.
+Eventually the reasons began to appear, and some of them were mundane. For months, an
+error in the importance-sampling code had looked exactly like a limitation of the method.
+Finding it did not solve the problem, but it answered the question I had been left with.
 
-That diagnostic stance also changed what I thought the network was for. I began
-by asking whether a machine-learning construction could solve the many-body
-Schr\"odinger equation. I ended up using the trained state as an apparatus:
-something to examine for the structure it had captured and the directions of
-variation that mattered. That shift, from treating a network as an answer to
-treating it as an object of study, is the thread running through this thesis.
-
-The work also made a connection harder to ignore. Its obstacles have a double
-character: each is at once a physics problem and an optimisation problem.
-Stochastic reconfiguration, developed for variational wavefunctions, is natural
-gradient descent on the variational manifold. The REINFORCE estimator from
-reinforcement learning is the score-function gradient of the variational energy.
-The Fisher information matrix of statistics is, for a real amplitude and up to a
-factor of four, the quantum geometric tensor of physics. The same mathematics appears
-under different names in different communities. Recognising that felt less like
-discovering a bridge between fields than like realising that the two fields had been
-approaching the same problem from opposite sides.
+Asking why also changed what I thought the network was for. The trained state stopped
+being only an answer and became an instrument, something to examine for the structure it
+had captured and for the directions of variation that mattered. That shift is the thread
+running through this thesis.
 
 \bigskip
 
@@ -95,9 +71,9 @@ undertaking I have had and have simply always been there; and to my friends,
 inside CCSE and out, who supplied the joy, the laughter, and a good deal of the
 sanity this project required.
 
-To Morten, again, and properly: I thank you for the assignment, for the two years we've had together,
-and above all for a genuine and undisguised interest in what I was finding at
-every stage---including the stages where what I was finding was that I had been
+To Morten, again, and properly: I thank you for the assignment, for the two years we
+have had together, and above all for a genuine and undisguised interest in what I was
+finding at every stage, including the stages where what I found was that I had been
 wrong. That interest is most of what encouragement actually consists of.
 
 \bigskip

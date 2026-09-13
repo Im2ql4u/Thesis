@@ -10,243 +10,193 @@ Shelley}{\textit{Frankenstein}}
 A system of many interacting electrons is described completely by its wavefunction.
 The same object puts the system almost out of reach, because a complete description
 of $N$ interacting particles is a function of all their coordinates at once, and the
-space of those coordinates grows with every particle added. The equation that fixes
-this wavefunction is known exactly; the entire difficulty is solving it.
+cost of representing such a function grows exponentially with every particle added.
+The equation that fixes this wavefunction is known exactly; the entire difficulty is
+solving it.
 
 The competition that makes it hard is physical. Kinetic energy tends to delocalise the
-particles; interactions and external potentials drive localisation and correlation; and the
-balance between them plays out in a configuration space far too large to enumerate. Yet the quantities we need (energies, correlation functions, phase boundaries) are precisely the ones
-that depend on getting that balance right. This is the
-\emph{many-body problem}, the point at which quantum mechanics turns from a compact set of
-principles into one of the hardest computational challenges in physics.
+particles; interactions and external potentials drive localisation and correlation; and
+the balance between them plays out in a configuration space far too large to represent
+explicitly. Yet the quantities we need (energies, correlation functions, phase
+boundaries) are precisely the ones that depend on getting that balance right. This is the
+\emph{many-body problem}.
 
-A wide range of electronic-structure methods has been developed to address
-this. Mean-field approaches such as Hartree–Fock replace the full many-body
-problem with an effective single-particle picture, where each electron moves
-in an average field from the others. This captures Fermi statistics and some
-exchange effects but leaves most correlation physics untreated. More systematic
-methods such as Full Configuration Interaction (FCI) are, in principle, exact
-within a finite basis, but their cost grows combinatorially with system size.
-Coupled Cluster (CC) theory provides a more efficient and size-extensive
-hierarchy of approximations, but it remains computationally demanding and can
-struggle in strongly correlated regimes or near degeneracies.
+Established methods pay for accuracy in one of two currencies: cost, or a prior decision
+about which correlations may be described. Full configuration interaction pays in cost. It
+is exact within a finite basis, but its cost grows combinatorially with that basis, so a
+modest two-dimensional dot of twenty electrons is already far beyond reach. Hartree--Fock
+and coupled-cluster theory pay in the second currency: the first keeps only an average
+field, and the second truncates the excitations it includes, which serves well near
+equilibrium and less well where correlation is strong or states are nearly degenerate.
+Quantum Monte Carlo represents the wavefunction through stochastic sampling and provides
+accurate benchmarks for continuum systems, but in its fixed-node form its accuracy is
+bounded by the nodes of a trial wavefunction, and good trial wavefunctions become harder
+to construct as correlation grows. In practice, then, much of the many-body problem
+reduces to a narrower one: choosing an expressive, well-conditioned ansatz and optimising
+it reliably.
 
-Quantum Monte Carlo (QMC) methods, including Variational Monte Carlo (VMC) and
-Diffusion Monte Carlo (DMC), take a different approach: they represent the
-wavefunction implicitly through stochastic sampling. For suitable trial
-states, they can produce highly accurate benchmark energies and correlations
-for continuum systems. However, QMC is not free of difficulties. The fermion
-sign problem limits direct simulations, fixed-node approximations inherit bias
-from the chosen trial nodes, and constructing high-quality trial wavefunctions
-is increasingly difficult as systems become more strongly correlated or
-inhomogeneous. In practice, then, much of the many-body problem reduces to a
-narrower one: choosing an expressive, well-conditioned ansatz and optimising it
-reliably.
+\paragraph{Quantum dots as a controlled testbed.}
+Two-dimensional parabolic quantum dots are a clean and tunable place to study that
+narrower problem. As the trap frequency $\omega$ decreases, the single-particle level
+spacing collapses while Coulomb repulsion becomes dominant, and the electrons localise into
+rings and shells: one system spans the route from Fermi-liquid-like behaviour to
+Wigner-molecule physics. In the lab frame, rotational symmetry and quantum fluctuations
+smear these patterns into smooth densities; in a co-rotating frame they recover
+crystalline structures whose topology depends on particle number. For $N{=}6$ and
+$N{=}12$, classical and semiclassical studies have identified preferred shellings such as
+$(1,5)$ and $(3,9)$ and mapped parts of the crossover
+\cite{Egger_1999,Kong_2002,schweigert1994spectralpropertieschargedparticles,manninen2007metalclustersquantumdots}.
 
-\paragraph{Machine learning and many-body wavefunctions.}
-In parallel with these developments, machine learning—especially deep
-learning—has become a standard tool for representing complex, high-dimensional
-functions and fitting them to data. In physics this has taken two broad forms. Neural
-networks act as \emph{surrogates}, learning maps from parameters or boundary conditions to
-observables, or approximating solution operators of partial differential equations---the
-setting of physics-informed neural networks and operator learning. Or they act as
-\emph{variational ans\"atze} for quantum states (neural quantum states), where the network
-outputs amplitudes or log-probabilities for many-body configurations and is trained by
-variational Monte Carlo. This thesis is in the second tradition and borrows from the first.
+Quantum dots suit this thesis for two reasons. They are genuinely non-trivial: Coulomb
+singularities, strong correlation and a real crossover appear already at moderate $N$.
+And they are simple enough that accurate DMC references exist in many regimes and that
+detailed structural diagnostics are computationally feasible. For fully quantum dots,
+quantitative topology-resolved diagnostics and a systematic picture of the Wigner regime
+remain relatively sparse, and it is not well understood how modern neural ans\"atze
+represent these states internally.
+
+\paragraph{Neural wavefunctions.}
+Machine learning has become a standard tool for representing complex, high-dimensional
+functions, and in physics it has taken two broad forms. Neural networks act as
+\emph{surrogates}, learning maps from parameters to observables or approximating the
+solution operators of partial differential equations, as physics-informed neural networks
+and operator learning do. Or they act as \emph{variational ans\"atze} for quantum states,
+where the network outputs the amplitude of a many-body configuration and is trained by
+variational Monte Carlo. This thesis began in the first tradition and ended in the second:
+the physics-informed residual objective it started from survives as the pretraining stage
+of a variational method, and as the collocation route of Chapter~\ref{ch:kernel}, rather
+than as the method itself.
+
+Representing a quantum state by a neural network and optimising it variationally was
+introduced by Carleo and Troyer~\cite{Carleo2017-NQS}. For continuum fermions the idea has
+since matured into highly accurate \emph{ab initio} solvers such as
+FermiNet~\cite{Pfau2020-FermiNet} and PauliNet~\cite{Hermann2020-PauliNet}, and into
+explicit neural \emph{backflow} transformations~\cite{LuoClark2019-NeuralBackflow}, the
+direct ancestor of the coordinate backflow used here. Message passing has recently been
+built into neural quantum states for extended fermion
+systems~\cite{Pescia2024-MessagePassingNQS,KimEtAl2023-UltracoldFermiNQS}. Against that
+backdrop the present work is deliberately narrow. It does not push a new architecture to
+ever larger systems. It asks why particular architectural and training choices succeed or
+fail on a problem where the answer can be checked, and what the trained state can then
+say about the physics. Accuracy is the precondition for that, not its point.
 
 Universal approximation establishes representational capacity, not trainability. The
 theorems guarantee that a sufficiently large network can \emph{represent} any suitably
-regular function to arbitrary accuracy. They say nothing about whether gradient-based optimisation will
-\emph{find} that representation, nor at what sample cost. This thesis measures that
-gap directly: the same ansatz, demonstrably able to reach reference-quality energies, is
-placed in training schemes that do and do not allow it to get there. Representability is the easier question; trainability is the harder one.
+regular function to arbitrary accuracy; they say nothing about whether gradient-based
+optimisation will \emph{find} that representation, nor at what sample cost.
+Representability is the easier question; trainability is the harder one. The case for a
+neural ansatz therefore cannot rest on expressiveness, and has to be made on cost. A
+variational neural ansatz pays in neither of the two currencies above: it requires no
+enumeration of a determinant space, and it fixes no prior truncation of which correlations
+may be described. That is not freedom from scaling, since capacity can still have to grow
+with $N$ or with the accuracy demanded (Chapter~\ref{ch:kernel}), but it is freedom to
+concentrate capacity wherever the solution actually varies. Whether it does so in practice
+is an empirical question, and this thesis treats it as one.
 
-A weaker but sounder case for a neural ansatz survives that objection. Established methods pay for
-accuracy in one of two currencies. FCI is exact within a finite basis, but its cost
-grows combinatorially with that basis, so a modest two-dimensional dot of twenty
-electrons is already far beyond reach. Cheaper methods such as coupled cluster buy
-their favourable scaling instead by deciding in advance which correlations may be
-described at all.
+In practice, several issues arise. Objectives built on local energies involve second
+derivatives and can be numerically delicate; coordinates that do not respect known
+structure produce large gradients and Laplacian spikes near electron coalescence; and
+generic architectures can waste capacity on degrees of freedom that are physically
+irrelevant. The ansatz used here therefore builds in as much known structure as possible
+(antisymmetry, the electron--electron cusp, trap scaling and permutation symmetry) and
+leaves the network to learn the remaining correlation. On top of a Slater determinant of
+harmonic-oscillator orbitals, two learnable objects carry that correlation: a Jastrow
+correlator, which reshapes the amplitude, and a coordinate backflow, which reshapes the
+nodes. Chapter~\ref{ch:trial_wavefunction} gives the construction.
 
-A variational neural ansatz avoids both of those particular costs. It requires no explicit
-enumeration of the determinant space, and it fixes no prior truncation on which correlations
-may be described; its parameter count is set empirically by the structure of the target
-rather than by the size of a basis. That is not freedom from scaling---capacity can still
-have to grow with $N$ or with the accuracy demanded, as the twenty-electron results below
-show---but it is freedom to concentrate capacity wherever the solution actually varies. Whether it does so in
-practice is an empirical question, and this thesis treats it as one.
+\paragraph{What the energy cannot see.}
+A further choice concerns not \emph{what} structure is imposed but \emph{how} the network
+represents the electrons. Correlation is intrinsically relational, since what one electron
+should do depends on where the others are, so architectures that let particles exchange
+information are a natural candidate for both the correlator and the backflow. Each can be
+built either way: as a separable network that encodes and pools per-particle and pairwise
+features in a single pass, as in a DeepSet, or as a \emph{message-passing} network in which
+the particles exchange and update information through explicit edge states. Holding
+everything else fixed, the two can be trained to the same energy. The total energy then
+cannot say what the relational channel buys, or whether it buys anything, and the
+difference has to be looked for elsewhere.
 
-That question also suggests a different way to use a solver. Nearly every
-established method for the many-body Schrödinger equation is constructed outward
-from physical principles: an approximation is chosen, justified physically, and
-then implemented. A trained network inverts the order. Physical structure is still imposed on it (antisymmetry, the cusp, trap scaling, permutation symmetry) but the \emph{specific correlations} it develops
-within those constraints are not prescribed, and are interrogated only afterwards. Unlike an
-implicit stochastic representation, it is a concrete parameterised object whose internal
-structure can be examined directly. This
-motivates a question that the size of the problem does not by itself settle. A
-twenty-electron dot is a function of forty coordinates, and any basis expansion of it
-grows combinatorially---but it does not follow that the solution itself is
-forty-dimensional in any useful sense. How many active tangent directions does a given parameterisation
-actually use to represent the solved state---a question about the solution and its representation, not about the equation. This is not an intrinsic dimension of the
-wavefunction: the count depends on how the state is parameterised,
-as \S\ref{sec:theory-tangent-kernel} makes precise.
+That suggests a different use for a solver. Established methods are, for the most part,
+constructed outward from physical principles: an approximation is chosen, justified
+physically, and then implemented. A trained network reverses part of that order. Physical
+structure is still imposed on it, but the specific correlations it develops within those
+constraints are not prescribed, and can be interrogated afterwards. Unlike an implicit
+stochastic representation, it is a concrete parameterised object whose internal structure
+can be examined directly. A twenty-electron dot is a function of forty coordinates, and any
+basis expansion of it grows combinatorially, but it does not follow that the solution
+itself is forty-dimensional in any useful sense. How many directions does a given
+parameterisation actually use to represent the solved state? That is a question about the
+solution and its representation, not about the equation, and the answer depends on how the
+state is parameterised (\S\ref{sec:theory-tangent-kernel}).
 
 We make that question quantitative through the geometry of the wavefunction's
-log-derivatives. Collecting the parameter sensitivities of a trained ansatz over an ensemble
-of configurations into a covariance matrix gives, in the simplest reading, a
+log-derivatives. Collecting the parameter sensitivities of a trained ansatz over an
+ensemble of configurations into a covariance matrix gives, in the simplest reading, a
 principal-component analysis of the state: the eigenvalue distribution counts how many
-directions are doing genuine work. The physically appropriate version of that covariance is
-the quantum geometric tensor, and the corresponding count is the participation ratio of its
-spectrum. Chapter~\ref{ch:kernel} develops the instrument and applies it to architecture,
-optimiser and training paradigm alike.
+directions are doing genuine work. The physically appropriate version of that covariance
+is the quantum geometric tensor, and the corresponding count is the participation ratio of
+its spectrum. The same tensor is the metric a natural-gradient optimiser inverts, and it is
+estimated from whatever samples define the loss, so it connects the architecture to the
+optimiser and to the sampling measure. Chapter~\ref{ch:kernel} develops the instrument and
+applies it to all three.
 
-In principle, then, neural networks provide highly expressive ansätze for quantum
-problems. In practice, several issues arise. Objectives based on local
-energies involve second derivatives and can be numerically delicate.
-Coordinate parameterisations that do not respect known structure can lead to
-large gradients and Laplacian spikes near electron coalescence. Generic
-architectures can waste capacity on degrees of freedom that are irrelevant
-from a physical point of view. These challenges motivate hybrid approaches in
-which as much known structure as possible—antisymmetry, cusp conditions,
-scaling, and symmetries—is built into the ansatz and its coordinates, and the
-network is used to learn the remaining correlation corrections.
-
-A further ingredient concerns not \emph{what} structure is imposed but \emph{how}
-the network represents the electrons. Correlation is intrinsically relational—what
-one electron should do depends on where the others are—so architectures that let
-particles exchange information (message passing), rather than processing each
-coordinate independently, are a natural candidate for the correlator and for the
-backflow that deforms the nodes. How much this relational capacity actually buys,
-and why, is one of the questions this thesis takes up.
-
-\paragraph{Where this work sits.}
-Representing a quantum state by a neural network and optimising it variationally was
-introduced by Carleo and Troyer~\cite{Carleo2017-NQS}; for continuum fermions the idea
-has since matured into highly accurate \emph{ab initio} solvers such as
-FermiNet~\cite{Pfau2020-FermiNet} and PauliNet~\cite{Hermann2020-PauliNet}, and into
-explicit neural \emph{backflow} transformations~\cite{LuoClark2019-NeuralBackflow}---the
-direct ancestor of the coordinate backflow used here. Message passing, the relational
-mechanism at the centre of this thesis, has recently been built into neural quantum
-states for extended fermion
-systems~\cite{Pescia2024-MessagePassingNQS,KimEtAl2023-UltracoldFermiNQS}. Against that backdrop the present work is deliberately narrow. It does not push a new
-architecture to ever larger systems. It asks \emph{why} the relational channel helps, and
-uses the tangent-kernel geometry to make the answer precise. Its setting is the
-two-dimensional quantum-dot Wigner regime, where correlation is strongest and
-topology-resolved structural diagnostics remain sparse. And it treats conditioning, the
-optimiser and Markov-chain-free training as objects of study, not fixed choices. To
-our knowledge these questions have not been addressed together for parabolic quantum
-dots.
-
-\paragraph{Quantum dots as a controlled testbed.}
-Two-dimensional parabolic quantum dots provide a clean and tunable setting in
-which to explore such ideas. They offer a simple route from Fermi-liquid–like
-behaviour to Wigner-molecule physics. As the trap frequency $\omega$ decreases,
-the single-particle level spacing collapses while Coulomb repulsion becomes
-dominant. Electrons then tend to localise into ring or shell patterns. In the
-lab frame, rotational symmetry and quantum fluctuations smear these into smooth
-densities; in a co-rotating frame, one recovers crystalline-like structures
-whose topology depends on particle number. For $N{=}6$ and $N{=}12$, classical
-and semiclassical studies have identified preferred shellings such as $(1,5)$
-and $(3,9)$ and mapped parts of the crossover
-\cite{Egger_1999,Kong_2002,schweigert1994spectralpropertieschargedparticles,manninen2007metalclustersquantumdots}.
-
-From the perspective of this thesis, quantum dots are attractive for two
-reasons. First, they are genuinely non-trivial: Coulomb singularities, strong
-correlations and an actual Fermi-liquid–to–Wigner crossover appear already for
-moderate $N$. Second, they are still simple enough that accurate DMC
-references exist in many regimes and that detailed structural diagnostics
-(shell occupancies, bond order, virial ratios) are computationally feasible.
-For fully quantum dots, however, quantitative topology-resolved diagnostics
-(occupancy fractions, bond-orientational order, shell “stiffness”) and a
-systematic picture of the Wigner regime remain relatively sparse. In addition,
-it is not well understood how modern neural ansätze internally represent these
-states.
-
-\paragraph{Scope and questions.}
+\paragraph{Questions.}
 \label{sec:research-questions}
-In this thesis we revisit two-dimensional harmonic quantum dots with a
-Slater–Jastrow(+backflow) neural quantum state, pretrained on a physics-informed residual
-objective and refined variationally.
-The design is meant to be \emph{safe by construction} for Laplacian-based objectives:
-coordinates are scaled to trap units ($\tilde R=\sqrt{\omega}R$), learned pair
-features are soft-core (avoiding spurious $1/r$ behaviour in derivatives), and the
-electron–electron cusp is enforced analytically, not learned. On top of a
-Slater determinant of harmonic-oscillator orbitals, two learnable objects carry the
-correlation: a Jastrow correlator, which reshapes the amplitude, and a coordinate
-backflow, which reshapes the nodes. Each can be built either without message
-passing---encoding and pooling per-particle and pairwise features in a single pass, as
-in a DeepSet---or as a \emph{message-passing} network in which the particles exchange and
-update information through explicit transported edge states before a quantity is read out.
-
-Once such an ansatz reaches reference accuracy—which, as we will see, a surprisingly
-compact one does—the remaining questions concern \emph{why} its parts behave as they do, and what it can
-tell us about the electrons. We address four. The first three share an analytical centre: the geometry of the wavefunction's log-derivatives, captured by the
-quantum geometric tensor and the neural tangent kernel.
+When a variational calculation stalls, or two models reach the same energy by different
+routes, several explanations remain open: the representation may be wrong for the problem,
+the optimisation may be failing, the samples that define the loss may no longer describe
+the state, or the physics itself may have become harder. This thesis is organised as an
+attempt to tell those explanations apart, and asks four questions, one for each.
 \begin{enumerate}
   \item \textbf{Architecture.} What does a message-passing network learn that a separable
-        one cannot, given that both can be trained to the same energy? We compare the two
-        forms in the correlator and in the backflow, holding everything else fixed.
+        one cannot? We compare the two forms in the correlator and in the backflow, holding
+        everything else fixed.
   \item \textbf{Optimiser.} When does natural-gradient (stochastic reconfiguration)
         preconditioning change the result, and when is it unnecessary or harmful?
-  \item \textbf{Paradigm.} Can an accurate wavefunction be trained \emph{without}
-        Markov-chain Monte Carlo, using importance-sampled collocation instead, and how
-        far into the correlated regime does that reach before it fails?
-  \item \textbf{Physics.} Can the trained wavefunction serve as a scientific
-        instrument for Wigner-molecule physics—shell topologies, angular order, and
-        melting—and does its internal representation reflect that physics?
+  \item \textbf{Paradigm.} Can an accurate wavefunction be trained with no Markov chain in
+        the gradient, using importance-sampled collocation instead, and how far into the
+        correlated regime does that reach before it fails?
+  \item \textbf{Physics.} Can the trained wavefunction serve as an instrument for
+        Wigner-molecule physics (shell topologies, angular order, melting), and what does
+        it show about the crossover?
 \end{enumerate}
 
-\noindent The results take these in a different order. Chapter~\ref{ch:results} answers the
-physics question first, because the state has to be shown accurate enough to trust before
-either its physical content or the solver that produced it can be interpreted.
+\noindent The results take these in a different order, because a state has to be shown
+accurate enough to trust before either its physics or the solver that produced it can be
+interpreted. Chapter~\ref{ch:results} establishes the energies and reads the physics from
+the states; Chapter~\ref{ch:kernel} turns to the solver.
 
-\paragraph{Diagnostics.}
-Total energies cannot separate the models compared here, since both architectures train to
-the same energy. The measurements that can are of three kinds: structural diagnostics of the
-trained state (shell detection, bond-orientational order, angular Lindemann ratios), geometric
-diagnostics of the ansatz (the quantum geometric tensor and neural tangent kernel, the
-effective dimension of the tangent space, state overlaps, $\Var(E_L)$), and sampling
-diagnostics for the Markov-chain-free route (effective sample size, the Pareto shape
-$\hat k$). All are post-processing on $|\Psi|^2$ samples, so the same analysis would apply
-to a classical or quantum-chemical wavefunction unchanged. Chapter~\ref{ch:analysis} defines
-them.
-
-\clearpage
 \paragraph{Main contributions.}
 \begin{enumerate}
-  \item A compact Slater--Jastrow--backflow ansatz, conditioned in trap units with an
-        analytic cusp and soft-core pair features, that agrees closely with every available
-        fixed-node reference for $N\in\{2,6,12,20\}$ and extends smoothly into the Wigner
-        regime, where its energies are predictions.
-  \item A tangent-space account of what message passing contributes. Under the
-        parametrisations used here, a message-passing correlator concentrates its Fisher
-        weight in about half as many effective directions as a separable one at strong
-        confinement, keeps its leading directions inside a compact operator dictionary where
-        the separable network does not, and reaches a lower local-energy variance; a larger
-        message-passing backflow retains rank exactly where a conventional one collapses to a
-        single displacement mode and loses accuracy. Both effects are invisible in the total
-        energy until weak confinement turns the geometric deficit into an energetic one.
-  \item A proposed criterion for when natural-gradient preconditioning is worth its cost:
-        the tangent metric must be anisotropic \emph{and} still estimable. That conditioning
-        alone is not sufficient is measured; that estimability decides is a hypothesis the
-        failure pattern supports. The same geometry bounds an importance-sampled collocation
-        objective that trains with no Markov chain in the gradient, reaching a Wigner-regime
-        state at $\omega=0.0035$ once its proposal is built from measured shell geometry.
-  \item Topology-resolved diagnostics of the Wigner crossover---two-shell probabilities,
-        inner-ring occupancy histograms, a polygon shell model fitted on held-out frames, and
-        sector-resolved bond order and Lindemann indices read against random-angle
-        baselines---which show that radial stiffening completes well before angular order
-        appears, complementing classical and quantum studies of parabolic
+  \item A compact Slater--Jastrow--backflow ansatz that agrees closely with every
+        available fixed-node reference for $N\in\{2,6,12,20\}$ and extends smoothly into the
+        Wigner regime, where its energies are predictions.
+  \item Evidence that message passing changes the variational geometry before it changes
+        the energy. Under the parametrisations used here, a message-passing correlator uses
+        fewer effective tangent directions and reaches a lower local-energy variance than a
+        separable one at equal energy, and a conventional backflow collapses to a single
+        displacement mode at weak confinement where a larger message-passing one does not.
+  \item A hypothesis for when natural-gradient preconditioning earns its cost. Poor
+        conditioning alone does not decide it, and that much is measured. The failures
+        suggest that the metric must also be estimable from the batch.
+  \item Markov-chain-free training by importance-sampled collocation, mapped to its limits:
+        within about a tenth of a percent of DMC at strong confinement, and carried to
+        $\omega=0.0035$ once the proposal is built from the measured shell geometry, where
+        an instability of the ansatz, not of the sampler, takes over.
+  \item Topology-resolved diagnostics of the Wigner crossover, read against random-angle
+        baselines and a held-out polygon shell model, which show that radial stiffening
+        completes well before angular order appears, complementing classical and quantum
+        studies of parabolic
         dots~\cite{Egger_1999,Kong_2002,schweigert1994spectralpropertieschargedparticles,Filinov_2001}.
 \end{enumerate}
 
 \paragraph{Thesis structure.}
-Chapters~\ref{sec:theory} and~\ref{ch:ml_theory} set out the physics and the
-machine-learning background the later chapters require. Chapters~\ref{ch:trial_wavefunction}
-to~\ref{ch:analysis} give the ansatz, the optimisation pipeline, and the diagnostics.
-Chapter~\ref{ch:results} reports the energies and the Wigner-molecule structure;
-Chapter~\ref{ch:kernel} analyses architecture, optimisation and sampling through the tangent
-geometry, and reports the Markov-chain-free training programme. Part~IV opens with a short
-guide to how the two fit together. A discussion and a conclusion follow, and the appendices develop the
+Part~II sets out the physics and machine-learning background
+(Chapters~\ref{sec:theory} and~\ref{ch:ml_theory}). Part~III gives the ansatz, the
+optimisation pipeline and the diagnostics (Chapters~\ref{ch:trial_wavefunction}
+to~\ref{ch:analysis}). Part~IV reports the results: Chapter~\ref{ch:results} the energies
+and the Wigner-molecule structure, and Chapter~\ref{ch:kernel} the analysis of
+architecture, optimisation and sampling together with the Markov-chain-free training
+programme. Part~V discusses and concludes. The appendices in Part~VI develop the
 conditioning theory, the collocation--backflow obstruction that motivated the weak-form
-objective, and the full diagnostic tables.
+objective, the full diagnostic tables and the reproducibility record.

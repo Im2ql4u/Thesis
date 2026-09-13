@@ -40,20 +40,38 @@ unsuitable, the sampling insufficient, the physical regime genuinely harder, or
 something in the implementation simply wrong. Much of this thesis grew out of trying
 to tell those possibilities apart.
 
-That is what variational methods make possible. The variational principle offers no recipe for improving a trial wavefunction, but it gives every attempt a direction: its energy cannot lie below the true ground-state energy, and a lower variational energy is therefore a better one. In a project with few fixed landmarks, that was enough to start. The harder question was what to make of a result that refused to improve.
+For a long time they would not come apart. The results kept coming back bad, and
+behind every careful explanation stood a simpler one that grew more convincing each time:
+perhaps it simply was not possible. For a while I saw no real alternative to accepting
+that. I kept going anyway, less out of hope than out of a wish to understand, at the very
+least, why it did not work.
 
-There was no shortage of literature. Neural quantum states, FermiNet, PauliNet and neural backflow all provided examples to learn from. What was missing was a well-trodden path through the particular combination of methods I was trying to assemble. When an experiment failed, the failure rarely identified its cause. The method might be wrong, the architecture too restrictive, the optimiser ill-suited, the sampling poor, or the code simply broken. Often, several of these explanations looked equally plausible. Much of the work therefore became an exercise in designing calculations that could force them apart.
+The hardest stretch came when I could not manage even that---when I knew that something
+did not work and had no idea why.
 
-One failure made that need especially clear. An error in the importance-sampling code survived for months because it produced exactly the behaviour I had been prepared to attribute to the model itself: accuracy deteriorated as the particle number grew and the confinement weakened. The mechanism was simple in retrospect. A small error in a per-particle log-density accumulates over \(N\) particles and is then exponentiated in the importance weights. Where the calculations were cheap, the effect was barely visible; where the physics became interesting, it was catastrophic. Finding the bug did more than invalidate a set of runs. It made clear how easily a numerical failure could masquerade as a physical or architectural one. After that, confidence had to be earned by tests rather than inherited from the code.
+I spent part of that time in Rome, which helped in ways that had little to do with
+physics. Elida helped more than anything.
 
-The same lesson returned in other forms. A Langevin refinement meant to improve the proposal instead biased the gradient. A second-order optimiser became least trustworthy precisely when the metric it attempted to invert was no longer resolved by the available samples. These were useful results not because they were negative, but because each failure exposed an assumption that had previously gone untested. In that sense, failure became part of the method: not something to be hidden once a better calculation had been found, but evidence about where the calculation ceased to be reliable.
+Some of the answers, when they finally came, were humbling. For months an error in the
+importance-sampling code had produced exactly the failure I was prepared to blame on the
+method itself: accuracy that deteriorated as the particle number grew and the trap
+weakened. It was a small error in a log-density, accumulated over the particles and then
+exponentiated. Finding it did not make the problem easy, but it changed what ``not
+possible'' meant. A failure could have a cause, and the cause could be found. After that,
+confidence had to be earned by tests rather than inherited from the code, and a failed
+calculation became evidence rather than a verdict.
 
 This also changed what I thought the neural network was for. I began with the comparatively simple question of whether a machine-learning ansatz could solve the many-body Schr\"odinger equation. By the end, the trained wavefunction had become something closer to an instrument. Its energy mattered, but so did the structure of its tangent space, the correlations carried by its internal representation, and the ways in which those changed across the physical regime. The network was no longer only a means of obtaining an answer; it had become an object through which the problem itself could be examined. That shift runs through the rest of this thesis.
 
-It also made one connection increasingly difficult to regard as accidental. The obstacles encountered here are simultaneously problems in physics and in optimisation, and the same mathematical objects appear on both sides under different names. Stochastic reconfiguration, introduced in variational quantum Monte Carlo, is natural-gradient descent on the manifold of variational states. The REINFORCE estimator is the score-function form of the variational energy gradient. For a real wavefunction, the Fisher information matrix is, up to a conventional factor of four, the quantum geometric tensor. What initially looked like a collection of techniques borrowed from neighbouring fields gradually revealed itself as a common geometric language. Recognising that felt less like finding a bridge between two subjects than realising that they had been describing the same terrain from opposite directions.
+It also made one connection hard to regard as accidental. Stochastic reconfiguration is
+natural-gradient descent on the manifold of variational states; the REINFORCE estimator is
+the score-function form of the variational energy gradient; for a real wavefunction, the
+Fisher information matrix is, up to a factor of four, the quantum geometric tensor. The
+physics and the optimisation had been describing the same terrain from opposite
+directions.
 
 The most consistent source of inspiration, motivation, and steadiness through all
-of it has been my girlfriend, Elida. Your support made it possible to begin this
+of it has been my girlfriend, Elida. Her support made it possible to begin this
 work and to stay with it when it became difficult. I am more grateful than I can
 put down here.
 

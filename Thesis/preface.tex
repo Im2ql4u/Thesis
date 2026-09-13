@@ -40,35 +40,50 @@ unsuitable, the sampling insufficient, the physical regime genuinely harder, or
 something in the implementation simply wrong. Much of this thesis grew out of trying
 to tell those possibilities apart.
 
-For a long time they would not come apart. The results kept coming back bad, and
-behind every careful explanation stood a simpler one that grew more convincing each time:
-perhaps it simply was not possible. For a while I saw no real alternative to accepting
-that. I kept going anyway, less out of hope than out of a wish to understand, at the very
-least, why it did not work.
+It was a solitary problem, not for want of literature---neural quantum states,
+FermiNet, PauliNet, and neural backflow offered much to learn from---but because
+the particular route I was trying to take had little precedent. For long stretches,
+I did not know.
 
-The hardest stretch came when I could not manage even that---when I knew that something
-did not work and had no idea why.
+Gradually at first, as the results kept coming back bad, one very simple explanation
+was always present, and it became more and more prevalent: maybe it simply is not
+possible. For a while I saw no option but to surrender to it. I kept going anyway,
+simply out of a will to understand at least \emph{why} it was not. The hardest part
+was when I could not do that either---when I knew it did not work, and had no idea why.
 
-I spent part of that time in Rome, which helped in ways that had little to do with
-physics. Elida helped more than anything.
+I was in Rome during this period, and that helped. Elida really helped me as well.
 
-Some of the answers, when they finally came, were humbling. For months an error in the
-importance-sampling code had produced exactly the failure I was prepared to blame on the
-method itself: accuracy that deteriorated as the particle number grew and the trap
-weakened. It was a small error in a log-density, accumulated over the particles and then
-exponentiated. Finding it did not make the problem easy, but it changed what ``not
-possible'' meant. A failure could have a cause, and the cause could be found. After that,
-confidence had to be earned by tests rather than inherited from the code, and a failed
-calculation became evidence rather than a verdict.
+The most important lessons came from failures. An error in the
+importance-sampling code went undetected for months because its signature---loss
+of accuracy at larger particle numbers and weaker confinement---was exactly what
+an inadequate architecture might have produced. A small per-particle error in a log-density
+accumulates over the $N$ particles and is then exponentiated into the importance
+weights; the bug was invisible where experiments were cheap and
+ruinous where they mattered. Discovering it damaged my confidence in everything
+else. Re-establishing that confidence, rather than assuming it, became a
+substantial part of the later work. Negative results of this kind are not a
+concession or an embarrassment; they are part of the method, and I have written them
+up as such.
 
-This also changed what I thought the neural network was for. I began with the comparatively simple question of whether a machine-learning ansatz could solve the many-body Schr\"odinger equation. By the end, the trained wavefunction had become something closer to an instrument. Its energy mattered, but so did the structure of its tangent space, the correlations carried by its internal representation, and the ways in which those changed across the physical regime. The network was no longer only a means of obtaining an answer; it had become an object through which the problem itself could be examined. That shift runs through the rest of this thesis.
+That diagnostic stance also changed what I thought the network was for. I began
+by asking whether a machine-learning construction could solve the many-body
+Schr\"odinger equation. I ended up using the trained state as an apparatus:
+something to examine for the structure it had captured and the directions of
+variation that mattered. That shift, from treating a network as an answer to
+treating it as an object of study, is the thread running through this thesis.
 
-It also made one connection hard to regard as accidental. Stochastic reconfiguration is
-natural-gradient descent on the manifold of variational states; the REINFORCE estimator is
-the score-function form of the variational energy gradient; for a real wavefunction, the
-Fisher information matrix is, up to a factor of four, the quantum geometric tensor. The
-physics and the optimisation had been describing the same terrain from opposite
-directions.
+The work also made a connection harder to ignore. Its obstacles have a double
+character: each is at once a physics problem and an optimisation problem.
+Stochastic reconfiguration, developed for variational wavefunctions, is natural
+gradient descent on the variational manifold. The REINFORCE estimator from
+reinforcement learning is the score-function gradient of the variational energy.
+The Fisher information matrix of statistics is, for a real amplitude and up to a
+factor of four, the quantum geometric tensor of physics. The same mathematics appears
+under different names in different communities. Recognising that felt less like
+discovering a bridge between fields than like realising that the two fields had been
+approaching the same problem from opposite sides.
+
+\bigskip
 
 The most consistent source of inspiration, motivation, and steadiness through all
 of it has been my girlfriend, Elida. Her support made it possible to begin this
@@ -88,9 +103,9 @@ wrong. That interest is most of what encouragement actually consists of.
 \bigskip
 
 When I look back, it is easy to make a catalogue of what I would now do differently.
-Most of that knowledge, however, was purchased by the failures and could not
-have been read off in advance. In a sense, the regret and the result are the same object
-seen from two sides.
+Most of that knowledge, however, was purchased by the failures and could not have been
+read off in advance. In a sense, the regret and the result are the same object seen
+from two sides.
 
 I began this project thinking that the central difficulty would be finding a
 sufficiently good answer to the many-body problem. More often, the difficult part was

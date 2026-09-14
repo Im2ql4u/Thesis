@@ -1815,3 +1815,13 @@ No experiments run; writing session.
 **Caveats:** Four chains per checkpoint give a noisy between-chain SE; the conservative max() is used. At 1e-3 the between-chain spread exceeds the blocked error, consistent with slow sector mixing ((1,5)/(0,6)) within chains.
 **Output reference:** `results/analysis/2026-09-12_colloc_blocked_eval/` (33 JSON with per-sweep series, logs, run_all.sh), cluster `~/Thesis_repo`.
 **Next question:** None needed for the thesis; for future work, the probe-selection bias argues for selecting on a held-out probe or on Var(E_L) rather than on the minimum probe energy.
+
+### [2026-09-14] — Wall time per gradient step: SR-VMC against Markov-chain-free collocation (CPU)
+
+**Motivation:** The thesis (§7.3, collocation performance) argues collocation's cost per step in words and says the two pipelines were never benchmarked against a common wall-clock budget.
+**Method:** `scripts/bench_walltime.py`. One freshly built System (N=6, omega=1, CTNN V-cycle Jastrow + CTNN backflow, 108k params), same exact-Laplacian local energy for both routes, laptop M2 CPU, float64, 4 torch threads; 3 timed steps each after one warm-up. SR-VMC: 3072 persistent walkers, 30 Metropolis sweeps/step, SR step (sr_natural_step) on 1024 samples. Collocation: 16x4096 proposals from the thesis's origin mixture (sigma_f 0.8/1.3/2.0), resample 4096, REINFORCE + Adam.
+**Results:** SR-VMC 69.5 s/step = sample 13.3 + local energy 13.3 + SR update 42.9. Collocation 32.7 s/step = sample 13.5 + local energy 17.7 + Adam update 1.5. Step-to-step spread ~1%. Local energy per configuration identical (4.3 ms).
+**Interpretation:** The 2.1x per-step advantage of collocation here is entirely the optimiser (SR vs Adam), not the chain: 92k Metropolis amplitude evaluations and 65k proposal evaluations cost the same 13 s on a CPU. VMC with Adam would be ~28 s/step, slightly cheaper than collocation's larger batch. The thesis sentence "~32k proposal evaluations... ten times the ~3e3 samples per step used by the SR route" compares evaluations to retained samples; the production chain thins by 20 sweeps, so both routes evaluate a few x10^4 amplitudes per step.
+**Caveats:** CPU only; on a GPU the proposal batch is one parallel pass while sweeps stay sequential, so the sampling term should favour collocation there. The SR harness is the §7.2.1 analysis trainer (exact Laplacian, 30 sweeps), not the production SR pipeline (HVP-Hutchinson Laplacian, thin=20). Per-step cost says nothing about steps to convergence. Untrained network.
+**Output reference:** `results/analysis/2026-09-14_walltime_cpu_N6_w1p0/walltime.json`, `scripts/bench_walltime.py`.
+**Next question:** The same benchmark on uio-ml7 (GPU), and time-to-target-energy rather than time-per-step.

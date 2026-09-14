@@ -2284,3 +2284,20 @@ No thesis files changed. Findings shared in conversation:
 
 **Open:** supervisor's full name(s); whether to ask studieinfo@fys.uio.no to confirm there is
 no Physics/CS-specific template.
+
+## 2026-09-14 (cont.) — Second-round review fixes, UiO front page, Thesis_text sync, wall-time benchmark
+
+- Reviews (Claude, ChatGPT) checked against sources/data and acted on where they held; see
+  commit 7996fdb. Notable: the N=6 sector-conditioned bond orders are not "slightly higher"
+  (provenance gap from 2026-09-06, now disclosed with a side-by-side table); Table 6.2 caption
+  now gives the two-seed spread (<=0.09%) from the backflow sweep.
+- Title is the main title only; front page = uiomasterfp, color=pink (verified = UiO red
+  #FB6666/#FEE0E0). Supervisor name still TODO in main.tex.
+- Thesis_text synced and pushed (6832c8e): sources, PDF, front-page files, ratio figures now
+  PDF; README title/page count fixed. Clean build from clone, 128 pages.
+- Wall-time benchmark (JOURNAL 2026-09-14): CPU, SR-VMC 69.5 s/step vs collocation 32.7 s;
+  the difference is SR's update, sampling costs equal. The §7.3 "ten times the samples"
+  sentence is misleading — proposed fix not yet applied.
+
+**Open:** supervisor name; GPU benchmark; 3-seed production energies; sign-disagreement
+fraction; sector bond orders from canonical runs (all need uio-ml7).

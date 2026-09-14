@@ -2181,3 +2181,54 @@ everything below ran there via `ssh -o ControlPath=~/.ssh/cm-uio-ml7`.
 author" sentence is true; (2) Table 6.3 single-particle radial diagnostics come from an older
 set of runs than the shell-resolved ones (disclosed, not fixed); (3) Thesis_text sync and
 pushing the branch need his go-ahead; (4) the widened conventional backflow was not run.
+
+## 2026-09-14 — Read-only critique of the abstract
+
+**Task:** Aleksander asked for a blunt scientific and literary critique of `Thesis/abstract.tex`
+after reading the whole thesis. No thesis files were edited.
+
+**Findings raised (details in the conversation):**
+- Energy range "0.0008–0.04%" matches no statement in the body (intro: 0.05%; Ch. 6:
+  1e-5–5e-4 / 0.008–0.05% for conv. BF); lower endpoint is the luckiest MP-BF cell.
+- "Every available published FN-DMC reference" appears to be contradicted by the thesis's own
+  source: Nordhagen 2023 Table 2 has an omega=0.28 row for N>=6 (verify by eye; the web fetch
+  garbled the numbers). "No reference exists below 0.1" is a universal negative worth softening.
+- Collocation frontier: Table 7.x reports Markov-chain-free training at omega=0.001, N=6
+  (+0.28%, generic adaptive GMM, default init `bf_ctnn_vcycle.pt`), which conflicts with the
+  abstract's "carries training to omega=0.0035" framing and "generic proposal loses the state".
+- Scaling-sweep `master.csv` (2026-07-16_scaling): at omega=0.01 the rank-1 conventional
+  backflow is energetically nearly dead (err 0.51–0.59% vs 0.59–0.70% with BF removed), while
+  the CTNN backflow is load-bearing (1.8–2.6% on removal). Assumed `err_pct_nobf` = error with
+  displacement zeroed; not verified against the script.
+- Staged crossover needs positioning against Filinov/Bonitz/Lozovik 2001 two-stage melting.
+
+**Open:** whether to act on any of it; no plan agreed yet.
+
+## 2026-09-14 — Introduction: fixes from Aleksander's line-by-line questions
+
+**Task:** Apply the critique of the introduction he approved ("ok fix these issues").
+
+**Changed (Thesis/introduction.tex only):**
+- Opening rebuilt as three paragraphs: the grid wall ($M^{2N}$, $10^{40}$ at N=20); the two
+  trades established methods make (combinatorial cost vs. a prior decision on which
+  correlations are allowed; FCI / HF+CC / FN-DMC); VMC as the route that puts the whole
+  decision in the trial wavefunction, with its strengths (upper bound, no sign problem, any
+  evaluable ansatz, N^3 plus one power of N for the Laplacian). Removed "Yet", "broadly",
+  "near equilibrium".
+- New paragraph on the sampling cost: the Laplacian is needed however samples are produced;
+  the Markov chain adds sequential, equilibrating, correlated, slowly mixing sampling, worst
+  in the Wigner regime; the MCMC-free route removes the chain, not the Laplacian, and pays in
+  importance-weight variance. Motivates Chapter 7 directly.
+- "Objectives built on local energies" paragraph replaced by three properties (Coulomb cusp,
+  second-derivative curvature, nodal surface -> strong form cannot train a backflow,
+  App. catch22 -> weak form), each tied to a design choice.
+- Header "Beyond the energy"; separable vs message-passing described concretely; "same energy
+  to four figures" restricted to the correlators at strong confinement.
+- Diagnostics paragraph moved after the questions. "parameterisation" -> "parametrisation"
+  within the intro (the rest of the thesis still mixes both spellings; not touched).
+- Layout: the `\begingroup\let\clearpage\relax\chapter*\endgroup` trick leaves `\@nobreak`
+  globally true, so the first `\paragraph` got no space above it; reset added after
+  `\endgroup`. Only the intro is affected (other chapters open with titlesec `\section`s,
+  which add space regardless).
+
+**Build:** clean, 126 pages, no undefined references. Intro now ~2300 words (was ~1970).

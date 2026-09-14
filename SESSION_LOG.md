@@ -2264,3 +2264,23 @@ the existing last page of the chapter; 126 pages, clean build.
 **Open for Aleksander:** second-wall/0.0035 framing in the body; fixed-measure ablation figure;
 d_eff Table 7.3 vs text mismatch; Filinov 2001 as precedent for the staging; check the
 omega=0.28 row in Nordhagen Table 2.
+
+## 2026-09-14 (cont.) — UiO / MN / Physics / CS:Physics thesis-format rules (research only)
+
+No thesis files changed. Findings shared in conversation:
+- UiO: only the front page is specified ("no official specifications for the contents",
+  uiomasterthesis guide, Dec 2025). uiomasterfp (official front page) works on the standard
+  `report` class; its default language is *norsk*, so it needs UKenglish. Graphic Centre Word
+  covers: "no general requirement to use them"; required only when printing through them.
+- MN: current page defers to department/programme guidelines; regulations §4.3 set no format
+  rules (oral exam ~30 min presentation, public). The old "MatNat requires a specific layout"
+  (duomasterforside, 2017/2019) now sits under /gammelt/.
+- Physics: Inspera, no paper copy; printing needs a Graphic Centre template. Vistnes 2011
+  (advisory): front/title page must carry title, full name, "Department of Physics, University
+  of Oslo", semester; abstract recommended, not required.
+- CS5960PHYS course page: nothing on format; language N/S/D/English; refers to MN regulations.
+- Current `main.tex` title page (\maketitle: title, author, \today) has no affiliation,
+  programme, supervisor, credits or semester.
+
+**Open:** supervisor's full name(s); whether to ask studieinfo@fys.uio.no to confirm there is
+no Physics/CS-specific template.

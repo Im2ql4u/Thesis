@@ -2232,3 +2232,12 @@ after reading the whole thesis. No thesis files were edited.
   which add space regardless).
 
 **Build:** clean, 126 pages, no undefined references. Intro now ~2300 words (was ~1970).
+
+## 2026-09-14 — Outlook section at the end of the conclusion
+
+Added `\section{Outlook}` (sec:outlook) as the last section of Thesis/conclusion.tex at
+Aleksander's request: three papers in preparation (topics not named, pending his wording),
+then physics directions that reuse the machinery (total-spin scan, larger N, multi-well dots,
+perpendicular magnetic field, real-time evolution via the TDVP metric, Rényi entanglement),
+pointing to Discussion §8.3 for method-level next steps rather than repeating them. Fits on
+the existing last page of the chapter; 126 pages, clean build.

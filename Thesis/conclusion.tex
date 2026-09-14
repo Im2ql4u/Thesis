@@ -11,7 +11,7 @@ Aurelius}{\textit{Meditations}}
 \endgroup
 
 The work formed a feedback cycle between solver and physics. A variational state was
-constructed and compared against every external reference available, with which it agrees
+constructed and compared against external references wherever we had them, with which it agrees
 closely; the state was then used as an instrument, and resolved the shell geometry of the Wigner regime: rings at
 definite occupancies, $n$-fold angular order becoming large only in the last decade of
 confinement, a shell radius approaching its classical $\omega^{-2/3}$ scaling. Those are the
@@ -93,3 +93,37 @@ evaluation showed it to be the lucky tail of a best-of-three selection. Each was
 identified by a diagnostic that could separate the competing explanations. That is the
 methodological point these chapters have tried to make concrete: a variational calculation is
 only as trustworthy as the tests that can tell its failure modes apart.
+
+\section{Outlook}
+\label{sec:outlook}
+
+Three papers based on this work are in preparation. The steps that would strengthen the
+method itself are set out in \S\ref{sec:implications}; what follows concerns the physics the
+same machinery could reach. Each direction changes the Hamiltonian or the question while
+keeping the variational principle, the optimiser and diagnostics that act only on samples of
+$|\Psi|^2$.
+
+The most immediate is spin. Every state here is the lowest found at fixed spin projection,
+and a scan over total spin would settle whether the ground state changes spin in the deep
+Wigner regime, where the structural conclusions are strongest. Larger $N$ follows once the
+quadratic memory cost of the backflow is removed, and would test the shell sequences of
+classical clusters across several filled shells rather than two.
+
+The confinement itself can be changed. A multi-well potential, as in coupled
+dots~\cite{Mariadason2018-DoubleDotHF} and the spin qubits built from them, enters the
+Hamiltonian directly, but it breaks the rotational symmetry on which both the shell diagnostics and the
+collocation proposal rely, and both would have to be rebuilt around several centres. A
+perpendicular magnetic field breaks time-reversal symmetry instead. The harmonic-oscillator
+orbitals become Fock--Darwin orbitals, the ansatz needs a phase as well as an amplitude, and
+the ground state passes through a sequence of angular-momentum transitions as the field
+grows. How the Wigner crossover proceeds under a field is a natural question for the
+structural diagnostics developed here.
+
+Two further directions change the question rather than the system. The quantum geometric
+tensor studied in Chapter~\ref{ch:kernel} is the metric that the time-dependent variational
+principle inverts, so real-time evolution of a neural state~\cite{Carleo2017-NQS}, such as
+the response of a Wigner molecule to a sudden change of the trap, would inherit the
+conditioning and estimability questions raised here directly. And Rényi entanglement
+entropies, between spatial regions of the dot or between its shells, can be estimated from
+samples of two independent copies of the trained state. They would give the crossover a
+measure that neither the energy nor the density provides.

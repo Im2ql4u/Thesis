@@ -12,8 +12,8 @@
 \chapter{Architecture, optimisation and sampling}
 \label{ch:kernel}
 
-The previous chapter showed that the ansatz works: it reaches reference quality wherever a
-reference exists, and the states it produces carry the staged Wigner-molecule structure the
+The previous chapter showed that the ansatz works: it reaches reference quality wherever it was
+compared with a reference, and the states it produces carry the staged Wigner-molecule structure the
 diagnostics were built to detect. Why the solver can represent those states, and what
 governs whether they can be trained at all, are separate and harder questions.
 
@@ -461,8 +461,10 @@ variance lower at every confinement by factors of $1.2$ to $3.4$. In the backflo
 conventional network, at a third of the parameter count, collapses to rank one and loses half
 a percent where the message-passing field does not; without a capacity-matched conventional
 backflow that contrast does not separate architecture from size. The correlator swap, which
-does hold the backflow architecture fixed, is what links the two. What none of it establishes is that the two
-architectures reach different \emph{states}: they agree in energy to four figures, and we did
+does hold the backflow architecture fixed, is what links the two. The variance also settles
+what the energy cannot: two copies of one state would share its local-energy variance, so
+correlators that agree in energy to four figures and differ in variance by factors of $1.2$
+to $3.4$ have reached different \emph{states}. How different, the variance does not say, and we did
 not measure their overlap here.
 
 \section{Conditioning and the sampling measure}

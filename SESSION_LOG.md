@@ -2241,3 +2241,26 @@ then physics directions that reuse the machinery (total-spin scan, larger N, mul
 perpendicular magnetic field, real-time evolution via the TDVP metric, Rényi entanglement),
 pointing to Discussion §8.3 for method-level next steps rather than repeating them. Fits on
 the existing last page of the chapter; 126 pages, clean build.
+
+## 2026-09-14 (cont.) — New abstract implemented
+
+- `abstract.tex` rewritten (~500 words, one page): four-explanations frame; separable vs
+  message-passing defined inline; state-level results first (variance, collective-mode
+  dictionary); strong-form obstruction added; collocation accuracy stated; "fixed" not
+  "generic" proposal; closing methodological sentence; one scope sentence.
+- Intro contributions 1, 2, 4, 5 aligned with it; "prevents" -> "in every variant tried".
+- Ch. 7: the sentence saying the correlators are not shown to reach different states now says
+  the variance shows they do (was contradicting the Discussion).
+- "Every available / no reference exists" -> "where we compare" in abstract, intro,
+  results_intro, results, results_kernel, discussion; the conclusion line was swept into the
+  parallel Outlook commit 3fd6374.
+- Verified: `err_pct_nobf` (scripts/analyze_pinn_ansatz.py) is a resampled variational
+  estimate; at omega=0.01 the conventional backflow is worth <=0.13%, the CTNN one 1.8-2.6%.
+  Same script's docstring says fixed-measure ablations gave sub-ground-state energies — the
+  Ch. 7 "pricing by deletion" figure uses fixed-measure ablation. Not yet acted on.
+- `bf_ctnn_vcycle.pt` (default init of the 30-run campaign) is the N=6, omega=1 state: the
+  campaign trains omega=1e-3 from it at +0.28%, which sits badly with the "second wall" story.
+
+**Open for Aleksander:** second-wall/0.0035 framing in the body; fixed-measure ablation figure;
+d_eff Table 7.3 vs text mismatch; Filinov 2001 as precedent for the staging; check the
+omega=0.28 row in Nordhagen Table 2.

@@ -122,8 +122,8 @@ a second derivative, which amplifies any error in the curvature of the network, 
 network's inputs are smooth, scaled to the trap and soft at short range. And the nodal surface,
 where the determinant changes sign, is where a backflow receives its learning signal under a
 strong-form residual objective, and also where the local energy of any imperfect
-wavefunction diverges. Appendix~\ref{app:catch22} shows that this prevents the strong form
-from training a backflow, which is why the collocation route uses a weak form. Beyond these,
+wavefunction diverges. In every variant tried in Appendix~\ref{app:catch22}, this kept the
+strong form from training a backflow, which is why the collocation route uses a weak form. Beyond these,
 the ansatz builds in antisymmetry and permutation symmetry and leaves the network to learn
 the remaining correlation. On top of a Slater determinant of harmonic-oscillator orbitals,
 two learnable objects carry that correlation: a Jastrow correlator, which reshapes the
@@ -200,25 +200,28 @@ wavefunction. Chapter~\ref{ch:analysis} defines them.
 
 \paragraph{Main contributions.}
 \begin{enumerate}
-  \item A compact Slater--Jastrow--backflow ansatz that agrees with every available
-        fixed-node reference for $N\in\{2,6,12,20\}$ to within $0.05\%$ and extends smoothly
-        into the Wigner regime, where its energies are predictions.
-  \item Evidence that message passing changes the variational geometry before it changes
-        the energy. Under the parametrisations used here, a message-passing correlator
+  \item A compact Slater--Jastrow--backflow ansatz that agrees to within $0.05\%$ with the
+        published fixed-node references for $N\in\{2,6,12,20\}$ at the confinements where we
+        compare with them ($\omega=1$, $0.5$, $0.1$), and extends smoothly into the Wigner
+        regime, where its energies are predictions.
+  \item Evidence that message passing changes the correlator as a state, not only as a
+        parametrisation. At equal energy a message-passing correlator reaches a lower
+        local-energy variance and keeps its leading tangent directions inside a compact
+        dictionary of collective operators; under the parametrisations used here it also
         concentrates its Fisher weight in about half as many effective directions as a
-        separable one at equal energy, keeps those directions inside a compact dictionary of
-        collective operators, and reaches a lower local-energy variance; a conventional
-        backflow collapses to a single displacement mode at weak confinement where a larger
-        message-passing one does not.
+        separable one. A smaller conventional backflow collapses to a single displacement
+        mode at weak confinement where a larger message-passing one does not.
   \item A hypothesis for when natural-gradient preconditioning earns its cost. Poor
         conditioning alone does not decide it, and that much is measured. The failures
         suggest that the metric must also be estimable from the batch.
   \item Markov-chain-free training by importance-sampled collocation, mapped to its limits:
-        close to DMC at strong confinement, carried deep into the Wigner regime by a proposal
-        built from the measured shell geometry, and stopped there by an instability of the
-        ansatz rather than of the sampler.
-  \item Topology-resolved diagnostics of the Wigner crossover, which show that radial stiffening
-        completes well before angular order appears, complementing classical and quantum
+        within about a tenth of a percent of DMC at strong confinement and within $0.3\%$
+        across the whole confinement range at $N{=}6$ with an adaptive proposal; a proposal
+        built from the measured shell geometry that raises the effective sample size
+        fifteen- to thirtyfold over a fixed one; and a cascade that carries converged states
+        to $\omega=0.0035$, below which they no longer survive the step to a weaker trap.
+  \item Topology-resolved diagnostics of the Wigner crossover, which quantify, shell by
+        shell, how far radial stiffening runs ahead of angular order, complementing classical and quantum
         studies of parabolic
         dots~\cite{Egger_1999,Kong_2002,schweigert1994spectralpropertieschargedparticles,Filinov_2001}.
 \end{enumerate}

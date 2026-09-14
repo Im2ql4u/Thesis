@@ -813,3 +813,24 @@ App. G, not fixed).
 
 **Confidence:** medium-high — the CSV's provenance is documented only by its notebook
 comment, but its energies match Table 6.2 at 17 of 20 points.
+
+## 2026-09-14 — Abstract claims only what needs no caveat; references are "where we compare"
+
+**Decision:** The abstract is rebuilt around the introduction's four-explanations frame
+(representation, optimiser, samples, physics). Claims that are true only with a meaning-changing
+caveat (d_eff under a given parametrisation; the backflow rank collapse without a capacity
+match) are dropped from the abstract rather than hedged; scope caveats (fixed S_z, N=6 coverage,
+reference ancestry) share one closing sentence. Reference agreement is stated as "at the
+confinements where we compare with them", never "every available" or "no reference exists".
+
+**Reasoning:** Hedges attached to each claim left a first reader unsure what was achieved, and
+moving meaning-changing caveats to the end would have made the opening sentences overclaim.
+Nordhagen 2023 Table 2 appears to list omega=0.28 DMC values we never compared against, so the
+universal wording was not defensible.
+
+**Constraints introduced:** Intro contributions list mirrors the abstract. The body still says
+0.0035 is where Markov-chain-free training stops (results_intro, discussion, conclusion,
+Ch. 7 "second wall") although Table 7.x trains N=6 at omega=1e-3 from the omega=1 checkpoint
+— open, needs the author's decision.
+
+**Confidence:** high for the wording; the omega=0.28 row should be checked by eye.

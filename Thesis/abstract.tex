@@ -1,61 +1,54 @@
 \chapter*{Abstract}
 \addcontentsline{toc}{chapter}{Abstract}
 
-A neural network used as a variational wavefunction is judged by its energy. This thesis
-asks what the energy cannot see: two networks landing on the same number need not be the same
-object, a preconditioner decisive in one training regime does nothing in another, and an
-objective that reproduces a Markov chain's answer in one corner of the phase diagram departs
-from it in the next. The system is the two-dimensional harmonic quantum dot, from the
-kinetic-energy-dominated droplet to the dilute Wigner molecule, for $N\in\{2,6,12,20\}$
-electrons and confinements $\omega$ from $1$ to $10^{-3}$.
+A neural network used as a variational wavefunction is judged by its energy. When that energy
+stalls, or two networks reach it by different routes, the number cannot say why: the
+representation may be wrong for the problem, the optimiser may be failing, the samples that
+define the loss may no longer describe the state, or the physics may have become harder. This
+thesis tries to tell those explanations apart in the two-dimensional harmonic quantum dot, for
+$N\in\{2,6,12,20\}$ electrons, from the compact droplet at $\omega=1$ to the Wigner molecule at
+$\omega=10^{-3}$.
 
 The ansatz is a Slater determinant dressed by a neural Jastrow correlator, which reshapes the
-amplitude, and a coordinate backflow, which reshapes the nodes. Each exists in a separable
-form and a message-passing one. Training is by residual pretraining followed by stochastic
-reconfiguration, and separately by importance-sampled collocation that places no Markov chain
-in the gradient. The trained states are read through the geometry of their
-log-derivatives (the quantum geometric tensor and the neural tangent kernel) and through
-structural diagnostics of the electron arrangement. The energies agree closely with every
-available published fixed-node diffusion-Monte-Carlo reference, to $0.0008$--$0.04\%$---an
-agreement, not an independent validation, since the same references guide pretraining.
-Below $\omega=0.1$ for $N\ge6$ no reference exists, and those energies are predictions.
+amplitude, and a coordinate backflow, which reshapes the nodes. Trained by residual
+pretraining and stochastic reconfiguration, it agrees to within $0.05\%$ with published
+reference energies at the confinements where we compare with them, $\omega=1$, $0.5$ and
+$0.1$; below that, for $N\ge6$, its energies are predictions.
 
-Message passing changes the variational geometry before it changes the energy. At strong
-confinement, and under the parametrisations used here, a message-passing correlator reaches
-the same reference-quality solution with its Fisher weight concentrated in about half as many
-effective directions as a separable network of equal or greater capacity; at every
-confinement far more of that weight lies inside a compact dictionary of collective operators,
-and its local-energy variance is lower. In the nodal channel, toward the Wigner regime, a
-conventional backflow collapses spectrally to rank one and loses about half a percent in
-energy while a larger message-passing field retains its rank; the two are not
-capacity-matched, so this is an observation and not yet an ablation. Holding the backflow
-fixed and swapping only the correlator moves the collapse boundary, which points to one
-relational bottleneck rather than two deficits.
+The correlator can be \emph{separable}, encoding each particle and each pair independently
+before pooling them, or \emph{message-passing}, letting the particles exchange information
+first. The two reach the same energy, but not the same state. The message-passing correlator
+carries a local-energy variance lower by a factor of $1.2$--$3.4$ at every confinement, and
+its leading tangent directions lie almost entirely within a handful of physical collective
+modes (breathing, quadrupole, correlation hole), where a separable network of equal or
+greater size leaves close to half of its tangent weight outside them. Stochastic
+reconfiguration and Adam agree to four decimals on models whose metric has condition numbers
+of $10^{7}$--$10^{10}$; the failures suggest that natural-gradient preconditioning pays when
+the metric can be estimated from a batch, not merely when it is ill-conditioned.
 
-Conditioning alone does not decide whether natural-gradient preconditioning earns its cost:
-under $|\Psi|^2$ sampling the empirical metric is badly conditioned on exactly the models
-where stochastic reconfiguration and Adam agree to four decimals. We propose, as a hypothesis
-the observed failures support but do not establish, that what matters is whether the metric
-is still \emph{estimable} from a batch.
+On its own, the strong-form residual that a physics-informed network would minimise could not
+train the backflow in any variant we tried: its learning signal lies at the nodes, where the
+local energy diverges, and it stalls near $0.3\%$. A weak form, the variational energy
+gradient estimated by importance sampling from an analytic proposal, keeps the Markov chain
+out of the gradient and has no such floor. With a proposal refitted during training it holds
+the six-electron dot within $0.3\%$ of the reference, or where there is none of our own
+energies, across the whole range of confinement. Where it fails, it fails through its
+samples: a fixed proposal collapses in the Wigner regime, to $1.5$ effective samples of
+$4096$.
 
-The trained states then serve as instruments, and the crossover they resolve is
-\emph{staged}: the cloud expands and its shells stiffen radially well before the electrons
-acquire angular order within them. A polygon shell model fitted on held-out frames reproduces
-the measured pair distribution better than an angle-randomised null, by a margin that grows
-as the trap weakens. At $\omega=10^{-3}$ the twelve-electron dot forms a two-shell molecule
-with a modal $(3,9)$ split and the twenty-electron dot a three-shell $(1,7,12)$ molecule,
-which by $\omega=10^{-2}$ the radial classifier reads as one shell about a central electron,
-with no angular order.
+Read as instruments, the trained states resolve the crossover shell by shell. Radial shells
+form and stiffen across the whole range, and the six-electron ring approaches its classical
+radius to within $1.7\%$. Angular order does not keep pace: $n$-fold order within the shells
+stays at its random-angle value down to $\omega=0.1$ and becomes large only at
+$\omega=10^{-3}$, where the twelve-electron dot is predominantly a $(3,9)$ molecule and the
+twenty-electron dot a $(1,7,12)$ one. Those measurements return to the solver. A proposal
+built from the measured shell geometry raises the effective sample size fifteen- to
+thirtyfold over the fixed one, and carries a Markov-chain-free cascade of converged
+six-electron states to $\omega=0.0035$, below which a converged state no longer survives the
+step to a weaker trap.
 
-Those measurements return to the solver. A generic collocation proposal loses the Wigner
-state entirely; a proposal rebuilt from the measured shell geometry lifts the effective
-sample size by $15$--$32\times$ with no training at all and carries training with no Markov
-chain in the gradient to $\omega=0.0035$, where a different limit takes over---a transfer
-instability in the Slater--Jastrow cancellation that no change of proposal repairs.
-
-Two limitations qualify these results. Every state is the lowest found within a fixed
-spin-projection sector and total spin is not scanned, which matters most in the Wigner
-regime, where spin transitions are plausible. The architecture comparison is seeded at
-$N{=}6$, rests on fewer models at $N{=}12$ and on a single production state at $N{=}20$, and
-the two backflow variants are not capacity-matched.
+Every state is the lowest found at fixed spin projection, the architecture and optimiser
+comparisons rest mainly on $N{=}6$, and the benchmark references also guide pretraining. A
+variational calculation, in the end, is only as trustworthy as the tests that can tell its
+failure modes apart.
 \clearpage

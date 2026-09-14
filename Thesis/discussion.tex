@@ -79,7 +79,7 @@ compilations through which the reference reached us, and we cannot tell these ap
 fixed-node DMC calculation that uses the network's nodes would be the cleanest test. The
 tables accordingly report deviation, not error, and what we claim is close agreement with the
 available fixed-node references, not a validation of the wavefunctions. Below $\omega=0.1$
-for $N\ge6$ no external value exists and those states are predictions.
+for $N\ge6$ we have no external value to compare with, and those states are predictions.
 
 \section{Physics returned to the solver}
 \label{sec:feedback-discussion}
@@ -144,7 +144,7 @@ and certify the final energy, and no sample it produces reaches an update. It is
 of freedom from Monte Carlo, since importance sampling and resampling are themselves Monte
 Carlo; nor of freedom from the reference, since where a DMC value exists the residual
 pretraining anneals toward it and the rollback monitors against it. Nor, at the deep-Wigner
-rungs where no reference exists, is the state reference-free in ancestry: its warm starts
+rungs where we have no reference, is the state reference-free in ancestry: its warm starts
 descend from benchmark-guided states at stronger confinement. Against the SR route,
 collocation is several times less accurate across the benchmarked range---within about a
 tenth of a percent of DMC at strong confinement and three tenths at $N{=}6$,

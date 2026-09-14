@@ -381,9 +381,9 @@ Machine learning is usually introduced as \emph{empirical risk minimisation}: an
 joint distribution $P(X,Y)$ generates data, a loss $\ell$ scores predictions, and one
 minimises the empirical average
 $\hat{\mathcal R}(\theta)=\tfrac1n\sum_i\ell(f_\theta(x_i),y_i)$ over a finite sample as a
-proxy for the population risk $\mathcal R(\theta)=\mathbb E_P[\ell(f_\theta(X),Y)]$. The
-gap between the two is the subject of the field: overfitting, the bias--variance tradeoff,
-regularisation, held-out validation~\cite{HastieTibshiraniFriedman2009-ESL,Berner_Grohs_Kutyniok_Petersen_2022}.
+proxy for the population risk $\mathcal R(\theta)=\mathbb E_P[\ell(f_\theta(X),Y)]$. Much of
+the standard machinery concerns the gap between the two: overfitting, the bias--variance
+tradeoff, regularisation, held-out validation~\cite{HastieTibshiraniFriedman2009-ESL,Berner_Grohs_Kutyniok_Petersen_2022}.
 
 The variational problem considered here differs from that setting in two respects. There is no fixed labelled dataset, and so no conventional train/test generalisation
 problem. What replaces it is not the absence of a finite-sample difficulty but a different
@@ -491,7 +491,7 @@ covariance rather than a second moment and is how it is formed in the implementa
 \begin{equation}
   S = \tfrac{1}{B}\,O^{\!\top}O \in \mathbb{R}^{P\times P},
 \end{equation}
-is the Fisher--Rao metric of the state written in terms of the amplitude score. Every state
+the Fisher--Rao metric of the state written in terms of the amplitude score. Every state
 studied here is real and positive up to the determinant sign, at zero magnetic field, so the
 amplitude score is the whole story; for a general complex wavefunction the quantum geometric
 tensor also carries phase sensitivity, and the identification with the classical Fisher

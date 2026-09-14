@@ -79,7 +79,7 @@ message-passing parameter count. Both have saturated the variational floor.
 Their tangent geometry is not indistinguishable. On a common probe set the message-passing
 correlator reaches a reference-quality state in $d_{\mathrm{eff}}\approx1.2$--$1.7$ over three seeds,
 where every separable network needs $2.9$--$3.6$; the two sets do not overlap, and their
-closest approach is still a factor of $1.8$. Capacity does not close the gap. Scaling the
+closest approach is still a factor of $1.7$. Capacity does not close the gap. Scaling the
 separable network eightfold, from $20$k to $164$k parameters, moves its effective dimension
 only from $3.6$ to $2.9$, and the $89$k network that matches the message-passing one in size
 sits at $3.6$. Nor does the probe measure: the gap moves by at most $0.26$ whether scored on
@@ -585,8 +585,11 @@ measure that defines them, so the directions carrying Fisher weight are also the
 the batch populates. That is an alignment between estimator and objective, not
 preconditioning in the sense of applying $S^{-1}$. A fixed covering proposal instead drives
 a monotone \emph{ESS collapse} as $N$ and $1/\omega$ grow: at $N=6,\omega=0.01$ the
-effective sample size falls to $0.11\%$ of the batch---about $5$ of the $4096$ retained
-points---and the gradient estimator is then degenerate. That is a hard limit, not
+effective sample size, measured against a converged state, falls to $0.11\%$ of the
+batch---about $5$ of the $4096$ retained points---and the gradient estimator is then
+degenerate. (Table~\ref{tab:ring-ess} finds $1.5$ for the same mixture against a different
+converged checkpoint at the same $(N,\omega)$; at a handful of effective points the ESS is
+itself a noisy number, and the two are the same collapse.) That is a hard limit, not
 undertraining. (Two ESS normalisations appear in this chapter, differing by the oversampling
 factor; each figure states which.)
 
@@ -720,7 +723,7 @@ the idea. Everything below uses the weak form.
 
 On the same Slater--Jastrow--backflow ansatz, and with no
 Markov chain in any gradient, the weak form comes within about a tenth of a percent of DMC
-at strong confinement and within three tenths of a percent of our own converged energies
+at strong confinement and within about a third of a percent of our own converged energies
 well into the correlated regime for $N\in\{6,12\}$ (Table~\ref{tab:collocation}). The energies are collected here, where the method that
 produced them is explained, rather than beside the SR--VMC energies of
 \S\ref{sec:energy-overview}: without the failure mechanism of
@@ -1389,7 +1392,9 @@ the state is $(1,5)$ and the extra channel dilutes the proposal mass.
 
 \begin{table}[htbp]\centering
 \caption[ESS of the origin and Wigner-ring proposals]{ESS (of 4096) against a trusted $N=6,\omega=0.01$ state. The origin mixture is
-already collapsed; the ring proposal covers the shell.}
+already collapsed; the ring proposal covers the shell. The checkpoint differs from the one in
+Fig.~\ref{fig:q3-ess}, which finds about $5$ for the same mixture; at this ESS the difference
+is noise.}
 \label{tab:ring-ess}
 \begin{tabular}{lc}
 \hline

@@ -29,6 +29,10 @@
 \usetikzlibrary{arrows.meta,positioning,fit}
 \usepackage{placeins}  % \FloatBarrier: keep floats out of the middle of a paragraph
 \usepackage[flushleft]{threeparttable}  % provides the threeparttable and tablenotes environments
+% UiO's official master's-thesis front page (Dept. of Informatics, v1.10). The package
+% defaults to Norwegian, hence UKenglish; it also sets the sans-serif family to Helvetica,
+% which this document does not otherwise use.
+\usepackage[UKenglish]{uiomasterfp}
 % hyperref last: PDF outline, clickable TOC, cross-references and citations.
 % Link colours are muted so the printed page still reads as plain text.
 \usepackage[hidelinks,bookmarks=true,bookmarksnumbered=true,bookmarksopen=true,
@@ -174,16 +178,18 @@
   \renewcommand{\headrulewidth}{0pt}%
 }
 
-\title{Physics-Informed Neural Quantum States for Quantum Dots:\\
-Tangent-Space Geometry, Message Passing, and Wigner Molecules}
+\title{Physics-Informed Neural Quantum States for Quantum Dots}
 \author{Aleksander Sekkelsten}
-
-\date{\today}
 % Absorb small residual line-overflows document-wide (avoids overfull hboxes without shrinking content)
 \setlength{\emergencystretch}{2.5em}
 
 \begin{document}
-\maketitle
+% color=pink is UiO's profile red (#FB6666 / #FEE0E0); the date defaults to the current term.
+% TODO: add supervisor={...} once the full name is confirmed.
+% The explicit breaks keep "Dots" from standing alone on the last line at 32 pt.
+\uiomasterfp[color=pink, dept={Department of Physics},
+             program={Computational Science: Physics},
+             title={Physics-Informed Neural\\ Quantum States for\\ Quantum Dots}]
 
 
 \include{abstract}

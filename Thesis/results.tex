@@ -131,7 +131,10 @@ Fig.~\ref{fig:rel_error_vs_omega}).
   are given in the notes below. Parentheses denote the $1\sigma$ blocked statistical error on the
   last digit(s) for the single optimised state reported; they do not include the variation
   between independent training runs, which was not measured for these production states,
-  and at $N{=}20$ in particular each entry is one training run. ``Rel.\ dev.''
+  and at $N{=}20$ in particular each entry is one training run. For scale: the backflow
+  comparison of \S\ref{sec:kernel-q1b} trains the same two backflow architectures with two
+  seeds per cell, and there the seeds differ by up to $0.09\%$, comparable to the deviations
+  in this table. ``Rel.\ dev.''
   is $100\,(E-E_{\rm ref})/E_{\rm ref}$, labelled deviation and not error because the
   $N\ge6$ references are themselves fixed-node upper bounds, so a negative entry is not
   necessarily wrong (\S\ref{sec:energy-discussion}). \textbf{These are production energies and
@@ -219,11 +222,13 @@ standard errors (for example $65.6956$ vs.\ $65.7001$\,Ha at $N{=}12$). This doe
 the variational principle, which bounds the energy from below only by the \emph{exact}
 ground state, $E_{\rm VMC}\ge E_0$; the DMC benchmarks are \emph{fixed-node} calculations
 and carry their own nodal bias. A better nodal surface in the network would produce exactly
-this pattern. It is not the only thing that would. A difference in the convention for the
-Hamiltonian or its units, a time-step or population extrapolation in the reference, an
-underestimated statistical error on either side, or an error somewhere in the chain of
-compilations by which the reference reached us (see the notes to Table~\ref{tab:energies})
-would do the same, and nothing here distinguishes them. The clean test is a fixed-node DMC
+this pattern. It is not the only thing that would, but one alternative can be set aside. A
+difference in the convention for the Hamiltonian or its units is ruled out: the same ansatz
+reproduces the exact two-electron value $3.00000$ at $\omega=1$, and a convention mismatch
+would shift every cell, not four. What remains is a time-step or population extrapolation in
+the reference, an underestimated statistical error on either side, or an error somewhere in
+the chain of compilations by which the reference reached us (see the notes to
+Table~\ref{tab:energies}), and nothing here distinguishes these from better nodes. The clean test is a fixed-node DMC
 calculation that uses the network's own nodes as its trial surface, which we have not run.
 The sub-reference values are therefore recorded as deviations and not interpreted.
 
@@ -565,9 +570,10 @@ $\approx 0.69$) and a $(0,6)$ single-ring sector (fraction $\approx 0.31$),
 with bond order $|\Phi_5|=0.453\pm0.214$ and $|\Phi_6|=0.466\pm0.206$
 respectively. Two conventions apply here and below. The quoted $\pm$ is the frame-to-frame
 standard deviation of $|\Phi_m|$, not a standard error on its mean, which with $3\times10^4$
-frames is smaller by two orders of magnitude. And these are \emph{sector-conditioned} values, computed on the frames assigned to that sector, which is why they differ slightly
-from the modal-topology values tabulated in
-Appendix~\ref{app:structural-tables:shells}. Both must be read against the random-angle
+frames is smaller by two orders of magnitude. And these are \emph{sector-conditioned} values,
+computed on the frames assigned to that sector in an earlier analysis pass than the
+modal-topology values of Appendix~\ref{app:structural-tables:shells}; the two estimators are
+set side by side in Table~\ref{tab:bondorder-estimators}. Both must be read against the random-angle
 null, the exact mean of $|\Phi_n|$ for independent uniform angles
 (Eq.~\eqref{eq:phi-null}), which is $0.402$ for $n{=}5$ and $0.366$ for $n{=}6$: the ratios
 here are $1.13$ and $1.27$, so the measured bond order at $\omega=0.01$
@@ -692,7 +698,11 @@ three-shell Wigner molecule with widely separated rings at radii
 $r_0\approx38$, $r_1\approx132$, $r_2\approx247$
 (gaps $\approx94$ and $\approx115$).
 The lab-frame pinning metric remains small ($C_{\mathrm{global}}\approx0.06$), as expected
-for a freely rotating molecule. The cross-shell quantity $\tilde C_{\mathrm{global}}$ is
+for a freely rotating molecule. That number also answers a question the ansatz raises. Its
+displacement head is not rotation-equivariant by construction (\S\ref{sec:bf-init}), so a
+trained state could in principle carry an orientation fixed to the lab frame and read as
+angular order; such a state would show a large $C_{\mathrm{global}}$, and this one does not.
+The order the per-shell moduli measure is internal to the molecule. The cross-shell quantity $\tilde C_{\mathrm{global}}$ is
 omitted: it depends on a registration convention whose original analysis code was not
 retained (\S\ref{subsec:orient}). The per-shell moduli and angular-spacing diagnostics below
 are rotation-invariant and carry no such dependence.

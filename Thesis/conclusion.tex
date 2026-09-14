@@ -48,7 +48,7 @@ gradient, inside a regime whose edges we found by crossing them
 (\S\ref{sec:kernel-mcmcfree}). The claim is about the gradient only: a Metropolis probe still
 selects checkpoints and certifies the final energy, and the cascades start from
 reference-guided pretrained states. The weak-form objective comes within about a tenth of a
-percent of DMC at $N\in\{6,12\}$ under strong confinement and within three tenths of a
+percent of DMC at $N\in\{6,12\}$ under strong confinement and within about a third of a
 percent of our own converged energies well into the correlated regime, as measured by
 independent Metropolis evaluation of every trained state. It fails through one chain of
 causes---proposal mismatch, weight-tail inflation, gradient noise, an unestimable
@@ -64,35 +64,6 @@ staging itself is better established than where the transition sits: a grid with
 per decade can order the stages but not locate them. And these are the lowest states found
 at fixed spin projection, in the regime where a change of ground-state spin is most
 plausible.
-
-\section{Concluding perspective}
-
-All four answers are bounded in the same way. Every state is the lowest found within a fixed
-spin-projection sector; the architecture comparison is seeded at $N{=}6$ and thinner above
-it, and its tangent-space measures belong to the networks as parametrised; and the two
-backflow variants are not capacity-matched, so neither the cross-architecture energy gap nor
-the rank collapse isolates architecture. \S\ref{sec:implications} sets out what would move
-each of those.
-
-At the widths reached for the well-resolved $N\le12$ studies, raw representational capacity
-was rarely the first bottleneck; alignment, conditioning and sampling were. It was not
-irrelevant everywhere. At $N{=}20$ the memory cost of the backflow's edge tensor forces a
-capacity cut that degrades the collocation gradients. But what determined the outcome, across
-architecture, optimisation and sampling alike, was alignment with the low-dimensional
-collective structure the Hamiltonian already possesses: breathing, correlation-hole and
-relative modes at strong confinement, resolving at weak confinement into the shell geometry
-of the Wigner molecule. That the same alignment matters in all three places is probably a
-fact about the system rather than about neural networks.
-
-Several of these results were reached only after an initial reading of the same data proved
-wrong: a rank collapse that survived seeding where a dimension inversion did not, a transfer
-failure first attributed to the sampler and later to the ansatz, an importance-sampling
-error whose signature was indistinguishable from an architectural deficiency, and a
-strong-confinement collocation energy that looked statistically exact until an independent
-evaluation showed it to be the lucky tail of a best-of-three selection. Each was
-identified by a diagnostic that could separate the competing explanations. That is the
-methodological point these chapters have tried to make concrete: a variational calculation is
-only as trustworthy as the tests that can tell its failure modes apart.
 
 \section{Outlook}
 \label{sec:outlook}
@@ -127,3 +98,32 @@ conditioning and estimability questions raised here directly. And Rényi entangl
 entropies between regions or shells of the dot can be estimated from samples of two
 independent copies of the trained state, giving the crossover a measure that neither the
 energy nor the density provides.
+
+\section{Concluding perspective}
+
+All four answers are bounded in the same way. Every state is the lowest found within a fixed
+spin-projection sector; the architecture comparison is seeded at $N{=}6$ and thinner above
+it, and its tangent-space measures belong to the networks as parametrised; and the two
+backflow variants are not capacity-matched, so neither the cross-architecture energy gap nor
+the rank collapse isolates architecture. \S\ref{sec:implications} sets out what would move
+each of those.
+
+At the widths reached for the well-resolved $N\le12$ studies, raw representational capacity
+was rarely the first bottleneck; alignment, conditioning and sampling were. It was not
+irrelevant everywhere. At $N{=}20$ the memory cost of the backflow's edge tensor forces a
+capacity cut that degrades the collocation gradients. But what determined the outcome, across
+architecture, optimisation and sampling alike, was alignment with the low-dimensional
+collective structure the Hamiltonian already possesses: breathing, correlation-hole and
+relative modes at strong confinement, resolving at weak confinement into the shell geometry
+of the Wigner molecule. That the same alignment matters in all three places is probably a
+fact about the system rather than about neural networks.
+
+Several of these results were reached only after an initial reading of the same data proved
+wrong: a rank collapse that survived seeding where a dimension inversion did not, a transfer
+failure first attributed to the sampler and later to the ansatz, an importance-sampling
+error whose signature was indistinguishable from an architectural deficiency, and a
+strong-confinement collocation energy that looked statistically exact until an independent
+evaluation showed it to be the lucky tail of a best-of-three selection. Each was
+identified by a diagnostic that could separate the competing explanations. That is the
+methodological point these chapters have tried to make concrete: a variational calculation is
+only as trustworthy as the tests that can tell its failure modes apart.

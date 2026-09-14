@@ -30,9 +30,9 @@ On its own, the strong-form residual that a physics-informed network would minim
 train the backflow in any variant we tried: its learning signal lies at the nodes, where the
 local energy diverges, and it stalls near $0.3\%$. A weak form, the variational energy
 gradient estimated by importance sampling from an analytic proposal, keeps the Markov chain
-out of the gradient and has no such floor. With a proposal refitted during training it holds
-the six-electron dot within $0.3\%$ of the reference, or where there is none of our own
-energies, across the whole range of confinement. Where it fails, it fails through its
+out of the gradient and has no such floor. With a proposal refitted during training it trains
+the six-electron dot, on every seed and across the whole range of confinement, to within
+$0.35\%$ of the reference or, where there is none, of our own energies. Where it fails, it fails through its
 samples: a fixed proposal collapses in the Wigner regime, to $1.5$ effective samples of
 $4096$.
 
@@ -48,7 +48,5 @@ six-electron states to $\omega=0.0035$, below which a converged state no longer 
 step to a weaker trap.
 
 Every state is the lowest found at fixed spin projection, the architecture and optimiser
-comparisons rest mainly on $N{=}6$, and the benchmark references also guide pretraining. A
-variational calculation, in the end, is only as trustworthy as the tests that can tell its
-failure modes apart.
+comparisons rest mainly on $N{=}6$, and the benchmark references also guide pretraining.
 \clearpage

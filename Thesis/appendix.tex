@@ -1613,10 +1613,38 @@ exceeds the null by $16$--$63\%$.
 
 The Lindemann numbers of the same table fall monotonically throughout, so radial stiffening
 precedes $n$-fold angular ordering rather than accompanying it---the separation between
-radial and angular melting anticipated in \S\ref{sec:wigner-markers-theory}. Note that the
-values here are for the \emph{modal} topology over all frames; the sector-conditioned values
-quoted in \S\ref{sec:wigner-angular} are computed on the frames assigned to a given sector
-and run slightly higher.
+radial and angular melting anticipated in \S\ref{sec:wigner-markers-theory}.
+
+The values in this table are for the \emph{modal} topology over all frames. The
+sector-conditioned values quoted for $N{=}6$ in \S\ref{sec:wigner-angular} are computed only on
+the frames assigned to a given sector, and in an earlier analysis pass whose inputs we could
+not match to the runs used here. They are not uniformly higher, and the differences are not
+small (Table~\ref{tab:bondorder-estimators}). At $\omega=0.01$ the excess over the null ranges
+from $8\%$ on the modal estimator to $13\%$ and $27\%$ on the two sectors; at $10^{-3}$ the
+modal value lies between the two sector values. The staging does not depend on the choice:
+every estimator places $N{=}6$ modestly above the null at $\omega=0.01$ and far above it at
+$10^{-3}$. The size of the $\omega=0.01$ excess does, and should be quoted as a range.
+
+\begin{table}[H]
+\centering
+\caption[Two bond-order estimators at $N{=}6$]{Two estimators of the $N{=}6$ bond order,
+as ratios to the exact random-angle null ($0.402$ for $n{=}5$, $0.366$ for $n{=}6$). The
+modal estimator (this appendix) assigns every frame to $(1,5)$; the sector-conditioned
+estimator (\S\ref{sec:wigner-angular}) splits the frames between $(1,5)$ and $(0,6)$ and comes
+from an earlier analysis pass.}
+\label{tab:bondorder-estimators}
+\small
+\begin{tabular}{c ccc}
+\toprule
+ & modal, all frames & \multicolumn{2}{c}{sector-conditioned} \\
+\cmidrule(lr){3-4}
+$\omega$ & $|\Phi_5|$ on $(1,5)$ & $|\Phi_5|$ on $(1,5)$ frames & $|\Phi_6|$ on $(0,6)$ frames \\
+\midrule
+$0.01$  & $1.08$ & $1.13$ ($69\%$ of frames) & $1.27$ ($31\%$) \\
+$0.001$ & $1.63$ & $1.49$ ($80\%$) & $1.81$ ($20\%$) \\
+\bottomrule
+\end{tabular}
+\end{table}
 
 \begin{table}[H]
 \centering

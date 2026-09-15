@@ -656,7 +656,9 @@ class CTNNBackflowNet(nn.Module):
         # Enforce short-range suppression by construction:
         # gate_i -> 0 as nearest-neighbor distance -> 0, gate_i -> 1 in mid/far field.
         if self.hard_cusp_gate:
-            dmat = torch.cdist(x, x, p=2.0) * (self.omega**0.5)
+            # ``x`` was converted to oscillator units at the start of ``forward``.
+            # Applying sqrt(omega) again here would make the gate radius vary with omega.
+            dmat = torch.cdist(x, x, p=2.0)
             eye = torch.eye(N, device=x.device, dtype=torch.bool).unsqueeze(0)
             dmat = dmat.masked_fill(eye, float("inf"))
             rmin = dmat.amin(dim=2).clamp_min(1e-12)

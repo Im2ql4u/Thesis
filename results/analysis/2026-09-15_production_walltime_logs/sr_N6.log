@@ -1,0 +1,19 @@
+0
+Traceback (most recent call last):
+  File "/itf-fi-ml/home/aleksns/Thesis/scripts/bench_production_sr.py", line 112, in <module>
+    main()
+  File "/itf-fi-ml/home/aleksns/Thesis/scripts/bench_production_sr.py", line 88, in main
+    SRM.sr_step_energy_mb(system.f_net, system.C_occ, **kw)
+  File "/itf-fi-ml/home/aleksns/Thesis/src/functions/Stochastic_Reconfiguration.py", line 530, in sr_step_energy_mb
+    E_L, _ = _local_energy_multi(
+             ^^^^^^^^^^^^^^^^^^^^
+  File "/itf-fi-ml/home/aleksns/Thesis/scripts/bench_production_sr.py", line 42, in timed
+    out = fn(*args, **kwargs)
+          ^^^^^^^^^^^^^^^^^^^
+  File "/itf-fi-ml/home/aleksns/Thesis/src/functions/Stochastic_Reconfiguration.py", line 262, in _local_energy_multi
+    g = torch.autograd.grad(
+        ^^^^^^^^^^^^^^^^^^^^
+  File "/storage/software/PyTorch/2.1.2-foss-2023a-CUDA-12.1.1/lib/python3.11/site-packages/torch/autograd/__init__.py", line 394, in grad
+    result = Variable._execution_engine.run_backward(  # Calls into the C++ engine to run the backward pass
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+torch.cuda.OutOfMemoryError: CUDA out of memory. Tried to allocate 22.00 MiB. GPU 0 has a total capacty of 10.57 GiB of which 17.06 MiB is free. Process 1965689 has 1.69 GiB memory in use. Including non-PyTorch memory, this process has 8.86 GiB memory in use. Of the allocated memory 8.55 GiB is allocated by PyTorch, and 116.27 MiB is reserved by PyTorch but unallocated. If reserved but unallocated memory is large try setting max_split_size_mb to avoid fragmentation.  See documentation for Memory Management and PYTORCH_CUDA_ALLOC_CONF

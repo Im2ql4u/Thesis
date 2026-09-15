@@ -351,14 +351,25 @@ $\omega$ & CTNN & conv & CTNN & conv & CTNN & conv \\
 probe}: configurations are drawn once from the full model's $|\Psi|^2$ and every arm is
 re-evaluated on them, so the trap and Coulomb terms are held fixed by construction and each
 figure below is the change in the kinetic term at fixed measure---the instantaneous cost of
-removing a component, not the energy of a re-relaxed state. Two seed-stable facts emerge.
-(i) The \textbf{relational work migrates from the nodes to the amplitude} as the trap
-weakens. Deleting the backflow costs $+5.6\%$ at $\omega=1$ and $+1.4\%$ at $\omega=0.1$,
-but only $+0.013$--$0.017\%$ at $\omega=0.01$ (three seeds), while deleting the Jastrow
-messages runs the other way: $+3.9\%$ at $\omega=1$ rising to $+9$--$15\%$ at
-$\omega=0.01$. At the crystal the backflow is very nearly inert---with the Jastrow messages
-already removed, deleting the displacement as well changes the energy by under $0.01\%$.
-``Message passing buys kinetic energy through the nodes'' is a high-$\omega$ statement only.
+removing a component, not the energy of a re-relaxed state. That limits what it can carry.
+The weak-form kinetic term $\tfrac12|\nabla\log\Psi|^2$ averages to the kinetic energy only
+under the state's own $|\Psi|^2$; evaluated for an ablated network on the full network's
+samples it is not the energy of any state, and in a later pass on other networks it fell
+below the exact ground state. The fixed-measure numbers rank local contributions; they are not
+energetic costs.
+
+(i) On this probe the \textbf{backflow's share shrinks and the Jastrow messages' share grows}
+as the trap weakens. Deleting the backflow costs $+5.6\%$ at $\omega=1$ and $+1.4\%$ at
+$\omega=0.1$, but only $+0.013$--$0.017\%$ at $\omega=0.01$ (three seeds), while deleting the
+Jastrow messages runs the other way: $+3.9\%$ at $\omega=1$ rising to $+9$--$15\%$ at
+$\omega=0.01$. A variational deletion does not bear the first half out. On the
+production-width networks of the scaling sweep, where each ablated state is resampled from its
+own $|\Psi|^2$, removing the message-passing backflow at $N{=}6$ costs $0.5\%$ at $\omega=1$,
+$1.0$--$1.2\%$ at $\omega=0.1$ and $1.9$--$2.0\%$ at $\omega=0.01$ (two seeds): its worth
+grows toward the crystal. The two measurements differ in method and in network, and the
+division of correlation between components is route-dependent (\S\ref{sec:synthesis}), so
+neither establishes a migration of relational work from nodes to amplitude as a property of
+the physics. What survives is (ii).
 (ii) \textbf{Within the backflow, the transport maps \emph{are} the displacement}: zeroing
 the inter-particle transport maps ($\rho_{v\to e},\rho_{e\to v}$) perturbs
 $\Delta\mathbf{x}$ by as much as deleting it outright---the mean
@@ -382,7 +393,8 @@ effect.
   switched off, not the energy of a retrained network. Cyan: backflow removed; dark red:
   Jastrow messages removed; blue: all message passing removed. The curves cross near
   $\omega\approx0.4$. The division of labour shown is conditional on the training protocol
-  (\S\ref{sec:synthesis}).}
+  (\S\ref{sec:synthesis}), and a fixed-measure probe is not a variational energy: resampled
+  deletion of the backflow on the production-width networks gives the opposite trend (text).}
   \label{fig:q1b-ablation}
 \end{figure}
 
@@ -448,9 +460,8 @@ route as much as the state---and no architectural conclusion above depends on th
 recorded because a low effective covariance rank is not what one would predict for a
 state whose real-space structure is this elaborate, and because the reorganisation happens
 near $\omega\approx0.1$, the same confinement at which the energy partition crosses over
-(\S\ref{sec:wigner-energy}) and the ablation costs of Fig.~\ref{fig:q1b-ablation} exchange
-order. Whether that coincidence reflects one mechanism or three we cannot say from a single
-run. Appendix~\ref{app:representation} gives the full analysis.
+(\S\ref{sec:wigner-energy}). Whether that coincidence reflects one mechanism or two we cannot
+say from a single run. Appendix~\ref{app:representation} gives the full analysis.
 
 \medskip
 \noindent Message passing therefore changes the variational geometry before it changes the
@@ -506,7 +517,11 @@ substitutes for sampling control, and sampling control substitutes for SR---with
 asymmetry that decides the production choice: below $\omega\simeq0.01$ the sampling that
 builds $S$ collapses, so the substitution stops working in one direction only
 (\S\ref{sec:colloc-negatives}). Adam is the default because it degrades gracefully where SR
-does not.
+does not. It is also far cheaper per step in our code, but almost all of that gap is how the
+score matrix is built, one backward pass per sample; a vectorised construction gives the same
+matrix $25$ times faster at $N{=}6$ and $82$ times faster at $N{=}20$
+(Appendix~\ref{app:walltime}). What this section compares is therefore what SR buys, not
+what it costs.
 
 A large condition number alone does not explain the difference. Table~\ref{tab:kappa}
 reports
@@ -524,7 +539,12 @@ property of the metric the optimiser actually sees (\S\ref{sec:analysis-kernel})
 same reason $\lambda_{\min}$, and with it $\kappa$, is sensitive to the batch size, the
 regularisation and the numerical threshold below which eigenvalues are discarded, so the
 values are comparable to one another at fixed settings and indicate orders of magnitude, not
-more. Adam and SR reach the same energy on every row of this table.}
+more. The $d_{\mathrm{eff}}$ column is measured the same way, on each model's own samples at
+$B=768$, and is therefore not the converged common-probe value of \S\ref{sec:kernel-q1a}
+(Fig.~\ref{fig:q1a-fairdim}): the DeepSet values run higher here ($3.6$--$4.8$ against
+$2.9$--$3.6$), the ordering between the families is the same, and the column is listed only to
+show that $\kappa$ does not track it. Adam and SR reach the same energy on every row of this
+table.}
 \label{tab:kappa}
 \begin{tabular}{llcc}
 \hline
@@ -697,6 +717,10 @@ transfer to a weaker trap even when the sampler is initialised directly on the c
 shell. The Wigner peak exists only through a near-cancellation between an exponentially
 suppressed determinant and a Jastrow that amplifies it back, and a $23\%$ change in $\omega$
 tips that balance. No change of proposal repairs it, because the proposal is not what fails.
+It is a wall for the cascade, which carries converged states down in small steps of $\omega$,
+and not for Markov-chain-free training as such: started instead from a pretrained checkpoint,
+the reliability campaign of \S\ref{sec:colloc-reliability} trains $N{=}6$ at $\omega=10^{-3}$
+to within $0.35\%$ of our SR--VMC energy.
 
 \noindent \S\ref{sec:kernel-mcmcfree} establishes the first wall and the mechanism behind
 it; \S\ref{sec:kernel-q3-frontier} moves it and then runs into the second.
@@ -874,12 +898,17 @@ These results are achieved without any Markov chain in the training gradients.
 MCMC enters only outside the gradient loop: a small Metropolis probe periodically selects the
 best checkpoint, and the final heavy evaluation certifies the energy.
 The training itself uses $4096$ importance-resampled collocation
-points per epoch with an oversampling factor of~$8$, requiring
-${\sim}32\text{k}$ proposal evaluations per gradient step. That is ten times the
-${\sim}3{\times}10^3$ samples per step used by the SR route, but each is a single
-independent amplitude evaluation rather than a step of a correlated chain that must
-first equilibrate. The collocation batch is also embarrassingly parallel where the chain
-is not, though we did not benchmark the two pipelines against a common wall-clock budget.
+points per epoch with an oversampling factor of $8$--$16$, so the importance weights need
+$32$--$65$k amplitude evaluations per gradient step. The SR route evaluates the amplitude
+about as often: its chain runs a hundred Metropolis sweeps of $1200$ walkers per step. What
+collocation removes is therefore not evaluations but their sequential dependence and the
+equilibration of the chain. Timed per step (Appendix~\ref{app:walltime}), neither is where the
+time goes. At $N{=}6$ a production SR--VMC step takes $516$\,s, of which the chain is $8$\,s
+and building the SR score matrix one sample at a time is $495$\,s; a collocation epoch takes
+$21$\,s. At the same optimiser the two paradigms cost within about ten percent of each other
+per step, because the exact-Laplacian local energy dominates both. Per-step cost does not see
+burn-in, autocorrelation between successive samples or slow mixing between configurations,
+which is where the chain's real cost lies and which we did not measure.
 
 Staged continuation is what makes those budgets pay, and an exploratory run at
 $\omega{=}1.0$ shows the effect cleanly: an initial BF+Jastrow joint REINFORCE stage
@@ -1500,13 +1529,16 @@ density falls back to the non-interacting shell---from which the collocation re-
 reliably climb out (hence the non-monotonic proposal behaviour). This rules out the natural fix of an $\omega$-robust warm-start by coordinate rescaling:
 because the ansatz relaxes inward even when handed shell configurations, no coordinate
 transform preserves the state across the step. It does not rule out representing the
-$\omega=0.0027$ state at all---that would require optimising it from scratch there, which we
-did not do. Reaching
-$\omega<0.0035$ would require per-$\omega$ re-optimisation against a shell-\emph{amplitude}-anchored
-objective, or a genuinely $\ell$-covariant parametrisation---a distinct problem left to future
-work. The contribution here is concrete: a physics-informed proposal that carries Markov-chain-free
-collocation from the origin-proposal wall down to a radially localised Wigner-regime state at
-$\omega=0.0035$,
+$\omega=0.0027$ state, and the reliability campaign suggests the ansatz can represent weaker
+traps still: started from a pretrained checkpoint rather than from a converged neighbour, and
+trained with an adaptively refitted Gaussian mixture, it reaches $\omega=10^{-3}$ at $N{=}6$
+within $0.35\%$ of our SR--VMC energy on every seed (Table~\ref{tab:reliability}). The
+obstacle is carrying a converged state down the cascade, not the confinement itself.
+Continuing the cascade below $\omega=0.0035$ would need per-$\omega$ re-optimisation of that
+kind, possibly against a shell-\emph{amplitude}-anchored objective, or a genuinely
+$\ell$-covariant parametrisation. The contribution here is concrete: a physics-informed
+proposal that carries a Markov-chain-free cascade from the wall of the fixed origin-centred
+proposal down to a radially localised Wigner-regime state at $\omega=0.0035$,
 and a precise account of the angular-crystallisation and Slater--Jastrow-balance effects that
 bound it.
 

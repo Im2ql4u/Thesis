@@ -2314,3 +2314,22 @@ fraction; sector bond orders from canonical runs (all need uio-ml7).
 
 **Open:** fetch N=12 collocation cell after reconnect; decide whether to (a) fix the §7.3
 sentence, (b) mention SR's implementation cost in the thesis, (c) vectorise `_score_rows`.
+
+## 2026-09-15 (cont.) — Open text tasks closed; production timing; Appendix G
+
+- Front page: supervisor Morten Hjorth-Jensen.
+- Second wall: now a wall of the cascade, not of Markov-chain-free training (the campaign
+  trains omega=1e-3 from a pretrained checkpoint); results_kernel, discussion, results_intro,
+  conclusion.
+- Table 7.3 d_eff column explained (own samples at B=768, not the converged common probe).
+- Filinov 2001 cited as precedent (orientational vs radial melting, between shells).
+- Fixed-measure ablation: claim (i) "relational work migrates from nodes to amplitude" withdrawn
+  — resampled deletion on production-width networks (scaling sweep) gives the opposite trend
+  for the CTNN backflow (0.5% -> 1.0% -> 1.9% from omega=1 to 0.01).
+- §7.3 sentence and §7.2 SR-cost note rewritten with the timing results; new Appendix G.
+- Production timing: SR-VMC step 516 s at N=6, of which chain 8 s, score matrix 495 s;
+  collocation epoch 21.5 s. Aleksander's objection was right that the earlier grid
+  understated production VMC; wrong that the chain is the bottleneck.
+
+**Open (cluster):** 3 seeds for Table 6.2; sign-disagreement fraction; sector bond orders from
+canonical runs; chain autocorrelation time. Thesis_text needs a re-sync after this commit.

@@ -1,0 +1,38 @@
+================================================================
+  Weak-Form Collocation — bench_wt_N2
+  Mode: bf   Device: cuda:6   Seed: 42
+  N=2  omega=1.0  basis=3x3 (n_basis=9, n_occ=1)
+  Spin layout: block   pattern=01
+  DMC reference: 3.0
+================================================================
+  Jastrow: 25,562 params
+  Backflow: 182,403 params
+  Backflow params: 182,403
+  Jastrow params: 25,562 (lr=5e-05)
+  Total trainable: 207,965
+  Training: 8 ep, 4096 samples, LR=0.0005 opt=Adam
+  HYBRID loss: REINFORCE(E_L, no-backprop-lap) + direct(½g², β=0.0)  clip_el=5.0  reward_qtrim=0.0  reward_normalize=True
+  Instability rollback: decay=0.950 err_pct>0.00 jump_sigma=3.0
+  Adaptive proposal (GMM): components=8 refit_every=30 min_samples=500 cov=diag
+  [   0] E=3.2152±0.772 var=5.96e-01 ESS=26994 loss=7.595e-01 3.7s err=+7.17% rawESS=26994 khat=0.03  cand=65536 eta=0m
+  [   1] E=3.2069±0.778 var=6.06e-01 ESS=27173 loss=7.660e-01 3.1s err=+6.90% rawESS=27173 khat=0.03  cand=65536 eta=0m
+  [   2] E=3.1929±0.756 var=5.72e-01 ESS=26908 loss=7.282e-01 3.1s err=+6.43% rawESS=26908 khat=0.03  cand=65536 eta=0m
+  [   3] E=3.1975±0.769 var=5.91e-01 ESS=26844 loss=7.240e-01 3.1s err=+6.58% rawESS=26844 khat=0.03  cand=65536 eta=0m
+  [   4] E=3.2172±0.780 var=6.08e-01 ESS=26995 loss=7.642e-01 3.1s err=+7.24% rawESS=26995 khat=0.03  cand=65536 eta=0m
+  [   5] E=3.2162±0.774 var=5.99e-01 ESS=26950 loss=7.680e-01 2.8s err=+7.21% rawESS=26950 khat=0.03  cand=65536 eta=0m
+  [   6] E=3.2034±0.772 var=5.96e-01 ESS=27175 loss=7.445e-01 3.1s err=+6.78% rawESS=27175 khat=0.03  cand=65536 eta=0m
+  [   7] E=3.2169±0.774 var=5.99e-01 ESS=27090 loss=7.730e-01 3.1s err=+7.23% rawESS=27090 khat=0.03  cand=65536 eta=0m
+  Restored var-best R=3.19287
+  Done 25s (0.4min)
+
+  Final VMC eval: 1000 samples ...
+Evaluating energy (exact):   0%|          | 0/1000 [00:00<?, ?it/s]Evaluating energy (exact):  51%|█████     | 512/1000 [00:34<00:32, 14.83it/s]Evaluating energy (exact):  51%|█████     | 512/1000 [00:34<00:32, 14.83it/s, E≈3.203358, σ≈0.7631, acc=0.50]Evaluating energy (exact): 100%|██████████| 1000/1000 [00:35<00:00, 34.32it/s, E≈3.203358, σ≈0.7631, acc=0.50]Evaluating energy (exact): 100%|██████████| 1000/1000 [00:35<00:00, 34.32it/s, E≈3.211156, σ≈0.7803, acc=0.50]Evaluating energy (exact): 100%|██████████| 1000/1000 [00:35<00:00, 28.55it/s, E≈3.211156, σ≈0.7803, acc=0.50]
+
+  *** Final: E = 3.21116 ± 0.02467   err = +7.039%
+  Saved → /itf-fi-ml/home/aleksns/Thesis/results/arch_colloc/bench_wt_N2.pt
+
+============================================================
+  WEAK-FORM RESULT  N=2  ω=1.0  E_DMC=3.0
+  Mode: bf   Tag: bench_wt_N2
+  E = 3.211156 ± 0.024675   err = +7.039%
+============================================================

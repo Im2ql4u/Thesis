@@ -1,0 +1,51 @@
+================================================================
+  Weak-Form Collocation — bench_wt_N12
+  Mode: bf   Device: cuda:6   Seed: 42
+  N=12  omega=1.0  basis=3x3 (n_basis=9, n_occ=6)
+  Spin layout: block   pattern=000000111111
+  DMC reference: 65.7001
+================================================================
+  Jastrow: 25,562 params
+  Backflow: 182,403 params
+  Backflow params: 182,403
+  Jastrow params: 25,562 (lr=5e-05)
+  Total trainable: 207,965
+  Training: 8 ep, 4096 samples, LR=0.0005 opt=Adam
+  HYBRID loss: REINFORCE(E_L, no-backprop-lap) + direct(½g², β=0.0)  clip_el=5.0  reward_qtrim=0.0  reward_normalize=True
+  Instability rollback: decay=0.950 err_pct>0.00 jump_sigma=3.0
+  Adaptive proposal (GMM): components=8 refit_every=30 min_samples=500 cov=diag
+  [   0] E=81.1505±8.035 var=6.46e+01 ESS=161 loss=1.968e+00 117.2s err=+23.52% rawESS=161 khat=1.24  cand=65536 eta=14m
+  [   1] E=82.0426±7.064 var=4.99e+01 ESS=115 loss=2.049e+00 116.6s err=+24.87% rawESS=115 khat=1.25  cand=65536 eta=12m
+  [   2] E=81.4053±6.867 var=4.72e+01 ESS=157 loss=1.998e+00 116.5s err=+23.90% rawESS=157 khat=1.27  cand=65536 eta=10m
+  [   3] E=81.2913±7.002 var=4.90e+01 ESS=130 loss=1.704e+00 116.5s err=+23.73% rawESS=130 khat=1.27  cand=65536 eta=8m
+  [   4] E=82.0188±7.650 var=5.85e+01 ESS=115 loss=2.427e+00 116.6s err=+24.84% rawESS=115 khat=1.28  cand=65536 eta=6m
+  [   5] E=81.4534±6.806 var=4.63e+01 ESS=119 loss=1.840e+00 116.7s err=+23.98% rawESS=119 khat=1.25  cand=65536 eta=4m
+  [   6] E=81.6171±7.349 var=5.40e+01 ESS=105 loss=2.257e+00 116.1s err=+24.23% rawESS=105 khat=1.26  cand=65536 eta=2m
+  [   7] E=80.9745±6.921 var=4.79e+01 ESS=89 loss=1.556e+00 113.2s err=+23.25% rawESS=89 khat=1.35  cand=65536 eta=0m
+  Restored var-best R=80.97449
+  Done 930s (15.5min)
+
+  Final VMC eval: 1000 samples ...
+Evaluating energy (exact):   0%|          | 0/1000 [00:00<?, ?it/s]Traceback (most recent call last):
+  File "/itf-fi-ml/home/aleksns/Thesis/src/run_weak_form.py", line 2691, in <module>
+    main()
+  File "/itf-fi-ml/home/aleksns/Thesis/src/run_weak_form.py", line 2608, in main
+    vmc = evaluate_energy_vmc(
+          ^^^^^^^^^^^^^^^^^^^^
+  File "/itf-fi-ml/home/aleksns/Thesis/src/utils.py", line 57, in wrapper
+    return fn(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^
+  File "/itf-fi-ml/home/aleksns/Thesis/src/functions/Energy.py", line 450, in evaluate_energy_vmc
+    E_L, T_loc, V_int, V_harm, _ = _local_energy_multi(
+                                   ^^^^^^^^^^^^^^^^^^^^
+  File "/itf-fi-ml/home/aleksns/Thesis/src/functions/Energy.py", line 179, in _local_energy_multi
+    lap_log = _lap_log_exact(psi_log_fn, x)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/itf-fi-ml/home/aleksns/Thesis/src/functions/Energy.py", line 129, in _lap_log_exact
+    Hiik = torch.autograd.grad(
+           ^^^^^^^^^^^^^^^^^^^^
+  File "/storage/software/PyTorch/2.1.2-foss-2023a-CUDA-12.1.1/lib/python3.11/site-packages/torch/autograd/__init__.py", line 394, in grad
+    result = Variable._execution_engine.run_backward(  # Calls into the C++ engine to run the backward pass
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+torch.cuda.OutOfMemoryError: CUDA out of memory. Tried to allocate 216.00 MiB. GPU 6 has a total capacty of 10.57 GiB of which 191.06 MiB is free. Process 1477771 has 3.23 GiB memory in use. Process 1965691 has 1.19 GiB memory in use. Including non-PyTorch memory, this process has 5.96 GiB memory in use. Of the allocated memory 5.66 GiB is allocated by PyTorch, and 101.06 MiB is reserved by PyTorch but unallocated. If reserved but unallocated memory is large try setting max_split_size_mb to avoid fragmentation.  See documentation for Memory Management and PYTORCH_CUDA_ALLOC_CONF
+Evaluating energy (exact):   0%|          | 0/1000 [02:51<?, ?it/s]

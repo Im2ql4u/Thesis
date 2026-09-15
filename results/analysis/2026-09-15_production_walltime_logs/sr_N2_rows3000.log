@@ -1,0 +1,10 @@
+0
+Traceback (most recent call last):
+  File "/itf-fi-ml/home/aleksns/Thesis/scripts/bench_production_sr.py", line 112, in <module>
+    main()
+  File "/itf-fi-ml/home/aleksns/Thesis/scripts/bench_production_sr.py", line 88, in main
+    SRM.sr_step_energy_mb(system.f_net, system.C_occ, **kw)
+  File "/itf-fi-ml/home/aleksns/Thesis/src/functions/Stochastic_Reconfiguration.py", line 646, in sr_step_energy_mb
+    Ok = Oc[:, keep_idx].to(dtype=torch.float64, device=store_device)
+         ~~^^^^^^^^^^^^^
+torch.cuda.OutOfMemoryError: CUDA out of memory. Tried to allocate 994.00 MiB. GPU 0 has a total capacty of 10.57 GiB of which 83.00 MiB is free. Process 1477771 has 3.23 GiB memory in use. Process 1965690 has 1.19 GiB memory in use. Including non-PyTorch memory, this process has 6.07 GiB memory in use. Of the allocated memory 5.85 GiB is allocated by PyTorch, and 26.96 MiB is reserved by PyTorch but unallocated. If reserved but unallocated memory is large try setting max_split_size_mb to avoid fragmentation.  See documentation for Memory Management and PYTORCH_CUDA_ALLOC_CONF

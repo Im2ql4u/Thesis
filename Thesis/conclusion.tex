@@ -16,9 +16,8 @@ closely; the state was then used as an instrument, and resolved the shell geomet
 definite occupancies, $n$-fold angular order becoming large only in the last decade of
 confinement, a shell radius approaching its classical $\omega^{-2/3}$ scaling. Those are the
 measurements a sampler needs in order to place its mass correctly. Feeding the measured
-geometry back into the proposal extended Markov-chain-free training from the failure of the
-origin-centred sampler at $\omega\approx0.01$ down to $\omega=0.0035$, into states the
-original method could not reach.
+geometry back into the proposal carried a Markov-chain-free cascade of converged states from
+$\omega\approx0.01$, where the fixed origin-centred sampler fails, down to $\omega=0.0035$.
 
 \emph{Architecture.} Message passing supplies a relational channel whose effect appears in
 the tangent geometry before it appears in the energy (\S\ref{sec:kernel-q1}). Under the
@@ -52,8 +51,9 @@ percent of DMC at $N\in\{6,12\}$ under strong confinement and within about a thi
 percent of our own converged energies well into the correlated regime, as measured by
 independent Metropolis evaluation of every trained state. It fails through one chain of
 causes---proposal mismatch, weight-tail inflation, gradient noise, an unestimable
-metric---which a better proposal moves but does not remove, and then through a second failure
-of transfer between confinements.
+metric---which a better proposal moves but does not remove. The cascade then meets a second
+failure, of transfer between confinements; trained directly from a pretrained checkpoint
+instead, the same ansatz reaches $\omega=10^{-3}$.
 
 \emph{Physics.} The trained state serves as an instrument
 (\S\ref{sec:wigner-molecule}). The crossover it resolves is staged: the cloud expands and its

@@ -1,0 +1,76 @@
+{
+  "args": {
+    "N": 6,
+    "omega": 1.0,
+    "steps": 2,
+    "device": "cuda",
+    "micro_batch": 1200,
+    "total_rows": 3000,
+    "sampler_steps": 50,
+    "lap_mode": "exact",
+    "small_bf": false,
+    "tag": "rows3000"
+  },
+  "n_params": 108485,
+  "torch": "2.1.2",
+  "steps": [
+    {
+      "sampling": {
+        "t": 88.97172806877643,
+        "calls": 5,
+        "work": 1296000
+      },
+      "local_energy": {
+        "t": 12.188564328011125,
+        "calls": 3,
+        "work": 3600
+      },
+      "score_rows": {
+        "t": 495.39433897892013,
+        "calls": 3,
+        "work": 3600
+      },
+      "total": 597.1054060878232,
+      "rest": 0.5507747121155262
+    },
+    {
+      "sampling": {
+        "t": 8.302635937463492,
+        "calls": 5,
+        "work": 120000
+      },
+      "local_energy": {
+        "t": 12.168643858283758,
+        "calls": 3,
+        "work": 3600
+      },
+      "score_rows": {
+        "t": 495.3820238048211,
+        "calls": 3,
+        "work": 3600
+      },
+      "total": 516.3578573539853,
+      "rest": 0.5045537534169853
+    },
+    {
+      "sampling": {
+        "t": 8.653870789334178,
+        "calls": 5,
+        "work": 120000
+      },
+      "local_energy": {
+        "t": 12.214520128443837,
+        "calls": 3,
+        "work": 3600
+      },
+      "score_rows": {
+        "t": 495.0458424715325,
+        "calls": 3,
+        "work": 3600
+      },
+      "total": 516.4186120070517,
+      "rest": 0.5043786177411675
+    }
+  ],
+  "gpu": "NVIDIA GeForce RTX 2080 Ti"
+}

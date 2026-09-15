@@ -1832,6 +1832,113 @@ $-2/3$ only on the weak-trap half. Second, the shell-resolved radius is the quan
 physics-informed proposal of \S\ref{sec:kernel-q3-frontier} actually needs, so the agreement
 recorded here is what licenses building a sampler out of it.
 
+\chapter{The cost of a training step}
+\label{app:walltime}
+
+The main text argues that removing the Markov chain from the gradient changes what a training
+step costs. This appendix times it. All numbers are wall-clock seconds per gradient step on one
+NVIDIA RTX 2080 Ti in double precision, on a node whose eight GPUs were shared with other users
+running at $67$--$100\%$ utilisation throughout; they include that contention, and ratios are
+more reliable than absolute values. Networks are at initialisation, since the trained state
+does not change what a step costs, and $\omega=1$. The grid of
+Table~\ref{tab:walltime-grid} averages three steps after a discarded first one; the production
+collocation epochs vary by about $2\%$ over eight epochs, and the production SR step is timed
+after its burn-in call, where consecutive steps agree to $0.1\%$. The scripts are \texttt{scripts/bench\_production\_sr.py},
+\texttt{bench\_walltime.py} and \texttt{bench\_score\_matrix.py}.
+
+\section{The two production pipelines}
+
+Table~\ref{tab:walltime-production} times the pipelines as they produced the results of this
+thesis. The SR--VMC step is the production routine with the settings of the example run:
+$1200$ persistent walkers, twenty Metropolis sweeps between the two retained snapshots of each
+round, about $3.6\times10^3$ rows per step, the exact Laplacian. Its phases are timed inside the
+routine without changing it. The collocation epoch is the robust recipe of
+\S\ref{sec:colloc-reliability}: $16\times4096$ candidates from the Gaussian mixture, weighted
+by $|\Psi|^2/q$ and resampled to $4096$, the exact-Laplacian local energy as a REINFORCE reward,
+and Adam. The two pipelines build their networks differently ($108$k parameters for the
+SR--VMC step, the ${\sim}49$k collocation ansatz of \S\ref{subsec:colloc-families}), so this
+table compares pipelines, not paradigms.
+
+\begin{table}[H]
+\centering
+\caption[Wall time of the production pipelines]{Wall time per step of the two production
+pipelines at $N{=}6$. The SR--VMC step's first call adds a one-off burn-in of $1000$ sweeps
+(its chain then takes $89$\,s); that call is excluded here.}
+\label{tab:walltime-production}
+\small
+\begin{tabular}{l rrrr}
+\toprule
+ & Markov chain & local energy & score matrix & total \\
+\midrule
+SR--VMC step ($100$ sweeps $\times$ $1200$ walkers) & $8.5$ & $12.2$ & $495.2$ & $516.4$ \\
+collocation epoch ($16\times4096$ candidates) & --- & \multicolumn{2}{c}{(not separated)} & $21.5$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\noindent A production collocation epoch takes $3.1$\,s at $N{=}2$ and about $115$\,s at
+$N{=}12$ on the same hardware.
+
+The production SR--VMC step is twenty-four times slower, and the Markov chain accounts for
+$1.6\%$ of it. Ninety-six percent is the score matrix $O$ that SR needs. The production routine
+builds it one row at a time by backpropagating each sample's $\log|\Psi|$ through the graph of
+the whole walker batch, so each row costs roughly a backward pass over the entire batch.
+
+\section{Paradigm and optimiser, on one network}
+
+To separate the paradigm from the optimiser, Table~\ref{tab:walltime-grid} runs all four
+combinations on one network (CTNN V-cycle correlator and CTNN backflow, $108$k parameters) with
+the same exact-Laplacian local energy. VMC uses $3072$ walkers and $30$ sweeps per step,
+collocation $4096$ points resampled from $16\times4096$ candidates, SR $1024$ samples. At
+$N{=}20$ both paradigms use $1024$ configurations, because the shared cards did not have the
+memory for more. The SR score matrix is built either by the per-sample loop of the thesis's
+code or by a vectorised per-sample gradient (\texttt{torch.func}), which returns the same matrix
+to a relative difference below $10^{-14}$.
+
+\begin{table}[H]
+\centering
+\caption[Wall time by paradigm and optimiser]{Seconds per step on one network. Entries marked
+$^{*}$ are composed from the Adam route's sampling and local-energy times and the separately
+timed score matrix and solve; at $N{=}6$, where both were measured, composition and measurement
+agree to $1\%$.}
+\label{tab:walltime-grid}
+\small
+\begin{tabular}{c rr rr}
+\toprule
+ & \multicolumn{2}{c}{Adam} & \multicolumn{2}{c}{VMC with SR} \\
+\cmidrule(lr){2-3}\cmidrule(lr){4-5}
+$N$ & VMC & collocation & per-sample loop & vectorised \\
+\midrule
+$2$  & $5.1$  & $4.2$  & $26.4$      & $7.6^{*}$  \\
+$6$  & $16.3$ & $17.6$ & $62.1$      & $18.6^{*}$ \\
+$12$ & $64.7$ & ---    & $185^{*}$   & $66^{*}$   \\
+$20$ & $75.4$ & $67.0$ & $387^{*}$   & $79^{*}$   \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Three things follow. At the same optimiser the paradigm changes the cost of a step by about ten
+percent: at $N{=}6$ the chain takes $5.5$\,s of a VMC step and the importance weights $3.5$\,s
+of a collocation step, while the local energy takes $10$--$13$\,s of either. Collocation's
+weights are not free, since every candidate needs $|\Psi|$ evaluated; per retained point they
+cost half of what the chain costs here ($16$ evaluations against $30$ sweeps). The local energy
+is $62$--$84\%$ of an Adam step from $N{=}6$ up, so a cheaper Laplacian would speed training more
+than any change of sampler. And the SR overhead is almost entirely the per-sample loop: building
+$O$ for $1024$ samples takes $19$, $46$, $121$ and $312$\,s at $N=2,6,12,20$ by the loop and
+$2.0$, $1.8$, $2.4$ and $3.8$\,s vectorised, with the Gram matrix and its solve another
+$1.2$\,s. Vectorised, SR costs $1.0$--$1.5$ times an Adam step.
+
+\section{What per-step timing does not measure}
+
+A step's wall time counts work, not information. The Markov chain's real cost is statistical:
+the burn-in, paid once per run and again whenever the state moves far; the correlation between
+successive samples, which makes a batch of walkers worth fewer independent points than its
+size; and slow mixing between well-separated configurations, which is worst in the Wigner
+regime. None of that appears above, and none of it applies to independently drawn candidates.
+The measure that would capture it is time per \emph{independent} sample, the per-sweep cost
+times the chain's integrated autocorrelation time on a trained weak-confinement state, which we
+did not measure. Nor does the cost of a step say how many steps each route needs.
+
 \chapter{Code, data and reproducibility}
 \label{app:reproducibility}
 

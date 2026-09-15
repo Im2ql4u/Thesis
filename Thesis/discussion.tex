@@ -97,8 +97,8 @@ trained states themselves: a single ring at $N{=}6$ with a well-determined radiu
 order that appears well after radial stiffening, and shell occupancies that are read rather
 than assumed. Rebuilding the proposal as a radial Gaussian at the measured shell radius times
 a Dirichlet angular model lifted the effective sample size by $15$--$32\times$ with no
-training at all, and carried Markov-chain-free training from $\omega\approx0.01$ to
-$\omega=0.0035$.
+training at all, and carried a Markov-chain-free cascade of converged states from
+$\omega\approx0.01$ to $\omega=0.0035$.
 
 That is a loop, and its two halves fail in different ways, which is what makes it
 informative. Everything up to $\omega=0.0035$ lies on one causal chain: proposal--target
@@ -118,9 +118,12 @@ Wigner peak exists only because the Jastrow amplifies an exponentially suppresse
 back up by a comparable factor, and a $23\%$ change in $\omega$ perturbs both sides of that
 cancellation until the density falls back to the non-interacting shell. The failure is one of
 covariance in $\ell$ under a change of trap---of transfer and parameterisation, not of
-expressivity. We have not shown the ansatz cannot represent the $\omega=0.0027$ state; the
-remedy we suggest, per-$\omega$ re-optimisation against a shell-amplitude-anchored objective,
-presumes it can.
+expressivity. We have not shown the ansatz cannot represent the $\omega=0.0027$ state, and
+there is evidence that it can represent weaker traps: trained at $\omega=10^{-3}$ directly from
+a pretrained checkpoint, not carried down the cascade, it comes within $0.35\%$ of our SR--VMC
+energy (Table~\ref{tab:reliability}). The wall at $0.0035$ belongs to the cascade, and the
+remedy we suggest, per-$\omega$ re-optimisation, possibly against a shell-amplitude-anchored
+objective, is what that campaign already does.
 
 The same mechanisms should extend beyond the quantum dot. An importance-sampled scheme whose
 proposal increasingly misses a strongly correlated target should meet the first chain in that
@@ -130,10 +133,14 @@ it inverts is statistically resolved at the sample sizes in use.
 \paragraph{The staged crossover.}
 The physics that drove the loop stands in a particular relation to what was known. That
 parabolic dots form Wigner molecules with shell structure is
-established~\cite{Egger_1999,Filinov_2001,Kong_2002,manninen2007metalclustersquantumdots};
-that the crossover is \emph{staged}---radial expansion and shell stiffening completing well
-before angular order appears within the shells---is what the topology-resolved diagnostics
-here make visible, because they condition on the shell partition before measuring angular correlation instead of averaging over it. The $N{=}6$ ring approaches its classical radius
+established~\cite{Egger_1999,Filinov_2001,Kong_2002,manninen2007metalclustersquantumdots}.
+That radial and angular order need not set in together is not new either: path-integral
+simulations of mesoscopic two-dimensional clusters already separate orientational from radial
+melting~\cite{Filinov_2001}, with the orientational order there taken between shells. What the
+topology-resolved diagnostics here add is the same separation \emph{within} the shells of the
+ground state, topology by topology---radial expansion and shell stiffening completing well
+before $n$-fold order appears on each ring---because they condition on the shell partition
+before measuring angular correlation instead of averaging over it. The $N{=}6$ ring approaches its classical radius
 $1.334\,\omega^{-2/3}$ monotonically to within $1.7\%$ while its bond order is still at the
 random-angle null, which is the separation stated quantitatively. Whether the same staging
 survives a total-spin scan we cannot say.

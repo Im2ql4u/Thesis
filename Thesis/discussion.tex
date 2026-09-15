@@ -14,34 +14,24 @@ proposition, that it must be lived forwards.}{S\o ren Kierkegaard}{\textit{Journ
 The three parts of this thesis converge on one object. Architecture fixes the shape of the
 variational tangent space; the optimiser acts on that space through its metric; and the
 sampling measure decides how well the metric can be estimated. Read in that order, results
-that arrived separately become a single chain.
+that arrived separately form a connected account.
 
-Its first link is the one the energy cannot see. Two correlators of matched or deliberately
-mismatched capacity reach the same reference-quality state at strong confinement, agreeing
-to four figures, and arrive there through tangent spaces that carry their Fisher weight very
-differently. Counting directions is the weaker half of that observation---it says how many the
-correlator uses, it is measured on one of two substitutable components, and it depends on how
-the network is parametrised and normalised. Which directions is the stronger half, because
-whether a direction lies inside an operator span does not depend on the parametrisation,
-although the weight it carries does. The message-passing correlator's leading tangent modes lie inside a
-four-operator physical dictionary to $R^2\approx1$ across confinement and up to $N{=}12$,
-where a separable network of equal or greater capacity leaves close to half its tangent
-budget outside it. A direction outside a chosen dictionary need not be unphysical, so what
-the measurement supports is that one tangent space is far more completely accounted for by a
-small set of collective operators than the other---and that a smaller $d_{\rm eff}$ makes
-such a dictionary easier to cover cannot explain the gap, since the two effective dimensions
-converge toward $3.7$ at weak confinement while the dictionary gap persists. None of this yet
-shows that the architecture represents the state with intrinsically fewer degrees of freedom.
-The comparison that does not depend on parametrisation at all is the local-energy variance,
-lower for the message-passing correlator at every confinement; it is the one that says the two
-\emph{states} differ, and not only the two ways of laying out their parameters.
+Its first link is the one the energy cannot see. Two correlator families reach the same
+reference-quality energy at strong confinement while carrying their Fisher weight
+differently. Both the effective dimension and the leading tangent modes depend on the
+parameter coordinates. Under the implemented parametrisations, the message-passing models
+use fewer effective directions and are more completely described by the selected
+four-operator dictionary. No random-dictionary null or held-out fit was run, so this is a
+relative description, not a test of whether the remaining directions are physical. The
+state-level result is simpler: the message-passing correlator has lower local-energy variance
+at every confinement. That establishes that the trained states differ, although the
+unmatched learned features prevent attributing the difference to message passing alone.
 
 The second link is where the optimiser meets that space. The result there is narrower than
 the usual one about natural gradients. Under $|\Psi|^2$ sampling the empirical metric is badly conditioned, $\kappa\sim10^{7}$--$10^{10}$ on precisely the models where Adam and SR agree to four decimals, so conditioning cannot be the criterion. What we propose separates the regimes
 is whether a batch resolves the metric at all. Under $|\Psi|^2$ the samples come from the
-measure that defines $S$; under a fixed collocation proposal they do not, and preconditioning
-becomes what makes the optimisation converge; and once the proposal loses the target,
-inverting the metric amplifies noise instead of signal. The negative half of that is
+measure that defines $S$. Under a fixed collocation proposal, SR is required in the tested
+configurations, while CG-SR becomes unstable once proposal overlap collapses. The negative half of that is
 measured. The positive half---that collocation under a fixed proposal occupies an
 anisotropic but still estimable middle regime---is inferred from the estimator, since
 $\kappa$ was never obtained under the collocation measure at matched batch size.
@@ -49,13 +39,10 @@ $\kappa$ was never obtained under the collocation measure at matched batch size.
 Whether the chain generalises is a fair question and the honest answer is that we cannot
 settle it here. Message-passing neural quantum states have been adopted for extended fermion
 systems on the argument that relational structure
-scales~\cite{Pescia2024-MessagePassingNQS,KimEtAl2023-UltracoldFermiNQS}; what this thesis
-adds is a measurement of \emph{where} that structure shows up---in the tangent geometry
-before the energy---and a mechanism for why the effect should grow rather than shrink with
-correlation strength. The dictionary gap widens with $N$ over the range we can measure. If
-that continues, the architectures that scale are those maintaining a transported edge
-representation rather than pooling pairwise features and discarding them. Three sizes is not
-a scaling study, and the comparison is seeded at $N{=}6$.
+scales~\cite{Pescia2024-MessagePassingNQS,KimEtAl2023-UltracoldFermiNQS}; here the tangent
+diagnostics identify where the implemented families first differ. The dictionary gap widens
+over the sizes measured, but three sizes do not establish a scaling law, and the comparison
+is seeded at $N{=}6$.
 
 \paragraph{What agreement with the benchmarks supports.}
 \label{sec:energy-discussion}
@@ -73,7 +60,7 @@ the energy is partial: the local-energy variance, which vanishes only for an eig
 a squared overlap of $1.000000$ with the exact state where one is available, at $N{=}2$. The
 third concerns the cells where our energies sit below the reference. The reference is
 variational only with respect to its own imposed nodes, so there is no contradiction, and
-better nodes in the network would explain it. A convention difference in the Hamiltonian
+better nodes in the network could explain it. A convention difference in the Hamiltonian
 would not: the exact two-electron value is reproduced, and a convention mismatch would shift
 every cell. That leaves better nodes against an extrapolation or sampling error on either
 side, or an error in the chain of compilations through which the reference reached us, and
@@ -86,66 +73,61 @@ for $N\ge6$ we have no external value to compare with, and those states are pred
 \section{Physics returned to the solver}
 \label{sec:feedback-discussion}
 
-The most useful thing this thesis did was not to train a wavefunction but to let the
-wavefunction correct the method that produced it.
+A particularly useful result is that measurements from the trained state improve the
+proposal used for later training.
 
 The order matters. A generic three-component Gaussian proposal covers the strong-confinement
 droplet adequately and collapses in the Wigner regime, where the effective sample size falls
-to about $1.5$ of $4096$ and the gradient estimator dies with it. Nothing in the objective
+to about $1.5$ of $4096$ and the gradient is dominated by a few samples. Nothing in the objective
 or the architecture diagnoses that. What diagnoses it is the structure measured from the
 trained states themselves: a single ring at $N{=}6$ with a well-determined radius, angular
 order that appears well after radial stiffening, and shell occupancies that are read rather
 than assumed. Rebuilding the proposal as a radial Gaussian at the measured shell radius times
 a Dirichlet angular model lifted the effective sample size by $15$--$32\times$ with no
-training at all, and carried a Markov-chain-free cascade of converged states from
-$\omega\approx0.01$ to $\omega=0.0035$.
+network training, although the absolute ESS remained low. It carried a cascade with
+MCMC-free updates from $\omega\approx0.01$ to a stable checkpoint at $\omega=0.0035$.
 
-That is a loop, and its two halves fail in different ways, which is what makes it
-informative. Everything up to $\omega=0.0035$ lies on one causal chain: proposal--target
-mismatch inflates the weight tail, the tail destroys the gradient estimator, the destroyed
-estimator makes the optimisation seed-dependent and the metric unreliable, and inverting an
-unreliable metric amplifies noise. Langevin refinement joins that chain at the first link by
-breaking the proposal the weights are computed against; CG-SR joins at the last. Even the
-$N{=}20$ reversal, where a Jastrow-only ansatz beats the backflow that should outperform it,
-reaches the same chain through memory, not confinement. Up to this frontier the failures share a sampling
-origin, and a better proposal moves the frontier.
+Together these observations support a working mechanism: proposal--target mismatch produces
+heavier weights, noisier gradients and less stable optimisation, while inversion of an
+unreliable metric can amplify that noise. The interventions change several links at once, so
+the present experiments do not establish the sequence causally. At $N{=}20$, memory limits
+also force smaller models or batches and prevent the implementation from separating those
+effects. A better proposal nevertheless moves the observed frontier.
 
 Below $0.0035$ the obstacle changes character. Metropolis walkers started on the classical
-shell relax inward regardless; the backflow displacement transfers correctly and is simply
-too small to bridge the gap; the collapse is non-monotonic across proposal variants in a way
-a sampling failure would not be. What fails is the warm start. At these confinements the
-Wigner peak exists only because the Jastrow amplifies an exponentially suppressed determinant
-back up by a comparable factor, and a $23\%$ change in $\omega$ perturbs both sides of that
-cancellation until the density falls back to the non-interacting shell. The failure is one of
-covariance in $\ell$ under a change of trap---of transfer and parameterisation, not of
-expressivity. We have not shown the ansatz cannot represent the $\omega=0.0027$ state, and
+shell relax inward regardless; the displacement is too small to bridge the gap; and the
+collapse is non-monotonic across proposal variants. The evidence therefore points to the
+warm start. At these confinements, the component decomposition shows Jastrow amplification
+comparable to the determinant's suppression of the Wigner shell. After a $23\%$ change in
+$\omega$, the transferred density falls back towards the non-interacting shell. This is consistent
+with an imbalance between the Slater and Jastrow factors during transfer, although the
+backflow unit convention remains another unresolved source of non-covariance. We have not
+shown the ansatz cannot represent the $\omega=0.0027$ state, and
 there is evidence that it can represent weaker traps: trained at $\omega=10^{-3}$ directly from
 a pretrained checkpoint, not carried down the cascade, it comes within $0.35\%$ of our SR--VMC
-energy (Table~\ref{tab:reliability}). The wall at $0.0035$ belongs to the cascade, and the
+energy (Table~\ref{tab:reliability}). The limit at $0.0035$ belongs to the cascade, and the
 remedy we suggest, per-$\omega$ re-optimisation, possibly against a shell-amplitude-anchored
 objective, is what that campaign already does.
 
-The same mechanisms should extend beyond the quantum dot. An importance-sampled scheme whose
-proposal increasingly misses a strongly correlated target should meet the first chain in that
-order, and any second-order method applied to such a system ought to certify that the metric
-it inverts is statistically resolved at the sample sizes in use.
+The same failure mode may extend beyond the quantum dot: any importance-sampled scheme whose
+proposal increasingly misses a strongly correlated target should monitor whether the metric
+it inverts remains statistically resolved at the available sample size.
 
 \paragraph{The staged crossover.}
 The physics that drove the loop stands in a particular relation to what was known. That
-parabolic dots form Wigner molecules with shell structure is
-established~\cite{Egger_1999,Filinov_2001,Kong_2002,manninen2007metalclustersquantumdots}.
-That radial and angular order need not set in together is not new either: path-integral
-simulations of mesoscopic two-dimensional clusters already separate orientational from radial
-melting~\cite{Filinov_2001}, with the orientational order there taken between shells. What the
-topology-resolved diagnostics here add is the same separation \emph{within} the shells of the
-ground state, topology by topology---radial expansion and shell stiffening completing well
-before $n$-fold order appears on each ring---because they condition on the shell partition
-before measuring angular correlation instead of averaging over it. The $N{=}6$ ring approaches its classical radius
-$1.334\,\omega^{-2/3}$ monotonically to within $1.7\%$ while its bond order is still at the
-random-angle null, which is the separation stated quantitatively. Whether the same staging
+parabolic dots form Wigner molecules with shell structure is established
+~\cite{Egger_1999,Filinov_2001,Kong_2002,manninen2007metalclustersquantumdots,Ghosal2007-WignerMolecules}.
+Nor is the separation of radial and angular ordering new: earlier simulations and
+symmetry-restored calculations report radial order before orientational correlations
+~\cite{Filinov_2001,Cavaliere2009-WignerTransport}. The contribution here is a
+topology-conditioned measurement within the retained fixed-$S_z$ states, using finite-$n$
+nulls and a held-out shell reconstruction across the selected grid. The $N{=}6$ ring follows
+the classical $1.334\,\omega^{-2/3}$ scaling and reaches within $1.7\%$ at the weakest trap.
+Its bond order remains near the random-angle null through $\omega=0.1$ and becomes large only
+at $\omega=10^{-3}$. Whether the same staging
 survives a total-spin scan we cannot say.
 
-\paragraph{What ``Markov-chain-free'' claims.}
+\paragraph{What ``MCMC-free'' means here.}
 \label{sec:collocation-discussion}
 The claim is about the gradient: no configuration entering a parameter update comes from a
 Markov chain. A small Metropolis probe runs outside the gradient loop to select checkpoints
@@ -158,7 +140,8 @@ descend from benchmark-guided states at stronger confinement. Against the SR rou
 collocation is several times less accurate across the benchmarked range---within about a
 tenth of a percent of DMC at strong confinement and three tenths at $N{=}6$,
 $\omega{=}0.1$---and not competitive at $N{=}20$. The two look complementary rather
-than rival: collocation for fast, parallel, Markov-chain-free exploration and pretraining; SR for
+than rival: collocation for fast, parallel exploration and pretraining with MCMC-free
+gradient updates; SR for
 final accuracy where correlation is strong.
 
 \section{Scope, and what to do next}
@@ -170,8 +153,9 @@ regime, where spin transitions are plausible and the structural conclusions are 
 The architecture comparison is seeded at $N{=}6$, rests on fewer models at $N{=}12$ and on a
 single production state at $N{=}20$, and the error bars on the production energies do not
 include the variation between independent training runs. The backflow variants are not
-capacity-matched and cannot be at equal width, so neither the cross-architecture energy gap
-nor the rank collapse isolates architecture. The tangent-space quantities are properties of
+matched in capacity, input scaling or centre-of-mass handling, so neither the
+cross-architecture energy gap nor the rank collapse isolates architecture. The correlators
+also use different primitive pair features. The tangent-space quantities are properties of
 the networks as parametrised, not of the states they represent. And one entry in the
 backflow rank table, at $N{=}20$ and $\omega=0.01$, comes from a re-run whose diagnostics
 were not retained.
@@ -183,11 +167,11 @@ bottleneck and not the objective, which argues for a better sampler rather than 
 loss: normalising flows trained against $|\Psi|^2$, or the shell-informed construction of
 \S\ref{sec:kernel-q3-frontier} generalised beyond ring geometries. Past the frontier the
 target changes: what is needed there is an $\ell$-covariant parameterisation, or an objective
-anchored on the shell amplitude, so that a converged state survives being carried to a weaker
+anchored on the shell amplitude, so that a stable state survives being carried to a weaker
 trap.
 
 \emph{Make rotation equivariance exact.} Permutation equivariance holds by construction and
-the centre of mass is projected out, but the displacement head reads a $d$-vector from a
+the production CTNN projects out the centre of mass, but its displacement head reads a $d$-vector from a
 network that has seen absolute coordinates, so $\mathrm{SO}(2)$ equivariance is only
 encouraged---by relative-vector edge features and by the random in-plane rotation applied to
 every batch---and never enforced. In a rotationally invariant trap whose weak-confinement
@@ -197,16 +181,16 @@ $\Delta\mathbf r_i=\sum_{j\neq i} g_\beta(\text{invariants}_{ij})\,\mathbf r_{ij
 scalar gain on each relative vector, so the output rotates exactly with the input and the
 augmentation can be dropped. We did not run it.
 
-\emph{Break the quadratic backflow.} What stops the method at twenty electrons is the
-$\mathcal{O}(N^2 h_{\rm bf})$ edge tensor, a memory limit rather than a physical one. Sparse
+\emph{Break the quadratic backflow.} At twenty electrons the tested implementation is limited
+by the $\mathcal{O}(N^2 h_{\rm bf})$ edge tensor. Sparse
 or low-rank message passing, a local backflow without all-to-all edge features, or the
 sample-side reductions of minSR and the kernel
 formulation~\cite{ChenHeyl2024-minSR,Rende2024-KernelSR} would extend the reach without
 giving up the nodal correction that is the reason for having a backflow at all.
 
-\emph{Match the backflow capacities.} A widened conventional backflow at $182$k parameters
-is the one control that would turn the rank-collapse observation into an architecture
-ablation, and it is the most important experiment this thesis leaves undone.
+\emph{Match the backflow comparison.} A widened conventional backflow at $182$k parameters,
+with the same trap-scaled inputs, displacement unit and centre-of-mass projection, is the
+control needed to turn the rank-collapse observation into an architecture ablation.
 
 \emph{Measure the metric where the hypothesis lives.} The estimability account of
 \S\ref{sec:kernel-cond} rests on a spectrum measured under $|\Psi|^2$ and inferred under

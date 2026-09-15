@@ -52,15 +52,15 @@ behaviour to Wigner-molecule physics. In the lab frame, rotational symmetry and 
 fluctuations smear these patterns into smooth densities; in a co-rotating frame the
 crystalline structure reappears, with a topology that depends on particle number. For $N{=}6$ and
 $N{=}12$, classical and semiclassical studies have identified preferred shellings such as
-$(1,5)$ and $(3,9)$ and mapped parts of the crossover
-\cite{Egger_1999,Kong_2002,schweigert1994spectralpropertieschargedparticles,manninen2007metalclustersquantumdots}.
+$(1,5)$ and $(3,9)$ and mapped the radial and orientational development of the Wigner regime
+\cite{ReimannManninen2002-QDReview,Egger_1999,Kong_2002,schweigert1994spectralpropertieschargedparticles,manninen2007metalclustersquantumdots,Cavaliere2009-WignerTransport,Ghosal2007-WignerMolecules}.
 
 Quantum dots suit this thesis for two reasons. They are genuinely non-trivial: Coulomb
 singularities, strong correlation and a real crossover appear already at moderate $N$.
 And they are simple enough that accurate DMC references exist in many regimes and that
 detailed structural diagnostics are computationally feasible. For fully quantum dots,
-quantitative topology-resolved diagnostics and a systematic picture of the Wigner regime
-remain relatively sparse, and it is not well understood how modern neural ans\"atze
+quantitative, null-calibrated and topology-conditioned diagnostics remain less common, and
+it is not well understood how modern neural ans\"atze
 represent these states internally.
 
 \paragraph{Neural wavefunctions.}
@@ -71,13 +71,13 @@ broad forms in physics. Neural networks act as
 solution operators of partial differential equations, as physics-informed neural networks
 and operator learning do. Or they act as \emph{variational ans\"atze} for quantum states,
 where the network outputs the amplitude of a many-body configuration and is trained by
-variational Monte Carlo. This thesis belongs to the second tradition and uses the first:
-a physics-informed residual objective serves as the pretraining stage of the variational
-method and, in weak form, as the Markov-chain-free collocation route of
+variational Monte Carlo. This thesis belongs to the second tradition and borrows a residual
+objective from the first: that objective serves as the pretraining stage of the variational
+method and, in weak form, as the collocation route with MCMC-free gradient updates in
 Chapter~\ref{ch:kernel}, a training method in its own right.
 
-Representing a quantum state by a neural network and optimising it variationally was
-introduced by Carleo and Troyer~\cite{Carleo2017-NQS}. For continuum fermions the idea has
+Carleo and Troyer introduced the modern neural-quantum-state formulation for lattice
+systems~\cite{Carleo2017-NQS}. For continuum fermions the idea has
 since matured into highly accurate \emph{ab initio} solvers such as
 FermiNet~\cite{Pfau2020-FermiNet} and PauliNet~\cite{Hermann2020-PauliNet}, and into
 explicit neural \emph{backflow} transformations~\cite{LuoClark2019-NeuralBackflow}, the
@@ -119,11 +119,11 @@ shapes the ansatz used here. The Coulomb interaction diverges where two electron
 the local energy diverges with it unless the wavefunction cancels the singularity, so the
 electron--electron cusp is built in analytically rather than learned. The kinetic energy is
 a second derivative, which amplifies any error in the curvature of the network, so the
-network's inputs are smooth, scaled to the trap and soft at short range. And the nodal surface,
-where the determinant changes sign, is where a backflow receives its learning signal under a
-strong-form residual objective, and also where the local energy of any imperfect
-wavefunction diverges. In every variant tried in Appendix~\ref{app:catch22}, this kept the
-strong form from training a backflow, which is why the collocation route uses a weak form. Beyond these,
+network's inputs are smooth, scaled to the trap and soft at short range. At a generic simple
+node of an approximate state, the local energy has a pole; a strong-form objective that
+differentiates through it can therefore produce heavy-tailed gradients for backflow
+parameters that move the node. None of the variants tested in Appendix~\ref{app:catch22}
+closed the resulting accuracy gap, which motivated the weak-form route. Beyond these,
 the ansatz builds in antisymmetry and permutation symmetry and leaves the network to learn
 the remaining correlation. On top of a Slater determinant of harmonic-oscillator orbitals,
 two learnable objects carry that correlation: a Jastrow correlator, which reshapes the
@@ -137,10 +137,10 @@ where the others are. Architectures that let particles exchange information are 
 natural candidates for both the correlator and the backflow. Each can be built in two forms.
 A separable network encodes per-particle and pairwise features and pools them in a single
 pass, as a DeepSet does; a \emph{message-passing} network lets the particles exchange and
-update information through explicit edge states before a quantity is read out. At strong
-confinement, with everything else held fixed, the two correlators reach the same energy to
-four figures. The energy therefore cannot show what the relational channel contributes, and
-any difference between the architectures has to be sought in other quantities.
+update information through explicit edge states before a quantity is read out. In the
+implemented comparison the two correlator families reach the same energy to four figures,
+although their learned pair features are not otherwise identical. The energy therefore does
+not resolve their difference, which has to be sought in other quantities.
 
 Such quantities are available because a trained ansatz can be inspected. Its physical structure is
 imposed, as in any method, but the correlations it develops within those constraints are
@@ -172,13 +172,13 @@ the state, or the physics itself may have become harder. This thesis is organise
 attempt to separate those explanations. Its first three questions follow them; the fourth
 uses the resulting states for the physics they were meant to describe.
 \begin{enumerate}
-  \item \textbf{Architecture.} What does a message-passing network learn that a separable
-        one cannot? We compare the two forms in the correlator and in the backflow, holding
-        everything else fixed.
+  \item \textbf{Architecture.} How do the trained message-passing and separable
+        implementations differ in the correlator and the backflow, and which differences
+        survive state-level diagnostics?
   \item \textbf{Optimiser.} When does natural-gradient (stochastic reconfiguration)
         preconditioning change the result, and when is it unnecessary or harmful?
-  \item \textbf{Paradigm.} Removing the Markov chain from the gradient isolates the
-        sampling explanation. Can an accurate wavefunction be trained by importance-sampled
+  \item \textbf{Paradigm.} Removing the Markov chain from the gradient makes the role of
+        the proposal explicit. Can an accurate wavefunction be trained by importance-sampled
         collocation instead, and how far into the correlated regime does that reach before
         the samples stop describing the state?
   \item \textbf{Physics.} Can the trained wavefunction serve as an instrument for
@@ -188,15 +188,16 @@ uses the resulting states for the physics they were meant to describe.
 
 \noindent The results take these in a different order, because a state has to be shown
 accurate enough to trust before either its physics or the solver that produced it can be
-interpreted. Chapter~\ref{ch:results} establishes the energies and reads the physics from
+interpreted. Chapter~\ref{ch:results} presents the energy comparisons and reads the physics from
 the states; Chapter~\ref{ch:kernel} turns to the solver.
 
 The questions are answered with three kinds of measurement: the tangent geometry above,
 structural diagnostics of the trained state, which read shell topology and angular order
 against a random-angle baseline and a held-out polygon shell model, and sampling
-diagnostics for the Markov-chain-free route. All are post-processing on $|\Psi|^2$
-samples, so the same analysis would apply unchanged to a classical or quantum-chemical
-wavefunction. Chapter~\ref{ch:analysis} defines them.
+diagnostics for the MCMC-free update route. The structural diagnostics act only on
+configuration samples and can therefore be transferred to other many-body distributions;
+the tangent diagnostics also require derivatives of the parametrised state.
+Chapter~\ref{ch:analysis} defines them.
 
 \paragraph{Main contributions.}
 \begin{enumerate}
@@ -204,26 +205,25 @@ wavefunction. Chapter~\ref{ch:analysis} defines them.
         published fixed-node references for $N\in\{2,6,12,20\}$ at the confinements where we
         compare with them ($\omega=1$, $0.5$, $0.1$), and extends smoothly into the Wigner
         regime, where its energies are predictions.
-  \item Evidence that message passing changes the correlator as a state, not only as a
-        parametrisation. At equal energy a message-passing correlator reaches a lower
-        local-energy variance and keeps its leading tangent directions inside a compact
-        dictionary of collective operators; under the parametrisations used here it also
-        concentrates its Fisher weight in about half as many effective directions as a
-        separable one. A smaller conventional backflow collapses to a single displacement
-        mode at weak confinement where a larger message-passing one does not.
+  \item A comparison of trained correlator and backflow implementations beyond their energy.
+        At equal energy the message-passing correlator has lower local-energy variance and a
+        higher fit to a selected operator dictionary; under the parametrisations used here it
+        also concentrates its Fisher weight in fewer effective directions. The backflow sweep
+        shows a rank-one collapse in the legacy conventional path, but capacity, input scaling
+        and centre-of-mass handling prevent an architecture-only interpretation.
   \item A hypothesis for when natural-gradient preconditioning earns its cost. Poor
         conditioning alone does not decide it, and that much is measured. The failures
         suggest that the metric must also be estimable from the batch.
-  \item Markov-chain-free training by importance-sampled collocation, mapped to its limits:
+  \item Training with MCMC-free gradient updates by importance-sampled collocation, mapped to its limits:
         within about a tenth of a percent of DMC at strong confinement and within $0.35\%$ on
         every seed across the whole confinement range at $N{=}6$ with an adaptive proposal; a proposal
         built from the measured shell geometry that raises the effective sample size
-        fifteen- to thirtyfold over a fixed one; and a cascade that carries converged states
-        to $\omega=0.0035$, below which they no longer survive the step to a weaker trap.
+        fifteen- to thirtyfold over a fixed one; and a cascade that reaches a stable checkpoint
+        at $\omega=0.0035$, below which it no longer survives the step to a weaker trap.
   \item Topology-resolved diagnostics of the Wigner crossover, which quantify, shell by
         shell, how far radial stiffening runs ahead of angular order, complementing classical and quantum
         studies of parabolic
-        dots~\cite{Egger_1999,Kong_2002,schweigert1994spectralpropertieschargedparticles,Filinov_2001}.
+        dots~\cite{Egger_1999,Kong_2002,schweigert1994spectralpropertieschargedparticles,Filinov_2001,Cavaliere2009-WignerTransport,Ghosal2007-WignerMolecules}.
 \end{enumerate}
 
 \paragraph{Thesis structure.}
@@ -232,7 +232,7 @@ This introduction forms Part~I. Part~II sets out the physics and machine-learnin
 optimisation pipeline and the diagnostics (Chapters~\ref{ch:trial_wavefunction}
 to~\ref{ch:analysis}). Part~IV reports the results: Chapter~\ref{ch:results} the energies
 and the Wigner-molecule structure, and Chapter~\ref{ch:kernel} the analysis of
-architecture, optimisation and sampling together with the Markov-chain-free training
+architecture, optimisation and sampling together with the MCMC-free update
 programme. Part~V discusses and concludes. The appendices in Part~VI develop the
 conditioning theory, the collocation--backflow obstruction that motivated the weak-form
 objective, the full diagnostic tables and the reproducibility record.

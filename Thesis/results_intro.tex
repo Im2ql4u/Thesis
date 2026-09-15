@@ -16,24 +16,26 @@ that follows. Read for the physics they contain, they show a crossover from comp
 finite Wigner molecule that is \emph{staged}: the cloud expands and its shells stiffen
 radially well before the electrons acquire angular order within them.
 
-We then turn from the state to the solver. Message passing changes the geometry of the
-variational representation even where the total energy cannot tell two networks apart---under
-the parametrisations used here the correlator concentrates its tangent weight on fewer and
-more interpretable directions, and the message-passing backflow avoids a rank collapse that
-overtakes a smaller conventional one. Architecture, optimiser and sampling measure then meet
+We then turn from the state to the solver. The implemented model families have different
+variational geometries even where their total energies agree. Under the parametrisations
+used here, the message-passing correlator concentrates its tangent weight on fewer directions
+that are better described by the selected operator dictionary. The message-passing backflow
+also avoids the rank collapse seen in the smaller conventional implementation. Architecture,
+optimiser and sampling measure then meet
 in a single object, the geometry of the wavefunction's log-derivatives, and the evidence
 suggests that natural-gradient preconditioning earns its cost only while that geometry can
 still be estimated from a batch.
 
-The loop closes when a generic collocation proposal loses the Wigner state. The structural
+Finally, a generic collocation proposal loses the Wigner state. The structural
 measurements of Chapter~\ref{ch:results} supply the remedy: a proposal built from the
-observed shell geometry carries a Markov-chain-free cascade of converged states to
-$\omega=0.0035$, where a transfer instability in the Slater--Jastrow balance takes over.
+observed shell geometry carries a cascade with MCMC-free updates to a stable state at
+$\omega=0.0035$, where transfer to the next confinement fails. The component decomposition
+is consistent with a disturbed Slater--Jastrow balance but does not isolate it.
 
 \medskip
 \noindent Three differently sized sets of models appear below---the production states that
-carry the physics, the matched ladder of the architecture study, and the smaller collocation
-networks---and numbers from one are never compared with numbers from another.
+carry the physics, the capacity ladder of the architecture study, and the smaller collocation
+networks. They are kept distinct, and any cross-set comparison is identified as unmatched.
 Table~\ref{tab:hyperparams} gives all three. The four research questions of
 \S\ref{sec:research-questions} are answered here:
 
@@ -43,7 +45,7 @@ Table~\ref{tab:hyperparams} gives all three. The four research questions of
 \textbf{RQ4 --- Physics} & \S\ref{sec:wigner-molecule} \\
 \textbf{RQ1 --- Architecture} & \S\ref{sec:kernel-q1} \\
 \textbf{RQ2 --- Optimiser} & \S\ref{sec:kernel-cond} \\
-\textbf{RQ3 --- Markov-chain-free paradigm} & \S\ref{sec:kernel-mcmcfree}--\S\ref{sec:kernel-q3-frontier} \\
+\textbf{RQ3 --- MCMC-free gradient updates} & \S\ref{sec:kernel-mcmcfree}--\S\ref{sec:kernel-q3-frontier} \\
 \bottomrule
 \end{tabular}
 \end{center}

@@ -119,18 +119,17 @@ spin-independent, the Slater determinant simplifies:
 
 \paragraph{Closed shells.}
 For even $N$ with doubly occupied spatial orbitals
-$\{\phi_1,\ldots,\phi_{N/2}\}$, the determinant factorizes into two identical spatial determinants,
-one for each spin:
+$\{\phi_1,\ldots,\phi_{N/2}\}$, fixing the spin labels makes the spin-orbital determinant
+block diagonal, with one spatial determinant for each spin:
 \[
 \Psi_{\mathrm{closed}}(X)
 =\frac{1}{(N/2)!}\;
 \det[\phi_a(\mathbf r_i)]_{i\in\uparrow,a=1..N/2}\;
-\det[\phi_a(\mathbf r_j)]_{j\in\downarrow,a=1..N/2}\;\times\; \Xi_{S=0,S_z=0},
+\det[\phi_a(\mathbf r_j)]_{j\in\downarrow,a=1..N/2},
 \]
-where $\Xi$ is the singlet spin function. In the computational representation this last
-factor is not carried: fixing which electrons are spin-up and which spin-down makes the full
-spin-orbital determinant block diagonal, and the product of the two spatial determinants
-\emph{is} the ansatz. This has the \emph{form} of a restricted closed-shell determinant, but
+which is the computational ansatz used here. This fixes $S_z=0$, but it does not explicitly
+project the interacting trial state onto a total-spin eigenstate. The expression has the
+\emph{form} of a restricted closed-shell determinant, but
 its orbitals are the
 harmonic-oscillator eigenstates of the trap, not orbitals optimised self-consistently in
 the mean field of the other electrons. It is therefore the closed-shell
@@ -301,8 +300,8 @@ $E_L$ would be \emph{constant} over the whole of configuration space. Its varian
   \Var(E_L) \;=\; \big\langle E_L^2\big\rangle - \big\langle E_L\big\rangle^2
   \label{eq:varEL-theory}
 \end{equation}
-therefore vanishes only at an exact eigenstate, and decreases as the trial state improves.
-This makes it a measure of wavefunction quality that is independent of any external
+therefore vanishes for an exact eigenstate. It is often a useful measure of wavefunction
+quality, but need not decrease monotonically with the variational energy. It is independent of any external
 reference---which matters here for two reasons. It keeps saying something after the energy
 has saturated, when two ansätze agree to four figures and the energy can no longer tell
 them apart. And it is defined on the state rather than on any component of it, so it
@@ -312,7 +311,7 @@ Chapter~\ref{ch:kernel} uses it in both roles.
 \subsection{Diffusion Monte Carlo, and the fixed-node constraint}
 \label{subsec:dmc-theory}
 
-DMC removes the dependence on a trial state by projection. In imaginary time
+DMC reduces the amplitude error of a trial state by imaginary-time projection. In imaginary time
 $\tau=it$ the Schr\"odinger equation becomes a diffusion equation,
 \[
 -\frac{\partial \Psi(\mathbf R,\tau)}{\partial\tau} = (\hat H - E_T)\,\Psi(\mathbf R,\tau),
@@ -320,8 +319,10 @@ $\tau=it$ the Schr\"odinger equation becomes a diffusion equation,
 whose long-time limit is the ground state, provided the initial state overlaps it. The
 evolution is simulated by an ensemble of walkers that diffuse, drift along the quantum
 force, and are branched or killed with weight
-$w=\exp[-(E_L(\mathbf R)-E_T)\Delta\tau]$, so that the walker density converges on the
-ground-state density.
+$w=\exp[-(E_L(\mathbf R)-E_T)\Delta\tau]$. In the standard importance-sampled formulation,
+the stationary walker density is the mixed distribution proportional to
+$\Psi_T\Phi_0$, where $\Phi_0$ is the projected state; it is not generally
+$|\Phi_0|^2$.
 
 That argument works because a diffusion equation propagates a \emph{probability}. For
 bosons the ground state is nodeless and can be treated as one directly. For fermions it
@@ -430,8 +431,9 @@ according to the local geometry of the loss.
 Gradient descent, $\theta^{(t+1)}=\theta^{(t)}-\eta\nabla_\theta\hat{\mathcal R}(\theta^{(t)})$,
 moves along the direction of steepest local decrease; too small a learning rate $\eta$
 converges slowly and too large a one diverges. Evaluating the full gradient is usually
-unaffordable, so the estimate is formed on a mini-batch, which is unbiased and whose variance
-sets the noise scale of the trajectory~\cite{wu2022alignmentpropertysgdnoise}. Momentum
+unaffordable, so it is estimated from a mini-batch. For independent, uniformly drawn batches
+this estimate is unbiased, and its variance sets the noise scale of the
+trajectory~\cite{wu2022alignmentpropertysgdnoise}. Momentum
 accumulates a running average of past gradients, damping oscillation across narrow directions
 and building displacement along consistent ones. Adam~\cite{KingmaBa2015-Adam} adds a
 per-parameter normalisation by a running second moment,
@@ -511,10 +513,10 @@ $B<P$.
 The analysis is organised around two scalars read from that spectrum. The
 \emph{condition number}
 $\kappa(S)=\lambda_{\max}/\lambda_{\min}$ measures how anisotropic the tangent metric
-is, and therefore how far a natural-gradient step departs from a Euclidean one. It is the
-quantity one would expect to decide when SR is worth its cost; Chapter~\ref{ch:kernel}
-measures it and finds that it does not, which is how the estimability criterion of that
-chapter arises. The \emph{effective dimension}
+is. How far a damped natural-gradient step departs from a Euclidean step also depends on the
+gradient direction, regularisation and spectral cutoff. Chapter~\ref{ch:kernel} shows that
+$\kappa$ alone does not decide when SR is useful, which motivates the estimability hypothesis
+developed there. The \emph{effective dimension}
 \begin{equation}
   d_{\mathrm{eff}}(S) = \frac{\left(\sum_a \lambda_a\right)^2}{\sum_a \lambda_a^2}
 \end{equation}
@@ -567,16 +569,16 @@ the network.
 
 \paragraph{The activation.}
 $\mathrm{ReLU}(x)=\max(0,x)$ has a second derivative that vanishes almost everywhere and is
-distributional at its kinks, so it cannot represent the pointwise curvature a Laplacian-based
-local energy asks for; it is excluded at once. Less obviously, being $C^\infty$ does not suffice either. The relevant
-property is the reach of the higher derivatives: an activation whose second and third
-derivatives decay quickly away from the origin contributes little curvature over most of
-its input range, so the Laplacian of a deep composition stays bounded and its variance
-finite. Tanh and the logistic sigmoid are perfectly smooth, yet their higher derivatives are
-sharply peaked and change sign, and curvature accumulates unevenly through depth. We use the $\mathrm{SiLU}(x)=x\,\sigma(x)$ family instead. Figure~\ref{fig:activation_derivatives}
-shows GELU and Mish, which are the members of that family whose derivative shapes we
-compared and which SiLU closely resembles; their second and third derivatives are broader and
-decay more slowly than those of tanh or the logistic sigmoid. This is a design heuristic
+distributional at its kinks, so it is unsuitable for the pointwise autograd Laplacian used
+here. Less obviously, being $C^\infty$ does not by itself determine how useful an activation
+is for a Laplacian objective. What matters heuristically is also how its higher derivatives
+are distributed over the input range. When the second and third derivatives are sharply
+localised, curvature information can become concentrated in narrow regions of a deep
+composition. Tanh and the logistic sigmoid are perfectly smooth, yet their higher
+derivatives are sharply peaked and change sign. We use
+$\mathrm{SiLU}(x)=x\,\sigma(x)$, whose higher derivatives are distributed more broadly.
+Figure~\ref{fig:activation_derivatives} compares several smooth alternatives, including GELU
+and Mish. This is a design heuristic
 rather than a theorem: the figure establishes the shapes of the derivatives, not a bound on
 the Laplacian variance of a deep composition, and we did not run an activation ablation.
 
@@ -588,8 +590,8 @@ the Laplacian variance of a deep composition, and we did not run an activation a
   smoothness but the \emph{reach} of the higher derivatives: for GELU and Mish the second
   and third derivatives are broad and decay slowly to zero, while for tanh and sigmoid they
   are sharply peaked near the origin and change sign, so curvature accumulates unevenly
-  when such units are composed through depth. ReLU is shown for contrast; its second
-  derivative is a distribution and it cannot be used in a Laplacian-based objective at all.}
+  when such units are composed through depth. ReLU and SiLU are not shown; SiLU is the
+  activation used in the reported models.}
   \label{fig:activation_derivatives}
 \end{figure}
 
@@ -699,9 +701,10 @@ structure of the updates, not a claim to a formal sheaf-theoretic construction.
 \subsection{Relevance to the ansatz}
 Both learnable objects of the ansatz---the Jastrow correlator and the coordinate
 backflow---can be built in either form: as a separable DeepSets-type network, or as the
-message-passing CTNN. Holding everything else fixed and varying only this choice isolates
-the effect of the relational channel, which Chapter~\ref{ch:kernel} analyses through the
-geometry of the tangent kernel introduced in \S\ref{sec:theory-tangent-kernel}.
+message-passing CTNN. Chapter~\ref{ch:kernel} compares these implementations through the
+geometry of the tangent kernel introduced in \S\ref{sec:theory-tangent-kernel}. Because the
+archived models also differ in capacity, features and coordinate handling, the comparison
+is descriptive rather than an isolated test of the relational channel.
 
 \section{Approximation theory and its limits}
 \label{sec:nn_approximation}
@@ -749,9 +752,10 @@ penalising the residual of the equation itself: for a differential operator $\ma
 a network $u_\theta$, the loss is a sampled sum of $|\mathcal N[u_\theta](\xi_j)|^2$ over
 collocation points $\{\xi_j\}$, together with boundary and data terms. Training a network
 against a differential operator predates the name by two
-decades~\cite{Lagaris1998-ANNforODEPDE}; what \cite{raissi2019pinns} added was automatic
-differentiation, which evaluates $\nabla u_\theta$ and $\Delta u_\theta$ exactly and cheaply
-enough that the residual can drive the optimisation directly.
+decades~\cite{Lagaris1998-ANNforODEPDE}. Raissi, Perdikaris and Karniadakis consolidated and
+popularised the modern PINN formulation in the automatic-differentiation
+era~\cite{raissi2019pinns}, in which derivatives such as $\nabla u_\theta$ and
+$\Delta u_\theta$ can be evaluated directly and used to train on the residual.
 
 Four difficulties follow from differentiating through the operator, and each recurs by name
 in the results of this thesis~\cite{De_Ryck_2024}.
@@ -769,19 +773,18 @@ evidence of a good state without an independent energy evaluation.
 \emph{Sampling.} Collocation minimises a sampled surrogate of a continuum loss, and the
 empirical residual can be small while the population residual is not. In this setting the
 question becomes whether an importance-weighted estimator has a finite variance at all,
-which is what bounds the Markov-chain-free programme of Chapter~\ref{ch:kernel}.
+which is what bounds the MCMC-free update programme of Chapter~\ref{ch:kernel}.
 
 \emph{Conditioning.} Residual losses couple terms of disparate scale and produce
 ill-conditioned gradient dynamics; in the linearised view, convergence is governed by the
 spectrum of a problem-dependent kernel. That spectrum is the subject of the entire
 tangent-kernel analysis.
 
-The last of these determined the design of the collocation programme. A strong-form residual
-that differentiates through the Laplacian meets a structural obstruction as soon as it is
-asked to train a nodal surface, because the learning signal lives where $E_L$ diverges. The
-weak form keeps the local energy as a detached reward and never differentiates it, and so
-avoids the obstruction; Appendix~\ref{app:catch22} shows why, and it is the reason the
-collocation programme takes the form it does.
+The last of these determined the design of the collocation programme. Near a generic simple
+node, $E_L$ has a pole, and differentiating a strong residual through it produces a
+heavy-tailed gradient. The tested strong-form implementations stalled at the accuracy floor
+documented in Appendix~\ref{app:catch22}. The weak form instead keeps the local energy as a
+detached reward, which removes that derivative and proved substantially more stable.
 
 \section{Constraints carried into the method}
 \label{sec:ml_summary}
@@ -824,4 +827,3 @@ can remain small and smooth. The third is treated in Chapter~\ref{ch:optimisatio
 the sampling measure is a design variable rather than a fixed background. The fourth is not
 settled here: both architectures are constructed, and the comparison between them is
 reported in Chapter~\ref{ch:kernel}.
-

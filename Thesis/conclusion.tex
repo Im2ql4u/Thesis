@@ -10,35 +10,33 @@ Aurelius}{\textit{Meditations}}
 \label{ch:conclusions}
 \endgroup
 
-The work formed a feedback cycle between solver and physics. A variational state was
-constructed and compared against external references wherever we had them, with which it agrees
-closely; the state was then used as an instrument, and resolved the shell geometry of the Wigner regime: rings at
-definite occupancies, $n$-fold angular order becoming large only in the last decade of
-confinement, a shell radius approaching its classical $\omega^{-2/3}$ scaling. Those are the
+The work formed a feedback cycle between solver and physics. We constructed a variational
+state and compared it with external references wherever they were available; the energies
+agree closely. We then used the state as an instrument to resolve the Wigner regime: rings at
+definite occupancies, $n$-fold angular order that becomes large only in the last decade of
+confinement, and a shell radius approaching its classical $\omega^{-2/3}$ scaling. Those are the
 measurements a sampler needs in order to place its mass correctly. Feeding the measured
-geometry back into the proposal carried a Markov-chain-free cascade of converged states from
-$\omega\approx0.01$, where the fixed origin-centred sampler fails, down to $\omega=0.0035$.
+geometry back into the proposal carried a cascade with MCMC-free updates from
+$\omega\approx0.01$, where the fixed origin-centred sampler fails, to a stable checkpoint at
+$\omega=0.0035$.
 
-\emph{Architecture.} Message passing supplies a relational channel whose effect appears in
-the tangent geometry before it appears in the energy (\S\ref{sec:kernel-q1}). Under the
-parametrisations and normalisation conventions used here, a message-passing correlator
-reaches a reference-quality solution with its Fisher weight concentrated in half as many
-effective directions as a separable network of matched or larger capacity, and keeps more of
-that weight inside a compact operator dictionary. That is a statement about the networks as
-parametrised, not about how many degrees of freedom the state intrinsically needs. What is
-independent of parametrisation is that the message-passing correlator carries a lower
-local-energy variance. In the nodes, toward the Wigner regime, a conventional backflow's
-displacement field falls spectrally to rank one and loses half a percent of the energy while
-a larger message-passing field does not; a capacity-matched conventional backflow is the
-control that would make this an architectural result. A controlled correlator swap moves the
-collapse boundary, which points to one relational bottleneck rather than two deficits.
+\emph{Architecture.} The implemented model families differ before their energies do
+(\S\ref{sec:kernel-q1}). Under the parametrisations used here, the message-passing correlator
+concentrates its Fisher weight in fewer effective directions and is better described by the
+selected operator dictionary. Its lower local-energy variance is a state-level difference.
+The correlators also use different primitive features, so the present comparison does not
+attribute that difference to routing alone. At weak confinement the conventional backflow
+falls to rank one and loses half a percent of the energy, but it is not matched to the CTNN in
+capacity, input scaling or centre-of-mass handling. This is an implementation result until
+those controls are supplied. The correlator swap moves the same boundary and is consistent
+with, rather than proof of, a shared relational bottleneck.
 
 \emph{Optimiser.} Conditioning alone does not decide whether natural-gradient
 preconditioning earns its cost (\S\ref{sec:kernel-cond}). Under $|\Psi|^2$ sampling the
 empirical metric is badly conditioned on the very models where Adam and stochastic
-reconfiguration agree to four decimals. Under a fixed collocation proposal SR is what makes
-the optimisation work at all; once the sampling that builds the metric collapses, inverting it
-amplifies noise. We read that pattern as saying that estimability, rather than conditioning,
+reconfiguration agree to four decimals. Under a fixed collocation proposal, SR is required
+in the tested configurations and becomes unstable after proposal overlap collapses. We read
+that pattern as saying that estimability, rather than conditioning,
 separates the regimes. It is a hypothesis the failures support, not yet a criterion: the
 metric was never measured under the collocation measure itself.
 
@@ -48,12 +46,12 @@ gradient, inside a regime whose edges we found by crossing them
 selects checkpoints and certifies the final energy, and the cascades start from
 reference-guided pretrained states. The weak-form objective comes within about a tenth of a
 percent of DMC at $N\in\{6,12\}$ under strong confinement and within about a third of a
-percent of our own converged energies well into the correlated regime, as measured by
-independent Metropolis evaluation of every trained state. It fails through one chain of
-causes---proposal mismatch, weight-tail inflation, gradient noise, an unestimable
-metric---which a better proposal moves but does not remove. The cascade then meets a second
+percent of our own variational energies well into the correlated regime, as measured by
+independent Metropolis evaluation of every trained state. The failures are consistent with
+proposal mismatch, heavier weights, gradient noise and an unreliable empirical metric, but
+the interventions do not isolate every link. A better proposal moves that limit. The cascade then meets a second
 failure, of transfer between confinements; trained directly from a pretrained checkpoint
-instead, the same ansatz reaches $\omega=10^{-3}$.
+instead, the same ansatz form reaches $\omega=10^{-3}$.
 
 \emph{Physics.} The trained state serves as an instrument
 (\S\ref{sec:wigner-molecule}). The crossover it resolves is staged: the cloud expands and its
@@ -103,24 +101,25 @@ energy nor the density provides.
 
 All four answers are bounded in the same way. Every state is the lowest found within a fixed
 spin-projection sector; the architecture comparison is seeded at $N{=}6$ and thinner above
-it, and its tangent-space measures belong to the networks as parametrised; and the two
-backflow variants are not capacity-matched, so neither the cross-architecture energy gap nor
-the rank collapse isolates architecture. \S\ref{sec:implications} sets out what would move
+it, and its tangent-space measures belong to the networks as parametrised. The backflow
+variants are not matched in capacity, input scaling or centre-of-mass handling, and the
+correlators use different primitive features, so neither comparison isolates message passing.
+\S\ref{sec:implications} sets out what would move
 each of those.
 
-At the widths reached for the well-resolved $N\le12$ studies, raw representational capacity
-was rarely the first bottleneck; alignment, conditioning and sampling were. It was not
-irrelevant everywhere. At $N{=}20$ the memory cost of the backflow's edge tensor forces a
-capacity cut that degrades the collocation gradients. But what determined the outcome, across
-architecture, optimisation and sampling alike, was alignment with the low-dimensional
-collective structure the Hamiltonian already possesses: breathing, correlation-hole and
-relative modes at strong confinement, resolving at weak confinement into the shell geometry
-of the Wigner molecule. That the same alignment matters in all three places is probably a
-fact about the system rather than about neural networks.
+For the well-resolved $N\le12$ studies, the observed failures were more closely associated
+with alignment, conditioning and sampling than with raw parameter count. This does not make
+capacity irrelevant. At $N{=}20$ the memory cost of the backflow's edge tensor forces a
+capacity cut and coincides with degraded collocation gradients. Across architecture, optimisation and
+sampling, performance is repeatedly associated with alignment to the collective structure of
+the problem: breathing, correlation-hole and relative modes at strong confinement, and the
+shell geometry of the Wigner molecule at weak confinement. Whether this is one mechanism or
+several related ones remains open.
 
 Several of these results were reached only after an initial reading of the same data proved
 wrong: a rank collapse that survived seeding where a dimension inversion did not, a transfer
-failure first attributed to the sampler and later to the ansatz, an importance-sampling
+failure first attributed to sampler placement and later found to persist in the retained
+wavefunction, an importance-sampling
 error whose signature was indistinguishable from an architectural deficiency, and a
 strong-confinement collocation energy that looked statistically exact until an independent
 evaluation showed it to be the lucky tail of a best-of-three selection. Each was

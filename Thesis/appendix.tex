@@ -36,24 +36,28 @@ A key message of the numerical-analysis viewpoint is that strong residual losses
 can be \emph{severely ill-conditioned}, and training speed is tightly linked to
 spectral properties of an operator/matrix induced by $L$ \cite{De_Ryck_2024}.
 
-\paragraph{Which of the thesis's objectives this analyses.} Three objectives appear in the
-main text and Eq.~\eqref{eq:lap:resloss} is exactly one of them. Stage~I pretraining
-(\S\ref{sec:residual-stage}) minimises $\frac1B\sum_b (E_L(\tilde R_b)-E_{\rm eff})^2$
-over configurations drawn from $|\Psi_\theta|^2$; since $E_L=\hat H\Psi/\Psi$, that sample
-average estimates $\int |\Psi_\theta|^2\,(\hat H\Psi_\theta/\Psi_\theta - E)^2
-=\|(\hat H-E)\Psi_\theta\|^2_{L^2}$, which is Eq.~\eqref{eq:lap:resloss} with $w\equiv1$.
-Everything in this appendix therefore applies to stage~I directly. It does \emph{not} apply
-in the same way to the other two. Stage~II is variational energy minimisation
-(\S\ref{sec:sr-stage}), whose objective is linear rather than quadratic in the residual and
-whose conditioning is governed by the quantum geometric tensor measured in
-\S\ref{sec:kernel-cond}, not by the $\Delta^2$ stiffness derived below. The collocation
-route (\S\ref{sec:method-collocation}) replaces the strong residual with a weak-form
-score-function objective under an analytic proposal, for the reason developed in
-\S\ref{app:laplacian:barron} and Appendix~\ref{app:catch22}: the weak form is what removes the
-second-derivative amplification, and it is the escape from the mechanism analysed here
-rather than an instance of it. Where the two production objectives inherit anything from
-this analysis, it is through the single channel they share with stage~I---the Laplacian
-inside $E_L$---and not through the squared-residual structure.
+\paragraph{Relation to the objectives used in this thesis.}
+Stage~I pretraining (\S\ref{sec:residual-stage}) draws configurations from an adaptive
+proposal $q_t$ and minimises an empirical version of
+\begin{align}
+\mathcal L_{\mathrm I}(\theta)
+&=\int q_t(\mathbf R)\,|E_L(\mathbf R)-E_{\rm eff}|^2\,d\mathbf R \\
+&=\int |(\hat H-E_{\rm eff})\Psi_\theta|^2
+\frac{q_t(\mathbf R)}{|\Psi_\theta(\mathbf R)|^2}\,d\mathbf R,
+\label{eq:lap:stage1-weight}
+\end{align}
+where the second line holds away from nodes. It therefore induces the weight
+$w_{\theta,t}=q_t/|\Psi_\theta|^2$, rather than the constant weight used in the simplest
+form of Eq.~\eqref{eq:lap:resloss}. Because this weight changes with both the proposal and
+the wavefunction, and because the implementation reuses samples and trims outliers, the
+fixed-weight analysis below is not the exact Stage~I Hessian. It isolates the more general
+curvature amplification caused by squaring a residual that contains the Laplacian.
+
+Stage~II instead minimises the variational energy (\S\ref{sec:sr-stage}), with updates
+preconditioned by the sampled quantum geometric tensor. The later collocation route
+(\S\ref{sec:method-collocation}) uses a weak, score-function gradient and does not
+differentiate through the local energy. Neither objective has the normal-equation geometry
+derived below, although both still require the Laplacian when evaluating $E_L$.
 
 \section{Linearized geometry and the matrix \(A\)}
 \label{app:laplacian:A}
@@ -219,7 +223,7 @@ is too stiff \cite{De_Ryck_2024}.
 
 Stochastic reconfiguration (SR) updates parameters using a natural-gradient-like
 preconditioner \cite{BeccaSorella2017-QMCBook,Amari1998-NaturalGradient,ParkKastoryano2020-GeometryNQS}.
-Writing $O_i=\partial_{\theta_i}\log\Psi_\theta$, one common SR update is
+Writing $O_i=\partial_{\theta_i}\log|\Psi_\theta|$, one common SR update is
 \begin{equation}
 S(\theta)\,\delta\theta = -g(\theta),
 \qquad
@@ -336,7 +340,7 @@ Thus finiteness of $E_L$ at coalescence requires
 \begin{equation}
 a=1,
 \qquad\text{i.e.}\qquad
-\left.\partial_r \log \Psi\right|_{r=0}=1
+\left.\partial_r \log |\Psi|\right|_{r=0}=1
 \quad\text{(2D, antiparallel spins)}.
 \label{eq:coulomb:cusp_2d_anti}
 \end{equation}
@@ -377,7 +381,7 @@ standard quantum-dot/Jastrow--Slater cusp condition \cite{Siljamaki2003-QD-Cusps
 \paragraph{What to remember.}
 In 2D:
 \begin{align}
-\text{antiparallel spins:}\quad & \left.\partial_r\log \Psi\right|_{0}=1
+\text{antiparallel spins:}\quad & \left.\partial_r\log |\Psi|\right|_{0}=1
 \;\;\;\Longleftrightarrow\;\;\;
 \left.\partial_r\log J\right|_{0}=1,
 \label{eq:coulomb:summary_anti}
@@ -508,7 +512,7 @@ g_i=2\,\mathrm{Cov}_{p_\theta}[E_L,O_i],
 S\,\delta\theta=-g,
 \label{eq:coulomb:sr}
 \end{equation}
-with $O_i=\partial_{\theta_i}\log\Psi_\theta$.
+with $O_i=\partial_{\theta_i}\log|\Psi_\theta|$.
 
 Coulomb-induced cusp mismatch produces $E_L$ spikes of the form
 \eqref{eq:coulomb:EL_mismatch_2d_anti}--\eqref{eq:coulomb:EL_mismatch_2d_par},
@@ -540,25 +544,21 @@ statistical difficulty of SR through heavy-tailed local-energy fluctuations
 \chapter{The collocation--backflow catch-22}
 \label{app:catch22}
 
-This appendix formalizes a structural difficulty encountered when training
-backflow transformations under the \emph{strong-form} collocation objective---the
-one that minimises the variance of the pointwise local energy $E_L$---and presents
-extensive numerical evidence for the $N{=}6$, $\omega{=}0.5$ quantum dot.
-The core observation is a \emph{catch-22}: backflow's learning signal is concentrated near
-the nodal surface, but the local energy diverges there for any imperfect wavefunction, and
-every sampling strategy we tried that includes those points produced gradients whose
-variance we could not control. The result, across every intervention below, is an accuracy
-floor at roughly $0.3\%$---set by the Jastrow alone---that is absent under VMC\,+\,SR
-training of the same ansatz family. We call the floor irreducible \emph{within this
-pipeline}: it is an empirical bound established by exhaustion over the interventions we
-tested, not a proof that no strong-form scheme can do better.
+This appendix examines a difficulty encountered when backflow was trained with a
+\emph{strong-form} collocation loss: the pointwise variance of the local energy $E_L$.
+Near a generic simple node of an approximate wavefunction, $E_L$ has a pole. A smooth
+collocation proposal therefore overweights precisely the region in which the residual is
+singular, while screening that region changes the objective and may remove configurations
+that are especially sensitive to motion of the node. Across the interventions tested for
+the $N{=}6$, $\omega{=}0.5$ dot, this pipeline did not improve beyond an error of about
+$0.3\%$.
 
-The scope of this result needs two qualifications. First, it is a property of the
-\emph{strong form} specifically: the weak-form (score-function / REINFORCE) collocation objective used
-for the results in the main text never differentiates through the Laplacian and does
-not inherit this pathology, which is why it trains the same ansatz to far below the
-$0.3\%$ floor. The value here is therefore a diagnosis of one objective's limits, not
-a measure of what Markov-chain-free training can achieve. Second, this analysis is what motivated the shift to the weak form, and is reported as a negative result and not as a headline number.
+The local analysis explains why the strong form is difficult, but it does not prove that
+the observed floor is irreducible or that nodal singularities uniquely caused every failed
+run. The experiments also use smaller models than the production VMC calculation. The
+weak-form collocation method used in the main results avoids differentiating through $E_L$
+and performs substantially better. This appendix records the strong-form result and the
+reason for changing the objective.
 
 \section{Setup and notation}
 \label{app:catch22:setup}
@@ -630,84 +630,54 @@ $\mathcal O(1)$. The exact eigenstate satisfies
 through cancellation among the determinant, Jastrow-cross, and remaining
 Jastrow terms in Eq.~\eqref{eq:c22:EL_decomp}.
 
-\paragraph{For an approximate wavefunction, the cancellation generically fails.}
-During training, the backflow parameters $\theta_{\mathrm{BF}}$ are
-imperfect: the \emph{learned} nodal surface $\mathcal N_\theta$ (where
-$D(\cdot;\theta)=0$) does not coincide with the \emph{true} nodal surface.
-Let $d_\theta$ denote the signed distance from the learned node and $d^*$
-that from the true node.
-Near a point where $d_\theta\approx 0$ but $d^*\neq 0$, the determinant
-$D\sim d_\theta\to 0$ while the kinetic contributions from the Jastrow and
-potential terms remain finite:
+\paragraph{For an approximate wavefunction, the cancellation need not hold.}
+Let $d_\theta$ be signed distance from a simple node of the trial wavefunction.
+Locally, $\Psi_\theta\sim a d_\theta$, whereas $\hat H\Psi_\theta$ is generically
+nonzero on that surface. The local energy then behaves as
 \begin{equation}
 E_L(\mathbf R)
-\supset
-\frac{\nabla^2 D(\mathbf R;\theta)}{D(\mathbf R;\theta)}
-\sim \frac{c}{d_\theta}\to\pm\infty
-\qquad\text{as }d_\theta\to 0,\ d^*\neq 0,
+=\frac{\hat H\Psi_\theta}{\Psi_\theta}
+\sim \frac{c}{d_\theta}
+\qquad\text{as }d_\theta\to 0,
 \label{eq:c22:EL_div}
 \end{equation}
-for some configuration-dependent constant $c\neq 0$.
-Conversely, near a point on the true node ($d^*=0$) but off the learned node
-($d_\theta\neq 0$), $\Psi\sim d^*\to 0$ and the wavefunction assigns
-vanishing weight.
-The pathology \eqref{eq:c22:EL_div} is therefore not an artefact of the
-nodal structure itself---it is a property of \emph{mismatched} nodes,
-and is worst precisely when backflow still has something to learn.
+with a coefficient $c$ that vanishes only when the required cancellation happens.
+Equation~\eqref{eq:c22:EL_decomp} shows how the pole can arise through the determinant
+terms, but no comparison with the unknown exact nodal surface is needed: it is a local
+property of the trial wavefunction and its residual.
 
 
-\section{The geometric mismatch argument}
+\section{Local power counting near a trial node}
 \label{app:catch22:mismatch}
 
-We now locate the divergence. It is \emph{not} in the variance of the local energy, which
-the calculation below shows to be finite for a simple node; it is one derivative later, in
-the parameter gradient.
-
-Consider the contribution to $\operatorname{Var}[E_L]$ from a
-neighborhood $U_\varepsilon$ of the learned nodal surface:
+The sampling measure determines whether the pole in Eq.~\eqref{eq:c22:EL_div} is
+integrable. In local normal coordinates, a tubular neighbourhood of a codimension-one
+nodal surface has volume element $d\sigma\,dd_\theta$. For a simple node,
 \begin{equation}
-\operatorname{Var}[E_L]
-\ge
-\int_{U_\varepsilon}
-|\Psi(\mathbf R;\theta)|^2\,
-\bigl(E_L(\mathbf R;\theta)-\bar E\bigr)^2\,
-d\mathbf R.
-\label{eq:c22:var_lb}
-\end{equation}
-When the node is ``simple'' ($D$ vanishes linearly), we have
-\begin{align}
-|\Psi|^2 &\sim d_\theta^2, &
-E_L^2 &\sim d_\theta^{-2\alpha},
+|\Psi_\theta|^2\sim d_\theta^2,
+\qquad
+E_L^2\sim d_\theta^{-2}.
 \label{eq:c22:scaling}
-\end{align}
-where $\alpha$ characterises the severity of the mismatch.
-For the generic case where the numerator
-$\nabla^2 D$ does \emph{not} vanish on $\mathcal N_\theta$
-(because $\mathcal N_\theta\neq\mathcal N^*$),
-one has $\alpha=1$ so that $E_L^2\sim d_\theta^{-2}$.
+\end{equation}
 
-In $D$-dimensional configuration space, the volume element in a
-tubular neighborhood of a codimension-1 surface scales as
-$dV\sim d_\theta^0\,d\sigma\,dd_\theta$.
-Thus the integrand in \eqref{eq:c22:var_lb} behaves as
+Under the VMC measure $p_\theta\propto|\Psi_\theta|^2$, the local contribution to
+the second moment of $E_L$ is therefore finite:
 \begin{equation}
-|\Psi|^2\cdot E_L^2\cdot dV
-\sim
-d_\theta^2\cdot d_\theta^{-2}\cdot dd_\theta
-= dd_\theta,
+\int_{-\varepsilon}^{\varepsilon}p_\theta E_L^2\,dd_\theta
+\sim\int_{-\varepsilon}^{\varepsilon}dd_\theta<\infty.
 \label{eq:c22:integrand}
 \end{equation}
-which integrates to $\mathcal{O}(\varepsilon)$ and is therefore \emph{finite}: a simple node does not, by itself, make $\mathrm{Var}[E_L]$ diverge under the $|\Psi|^2$ measure. The instability enters one derivative later, in the \emph{parameter gradient}.
-But the key observation is that this is the \emph{best case}.
-In practice, the mismatch between $\mathcal N_\theta$ and $\mathcal N^*$
-is not uniform: there exist regions where the surfaces cross at angles,
-creating pockets where $|d^*|/|d_\theta|$ is large
-(the true wavefunction is non-negligible while the learned determinant
-is near-zero), and there the $E_L^2$ spike is not compensated by $|\Psi|^2$
-suppression.
-
-More concretely, the gradient
-$\partial\mathcal L/\partial\theta_{\mathrm{BF}}$ involves terms of the form
+The same second moment under a proposal with a smooth, nonzero density at the node
+scales as $\int d_\theta^{-2}dd_\theta$ and is not locally integrable. Directly
+differentiating the empirical strong loss is more singular still. For a parameter that
+moves the node, $\partial_\theta d_\theta\neq0$ and
+\begin{equation}
+\partial_\theta E_L
+\sim \frac{\partial_\theta c}{d_\theta}
+-\frac{c\,\partial_\theta d_\theta}{d_\theta^2}.
+\label{eq:c22:grad_EL_local}
+\end{equation}
+In the determinant representation, the same behaviour appears in terms such as
 \begin{equation}
 \frac{\partial E_L}{\partial\theta_{\mathrm{BF}}}
 \;\supset\;
@@ -717,101 +687,75 @@ $\partial\mathcal L/\partial\theta_{\mathrm{BF}}$ involves terms of the form
 \frac{\partial D}{\partial\theta_{\mathrm{BF}}},
 \label{eq:c22:grad_EL}
 \end{equation}
-both of which diverge as $D\to 0$.
-Even in the marginal case where $\mathrm{Var}[E_L]$ is finite,
-the \emph{gradient variance} (which involves these higher-order poles)
-generically diverges, making gradient-based optimisation impossible at
-points near the learned node.
+which diverge as $D\to0$. Finite batches regularise these expressions through their
+nearest sampled distance to the node, but the resulting updates can be dominated by rare
+points. This predicts severe heavy tails, not the impossibility of optimisation in every
+strong-form implementation.
 
 
 \section{The catch-22}
 \label{app:catch22:statement}
 
-The preceding analysis reveals a three-sided dilemma:
+The preceding analysis gives the practical tension behind the name of this appendix:
 
 \begin{enumerate}
-\item \textbf{Backflow learns at the node.}
-  The purpose of backflow is to reshape the nodal surface of the Slater
-  determinant.
-  The gradient signal $\partial E_L/\partial\theta_{\mathrm{BF}}$
-  is largest where the backflow shifts actually change which side of the
-  node a configuration point lies on, i.e., where $D\approx 0$.
+\item \textbf{Backflow moves the node.}
+  Parameters that displace a simple node have a logarithmic derivative
+  $\partial_{\theta_{\mathrm{BF}}}\log|\Psi|\sim d_\theta^{-1}$, so
+  near-node configurations are unusually sensitive to those parameters.
 
-\item \textbf{$E_L$ diverges at the node for imperfect $\theta$.}
+\item \textbf{The strong residual is singular at a generic trial node.}
   As shown in \S\ref{app:catch22:divergence}--\ref{app:catch22:mismatch},
-  the local energy and its parameter gradient contain poles of the form
-  $D^{-1}$ and $D^{-2}$ whenever the learned node does not coincide with
-  the exact node. The resulting gradient variance is unbounded.
+  $E_L$ generally has a first-order pole, and differentiating it with respect
+  to a node-moving parameter introduces a second-order pole.
 
-\item \textbf{Good collocation sampling must avoid the node.}
+\item \textbf{Screening controls the pole by suppressing its neighbourhood.}
   Under screened collocation, the top-$K$ selection ranks points by
   $|\Psi|^2/q\propto D^2 e^{2J}/q$.
-  Since $D^2\to 0$ at the node, near-node points are systematically
-  excluded from the training batch. This is \emph{protective}---it
-  prevents gradient explosion---but it also removes the points
-  where backflow's learning signal lives.
+  Near-node points therefore tend not to enter the training batch. This stabilises
+  the estimator, but it also weakens its sensitivity to the part of the wavefunction
+  that changes most sharply when the node moves.
 \end{enumerate}
 
 \noindent
-A ``catch-22'' emerges:
+A finite implementation must therefore balance two errors:
 \begin{quote}
-\emph{Including near-node points gives divergent, noisy gradients and
-backflow shrinks defensively or diverges.
-Excluding them gives stable training but removes backflow's learning signal.
-In either regime, collocation cannot effectively train backflow beyond an
-accuracy floor set by the correlator quality alone.}
+\emph{Including points arbitrarily close to a trial node exposes the strong-form
+gradient to heavy tails. Screening them improves stability but changes the effective
+objective and can reduce the signal for moving the node.}
 \end{quote}
+The experiments below are consistent with this account, but do not isolate it from
+capacity, proposal design, or optimisation effects.
 
 
-\section{Why VMC\,+\,SR escapes}
+\section{Why VMC and the weak form are less singular}
 \label{app:catch22:vmc}
 
-Under VMC, the sampling distribution \emph{is} $|\Psi_\theta|^2$, which
-assigns vanishing measure to the nodal surface.
-Near-node configurations are strongly \emph{suppressed}---for a simple node the probability of lying within a distance $\epsilon$ scales as $\epsilon^3$---rather than strictly absent, which is enough to keep the $D^{-1}$ singularity out of the gradient estimator in practice.
-However, VMC \emph{still optimises the node position} through a
-subtle mechanism:
+VMC samples from $p_\theta\propto|\Psi_\theta|^2$. For a simple node, the
+probability mass within normal distance $\epsilon$ scales as $\epsilon^3$, so configurations
+closest to the node are suppressed without being removed entirely. The variational force
+for a real wavefunction is
+\begin{equation}
+g_i=2\,\operatorname{Cov}_{p_\theta}[E_L,O_i],
+\qquad O_i=\partial_{\theta_i}\log|\Psi_\theta|.
+\label{eq:c22:vmc-force}
+\end{equation}
+For a parameter that moves the node, $E_L\sim d_\theta^{-1}$ and
+$O_i\sim d_\theta^{-1}$. The per-sample product therefore scales as
+$d_\theta^{-2}$. Its mean under $p_\theta\sim d_\theta^2$ is locally finite,
+although its second moment need not be. VMC can thus retain a usable nodal signal while
+remaining exposed to heavy-tailed finite-sample noise.
 
-\paragraph{Indirect nodal information through bulk correlations.}
-The variational energy
-$\langle E_L\rangle_{|\Psi|^2}$ is sensitive to nodal position because
-shifting the node changes the wavefunction \emph{everywhere}
-(through normalisation and through the functional form of $D$).
-The SR force vector
-$g_i=\mathrm{Cov}_{|\Psi|^2}[E_L,O_i]$
-(where $O_i=\partial_{\theta_i}\log\Psi$)
-receives contributions from the \emph{bulk}---regions where both
-$|\Psi|^2$ and $E_L$ are well-behaved---that are
-\emph{correlated with} nodal position but do not require evaluating $E_L$
-at the node.
+The decisive difference from the strong form is that the force in
+Eq.~\eqref{eq:c22:vmc-force} does not differentiate $E_L$. The weak-form collocation
+estimator used later has the same property: it treats $E_L$ as a detached reward and
+differentiates the score. SR additionally preconditions the VMC force with the sampled
+metric, but that does not remove the underlying tails. Robust trimming, damping, and the
+step cap in \S\ref{sec:sr-stage} control their finite-sample effect.
 
-\paragraph{SR amplifies the signal.}
-The Fisher metric $S_{ij}=\mathrm{Cov}[O_i,O_j]$ captures how sensitive
-$\log\Psi$ is to each parameter direction.
-By solving $(S+\varepsilon I)\,\delta\theta=-g$, SR
-amplifies exactly those subtle bulk signals that encode nodal information,
-compensating for the fact that the node itself has zero weight under
-$|\Psi|^2$.
-
-\paragraph{Core asymmetry.}
-The asymmetry needs stating carefully, because a power count that is too quick proves too
-much. Under $|\Psi|^2$ the SR force $g_i=\mathrm{Cov}[E_L,O_i]$ has a finite \emph{mean}:
-both $E_L$ and $O_i=\partial_{\theta_i}\log\Psi$ carry a $d_\theta^{-1}$ pole near a
-mismatched node, their product goes as $d_\theta^{-2}$, and the measure supplies
-$|\Psi|^2\sim d_\theta^{2}$, so the integral converges. Its \emph{variance} does not, by the
-same counting---so VMC is not immune to near-node pathology either, and in practice this is
-what the damping and trust region of \S\ref{sec:sr-stage} are for.
-
-The real distinction is one derivative higher. VMC and SR never differentiate $E_L$: the
-local energy enters only as a multiplicand in a covariance, so the $D^{-2}$ pole of
-Eq.~\eqref{eq:c22:grad_EL}---which comes from $\partial_\theta$ acting on $\nabla^2D/D$---never
-appears. Strong-form collocation differentiates $E_L$ by construction, and inherits it.
-That is why the same node is survivable in one scheme and not in the other, and it is the
-argument \S\ref{sec:colloc-why-reinforce} makes for the weak form as well.
-None of the sampling, loss, or preconditioning strategies we tested
-(\S\ref{app:catch22:experiments}) overcame this asymmetry within the strong-form
-collocation framework; we present it as a structural obstruction of the tested pipeline
-rather than a theorem that no collocation method can ever avoid it.
+None of the strong-form interventions in \S\ref{app:catch22:experiments} closed the
+observed gap. This supports the change of objective, while leaving open whether a different
+strong-form estimator or a fully matched experiment could do so.
 
 
 \section{Experimental evidence}
@@ -819,7 +763,7 @@ rather than a theorem that no collocation method can ever avoid it.
 
 We present a systematic study for $N{=}6$ electrons in a 2D harmonic trap
 with $\omega{=}0.5$ (DMC reference: $E_{\mathrm{DMC}}=11.78484(6)$
-\cite{Pederiva2000-QD-DMC}).
+\cite{Hogberget2013-DMC,Nordhagen2023-NeuralNetworksFermions}).
 The ans\"atz uses a neural Jastrow correlator (${\sim}15{,}000$ parameters)
 and a CTNN backflow network (${\sim}8{,}600$ parameters) with
 $\mathrm{bf\_scale}=0.7$.
@@ -854,8 +798,9 @@ The backflow reduces the error from $0.42\%$ to $0.32$--$0.33\%$, far short
 of the ${<}0.01\%$ reached by VMC\,+\,SR on the same ansatz \emph{family}
 (Table~\ref{tab:energies}). The two are not matched in size: the networks here total
 ${\sim}24$k parameters against ${\sim}236$k for the production model, so the comparison
-bounds what this objective achieves at this capacity, not isolating the objective alone. The floor is nonetheless a property of the objective, because it does not move under
-any of the interventions below, including ones that add capacity.
+bounds what this objective achieves at this capacity rather than isolating the objective
+alone. The interventions below did not move the floor, but the capacity difference prevents
+us from attributing the full gap to the objective.
 
 \subsection{Sampling strategies}
 \label{app:catch22:sampling}
@@ -884,13 +829,12 @@ Gumbel top-$K$~\cite{JangGuPoole2017-GumbelSoftmax} & stochastic top-$K$ selecti
 \end{tabular}
 \end{table}
 
-Every strategy that includes more near-node points
-(SIR, Gumbel) produced \emph{worse} results---consistent with the
-catch-22: the additional points carry divergent $E_L$ values that
-corrupt the gradient.
-Gumbel top-$K$ (which replaces deterministic selection with stochastic
-Gumbel-softmax) was catastrophic, with early stopping triggered by
-rapid energy divergence.
+Neither importance-resampled nor stochastic top-$K$ selection improved the result.
+Gumbel top-$K$, which replaces deterministic selection with stochastic
+Gumbel--softmax, triggered early stopping after rapid energy divergence. These tests
+alter both coverage and selection, but we did not record the resulting distribution of
+distances to the node. They are therefore consistent with the heavy-tail account without
+directly establishing that greater near-node coverage caused the failures.
 
 \subsection{Loss modifications}
 \label{app:catch22:loss}
@@ -942,13 +886,14 @@ Soft Coulomb & $1/r\to 1/\sqrt{r^2+\varepsilon^2}$,
   $\varepsilon{=}0.2$ & 1.41 & much worse \\
 Regularised det & $\log|D|\to\operatorname{logaddexp}(\log|D|,\,
   \log\delta)$ & 0.49 & worse \\
-$T$ clipping & $\max(|T|,T_{\max})$, $T_{\max}{=}30$ & 0.43 & neutral \\
+$T$ clipping & $\operatorname{sign}(T)\min(|T|,T_{\max})$,
+  $T_{\max}{=}30$ & 0.43 & neutral \\
 \bottomrule
 \end{tabular}
 \end{table}
 
 Soft Coulomb trains on wrong physics ($V$ is no longer the true potential).
-Regularising the determinant distorts the $\log\Psi$ landscape.
+Regularising the determinant distorts the $\log|\Psi|$ landscape.
 Kinetic energy clipping is neutral because the clipped points are exactly
 those that carried the (noisy) backflow signal.
 None of the regularisations improve upon the baseline.
@@ -979,10 +924,10 @@ Adam burst (15 ep, lr$=$3e-4) & 0.56 & worse \\
 K-FAC provides a block-diagonal approximation to the Fisher matrix
 and should, in principle, help with the ill-conditioned parameter-space
 geometry.
-In practice, it does not: the conditioning problem is
-\emph{operator-level} (Appendices~\ref{app:laplacian}--\ref{app:coulomb}),
-not merely parameter-space anisotropy, and K-FAC cannot address the
-fundamental divergence in $E_L$.
+Here it does not improve the energy. This is consistent with the problem arising partly
+from the differentiated local energy (Appendices~\ref{app:laplacian}--\ref{app:coulomb}),
+which parameter-space preconditioning does not remove. The experiment alone does not
+separate that explanation from an inaccurate K-FAC approximation or poor tuning.
 
 \subsection{Summary of all interventions}
 \label{app:catch22:summary}
@@ -1020,7 +965,7 @@ Hybrid loss (annealed) & 2.59 & loss \\
 Gumbel top-$K$ + hybrid & 5.00 & sampling + loss \\
 Hybrid + det filter & 24.75 & loss + filter \\
 \midrule
-\textbf{Same ansatz, VMC\,+\,SR} & $<$\textbf{0.01} &
+\textbf{Production family, VMC\,+\,SR} & $<$\textbf{0.01} &
   \textbf{variational} \\
 \bottomrule
 \end{tabular}
@@ -1028,20 +973,19 @@ Hybrid + det filter & 24.75 & loss + filter \\
 
 The pattern is striking:
 \begin{itemize}
-\item Every intervention that \emph{includes} more near-node points
-  (SIR, Gumbel) \emph{increases} the error---backflow shrinks
-  defensively under gradient noise or diverges entirely.
-\item Every intervention that \emph{changes} the loss to tolerate
-  near-node contributions (hybrid mean-energy, det filter) produces
-  catastrophic results because the collocation sampling is not $|\Psi|^2$
-  and the variational principle does not apply.
+\item Neither SIR nor Gumbel top-$K$ improves the error. Because nodal distances were
+  not logged, these runs do not show whether a change in near-node coverage was responsible.
+\item The interventions that changed the loss most directly (the hybrid mean-energy term
+  and determinant filter) produced the largest errors. Because the collocation measure is
+  not $|\Psi|^2$, their mean-energy terms are not variational; the experiments do not isolate
+  this fact from the other changes made by those losses.
 \item The smoothness penalty $\lambda\|\nabla^2\Delta\mathbf x\|^2$
-  helps modestly (from $0.59\%$ to $0.38\%$ without it vs.\ with it)
-  by damping the $\nabla^2 D/D$ poles, but cannot eliminate the
-  fundamental divergence.
-\item Ironically, the only method that trains backflow effectively is
-  MCMC-based VMC\,+\,SR---which sidesteps the entire collocation
-  framework.
+  helps modestly (from $0.59\%$ to $0.38\%$ without it vs.\ with it).
+  This is consistent with reduced curvature sensitivity, but does not identify which
+  contribution to the local energy changed.
+\item Among the differentiated-residual variants tested here, none approaches the
+  production VMC\,+\,SR result. The later weak-form collocation method also trains
+  backflow without differentiating $E_L$.
 \end{itemize}
 
 
@@ -1067,7 +1011,8 @@ Near both the coalescence point ($r_{ij}\to 0$) and the node
 and the cusp cancellation (\S\ref{app:coulomb:cusp}) must be
 maintained simultaneously with the nodal cancellation
 \eqref{eq:c22:exact_cancel}.
-In the strong residual squared $\|LE_L\|^2$, these compound
+In the implemented strong objective
+$\mathbb E_q[(E_L-E_{\rm eff})^2]$, these compound
 singularities create an extremely stiff landscape.
 
 \paragraph{The backflow-specific pathology.}
@@ -1076,12 +1021,12 @@ problem is the \emph{self-referential} nature of the singularity:
 the backflow parameters $\theta_{\mathrm{BF}}$ determine \emph{where}
 the node is, so updating $\theta_{\mathrm{BF}}$ moves the singularity
 in configuration space.
-Under the collocation loss, the gradient pushes $\theta_{\mathrm{BF}}$
-in a direction determined by $E_L$ values at the current collocation
-points, but the resulting node shift invalidates those very points.
-VMC+SR avoids this because it samples from the \emph{current}
-$|\Psi_\theta|^2$ at every step, so the sampling distribution
-co-adapts with the node position.
+Under the collocation loss, the gradient is determined by $E_L$ at the current collocation
+points while the update itself moves the node. Reused points may therefore cease to describe
+the most relevant neighbourhood after the update. VMC+SR instead refreshes samples from the
+current $|\Psi_\theta|^2$, allowing its sampling distribution to track the moving node more
+closely. This difference is consistent with the observed stability gap, but was not isolated
+from model size or the other estimator choices.
 
 
 % =========================================================
@@ -1092,7 +1037,7 @@ co-adapts with the node position.
 
 This appendix records the collocation results that Chapter~\ref{ch:kernel} refers to but does
 not tabulate: the $N{=}20$ energies, and the variants that were tried and failed. Both bear on
-the same question---what limits the Markov-chain-free route---from the side of what does not
+the same question---what limits the MCMC-free update route---from the side of what does not
 work.
 
 \section{What was varied}
@@ -1104,13 +1049,13 @@ weight tempering and log-weight clipping. The \emph{objective}: finite-differenc
 residuals, a hybrid weak form, and pure REINFORCE, which became the default, with the
 Laplacian kept in the reward path but never differentiated. The \emph{preconditioner}: Adam,
 diagonal-Fisher natural gradient, and full SR in Woodbury and CG modes with damping anneals
-and trust-region caps. And the \emph{training style}: single sweeps, wave-based cascades with
+and parameter-step caps. And the \emph{training style}: single sweeps, wave-based cascades with
 checkpoint inheritance, and asynchronous campaigns relaunching from the best available
 checkpoint.
 
-Two results held across the search. Optimisation quality dominated architectural novelty:
-moderately sized backflow$+$Jastrow models with stable training beat more ambitious variants
-with weaker optimisation geometry. And at low $\omega$, regularising the resampling
+Two patterns held across this unmatched search. Moderately sized backflow$+$Jastrow models
+with stable training outperformed the larger variants tested here, without isolating whether
+size, architecture or optimisation caused the difference. At low $\omega$, regularising the resampling
 distribution (ESS control, top-mass reduction) helped where hard cusp gating did not---a
 controlled $2{\times}2{\times}3$ matrix over gating, resampling regularisation and three
 seeds showed no measurable gain from gating and a consistent gain from regularisation.
@@ -1123,9 +1068,12 @@ $\omega{=}1.0$ ($E=20.16167\pm0.00181$, $+0.012\%$), $\omega{=}0.5$
 and $N{=}12$ at $\omega{=}1.0$ ($E=65.70699\pm0.00595$, $+0.010\%$). These are single
 end-of-run evaluations of selected runs and were not independently re-evaluated; the
 selection effect documented in \S\ref{sec:gradient-chain} makes the strong-confinement values
-among them optimistic by several hundredths of a percent. For $N{=}2$ the route
-covers the whole confinement range: $+0.012\%$, $+0.023\%$, $-0.004\%$, $+0.002\%$ and
-$+0.154\%$ at $\omega=1,0.5,0.1,0.01,0.001$, zero-variance extrapolated.
+among them optimistic by several hundredths of a percent. For $N{=}2$, the raw Metropolis
+deviations are $+0.035\%$, $-0.019\%$, $+0.035\%$, $+0.098\%$ and $+0.806\%$ at
+$\omega=1,0.5,0.1,0.01,0.001$. The archived zero-variance regression intercepts give
+$+0.012\%$, $+0.023\%$, $-0.004\%$, $+0.002\%$ and $+0.154\%$, respectively. Those
+intercepts are not variational estimates, and no regression interval was retained, so they
+are not used as the headline energies in Table~\ref{tab:collocation}.
 
 \section{The $N=20$ collocation energies}
 \label{app:postcatch22:frontier}
@@ -1154,10 +1102,10 @@ Scalar final energy is not sufficient for method development on this route: ESS,
 concentration, rollback counts and the probe-to-final gap are what distinguish a run that
 converged from one that stopped moving. Several intuitively attractive interventions
 delivered nothing in the tested range---hard cusp gating most notably---and recording that
-was necessary to keep the search from circling. Stricter SR trust constraints, heavier
+was necessary to keep the search from circling. Stricter SR step caps, heavier
 damping, ESS-adaptive sampling and rollback controls improved operational stability without
-closing the accuracy gap at the hardest targets. What eventually closed it at low $\omega$
-and $N{=}6$ was not a stabilisation measure but a change of proposal
+closing the accuracy gap at the hardest targets. In the tested $N{=}6$ low-$\omega$
+campaign, changing the proposal was the intervention associated with closing that gap
 (\S\ref{sec:kernel-q3-frontier}).
 
 
@@ -1327,8 +1275,9 @@ At strong correlation ($\omega \leq 0.01$), displacements are small relative to 
 $\|\Delta\mathbf{x}\|/\ell \sim 0.02$--$0.05$.
 As the trap tightens and the system enters the moderate-to-weak correlation regime,
 the magnitude grows and saturates at $\sim$\,8--10\% of $\ell$ for $\omega \gtrsim 0.1$.
-The message-passing backflow never produces large displacements---its $\tanh$ output bound and copresheaf message-passing structure
-act as implicit regularisers, in contrast to the conventional backflow, which can exhibit
+The message-passing backflow has small displacements throughout this grid. Its $\tanh$
+output bound limits their scale; the present data do not isolate any additional effect of
+the message-passing structure. The conventional backflow can exhibit
 displacements comparable to the system scale in poorly converged regimes
 (e.g.\ $\|\Delta\mathbf{x}\|/\ell \sim 0.95$ for $N{=}6$, $\omega{=}0.001$ with the conventional network).
 
@@ -1336,32 +1285,32 @@ displacements comparable to the system scale in poorly converged regimes
 The effective rank of the displacement field is consistently $\approx 2N - 2$,
 saturating the available spatial degrees of freedom modulo centre-of-mass conservation
 (confirmed by COM shifts of order $10^{-14}$--$10^{-17}$).
-The backflow transformation is not a low-rank collective mode
-such as a breathing or rigid rotation; the displacement field spans essentially all COM-free spatial directions, so each
-particle receives a correction
-conditioned on the full configuration.
+Under the stated cutoff, the sampled displacement matrix is not dominated by one or two
+collective directions such as breathing or rigid rotation. Its effective rank reaches the
+nominal COM-free ceiling. Rank alone does not show that every particle depends on every
+other particle.
 The field stays near that ceiling across the whole grid, including the deepest Wigner
 points, where one might have expected the correction to become collective. Whether that
 is a property of \emph{this} architecture or of trained backflows generally is not
-something the present measurement can decide; Chapter~\ref{ch:kernel} settles it by
-holding everything else fixed (\S\ref{sec:kernel-q1b}).
+something the present measurement can decide. Chapter~\ref{ch:kernel} compares the two
+implemented backflow families, but their capacity, preprocessing and centre-of-mass
+handling are not matched (\S\ref{sec:kernel-q1b}).
 
 Yet the CKA between correlator features with and without backflow exceeds 0.99 in nearly all cases
 (and exceeds 0.979 everywhere).
-The correlator manifold is almost unperturbed by the displacement field.
-The correlator's feature geometry is therefore almost unaffected by the presence of the
-displacement field, which is a statement about that geometry and not about the subspace the
+The correlator's measured feature geometry is therefore similar with and without the
+displacement field on these samples. This is a statement about that geometry, not about the subspace the
 backflow occupies. Whether the two components are genuinely complementary, rather than
 merely uncorrelated on this measure, is tested by ablation in \S\ref{sec:kernel-q1b}.
 
 %% ──────────────────────────────────────────────────────────────────────
-\section{Correlator--backflow coupling: from independence to cooperation}
+\section{Correlator--backflow alignment}
 \label{sec:repr-coupling}
 
-The previous subsection established that backflow leaves the correlator manifold intact.
-But are the correlator and the backflow \emph{functionally} coupled---does the displacement
-depend on what the correlator computes?
-We measure this through three diagnostics:
+The previous subsection found that the correlator feature geometry changes little when
+backflow is present in this trained solution.
+We next ask whether the displacement aligns with quantities derived from the correlator.
+Three diagnostics address that narrower question:
 (i) the mean cosine similarity $\langle\cos(\nabla_{\mathbf{x}} f,\,\Delta\mathbf{x})\rangle$
 between the correlator's gradient in configuration space and the displacement field
 (alignment implies the backflow pushes along directions the correlator is sensitive to);
@@ -1415,8 +1364,8 @@ $N$ & $\omega$ & $\langle\cos\rangle$ & Aligned & $|\delta f|/\sigma_f$ & $\righ
 \end{tabular}
 \end{table}
 
-\paragraph{A transition at $\omega\approx 0.1$.}
-The data reveal a sharp regime change.
+\paragraph{An alignment change near $\omega\approx 0.1$ on the sampled grid.}
+The data show their largest change between two adjacent sampled confinements.
 At $\omega \leq 0.01$ the coupling is weak and inconsistent in sign: $\langle\cos\rangle$
 runs from $-0.48$ to $0.32$ across the six cells, the alignment fraction is erratic, and
 backflow barely affects the correlator output ($|\delta f|/\sigma_f < 0.07$ everywhere). The
@@ -1434,10 +1383,10 @@ the correlator.
 At $\omega \geq 0.1$, the picture changes qualitatively.
 The gradient cosine jumps to 0.5--0.8, the alignment fraction reaches 1.0 for $N\geq 6$,
 and the counterfactual output change reaches $|\delta f|/\sigma_f = 0.25$--$0.69$ (i.e.\ up to $\sim\!0.7$ standard deviations of the correlator).
-Here the backflow acts as a cooperative refinement: it pushes configurations along
-directions the correlator is maximally sensitive to, systematically correcting the correlator's
-residual errors.
-The transition is sharpest between $\omega=0.01$ and $\omega=0.1$,
+Here the displacement is aligned with directions to which the correlator is especially
+sensitive. This is compatible with cooperative refinement, but the diagnostic does not show
+that it corrects a particular residual error.
+The largest sampled change lies between $\omega=0.01$ and $\omega=0.1$,
 coinciding with the crossover in $\Gamma = V_{\mathrm{int}}/T$ from $\Gamma > 10$
 (interaction-dominated) to $\Gamma \sim 3$--$6$ (moderate correlation).
 
@@ -1445,12 +1394,13 @@ coinciding with the crossover in $\Gamma = V_{\mathrm{int}}/T$ from $\Gamma > 10
 The nearest-neighbour direction fraction provides a complementary signature.
 At $\omega \geq 0.1$ for $N\geq 6$, only 12--25\% of particles are displaced toward their
 nearest neighbour.
-The backflow preferentially pushes particles \emph{apart}, actively deepening the correlation hole.
+The displacement points away from the nearest neighbour more often than toward it, which is
+consistent with a deepening of the correlation hole.
 This directional bias is strongest at $N{=}12$, $\omega{=}0.1$ ($\rightarrow$NN\,$=0.12$),
 exactly where the correlator effective rank peaks and the $\phi\leftrightarrow\psi$ transition occurs.
 At strong correlation ($\omega\leq 0.01$, large $N$), the fraction rises toward 0.5
-(isotropic), because the large equilibrium inter-particle separations leave little room for
-further correlation-hole deepening.
+(isotropic). This is consistent with the larger equilibrium separations reducing the
+directional correlation-hole signal.
 
 %% ──────────────────────────────────────────────────────────────────────
 
@@ -1469,8 +1419,8 @@ correlator's gradient; the change is sharp and coincides with the crossover in $
 These measurements describe one trained solution and do not by themselves establish which
 properties are architecture-specific. A different training route could divide the same
 labour differently and arrive at the same energy, which for two partial substitutes is what
-one should expect. Deciding the question requires holding everything else fixed and varying
-only the architecture.
+one should expect. Deciding the question requires a matched experiment that varies only the
+architecture.
 
 
 \chapter{Structural diagnostics in full}
@@ -1611,9 +1561,10 @@ $\omega=0.1$, where the resolved departures are all within about one percent; we
 $\omega=0.01$ and clearly so only at $N{=}6$; and unambiguous at $10^{-3}$, where every ring
 exceeds the null by $16$--$63\%$.
 
-The Lindemann numbers of the same table fall monotonically throughout, so radial stiffening
-precedes $n$-fold angular ordering rather than accompanying it---the separation between
-radial and angular melting anticipated in \S\ref{sec:wigner-markers-theory}.
+The outer-shell relative widths generally decrease as the trap weakens, while several
+inner-shell widths are nonmonotonic when the topology changes. On these diagnostics, radial
+localisation is already visible before the large rise in $n$-fold bond order anticipated in
+\S\ref{sec:wigner-markers-theory}.
 
 The values in this table are for the \emph{modal} topology over all frames. The
 sector-conditioned values quoted for $N{=}6$ in \S\ref{sec:wigner-angular} are computed only on
@@ -1652,7 +1603,7 @@ $0.001$ & $1.63$ & $1.49$ ($80\%$) & $1.81$ ($20\%$) \\
 $(N,\omega)$. Occupancies are $(n_{\rm in},\dots,n_{\rm out})$; $\tilde r_s$ are mean shell
 radii in trap units; $w_s=\sigma(r_s)/\langle r_s\rangle$ are per-shell radial relative
 widths; $|\Phi_{n_s}|$
-is the rotation-registered bond order on shell $s$; and the final column is $|\Phi_{n_s}|$
+is the rotation-invariant bond-order modulus on shell $s$; and the final column is $|\Phi_{n_s}|$
 divided by its exact random-angle expectation, Eq.~\eqref{eq:phi-null}. A value of $1.00$
 in that column means the ring is equal to the independent-angle null within quoted
 precision; see the text for why departures of about a percent are at the resolution of
@@ -1706,7 +1657,9 @@ $n_s$-gon carrying a per-frame global rotation and a fitted angular jitter; and 
 resulting pair-distance density is compared with the empirical density on the \emph{held-out}
 half. Against it we run an angle-randomised null with the same fitted radial distributions
 but uniform angles, which isolates what polygonal order contributes over and above shell
-radii alone. Table~\ref{tab:shell-model-fit} reports both.
+radii alone. The split tests the fitted parameters conditionally: the shell topology and
+broad analysis design were selected using the full data, so this is not held-out model
+selection. Table~\ref{tab:shell-model-fit} reports both.
 
 \begin{figure}[htbp]
   \centering
@@ -1850,8 +1803,8 @@ after its burn-in call, where consecutive steps agree to $0.1\%$. The scripts ar
 
 Table~\ref{tab:walltime-production} times the pipelines as they produced the results of this
 thesis. The SR--VMC step is the production routine with the settings of the example run:
-$1200$ persistent walkers, twenty Metropolis sweeps between the two retained snapshots of each
-round, about $3.6\times10^3$ rows per step, the exact Laplacian. Its phases are timed inside the
+$1200$ persistent walkers and five 20-sweep Metropolis segments per step, for 100 sweeps per
+walker and about $3.6\times10^3$ retained rows, with the exact Laplacian. Its phases are timed inside the
 routine without changing it. The collocation epoch is the robust recipe of
 \S\ref{sec:colloc-reliability}: $16\times4096$ candidates from the Gaussian mixture, weighted
 by $|\Psi|^2/q$ and resampled to $4096$, the exact-Laplacian local energy as a REINFORCE reward,
@@ -1886,8 +1839,9 @@ the whole walker batch, so each row costs roughly a backward pass over the entir
 
 \section{Paradigm and optimiser, on one network}
 
-To separate the paradigm from the optimiser, Table~\ref{tab:walltime-grid} runs all four
-combinations on one network (CTNN V-cycle correlator and CTNN backflow, $108$k parameters) with
+To separate the main timing contributions, Table~\ref{tab:walltime-grid} runs three routes
+on one network---VMC with Adam, collocation with Adam, and VMC with SR---and times two SR
+implementations. All use a CTNN V-cycle correlator and CTNN backflow ($108$k parameters) with
 the same exact-Laplacian local energy. VMC uses $3072$ walkers and $30$ sweeps per step,
 collocation $4096$ points resampled from $16\times4096$ candidates, SR $1024$ samples. At
 $N{=}20$ both paradigms use $1024$ configurations, because the shared cards did not have the
@@ -1942,12 +1896,12 @@ did not measure. Nor does the cost of a step say how many steps each route needs
 \chapter{Code, data and reproducibility}
 \label{app:reproducibility}
 
-\paragraph{Code.} All code used in this thesis---the ansatz, both training routes, the
-structural and tangent-space diagnostics, the evaluation scripts and the figure scripts---is
-public at \url{https://github.com/Im2ql4u/Thesis}, together with the run configurations,
-the metadata of every saved model and the derived tables from which the numbers in
-Chapters~\ref{ch:results} and~\ref{ch:kernel} are quoted. The text alone, with the figures it
-includes, is at \url{https://github.com/Im2ql4u/Thesis_text}.
+\paragraph{Code.} The source code used for the ansatz, both training routes, the structural
+and tangent-space diagnostics, the evaluation scripts and the figure scripts is public at
+\url{https://github.com/Im2ql4u/Thesis}, together with retained run configurations, model
+metadata and the derived tables from which the numbers in Chapters~\ref{ch:results}
+and~\ref{ch:kernel} are quoted. The text alone, with the figures it includes, is at
+\url{https://github.com/Im2ql4u/Thesis_text}.
 
 \paragraph{Models and raw data.} Trained weights and the $|\Psi|^2$ sample bundles from
 which every structural diagnostic is computed are too large for the repository. They are kept
@@ -1988,7 +1942,8 @@ decimals.
 cross-shell registration statistic $\tilde C_{\rm global}$ at $N{=}20$
 (\S\ref{sec:wigner-angular}), whose analysis code was not retained, and the $N{=}20$,
 $\omega=0.01$ entry of the backflow rank table (Table~\ref{tab:bf_rank}), whose per-run
-artefacts were not kept. One inconsistency also remains: the single-particle radial
+artefacts were not kept. The former is omitted from the quantitative interpretation because
+its phase convention cannot be verified. One inconsistency also remains: the single-particle radial
 diagnostics of Table~\ref{tab:radial-compact} and Appendix~\ref{app:structural-tables} were
 computed in an earlier analysis pass, on runs that at the weakest traps are not the same
 trained states as those behind the shell-resolved diagnostics and the radial-density

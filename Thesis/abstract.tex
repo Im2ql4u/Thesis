@@ -17,24 +17,23 @@ $0.1$; below that, for $N\ge6$, its energies are predictions.
 
 The correlator can be \emph{separable}, encoding each particle and each pair independently
 before pooling them, or \emph{message-passing}, letting the particles exchange information
-first. The two reach the same energy, but not the same state. The message-passing correlator
-carries a local-energy variance lower by a factor of $1.2$--$3.4$ at every confinement, and
-its leading tangent directions lie almost entirely within a handful of physical collective
-modes (breathing, quadrupole, correlation hole), where a separable network of equal or
-greater size leaves close to half of its tangent weight outside them. Stochastic
+first. The implemented families reach the same energy but not the same state. The
+message-passing models carry a local-energy variance lower by a factor of $1.2$--$3.4$ at
+every confinement, and their leading tangent directions are better described by a selected
+dictionary of collective operators. Because the learned features are not otherwise matched,
+these differences belong to the tested implementations rather than to message passing alone. Stochastic
 reconfiguration and Adam agree to four decimals on models whose metric has condition numbers
 of $10^{7}$--$10^{10}$; the failures suggest that natural-gradient preconditioning pays when
 the metric can be estimated from a batch, not merely when it is ill-conditioned.
 
-On its own, the strong-form residual that a physics-informed network would minimise could not
-train the backflow in any variant we tried: its learning signal lies at the nodes, where the
-local energy diverges, and it stalls near $0.3\%$. A weak form, the variational energy
-gradient estimated by importance sampling from an analytic proposal, keeps the Markov chain
-out of the gradient and has no such floor. With a proposal refitted during training it trains
+On its own, the strong-form residual could not train the backflow in any tested variant and
+stalled near $0.3\%$, consistent with the nodal heavy tails derived in Appendix~C. A weak
+form, the variational energy gradient estimated by importance sampling from an analytic
+proposal, keeps the Markov chain out of the update and has no such observed floor. With a proposal refitted during training it trains
 the six-electron dot, on every seed and across the whole range of confinement, to within
-$0.35\%$ of the reference or, where there is none, of our own energies. Where it fails, it fails through its
-samples: a fixed proposal collapses in the Wigner regime, to $1.5$ effective samples of
-$4096$.
+$0.35\%$ of the reference or, where there is none, of our own energies. The observed
+failures coincide with severe sample degeneracy: a fixed proposal falls to $1.5$ effective
+samples of $4096$ in the Wigner regime.
 
 Read as instruments, the trained states resolve the crossover shell by shell. Radial shells
 form and stiffen across the whole range, and the six-electron ring approaches its classical
@@ -43,10 +42,12 @@ stays at its random-angle value down to $\omega=0.1$ and becomes large only at
 $\omega=10^{-3}$, where the twelve-electron dot is predominantly a $(3,9)$ molecule and the
 twenty-electron dot a $(1,7,12)$ one. Those measurements return to the solver. A proposal
 built from the measured shell geometry raises the effective sample size fifteen- to
-thirtyfold over the fixed one, and carries a Markov-chain-free cascade of converged
-six-electron states to $\omega=0.0035$, below which a converged state no longer survives the
+thirtyfold over the fixed one, and carries a cascade with MCMC-free updates to a stable
+six-electron checkpoint at $\omega=0.0035$. Below that, the checkpoint does not survive the
 step to a weaker trap.
 
 Every state is the lowest found at fixed spin projection, the architecture and optimiser
-comparisons rest mainly on $N{=}6$, and the benchmark references also guide pretraining.
+comparisons rest mainly on $N{=}6$, and the benchmark references also guide pretraining. The
+archived backflow implementations are not matched in capacity, input scaling or
+centre-of-mass handling.
 \clearpage

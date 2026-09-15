@@ -2352,3 +2352,21 @@ chapters from the thesis's own tables, source check on Ghosal et al. Report and 
   budget" contradicted by App. G (6–18 GPU-days); stale numbers left from before the re-evaluation in Ch.7;
   N=12 bond-order values of unstated provenance; N=6 ω=10⁻³ r_mode inconsistent with the shell radius.
 - Not reached: sentence-level pass, full bibliography verification, derivations in theory/method.
+
+## 2026-09-15 — Final commit, cleanup and push after delivery
+
+- AI declaration rewritten in the first person at Aleksander's request (8af5ced). Declined to
+  strip the Claude co-author trailers from history: the delivered declaration states that
+  AI-assisted commits are marked as co-authored, and the repository is public.
+- Committed the uncommitted 15 September revision pass (all chapters, references.bib) that
+  the delivered PDF was built from; the CTNN hard-cusp-gate unit fix in src/PINN.py as its
+  own commit (behaviour change only for hard_cusp_gate=True); the six architecture figures
+  (oral_exam_slides.tex needs fig_arch_attribution.pdf).
+- Cleanup: deleted oral-exam LaTeX build artifacts (.log/.aux/.nav/.snm/.out); moved
+  THESIS_DEEP_REVIEW_2026-09-15.md to outputs/2026-09-15_thesis_review/DEEP_REVIEW.md
+  (gitignored, kept locally).
+- Left alone deliberately: results/figures/methods/ (15 untracked figures, referenced by
+  nothing, no generating script found; cannot be regenerated, so not deleted) and the 29
+  long-dirty results/ files (a later run overwrote recorded results; committing would
+  replace the record).
+- Thesis_text mirror synced (13 files), clean-clone build 127 pages, pushed.

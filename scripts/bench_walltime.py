@@ -103,9 +103,12 @@ def time_route(system: System, sample, optimiser: str, *, steps: int, sr_samples
         if optimiser == "sr":
             sr_natural_step(system, xs[:sr_samples], es[:sr_samples], **SR_KW)
         else:
-            loss = 2.0 * ((es - es.mean()) * system.log_psi(xs)).mean()
+            # Gradient accumulated over chunks: the same update as one pass, but the backward
+            # graph of 4096 configurations does not fit in GPU memory at N=12.
             opt.zero_grad(set_to_none=True)
-            loss.backward()
+            reward = es - es.mean()
+            for xc, rc in zip(torch.split(xs, chunk), torch.split(reward, chunk)):
+                (2.0 * (rc * system.log_psi(xc)).sum() / xs.shape[0]).backward()
             torch.nn.utils.clip_grad_norm_(params, GRAD_CLIP)
             opt.step()
         t3 = _now(system.device)

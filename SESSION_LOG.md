@@ -2301,3 +2301,16 @@ no Physics/CS-specific template.
 
 **Open:** supervisor name; GPU benchmark; 3-seed production energies; sign-disagreement
 fraction; sector bond orders from canonical runs (all need uio-ml7).
+
+## 2026-09-15 — GPU wall-time study on ml7
+
+- Ran the paradigm x optimiser x N grid and a score-matrix test on ml7 (shared 2080 Tis).
+  Collocation vs VMC per step is within ~10 % at equal optimiser; SR's overhead in this code
+  is almost entirely the per-sample backward loop (10-82x slower than torch.func vmap, same O).
+  JOURNAL 2026-09-15; summary in results/analysis/2026-09-14_walltime_cuda_logs/SUMMARY.md.
+- Mishaps: `pkill -f` matched its own ssh shell (use PIDs or a script file); the N=12
+  collocation cell OOM'd until the REINFORCE backward was chunked; the ControlMaster died
+  overnight, so the chunked N=12 rerun's result is still on the cluster.
+
+**Open:** fetch N=12 collocation cell after reconnect; decide whether to (a) fix the §7.3
+sentence, (b) mention SR's implementation cost in the thesis, (c) vectorise `_score_rows`.

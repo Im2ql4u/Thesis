@@ -1,0 +1,56 @@
+0
+Traceback (most recent call last):
+  File "/itf-fi-ml/home/aleksns/Thesis/scripts/bench_walltime.py", line 189, in <module>
+    main()
+  File "/itf-fi-ml/home/aleksns/Thesis/scripts/bench_walltime.py", line 179, in main
+    rec["results"][str(N)] = run_N(N, a)
+                             ^^^^^^^^^^^
+  File "/itf-fi-ml/home/aleksns/Thesis/scripts/bench_walltime.py", line 133, in run_N
+    vmc = vmc or VmcSampler(system, a.vmc_batch, a.sampler_steps)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/itf-fi-ml/home/aleksns/Thesis/scripts/bench_walltime.py", line 65, in __init__
+    self.x, self.sig, _, _ = _persistent_rw(system.log_psi, x, steps=BURN_IN_SWEEPS,
+                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/storage/software/PyTorch/2.1.2-foss-2023a-CUDA-12.1.1/lib/python3.11/site-packages/torch/utils/_contextlib.py", line 115, in decorate_context
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/itf-fi-ml/home/aleksns/Thesis/src/functions/Stochastic_Reconfiguration.py", line 41, in _persistent_rw
+    lp = psi_log_fn(x) * 2.0  # log |ψ|^2
+         ^^^^^^^^^^^^^
+  File "/itf-fi-ml/home/aleksns/Thesis/src/analysis/system.py", line 126, in log_psi
+    logpsi, _ = psi_fn(
+                ^^^^^^^
+  File "/itf-fi-ml/home/aleksns/Thesis/src/utils.py", line 57, in wrapper
+    return fn(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^
+  File "/itf-fi-ml/home/aleksns/Thesis/src/functions/Neural_Networks.py", line 1635, in psi_fn
+    x_eff = x_batch + (backflow_net(x_batch, spin=spin_bn) if backflow_net is not None else 0.0)
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/storage/software/PyTorch/2.1.2-foss-2023a-CUDA-12.1.1/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1518, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/storage/software/PyTorch/2.1.2-foss-2023a-CUDA-12.1.1/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1527, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/itf-fi-ml/home/aleksns/Thesis/src/PINN.py", line 631, in forward
+    h_e_new = self.edge_update(edge_update_in)  # (B,N,N,edge_hidden)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/storage/software/PyTorch/2.1.2-foss-2023a-CUDA-12.1.1/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1518, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/storage/software/PyTorch/2.1.2-foss-2023a-CUDA-12.1.1/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1527, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/storage/software/PyTorch/2.1.2-foss-2023a-CUDA-12.1.1/lib/python3.11/site-packages/torch/nn/modules/container.py", line 215, in forward
+    input = module(input)
+            ^^^^^^^^^^^^^
+  File "/storage/software/PyTorch/2.1.2-foss-2023a-CUDA-12.1.1/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1518, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/storage/software/PyTorch/2.1.2-foss-2023a-CUDA-12.1.1/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1527, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/storage/software/PyTorch/2.1.2-foss-2023a-CUDA-12.1.1/lib/python3.11/site-packages/torch/nn/modules/linear.py", line 114, in forward
+    return F.linear(input, self.weight, self.bias)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+torch.cuda.OutOfMemoryError: CUDA out of memory. Tried to allocate 600.00 MiB. GPU 0 has a total capacty of 10.57 GiB of which 459.00 MiB is free. Process 3442994 has 4.01 GiB memory in use. Process 1216997 has 1.69 GiB memory in use. Including non-PyTorch memory, this process has 4.42 GiB memory in use. Of the allocated memory 3.65 GiB is allocated by PyTorch, and 596.08 MiB is reserved by PyTorch but unallocated. If reserved but unallocated memory is large try setting max_split_size_mb to avoid fragmentation.  See documentation for Memory Management and PYTORCH_CUDA_ALLOC_CONF

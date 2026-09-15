@@ -1,0 +1,66 @@
+{
+  "args": {
+    "N": [
+      20
+    ],
+    "omega": 1.0,
+    "routes": [
+      "colloc-adam"
+    ],
+    "steps": 3,
+    "device": "cuda",
+    "threads": 0,
+    "vmc_batch": 1024,
+    "sampler_steps": 30,
+    "sr_samples": 1024,
+    "n_coll": 1024,
+    "oversample": 16,
+    "chunk": 128,
+    "proposal_chunk": 1024,
+    "tag": "N20_colloc"
+  },
+  "hardware": {
+    "machine": "x86_64",
+    "processor": "x86_64",
+    "node": "ml7.hpc.uio.no",
+    "torch": "2.1.2",
+    "threads": 32,
+    "gpu": "NVIDIA GeForce RTX 2080 Ti"
+  },
+  "results": {
+    "20": {
+      "n_params": 108485,
+      "routes": {
+        "colloc-adam": {
+          "steps": [
+            {
+              "sample": 8.865367348771542,
+              "energy": 56.31075341813266,
+              "update": 1.7130134659819305,
+              "batch": 1024
+            },
+            {
+              "sample": 8.854835740756243,
+              "energy": 56.52521083410829,
+              "update": 1.7091379552148283,
+              "batch": 1024
+            },
+            {
+              "sample": 8.85898924805224,
+              "energy": 56.307671637274325,
+              "update": 1.7105419477447867,
+              "batch": 1024
+            }
+          ],
+          "mean": {
+            "sample": 8.859730779193342,
+            "energy": 56.38121196317176,
+            "update": 1.7108977896471818,
+            "total": 66.95184053201227,
+            "peak_mem_gb": 7.150839296
+          }
+        }
+      }
+    }
+  }
+}

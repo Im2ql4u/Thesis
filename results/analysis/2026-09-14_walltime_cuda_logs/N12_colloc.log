@@ -1,0 +1,44 @@
+0
+Traceback (most recent call last):
+  File "/itf-fi-ml/home/aleksns/Thesis/scripts/bench_walltime.py", line 189, in <module>
+    main()
+  File "/itf-fi-ml/home/aleksns/Thesis/scripts/bench_walltime.py", line 179, in main
+    rec["results"][str(N)] = run_N(N, a)
+                             ^^^^^^^^^^^
+  File "/itf-fi-ml/home/aleksns/Thesis/scripts/bench_walltime.py", line 140, in run_N
+    rows = time_route(system, sample, optimiser, steps=a.steps, sr_samples=a.sr_samples,
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/itf-fi-ml/home/aleksns/Thesis/scripts/bench_walltime.py", line 106, in time_route
+    loss = 2.0 * ((es - es.mean()) * system.log_psi(xs)).mean()
+                                     ^^^^^^^^^^^^^^^^^^
+  File "/itf-fi-ml/home/aleksns/Thesis/src/analysis/system.py", line 126, in log_psi
+    logpsi, _ = psi_fn(
+                ^^^^^^^
+  File "/itf-fi-ml/home/aleksns/Thesis/src/utils.py", line 57, in wrapper
+    return fn(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^
+  File "/itf-fi-ml/home/aleksns/Thesis/src/functions/Neural_Networks.py", line 1641, in psi_fn
+    f = f_net(x_batch, spin=spin_bn).squeeze(-1)  # (B,)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/storage/software/PyTorch/2.1.2-foss-2023a-CUDA-12.1.1/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1518, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/storage/software/PyTorch/2.1.2-foss-2023a-CUDA-12.1.1/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1527, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/itf-fi-ml/home/aleksns/Thesis/src/jastrow_architectures.py", line 1371, in forward
+    h_v, h_e = self._message_step(
+               ^^^^^^^^^^^^^^^^^^^
+  File "/itf-fi-ml/home/aleksns/Thesis/src/jastrow_architectures.py", line 1310, in _message_step
+    edge_in = torch.cat([h_e, rho_v_to_e(h_v_i), rho_v_to_e(h_v_j)], dim=-1)
+                              ^^^^^^^^^^^^^^^^^
+  File "/storage/software/PyTorch/2.1.2-foss-2023a-CUDA-12.1.1/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1518, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/storage/software/PyTorch/2.1.2-foss-2023a-CUDA-12.1.1/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1527, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/storage/software/PyTorch/2.1.2-foss-2023a-CUDA-12.1.1/lib/python3.11/site-packages/torch/nn/modules/linear.py", line 114, in forward
+    return F.linear(input, self.weight, self.bias)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+torch.cuda.OutOfMemoryError: CUDA out of memory. Tried to allocate 144.00 MiB. GPU 0 has a total capacty of 10.57 GiB of which 109.06 MiB is free. Process 1216996 has 1.69 GiB memory in use. Including non-PyTorch memory, this process has 8.77 GiB memory in use. Of the allocated memory 8.49 GiB is allocated by PyTorch, and 83.61 MiB is reserved by PyTorch but unallocated. If reserved but unallocated memory is large try setting max_split_size_mb to avoid fragmentation.  See documentation for Memory Management and PYTORCH_CUDA_ALLOC_CONF

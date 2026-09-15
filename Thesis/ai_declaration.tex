@@ -1,77 +1,20 @@
 \chapter{Declaration on the Use of Artificial Intelligence}
 \label{app:ai-declaration}
 
-The collocation approach in this thesis was developed over several months of
-failed experiments. Its central difficulty was not merely that a network did not
-converge, but that the parts of the Schr\"odinger residual that made the method
-physically meaningful also made its gradients unstable near the wavefunction's
-nodes. During that period, AI systems were used as sounding boards: to test
-interpretations of unexpected results, to formulate possible explanations, and
-to decide which experiment should come next. The exchange below is a short
-sample from one longer conversation at a point where the negative evidence had
-begun to make abandoning collocation seem plausible.
+I used generative AI tools (ChatGPT, Claude and OpenAI Codex) during this thesis, from
+March to September 2026, in three ways:
+\begin{itemize}
+  \item to revise and edit the text, including drafting revised passages, which I then
+        reviewed, rewrote where needed and approved;
+  \item to debate results, possible explanations and next steps;
+  \item to patch and debug code. Commits made through these tools are marked as
+        co-authored in the repository history.
+\end{itemize}
 
-\vspace{0.35em}
-\noindent\begin{tikzpicture}
-\node[draw=mutedblue, fill=mutedblueLight, rounded corners=8pt, inner sep=7pt]
-{\begin{minipage}{0.70\textwidth}
-\color{mutedblue}\textbf{Author}\par\smallskip
-\color{black}
-I am trying to develop a PINN to find ground-state solutions of the
-Schr\"odinger equation. I have tried multiple approaches, but I am not
-succeeding. \ldots What do you think about this? What should we do from here?
-\end{minipage}};
-\end{tikzpicture}
-
-\vspace{0.3em}
-\noindent\hfill\begin{tikzpicture}
-\node[draw=deepwine, fill=deepwineLight, rounded corners=8pt, inner sep=7pt]
-{\begin{minipage}{0.66\textwidth}
-\color{deepwine}\textbf{AI response 1}\par\smallskip
-\color{black}
-\ldots Anything that injects near-node points makes gradients explode or become
-uselessly noisy. \ldots
-\end{minipage}};
-\end{tikzpicture}
-
-\vspace{-0.65em}\begin{center}\color{earthybrown}\large$\vdots$\end{center}\vspace{-0.65em}
-
-\noindent\hfill\begin{tikzpicture}
-\node[draw=deepwine, fill=deepwineLight, rounded corners=8pt, inner sep=7pt]
-{\begin{minipage}{0.66\textwidth}
-\color{deepwine}\textbf{AI response 2}\par\smallskip
-\color{black}
-\ldots This asymmetry is fundamental and cannot be resolved by sampling tricks,
-loss modifications, or gradient preconditioning within the collocation
-framework. \ldots
-\end{minipage}};
-\end{tikzpicture}
-
-\vspace{-0.65em}\begin{center}\color{earthybrown}\large$\vdots$\end{center}\vspace{-0.65em}
-
-\noindent\hfill\begin{tikzpicture}
-\node[draw=deepwine, fill=deepwineLight, rounded corners=8pt, inner sep=7pt]
-{\begin{minipage}{0.66\textwidth}
-\color{deepwine}\textbf{AI response 3}\par\smallskip
-\color{black}
-\ldots Stick with SR + energy (or energy+variance) VMC. \ldots
-\end{minipage}};
-\end{tikzpicture}
-
-\vspace{0.7em}
-Artificial-intelligence systems were therefore used for discussion, planning,
-and review, rather than as a source of results. They helped turn observations
-into hypotheses that could be checked, suggested alternative diagnostics when a
-run failed, and reviewed the final prose for clarity and mistakes. The code, the
-experiments, the scientific judgments, and the text of this thesis were written
-by the author. In the final revision an AI coding assistant also helped write and
-run analysis scripts---the independent re-evaluation of the collocation energies,
-and the null model and bootstrap of the structural diagnostics---whose code and
-outputs are in the repository. All derivations and every numerical claim in this
-thesis have been checked by the author; where an AI system suggested an argument
-or pointed to a possible error, the argument was re-derived and the number
-recomputed before it was used. In particular, the recommendation shown above was not accepted as
-a methodological conclusion: it became one claim among several to investigate.
-The work that followed led to the collocation analysis reported in this thesis.
+The research questions, the scientific decisions and the conclusions are my own. No
+numerical result was taken from generated text: reported values come from the cited
+literature or from my saved calculations. I checked suggestions against derivations,
+sources, code or saved results before using them, and rejected those I could not support.
+I take full responsibility for the content, claims and references of this thesis.
 
 \clearpage

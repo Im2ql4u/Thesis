@@ -2333,3 +2333,22 @@ sentence, (b) mention SR's implementation cost in the thesis, (c) vectorise `_sc
 
 **Open (cluster):** 3 seeds for Table 6.2; sign-disagreement fraction; sector bond orders from
 canonical runs; chain autocorrelation time. Thesis_text needs a re-sync after this commit.
+
+## 2026-09-15 — Pre-submission triage review (3-hour window)
+
+Ran a compressed version of the exhaustive-review protocol: build integrity, claim ledger
+(abstract/intro/Ch.6/Ch.7/discussion/conclusion), recomputation of every derived number in those
+chapters from the thesis's own tables, source check on Ghosal et al. Report and script in
+`outputs/2026-09-15_thesis_review/` (REVIEW.md, recompute.py). No thesis text was edited.
+
+- No BLOCKING findings; all tabulated deviations and derived ratios recompute.
+- MAJOR: (1) the MCMC-free cascade to ω=0.0035 drifts monotonically to +1.6–2.2% above the
+  interpolation of our own SR energies, but is described as "converged" and "on the curve";
+  (2) the abstract's "variance lower by 1.2–3.4 at every confinement" is resolved only at the
+  seeded ω=0.01 row — tab:varEL itself shows a 2.5× within-architecture spread; (3) Ghosal et al.
+  PRB 76, 085341 (2007) / Nat. Phys. 2006 report radial-before-angular localisation in DMC for
+  N≤20 and are uncited.
+- MODERATE: ESS "15–32×" rests on a denominator the thesis calls noise; "modest optimisation
+  budget" contradicted by App. G (6–18 GPU-days); stale numbers left from before the re-evaluation in Ch.7;
+  N=12 bond-order values of unstated provenance; N=6 ω=10⁻³ r_mode inconsistent with the shell radius.
+- Not reached: sentence-level pass, full bibliography verification, derivations in theory/method.

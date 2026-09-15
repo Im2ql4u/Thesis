@@ -33,6 +33,11 @@
 % defaults to Norwegian, hence UKenglish; it also sets the sans-serif family to Helvetica,
 % which this document does not otherwise use.
 \usepackage[UKenglish]{uiomasterfp}
+% The cover keeps UiO's Helvetica; the inner title page is set in the thesis's own font.
+\makeatletter
+\let\uiomfp@origpageiii\uiomfp@page@iii
+\renewcommand{\uiomfp@page@iii}{{\normalfont\uiomfp@origpageiii}}
+\makeatother
 % hyperref last: PDF outline, clickable TOC, cross-references and citations.
 % Link colours are muted so the printed page still reads as plain text.
 \usepackage[hidelinks,bookmarks=true,bookmarksnumbered=true,bookmarksopen=true,
